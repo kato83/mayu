@@ -16,28 +16,21 @@ import (
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/parser"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/testhelper"
 )
-
-const defaultTestDBURL = "postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable"
-
-func testDatabaseURL() string {
-	if url := os.Getenv("DATABASE_URL"); url != "" {
-		return url
-	}
-	return defaultTestDBURL
-}
 
 func setupTestStore(t *testing.T) *store.PostgresStore {
 	t.Helper()
 	ctx := context.Background()
 
-	s, err := store.NewPostgresStore(ctx, testDatabaseURL())
+	pg := testhelper.SetupPostgres(t)
+
+	s, err := store.NewPostgresStore(ctx, pg.DatabaseURL)
 	if err != nil {
 		t.Fatalf("failed to connect to test database: %v", err)
 	}
 
 	t.Cleanup(func() {
-		s.CleanAll(ctx)
 		s.Close()
 	})
 
@@ -202,7 +195,7 @@ func TestDeltaImport(t *testing.T) {
 
 	// Set up an existing sync state (last synced at a time between old and new)
 	existingState := &store.SyncState{
-		Ecosystem:      "Go",
+		Source:         "Go",
 		LastModifiedAt: time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
 		RecordCount:    50,
 	}

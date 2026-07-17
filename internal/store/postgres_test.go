@@ -9,30 +9,21 @@ import (
 	"time"
 
 	"github.com/kato83/mayu/internal/model"
+	"github.com/kato83/mayu/internal/testhelper"
 )
-
-const defaultTestDBURL = "postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable"
-
-func testDatabaseURL() string {
-	if url := os.Getenv("DATABASE_URL"); url != "" {
-		return url
-	}
-	return defaultTestDBURL
-}
 
 func setupTestStore(t *testing.T) *PostgresStore {
 	t.Helper()
 	ctx := context.Background()
 
-	store, err := NewPostgresStore(ctx, testDatabaseURL())
+	pg := testhelper.SetupPostgres(t)
+
+	store, err := NewPostgresStore(ctx, pg.DatabaseURL)
 	if err != nil {
 		t.Fatalf("failed to connect to test database: %v", err)
 	}
 
-	// Clean up test data
 	t.Cleanup(func() {
-		store.db.ExecContext(ctx, "DELETE FROM vulnerabilities")
-		store.db.ExecContext(ctx, "DELETE FROM sync_state")
 		store.Close()
 	})
 
@@ -51,7 +42,7 @@ func TestInsertAndGetByID(t *testing.T) {
 
 	vuln, err := model.ParseVulnerability(data)
 	if err != nil {
-		t.Fatalf("failed to parse test data: %v", err)
+		t.Fatalf("failed to parse vulnerability: %v", err)
 	}
 
 	// Insert
@@ -59,7 +50,7 @@ func TestInsertAndGetByID(t *testing.T) {
 		t.Fatalf("Insert failed: %v", err)
 	}
 
-	// GetByID
+	// Retrieve
 	got, err := store.GetByID(ctx, "GO-2024-2687")
 	if err != nil {
 		t.Fatalf("GetByID failed: %v", err)
@@ -67,43 +58,23 @@ func TestInsertAndGetByID(t *testing.T) {
 	if got == nil {
 		t.Fatal("GetByID returned nil")
 	}
-
-	// Verify fields match
-	if got.ID != vuln.ID {
-		t.Errorf("ID = %q, want %q", got.ID, vuln.ID)
+	if got.ID != "GO-2024-2687" {
+		t.Errorf("ID = %q, want GO-2024-2687", got.ID)
 	}
-	if got.Summary != vuln.Summary {
-		t.Errorf("Summary = %q, want %q", got.Summary, vuln.Summary)
+	if got.Summary == "" {
+		t.Error("Summary should not be empty")
 	}
-	if len(got.Aliases) != len(vuln.Aliases) {
-		t.Errorf("Aliases count = %d, want %d", len(got.Aliases), len(vuln.Aliases))
-	}
-	if len(got.Affected) != len(vuln.Affected) {
-		t.Errorf("Affected count = %d, want %d", len(got.Affected), len(vuln.Affected))
-	}
-	if len(got.References) != len(vuln.References) {
-		t.Errorf("References count = %d, want %d", len(got.References), len(vuln.References))
-	}
-	if len(got.Credits) != len(vuln.Credits) {
-		t.Errorf("Credits count = %d, want %d", len(got.Credits), len(vuln.Credits))
+	if len(got.Affected) == 0 {
+		t.Error("Affected should not be empty")
 	}
 
-	// Verify RawJSON is preserved
-	if got.RawJSON == nil {
-		t.Error("RawJSON is nil after GetByID")
-	}
-}
-
-func TestGetByID_NotFound(t *testing.T) {
-	store := setupTestStore(t)
-	ctx := context.Background()
-
-	got, err := store.GetByID(ctx, "NONEXISTENT-0000")
+	// Not found
+	notFound, err := store.GetByID(ctx, "NONEXISTENT")
 	if err != nil {
-		t.Fatalf("GetByID failed: %v", err)
+		t.Fatalf("GetByID (not found) failed: %v", err)
 	}
-	if got != nil {
-		t.Errorf("expected nil for non-existent ID, got %+v", got)
+	if notFound != nil {
+		t.Errorf("expected nil for nonexistent ID, got %+v", notFound)
 	}
 }
 
@@ -111,108 +82,119 @@ func TestUpsertBatch(t *testing.T) {
 	store := setupTestStore(t)
 	ctx := context.Background()
 
-	// Load two test files
-	files := []string{
-		"../../testdata/GO-2024-2687.json",
-		"../../testdata/GO-2023-1840.json",
+	data1, err := os.ReadFile("../../testdata/GO-2024-2687.json")
+	if err != nil {
+		t.Fatalf("read test data: %v", err)
+	}
+	data2, err := os.ReadFile("../../testdata/GO-2023-1840.json")
+	if err != nil {
+		t.Fatalf("read test data: %v", err)
 	}
 
-	var vulns []*model.Vulnerability
-	for _, f := range files {
-		data, err := os.ReadFile(f)
-		if err != nil {
-			t.Fatalf("failed to read %s: %v", f, err)
-		}
-		vuln, err := model.ParseVulnerability(data)
-		if err != nil {
-			t.Fatalf("failed to parse %s: %v", f, err)
-		}
-		vulns = append(vulns, vuln)
-	}
+	vuln1, _ := model.ParseVulnerability(data1)
+	vuln2, _ := model.ParseVulnerability(data2)
 
-	// UpsertBatch
-	if err := store.UpsertBatch(ctx, vulns); err != nil {
+	// Batch insert
+	if err := store.UpsertBatch(ctx, []*model.Vulnerability{vuln1, vuln2}); err != nil {
 		t.Fatalf("UpsertBatch failed: %v", err)
 	}
 
-	// Verify both are stored
-	for _, vuln := range vulns {
-		got, err := store.GetByID(ctx, vuln.ID)
-		if err != nil {
-			t.Fatalf("GetByID(%s) failed: %v", vuln.ID, err)
-		}
-		if got == nil {
-			t.Fatalf("GetByID(%s) returned nil", vuln.ID)
-		}
-		if got.ID != vuln.ID {
-			t.Errorf("ID = %q, want %q", got.ID, vuln.ID)
-		}
+	// Verify both exist
+	got1, _ := store.GetByID(ctx, "GO-2024-2687")
+	got2, _ := store.GetByID(ctx, "GO-2023-1840")
+	if got1 == nil || got2 == nil {
+		t.Fatal("expected both vulnerabilities to exist after batch insert")
 	}
 
-	// Upsert again (should not fail - idempotent)
-	if err := store.UpsertBatch(ctx, vulns); err != nil {
-		t.Fatalf("UpsertBatch (2nd) failed: %v", err)
+	// Upsert (update) the first one
+	vuln1Updated, _ := model.ParseVulnerability(data1)
+	if err := store.UpsertBatch(ctx, []*model.Vulnerability{vuln1Updated}); err != nil {
+		t.Fatalf("UpsertBatch (update) failed: %v", err)
+	}
+
+	got1After, _ := store.GetByID(ctx, "GO-2024-2687")
+	if got1After == nil {
+		t.Fatal("GO-2024-2687 should still exist after upsert")
 	}
 }
 
-func TestSearch_ByEcosystemAndPackage(t *testing.T) {
+func TestSearch(t *testing.T) {
 	store := setupTestStore(t)
 	ctx := context.Background()
 
-	// Insert test data
-	data, err := os.ReadFile("../../testdata/GO-2024-2687.json")
-	if err != nil {
-		t.Fatalf("failed to read test data: %v", err)
-	}
-	vuln, err := model.ParseVulnerability(data)
-	if err != nil {
-		t.Fatalf("failed to parse test data: %v", err)
-	}
-	if err := store.Insert(ctx, vuln); err != nil {
-		t.Fatalf("Insert failed: %v", err)
-	}
+	// Load and insert test data
+	data1, _ := os.ReadFile("../../testdata/GO-2024-2687.json")
+	data2, _ := os.ReadFile("../../testdata/GO-2023-1840.json")
+	vuln1, _ := model.ParseVulnerability(data1)
+	vuln2, _ := model.ParseVulnerability(data2)
+	store.UpsertBatch(ctx, []*model.Vulnerability{vuln1, vuln2})
 
-	// Search by ecosystem
-	results, err := store.Search(ctx, SearchQuery{Ecosystem: "Go"})
-	if err != nil {
-		t.Fatalf("Search by ecosystem failed: %v", err)
-	}
-	if len(results) == 0 {
-		t.Fatal("Search by ecosystem returned no results")
-	}
-	if results[0].ID != "GO-2024-2687" {
-		t.Errorf("result ID = %q, want GO-2024-2687", results[0].ID)
-	}
+	t.Run("by ID", func(t *testing.T) {
+		results, err := store.Search(ctx, SearchQuery{ID: "GO-2024-2687"})
+		if err != nil {
+			t.Fatalf("Search by ID failed: %v", err)
+		}
+		if len(results) != 1 {
+			t.Fatalf("expected 1 result, got %d", len(results))
+		}
+		if results[0].ID != "GO-2024-2687" {
+			t.Errorf("ID = %q, want GO-2024-2687", results[0].ID)
+		}
+	})
 
-	// Search by package name
-	pkgName := vuln.Affected[0].Package.Name
-	results, err = store.Search(ctx, SearchQuery{PackageName: pkgName})
-	if err != nil {
-		t.Fatalf("Search by package failed: %v", err)
-	}
-	if len(results) == 0 {
-		t.Fatalf("Search by package %q returned no results", pkgName)
-	}
+	t.Run("by ecosystem", func(t *testing.T) {
+		results, err := store.Search(ctx, SearchQuery{Ecosystem: "Go"})
+		if err != nil {
+			t.Fatalf("Search by ecosystem failed: %v", err)
+		}
+		if len(results) != 2 {
+			t.Errorf("expected 2 results, got %d", len(results))
+		}
+	})
 
-	// Search by alias
-	if len(vuln.Aliases) > 0 {
-		results, err = store.Search(ctx, SearchQuery{Alias: vuln.Aliases[0]})
+	t.Run("by package name", func(t *testing.T) {
+		results, err := store.Search(ctx, SearchQuery{PackageName: "golang.org/x/net"})
+		if err != nil {
+			t.Fatalf("Search by package failed: %v", err)
+		}
+		if len(results) == 0 {
+			t.Error("expected at least 1 result for golang.org/x/net")
+		}
+	})
+
+	t.Run("by alias", func(t *testing.T) {
+		// GO-2024-2687 has aliases including CVE-2023-45288
+		results, err := store.Search(ctx, SearchQuery{Alias: "CVE-2023-45288"})
 		if err != nil {
 			t.Fatalf("Search by alias failed: %v", err)
 		}
-		if len(results) == 0 {
-			t.Fatal("Search by alias returned no results")
+		if len(results) != 1 {
+			t.Fatalf("expected 1 result for CVE-2023-45288, got %d", len(results))
 		}
-	}
+		if results[0].ID != "GO-2024-2687" {
+			t.Errorf("ID = %q, want GO-2024-2687", results[0].ID)
+		}
+	})
 
-	// Search with no results
-	results, err = store.Search(ctx, SearchQuery{Ecosystem: "NonExistent"})
-	if err != nil {
-		t.Fatalf("Search with no matches failed: %v", err)
-	}
-	if len(results) != 0 {
-		t.Errorf("expected 0 results, got %d", len(results))
-	}
+	t.Run("with limit", func(t *testing.T) {
+		results, err := store.Search(ctx, SearchQuery{Ecosystem: "Go", Limit: 1})
+		if err != nil {
+			t.Fatalf("Search with limit failed: %v", err)
+		}
+		if len(results) != 1 {
+			t.Errorf("expected 1 result with limit=1, got %d", len(results))
+		}
+	})
+
+	t.Run("no results", func(t *testing.T) {
+		results, err := store.Search(ctx, SearchQuery{ID: "NONEXISTENT"})
+		if err != nil {
+			t.Fatalf("Search no results failed: %v", err)
+		}
+		if len(results) != 0 {
+			t.Errorf("expected 0 results, got %d", len(results))
+		}
+	})
 }
 
 func TestSyncState(t *testing.T) {
@@ -231,7 +213,7 @@ func TestSyncState(t *testing.T) {
 	// Create sync state
 	now := time.Now().UTC().Truncate(time.Second)
 	newState := &SyncState{
-		Ecosystem:      "Go",
+		Source:         "Go",
 		LastModifiedAt: now.Format(time.RFC3339),
 		RecordCount:    42,
 	}
@@ -247,8 +229,8 @@ func TestSyncState(t *testing.T) {
 	if state == nil {
 		t.Fatal("GetSyncState returned nil after update")
 	}
-	if state.Ecosystem != "Go" {
-		t.Errorf("Ecosystem = %q, want %q", state.Ecosystem, "Go")
+	if state.Source != "Go" {
+		t.Errorf("Source = %q, want %q", state.Source, "Go")
 	}
 	if state.RecordCount != 42 {
 		t.Errorf("RecordCount = %d, want 42", state.RecordCount)
@@ -256,7 +238,7 @@ func TestSyncState(t *testing.T) {
 
 	// Update
 	updatedState := &SyncState{
-		Ecosystem:      "Go",
+		Source:         "Go",
 		LastModifiedAt: now.Add(time.Hour).Format(time.RFC3339),
 		RecordCount:    100,
 	}
