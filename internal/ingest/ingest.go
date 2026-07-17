@@ -83,7 +83,8 @@ func New(f *fetcher.Fetcher, p *parser.Parser, s store.Store, opts ...Option) *I
 }
 
 // FullImport performs a full import for the given ecosystem by downloading
-// the all.zip, parsing all entries, and storing them in the database.
+// the all.zip, parsing entries in streaming fashion, and storing them in
+// batches to minimize memory usage.
 func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, error) {
 	start := time.Now()
 	stats := &Stats{
@@ -91,59 +92,71 @@ func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, 
 		IsFullSync: true,
 	}
 
-	// Phase 1: Download
+	// Phase 1: Download and start streaming
 	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Downloading %s/all.zip...", ecosystem)})
 
-	files, err := ing.fetcher.FetchAllZip(ctx, ecosystem, func(current, total int) {
-		ing.progress(Progress{Phase: "download", Current: current, Total: total})
-	})
+	entries, errCh, err := ing.fetcher.StreamAllZip(ctx, ecosystem)
 	if err != nil {
 		return nil, fmt.Errorf("fetch all.zip for %s: %w", ecosystem, err)
 	}
 
-	stats.Total = len(files)
-	ing.progress(Progress{Phase: "download", Current: stats.Total, Total: stats.Total, Message: fmt.Sprintf("Downloaded %d files", stats.Total)})
+	// Phase 2+3: Stream parse and store in batches
+	ing.progress(Progress{Phase: "store", Message: "Processing entries..."})
 
-	// Phase 2: Parse
-	ing.progress(Progress{Phase: "parse", Message: fmt.Sprintf("Parsing %d entries...", stats.Total)})
+	batch := make([]*model.Vulnerability, 0, ing.batchSize)
+	processed := 0
 
-	result, err := ing.parser.ParseBatch(files)
-	if err != nil {
-		return nil, fmt.Errorf("parse batch: %w", err)
+	for entry := range entries {
+		vuln, err := ing.parser.Parse(entry.Data)
+		if err != nil {
+			stats.Errors++
+			ing.logger.Printf("parse error: %s: %v", entry.Name, err)
+			continue
+		}
+
+		batch = append(batch, vuln)
+		processed++
+
+		// Flush batch when full
+		if len(batch) >= ing.batchSize {
+			if err := ing.store.UpsertBatch(ctx, batch); err != nil {
+				return nil, fmt.Errorf("upsert batch: %w", err)
+			}
+			stats.Inserted += len(batch)
+			batch = batch[:0] // Reset slice, reuse backing array
+
+			ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: 0, Message: fmt.Sprintf("Stored %d entries...", stats.Inserted)})
+		}
 	}
 
-	stats.Skipped = len(result.Errors)
-	stats.Errors = len(result.Errors)
-	for _, e := range result.Errors {
-		ing.logger.Printf("parse error: %s: %v", e.ID, e.Error)
+	// Check for streaming errors
+	if streamErr := <-errCh; streamErr != nil {
+		return nil, fmt.Errorf("stream zip: %w", streamErr)
 	}
 
-	ing.progress(Progress{Phase: "parse", Current: len(result.Vulnerabilities), Total: stats.Total, Message: fmt.Sprintf("Parsed %d entries (%d errors)", len(result.Vulnerabilities), stats.Errors)})
-
-	// Phase 3: Store in batches
-	ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Storing %d vulnerabilities...", len(result.Vulnerabilities))})
-
-	inserted, err := ing.storeBatches(ctx, result.Vulnerabilities)
-	if err != nil {
-		return nil, fmt.Errorf("store vulnerabilities: %w", err)
+	// Flush remaining batch
+	if len(batch) > 0 {
+		if err := ing.store.UpsertBatch(ctx, batch); err != nil {
+			return nil, fmt.Errorf("upsert final batch: %w", err)
+		}
+		stats.Inserted += len(batch)
 	}
-	stats.Inserted = inserted
+
+	stats.Total = processed + stats.Errors
+	stats.Skipped = stats.Errors
 
 	// Update sync state
-	lastModified := findLatestModified(result.Vulnerabilities)
-	if !lastModified.IsZero() {
-		syncState := &store.SyncState{
-			Ecosystem:      ecosystem,
-			LastModifiedAt: lastModified.Format(time.RFC3339),
-			RecordCount:    int64(stats.Inserted),
-		}
-		if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
-			ing.logger.Printf("warning: failed to update sync state: %v", err)
-		}
+	syncState := &store.SyncState{
+		Ecosystem:      ecosystem,
+		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
+		RecordCount:    int64(stats.Inserted),
+	}
+	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
+		ing.logger.Printf("warning: failed to update sync state: %v", err)
 	}
 
 	stats.Duration = time.Since(start)
-	ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: len(result.Vulnerabilities), Message: fmt.Sprintf("Done: %d inserted in %s", stats.Inserted, stats.Duration.Round(time.Millisecond))})
+	ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: stats.Total, Message: fmt.Sprintf("Done: %d inserted in %s", stats.Inserted, stats.Duration.Round(time.Millisecond))})
 
 	return stats, nil
 }
