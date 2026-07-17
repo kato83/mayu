@@ -65,6 +65,7 @@ func runIngest(args []string) error {
 	fs := flag.NewFlagSet("ingest", flag.ExitOnError)
 
 	ecosystem := fs.String("ecosystem", "", "Ecosystem to import (e.g., Go, PyPI, npm)")
+	source := fs.String("source", "", "Import from converted source (nvd, debian)")
 	all := fs.Bool("all", false, "Import all ecosystems")
 	update := fs.Bool("update", false, "Perform delta update instead of full import")
 	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
@@ -79,9 +80,11 @@ func runIngest(args []string) error {
 		fs.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  mayu ingest --ecosystem go")
-		fmt.Println("  mayu ingest --ecosystem go --update")
+		fmt.Println("  mayu ingest --ecosystem Go")
+		fmt.Println("  mayu ingest --ecosystem Go --update")
 		fmt.Println("  mayu ingest --all")
+		fmt.Println("  mayu ingest --source nvd")
+		fmt.Println("  mayu ingest --source debian")
 		fmt.Println("  mayu ingest --ecosystem PyPI --db-url postgres://user:pass@host/db")
 	}
 
@@ -90,8 +93,8 @@ func runIngest(args []string) error {
 	}
 
 	// Validate flags
-	if !*all && *ecosystem == "" {
-		return fmt.Errorf("either --ecosystem or --all is required")
+	if !*all && *ecosystem == "" && *source == "" {
+		return fmt.Errorf("either --ecosystem, --source, or --all is required")
 	}
 
 	// Resolve database URL
@@ -117,6 +120,25 @@ func runIngest(args []string) error {
 		ingest.WithBatchSize(*batchSize),
 		ingest.WithProgress(printProgress),
 	)
+
+	// Handle --source (converted data sources)
+	if *source != "" {
+		src := ingest.GetConvertedSource(*source)
+		if src == nil {
+			return fmt.Errorf("unknown source: %q (supported: nvd, debian)", *source)
+		}
+		fmt.Printf("\n=== Importing %s (converted source: gs://%s/%s) ===\n", src.Name, src.Bucket, src.Prefix)
+		stats, err := ing.ImportConvertedSource(ctx, *src)
+		if err != nil {
+			if ctx.Err() != nil {
+				fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+				return nil
+			}
+			return fmt.Errorf("import %s: %w", src.Name, err)
+		}
+		printStats(stats)
+		return nil
+	}
 
 	// Determine ecosystems to import
 	ecosystems, err := resolveEcosystems(*all, *ecosystem)

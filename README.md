@@ -136,8 +136,9 @@ Print version information.
 |--------|--------|--------|
 | [OSV](https://osv.dev/) | ✅ Supported | GCS bucket (`gs://osv-vulnerabilities/`) |
 | NVD (via OSV) | ✅ Supported | Included in OSV data |
+| [NVD CVE (converted)](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ Supported | `mayu ingest --source nvd` |
+| [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
 | KEV | 🔜 Planned | — |
-| MITRE CVE | 🔜 Planned | — |
 | EPSS | 🔜 Planned | — |
 
 ## Development

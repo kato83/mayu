@@ -51,12 +51,14 @@ Data Sources:
 ## Data Strategy
 
 - **Primary Source**: OSV GCS Bucket (`gs://osv-vulnerabilities/`)
+- **Converted Sources**: NVD (`gs://cve-osv-conversion/osv-output/`), Debian (`gs://debian-osv/debian-cve-osv/`)
 - **Schema**: OSV Schema v1.8.0 をそのまま正規化スキーマとして採用
 - **Reversibility**: 生JSON全体を `raw_json` (JSONB) として保持し、可逆性を担保
 - **Ingestion**: バッチ型（GCSからダンプ取り込み）
 - **Delta Sync**: `modified_id.csv` で差分取得（逆時系列ソート済み）
+- **Converted Source Ingestion**: GCS XML APIでバケット内ファイル一覧を取得し、個別JSONをダウンロード
 - **Ecosystem**: まずGoから、最終的には全エコシステム対応
-- **Future Sources**: KEV, MITRE CVE, EPSS は専用テーブルとして追加
+- **Future Sources**: KEV, EPSS は専用テーブルとして追加
 
 ## Project Structure
 
@@ -133,8 +135,9 @@ mayu/
 
 ### Phase 6: Additional Data Sources (Future)
 
+- ✅ NVD CVE (OSV変換済み、`gs://cve-osv-conversion/osv-output/`) - `mayu ingest --source nvd`
+- ✅ Debian Security Advisories (`gs://debian-osv/debian-cve-osv/`) - `mayu ingest --source debian`
 - KEV (Known Exploited Vulnerabilities) 対応
-- MITRE CVE 直接取り込み
 - EPSS (Exploit Prediction Scoring System) 対応
 - 各ソース専用テーブル追加
 
