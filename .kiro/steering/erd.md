@@ -18,8 +18,7 @@ erDiagram
     }
 
     osv_entries {
-        BIGINT id PK
-        TEXT osv_id UK "Original OSV ID"
+        TEXT osv_id PK "Original OSV ID"
         TEXT vulnerability_id FK
         TEXT schema_version
         JSONB raw_json
@@ -28,7 +27,7 @@ erDiagram
 
     osv_affected_packages {
         BIGINT id PK
-        BIGINT osv_entry_id FK
+        TEXT osv_entry_id FK "References osv_entries.osv_id"
         TEXT ecosystem
         TEXT name
         TEXT purl
@@ -48,7 +47,7 @@ erDiagram
 
     osv_severity {
         BIGINT id PK
-        BIGINT osv_entry_id FK
+        TEXT osv_entry_id FK "References osv_entries.osv_id"
         BIGINT affected_package_id FK "nullable"
         TEXT severity_type
         TEXT score
@@ -57,14 +56,14 @@ erDiagram
 
     osv_references {
         BIGINT id PK
-        BIGINT osv_entry_id FK
+        TEXT osv_entry_id FK "References osv_entries.osv_id"
         TEXT reference_type
         TEXT url
     }
 
     osv_credits {
         BIGINT id PK
-        BIGINT osv_entry_id FK
+        TEXT osv_entry_id FK "References osv_entries.osv_id"
         TEXT name
         TEXT[] contact
         TEXT credit_type
