@@ -42,6 +42,20 @@ func (s *PostgresStore) Close() error {
 	return s.db.Close()
 }
 
+// CleanAll removes all data from all tables. Used for testing only.
+func (s *PostgresStore) CleanAll(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx, `
+		DELETE FROM sync_state;
+		DELETE FROM credits;
+		DELETE FROM references_;
+		DELETE FROM severity;
+		DELETE FROM affected_ranges;
+		DELETE FROM affected_packages;
+		DELETE FROM vulnerabilities;
+	`)
+	return err
+}
+
 // Insert stores a single vulnerability and all its related data.
 func (s *PostgresStore) Insert(ctx context.Context, vuln *model.Vulnerability) error {
 	tx, err := s.db.BeginTx(ctx, nil)
