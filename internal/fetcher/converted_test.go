@@ -1,9 +1,12 @@
 package fetcher
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	neturl "net/url"
+	"strings"
 	"testing"
 )
 
@@ -155,4 +158,105 @@ func TestListBucketObjects_Pagination(t *testing.T) {
 	_ = f
 	_ = server
 	_ = fullServer
+}
+
+func TestSanitizeObjectKey(t *testing.T) {
+	tests := []struct {
+		name    string
+		key     string
+		want    string
+		wantErr bool
+	}{
+		{"simple key", "osv-output/CVE-2024-0001.json", "osv-output/CVE-2024-0001.json", false},
+		{"key with space", "dir/my file.json", "dir/my%20file.json", false},
+		{"key needing escape", "dir/a?b&c.json", "dir/a%3Fb&c.json", false},
+		{"empty", "", "", true},
+		{"absolute", "/etc/passwd", "", true},
+		{"traversal", "osv-output/../../secret.json", "", true},
+		{"dot segment", "osv-output/./x.json", "", true},
+		{"trailing slash empty segment", "osv-output/", "", true},
+		{"double slash", "osv-output//x.json", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := sanitizeObjectKey(tt.key)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("sanitizeObjectKey(%q) error = %v, wantErr %v", tt.key, err, tt.wantErr)
+			}
+			if !tt.wantErr && got != tt.want {
+				t.Errorf("sanitizeObjectKey(%q) = %q, want %q", tt.key, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFetchConvertedSource_SkipsMaliciousKeys(t *testing.T) {
+	// Listing contains a traversal key that must never be fetched.
+	xmlListing := `<?xml version='1.0' encoding='UTF-8'?>
+<ListBucketResult xmlns='http://doc.s3.amazonaws.com/2006-03-01'>
+  <IsTruncated>false</IsTruncated>
+  <Contents><Key>osv-output/../../other-bucket/evil.json</Key><Size>1</Size></Contents>
+  <Contents><Key>osv-output/CVE-2024-0001.json</Key><Size>10</Size></Contents>
+</ListBucketResult>`
+
+	var fetchedPaths []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("prefix") != "" {
+			w.Header().Set("Content-Type", "application/xml")
+			_, _ = w.Write([]byte(xmlListing))
+			return
+		}
+		fetchedPaths = append(fetchedPaths, r.URL.Path)
+		if strings.Contains(r.URL.Path, "..") || strings.Contains(r.URL.Path, "other-bucket") {
+			t.Errorf("malicious key was fetched: %s", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"id":"CVE-2024-0001"}`))
+	}))
+	defer server.Close()
+
+	// Point the GCS host to our test server by overriding the transport.
+	f := New(WithHTTPClient(&http.Client{
+		Transport: rewriteHostTransport{target: server.URL},
+	}))
+
+	source := ConvertedSource{Name: "Test", Bucket: "test-bucket", Prefix: "osv-output/"}
+	results, err := f.FetchConvertedSource(context.Background(), source, nil)
+	if err != nil {
+		t.Fatalf("FetchConvertedSource failed: %v", err)
+	}
+
+	// Only the safe key should have been fetched and stored.
+	if _, ok := results["CVE-2024-0001"]; !ok {
+		t.Errorf("expected safe key CVE-2024-0001 in results, got %v", keysOf(results))
+	}
+	for _, p := range fetchedPaths {
+		if strings.Contains(p, "..") || strings.Contains(p, "other-bucket") {
+			t.Errorf("malicious path fetched: %s", p)
+		}
+	}
+}
+
+func keysOf(m map[string][]byte) []string {
+	ks := make([]string, 0, len(m))
+	for k := range m {
+		ks = append(ks, k)
+	}
+	return ks
+}
+
+// rewriteHostTransport rewrites all outgoing request hosts to a target test server.
+type rewriteHostTransport struct {
+	target string
+}
+
+func (t rewriteHostTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	tu, err := neturl.Parse(t.target)
+	if err != nil {
+		return nil, err
+	}
+	req.URL.Scheme = tu.Scheme
+	req.URL.Host = tu.Host
+	req.Host = tu.Host
+	return http.DefaultTransport.RoundTrip(req)
 }

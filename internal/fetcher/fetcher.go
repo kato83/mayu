@@ -14,19 +14,53 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
+	"regexp"
 	"strings"
+	"time"
 )
 
 const (
 	// DefaultBaseURL is the base URL for the OSV GCS bucket.
 	DefaultBaseURL = "https://storage.googleapis.com/osv-vulnerabilities"
+
+	// DefaultHTTPTimeout is the default timeout for HTTP requests.
+	DefaultHTTPTimeout = 5 * time.Minute
+
+	// MaxResponseSize is the maximum allowed HTTP response body size (2 GB).
+	// This prevents memory exhaustion from unexpectedly large responses.
+	MaxResponseSize = 2 * 1024 * 1024 * 1024 // 2 GB
+
+	// MaxZipTotalSize is the maximum total extracted size from a zip archive (4 GB).
+	MaxZipTotalSize = 4 * 1024 * 1024 * 1024 // 4 GB
+
+	// MaxZipEntries is the maximum number of entries allowed in a zip archive.
+	MaxZipEntries = 500_000
 )
 
 // Fetcher downloads OSV vulnerability data from the GCS bucket.
 type Fetcher struct {
 	baseURL    string
 	httpClient *http.Client
+}
+
+// validPathSegment matches safe path segment characters (alphanumeric, dash, dot, underscore, space).
+// This prevents path traversal and SSRF via malicious ecosystem or ID values.
+var validPathSegment = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9\-._: ]*$`)
+
+// validatePathSegment checks that a string is safe to use as a URL path segment.
+func validatePathSegment(name, value string) error {
+	if value == "" {
+		return fmt.Errorf("%s must not be empty", name)
+	}
+	if strings.Contains(value, "..") {
+		return fmt.Errorf("%s contains path traversal sequence", name)
+	}
+	if !validPathSegment.MatchString(value) {
+		return fmt.Errorf("%s contains invalid characters: %q", name, value)
+	}
+	return nil
 }
 
 // Option configures a Fetcher.
@@ -49,8 +83,10 @@ func WithHTTPClient(client *http.Client) Option {
 // New creates a new Fetcher with the given options.
 func New(opts ...Option) *Fetcher {
 	f := &Fetcher{
-		baseURL:    DefaultBaseURL,
-		httpClient: http.DefaultClient,
+		baseURL: DefaultBaseURL,
+		httpClient: &http.Client{
+			Timeout: DefaultHTTPTimeout,
+		},
 	}
 	for _, opt := range opts {
 		opt(f)
@@ -62,11 +98,15 @@ func New(opts ...Option) *Fetcher {
 // It returns a map of filename → JSON content for each vulnerability file.
 // The callback (if non-nil) is called with progress info: (current, total).
 func (f *Fetcher) FetchAllZip(ctx context.Context, ecosystem string, progress func(current, total int)) (map[string][]byte, error) {
-	url := fmt.Sprintf("%s/%s/all.zip", f.baseURL, ecosystem)
+	if err := validatePathSegment("ecosystem", ecosystem); err != nil {
+		return nil, err
+	}
 
-	data, err := f.download(ctx, url)
+	u := fmt.Sprintf("%s/%s/all.zip", f.baseURL, url.PathEscape(ecosystem))
+
+	data, err := f.download(ctx, u)
 	if err != nil {
-		return nil, fmt.Errorf("download %s: %w", url, err)
+		return nil, fmt.Errorf("download %s: %w", u, err)
 	}
 
 	return f.extractZip(data, progress)
@@ -74,11 +114,18 @@ func (f *Fetcher) FetchAllZip(ctx context.Context, ecosystem string, progress fu
 
 // FetchVulnerability downloads a single vulnerability JSON by ecosystem and ID.
 func (f *Fetcher) FetchVulnerability(ctx context.Context, ecosystem, id string) ([]byte, error) {
-	url := fmt.Sprintf("%s/%s/%s.json", f.baseURL, ecosystem, id)
+	if err := validatePathSegment("ecosystem", ecosystem); err != nil {
+		return nil, err
+	}
+	if err := validatePathSegment("id", id); err != nil {
+		return nil, err
+	}
 
-	data, err := f.download(ctx, url)
+	u := fmt.Sprintf("%s/%s/%s.json", f.baseURL, url.PathEscape(ecosystem), url.PathEscape(id))
+
+	data, err := f.download(ctx, u)
 	if err != nil {
-		return nil, fmt.Errorf("download %s: %w", url, err)
+		return nil, fmt.Errorf("download %s: %w", u, err)
 	}
 
 	return data, nil
@@ -87,11 +134,15 @@ func (f *Fetcher) FetchVulnerability(ctx context.Context, ecosystem, id string) 
 // FetchModifiedCSV downloads the modified_id.csv for a given ecosystem.
 // Returns the raw CSV content.
 func (f *Fetcher) FetchModifiedCSV(ctx context.Context, ecosystem string) ([]byte, error) {
-	url := fmt.Sprintf("%s/%s/modified_id.csv", f.baseURL, ecosystem)
+	if err := validatePathSegment("ecosystem", ecosystem); err != nil {
+		return nil, err
+	}
 
-	data, err := f.download(ctx, url)
+	u := fmt.Sprintf("%s/%s/modified_id.csv", f.baseURL, url.PathEscape(ecosystem))
+
+	data, err := f.download(ctx, u)
 	if err != nil {
-		return nil, fmt.Errorf("download %s: %w", url, err)
+		return nil, fmt.Errorf("download %s: %w", u, err)
 	}
 
 	return data, nil
@@ -100,11 +151,11 @@ func (f *Fetcher) FetchModifiedCSV(ctx context.Context, ecosystem string) ([]byt
 // FetchTopLevelModifiedCSV downloads the top-level modified_id.csv
 // that spans all ecosystems.
 func (f *Fetcher) FetchTopLevelModifiedCSV(ctx context.Context) ([]byte, error) {
-	url := fmt.Sprintf("%s/modified_id.csv", f.baseURL)
+	u := fmt.Sprintf("%s/modified_id.csv", f.baseURL)
 
-	data, err := f.download(ctx, url)
+	data, err := f.download(ctx, u)
 	if err != nil {
-		return nil, fmt.Errorf("download %s: %w", url, err)
+		return nil, fmt.Errorf("download %s: %w", u, err)
 	}
 
 	return data, nil
@@ -127,9 +178,14 @@ func (f *Fetcher) download(ctx context.Context, url string) ([]byte, error) {
 		return nil, fmt.Errorf("unexpected status %d for %s", resp.StatusCode, url)
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	// Limit response body to MaxResponseSize to prevent memory exhaustion.
+	limited := io.LimitReader(resp.Body, MaxResponseSize+1)
+	data, err := io.ReadAll(limited)
 	if err != nil {
 		return nil, fmt.Errorf("read response body: %w", err)
+	}
+	if int64(len(data)) > MaxResponseSize {
+		return nil, fmt.Errorf("response body exceeds maximum size of %d bytes for %s", MaxResponseSize, url)
 	}
 
 	return data, nil
@@ -143,16 +199,20 @@ func (f *Fetcher) extractZip(data []byte, progress func(current, total int)) (ma
 		return nil, fmt.Errorf("open zip: %w", err)
 	}
 
-	// Count JSON files for progress
+	// Count JSON files for progress and enforce entry limit
 	total := 0
 	for _, file := range reader.File {
 		if strings.HasSuffix(file.Name, ".json") {
 			total++
 		}
 	}
+	if total > MaxZipEntries {
+		return nil, fmt.Errorf("zip contains %d entries, exceeding maximum of %d", total, MaxZipEntries)
+	}
 
 	results := make(map[string][]byte, total)
 	current := 0
+	var totalSize int64
 
 	for _, file := range reader.File {
 		if !strings.HasSuffix(file.Name, ".json") {
@@ -162,6 +222,11 @@ func (f *Fetcher) extractZip(data []byte, progress func(current, total int)) (ma
 		content, err := readZipFile(file)
 		if err != nil {
 			return nil, fmt.Errorf("read %s from zip: %w", file.Name, err)
+		}
+
+		totalSize += int64(len(content))
+		if totalSize > MaxZipTotalSize {
+			return nil, fmt.Errorf("zip total extracted size exceeds maximum of %d bytes", MaxZipTotalSize)
 		}
 
 		// Use filename without path and extension as key

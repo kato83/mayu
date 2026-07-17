@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"net/url"
 	"strings"
 )
 
@@ -71,8 +72,16 @@ func (f *Fetcher) FetchConvertedSource(ctx context.Context, source ConvertedSour
 		default:
 		}
 
-		url := fmt.Sprintf("https://storage.googleapis.com/%s/%s", source.Bucket, key)
-		data, err := f.download(ctx, url)
+		// Server-provided key: reject traversal and escape each path segment
+		// while preserving "/" separators, to prevent URL escape / injection.
+		safeKey, err := sanitizeObjectKey(key)
+		if err != nil {
+			// Skip malicious/malformed keys and continue.
+			continue
+		}
+
+		u := fmt.Sprintf("https://storage.googleapis.com/%s/%s", source.Bucket, safeKey)
+		data, err := f.download(ctx, u)
 		if err != nil {
 			// Skip individual file errors, log and continue
 			continue
@@ -100,13 +109,26 @@ func (f *Fetcher) listBucketObjects(ctx context.Context, bucket, prefix string) 
 	var allKeys []string
 	marker := ""
 
+	// maxPages prevents infinite loops if the server returns the same marker repeatedly.
+	const maxPages = 10000
+	pages := 0
+
 	for {
-		url := fmt.Sprintf("https://storage.googleapis.com/%s/?prefix=%s&max-keys=1000", bucket, prefix)
-		if marker != "" {
-			url += "&marker=" + marker
+		pages++
+		if pages > maxPages {
+			return nil, fmt.Errorf("listing exceeded maximum of %d pages (possible infinite loop)", maxPages)
 		}
 
-		data, err := f.download(ctx, url)
+		params := url.Values{}
+		params.Set("prefix", prefix)
+		params.Set("max-keys", "1000")
+		if marker != "" {
+			params.Set("marker", marker)
+		}
+
+		u := fmt.Sprintf("https://storage.googleapis.com/%s/?%s", bucket, params.Encode())
+
+		data, err := f.download(ctx, u)
 		if err != nil {
 			return nil, fmt.Errorf("list objects: %w", err)
 		}
@@ -125,22 +147,58 @@ func (f *Fetcher) listBucketObjects(ctx context.Context, bucket, prefix string) 
 		}
 
 		// Use NextMarker if available, otherwise use the last key
+		newMarker := ""
 		if result.NextMarker != "" {
-			marker = result.NextMarker
+			newMarker = result.NextMarker
 		} else if len(result.Contents) > 0 {
-			marker = result.Contents[len(result.Contents)-1].Key
-		} else {
+			newMarker = result.Contents[len(result.Contents)-1].Key
+		}
+
+		// Detect stuck pagination (same marker returned)
+		if newMarker == "" || newMarker == marker {
 			break
 		}
+		marker = newMarker
 	}
 
 	return allKeys, nil
 }
 
+// sanitizeObjectKey validates a server-provided GCS object key and escapes
+// each path segment while preserving "/" separators. It rejects keys that
+// contain path-traversal sequences, absolute paths, or empty segments so a
+// tampered bucket listing cannot escape the intended path or inject query
+// parameters.
+func sanitizeObjectKey(key string) (string, error) {
+	if key == "" {
+		return "", fmt.Errorf("empty object key")
+	}
+	if strings.HasPrefix(key, "/") {
+		return "", fmt.Errorf("object key must not be absolute: %q", key)
+	}
+
+	segments := strings.Split(key, "/")
+	escaped := make([]string, len(segments))
+	for i, seg := range segments {
+		if seg == "" {
+			return "", fmt.Errorf("object key has empty segment: %q", key)
+		}
+		if seg == "." || seg == ".." {
+			return "", fmt.Errorf("object key contains traversal sequence: %q", key)
+		}
+		escaped[i] = url.PathEscape(seg)
+	}
+	return strings.Join(escaped, "/"), nil
+}
+
 // FetchConvertedVulnerability downloads a single vulnerability JSON from a converted source.
 func (f *Fetcher) FetchConvertedVulnerability(ctx context.Context, source ConvertedSource, id string) ([]byte, error) {
-	url := fmt.Sprintf("https://storage.googleapis.com/%s/%s%s.json", source.Bucket, source.Prefix, id)
-	data, err := f.download(ctx, url)
+	if err := validatePathSegment("id", id); err != nil {
+		return nil, err
+	}
+
+	u := fmt.Sprintf("https://storage.googleapis.com/%s/%s%s.json", source.Bucket, source.Prefix, url.PathEscape(id))
+	data, err := f.download(ctx, u)
 	if err != nil {
 		return nil, fmt.Errorf("download %s: %w", id, err)
 	}

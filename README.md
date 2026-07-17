@@ -169,6 +169,15 @@ make docker-down
 |---------------------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | `postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable` |
 
+> [!WARNING]
+> The default connection string uses `sslmode=disable`, which is
+> appropriate only for local development against the bundled Docker PostgreSQL.
+> For any remote or production database, **enforce TLS** by setting
+> `sslmode=require` (or `verify-full` for certificate verification), e.g.
+> `postgres://user:pass@db.example.com:5432/mayu?sslmode=verify-full`.
+> Mayu prints a warning when it detects a connection to a non-local host without
+> enforced TLS.
+
 ## License
 
 TBD

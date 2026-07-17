@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 )
 
@@ -23,19 +24,34 @@ type ZipEntry struct {
 // The channel is closed when all entries have been sent or an error occurs.
 // Check the error channel for any errors after the entries channel is closed.
 func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan ZipEntry, <-chan error, error) {
-	url := fmt.Sprintf("%s/%s/all.zip", f.baseURL, ecosystem)
+	if err := validatePathSegment("ecosystem", ecosystem); err != nil {
+		return nil, nil, err
+	}
+
+	u := fmt.Sprintf("%s/%s/all.zip", f.baseURL, url.PathEscape(ecosystem))
 
 	// We still need to download the full zip to memory (zip requires random access),
 	// but we stream the extraction - reading one file at a time and sending it
 	// through the channel so the consumer can process and release each entry.
-	data, err := f.download(ctx, url)
+	data, err := f.download(ctx, u)
 	if err != nil {
-		return nil, nil, fmt.Errorf("download %s: %w", url, err)
+		return nil, nil, fmt.Errorf("download %s: %w", u, err)
 	}
 
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		return nil, nil, fmt.Errorf("open zip: %w", err)
+	}
+
+	// Check entry count limit
+	jsonCount := 0
+	for _, file := range reader.File {
+		if strings.HasSuffix(file.Name, ".json") {
+			jsonCount++
+		}
+	}
+	if jsonCount > MaxZipEntries {
+		return nil, nil, fmt.Errorf("zip contains %d entries, exceeding maximum of %d", jsonCount, MaxZipEntries)
 	}
 
 	entries := make(chan ZipEntry, 100) // Buffer to allow some read-ahead
@@ -44,6 +60,8 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 	go func() {
 		defer close(entries)
 		defer close(errCh)
+
+		var totalSize int64
 
 		for _, file := range reader.File {
 			if !strings.HasSuffix(file.Name, ".json") {
@@ -60,6 +78,12 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 			content, err := readZipFile(file)
 			if err != nil {
 				errCh <- fmt.Errorf("read %s: %w", file.Name, err)
+				return
+			}
+
+			totalSize += int64(len(content))
+			if totalSize > MaxZipTotalSize {
+				errCh <- fmt.Errorf("zip total extracted size exceeds maximum of %d bytes", MaxZipTotalSize)
 				return
 			}
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -218,12 +219,59 @@ func printStats(stats *ingest.Stats) {
 // resolveDatabaseURL determines the database URL from flags, env, or default.
 func resolveDatabaseURL(flagURL string) string {
 	if flagURL != "" {
+		warnInsecureDatabaseURL(flagURL)
 		return flagURL
 	}
 	if envURL := os.Getenv("DATABASE_URL"); envURL != "" {
+		warnInsecureDatabaseURL(envURL)
 		return envURL
 	}
 	return defaultDatabaseURL
+}
+
+// warnInsecureDatabaseURL prints a warning to stderr when connecting to a
+// non-local database without TLS (sslmode=disable or unset). Plaintext
+// connections to remote hosts expose credentials and data in transit.
+func warnInsecureDatabaseURL(dbURL string) {
+	insecure, host, sslmode := isInsecureRemoteURL(dbURL)
+	if insecure {
+		fmt.Fprintf(os.Stderr,
+			"warning: connecting to remote database host %q without enforced TLS (sslmode=%q). "+
+				"Use sslmode=require (or verify-full) for production connections.\n",
+			host, sslmode)
+	}
+}
+
+// isInsecureRemoteURL reports whether dbURL targets a non-local host without
+// enforced TLS. It returns the decision along with the parsed host and sslmode
+// for diagnostics. Unparseable URLs are treated as not-insecure (the driver
+// will surface the error later).
+func isInsecureRemoteURL(dbURL string) (insecure bool, host, sslmode string) {
+	u, err := url.Parse(dbURL)
+	if err != nil {
+		return false, "", ""
+	}
+
+	host = u.Hostname()
+	if isLocalHost(host) {
+		return false, host, u.Query().Get("sslmode")
+	}
+
+	sslmode = u.Query().Get("sslmode")
+	switch sslmode {
+	case "", "disable", "allow", "prefer":
+		return true, host, sslmode
+	}
+	return false, host, sslmode
+}
+
+// isLocalHost reports whether the host refers to the local machine.
+func isLocalHost(host string) bool {
+	switch host {
+	case "", "localhost", "127.0.0.1", "::1":
+		return true
+	}
+	return false
 }
 
 // resolveEcosystems returns the list of ecosystems to import.
@@ -408,21 +456,15 @@ func outputTable(vulns []*model.Vulnerability) {
 		strings.Repeat("-", 30))
 
 	for _, vuln := range vulns {
-		// Truncate summary
-		summary := vuln.Summary
-		if len(summary) > 40 {
-			summary = summary[:37] + "..."
-		}
+		// Truncate summary (rune-safe)
+		summary := truncateString(vuln.Summary, 40)
 
 		// Collect package names
 		var pkgs []string
 		for _, a := range vuln.Affected {
 			pkgs = append(pkgs, a.Package.Name)
 		}
-		pkgStr := strings.Join(pkgs, ", ")
-		if len(pkgStr) > 30 {
-			pkgStr = pkgStr[:27] + "..."
-		}
+		pkgStr := truncateString(strings.Join(pkgs, ", "), 30)
 
 		modified := vuln.Modified.Format("2006-01-02")
 
@@ -430,6 +472,19 @@ func outputTable(vulns []*model.Vulnerability) {
 	}
 
 	fmt.Printf("\n%d result(s) found.\n", len(vulns))
+}
+
+// truncateString truncates a string to maxRunes runes, appending "..." if truncated.
+// This is safe for multi-byte UTF-8 characters.
+func truncateString(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
+		return s
+	}
+	if maxRunes <= 3 {
+		return "..."
+	}
+	return string(runes[:maxRunes-3]) + "..."
 }
 
 // looksLikeVulnID returns true if the string looks like a vulnerability ID.

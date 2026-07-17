@@ -20,7 +20,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.12.2
 
   test:
     name: Test
@@ -49,7 +49,7 @@ jobs:
 
       - name: Install migrate CLI
         run: |
-          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
 
       - name: Run migrations
         run: |
