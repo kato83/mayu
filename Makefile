@@ -1,4 +1,4 @@
-.PHONY: build test test-integration lint clean docker-up docker-down migrate-up migrate-down
+.PHONY: build test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down
 
 # Variables
 BINARY_NAME=mayu
@@ -15,6 +15,10 @@ test:
 
 test-integration:
 	go test ./... -v -count=1 -tags=integration -p 1
+
+# Format
+fmt:
+	go fmt ./...
 
 # Lint
 lint:
