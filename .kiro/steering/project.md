@@ -6,7 +6,7 @@ Mayu is a unified vulnerability intelligence tool that aggregates multiple sourc
 
 - Repository: github.com/kato83/mayu
 - Language: Go (backend), Angular (future frontend)
-- Database: PostgreSQL 16
+- Database: PostgreSQL 17
 
 ## Directory Structure
 

@@ -12,7 +12,7 @@ A unified vulnerability intelligence tool that aggregates multiple sources (OSV,
 |-------|-----------|
 | Backend (CLI, API) | Go 1.26.x |
 | Frontend (Web UI) | Angular (後回し) |
-| Database | PostgreSQL 16 |
+| Database | PostgreSQL 17 |
 | Migration | golang-migrate/migrate |
 | DB Driver | database/sql + pgx (stdlib) |
 | Container | Docker Compose (dev) |
@@ -145,7 +145,7 @@ mayu/
 - `.tool-versions` に `golang 1.26.5` を記載
 - `go mod init github.com/kato83/mayu` でモジュール初期化
 - ディレクトリ構成作成 (`cmd/mayu/`, `internal/`, `migrations/`)
-- `docker-compose.yml` でPostgreSQL 16コンテナ定義
+- `docker-compose.yml` でPostgreSQL 17コンテナ定義
 - `Makefile` に基本ターゲット (`build`, `test`, `lint`, `migrate-up`, `migrate-down`, `docker-up`, `docker-down`)
 - `cmd/mayu/main.go` に最小限のエントリポイント（`mayu version` が動く）
 - `.gitignore` 作成
