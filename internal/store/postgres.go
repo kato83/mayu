@@ -154,17 +154,15 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		return fmt.Errorf("delete existing osv_entry: %w", err)
 	}
 
-	var osvEntryID int64
-	err = tx.QueryRowContext(ctx, `
+	_, err = tx.ExecContext(ctx, `
 		INSERT INTO osv_entries (osv_id, vulnerability_id, schema_version, raw_json, database_specific)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id`,
+		VALUES ($1, $2, $3, $4, $5)`,
 		vuln.ID,
 		vuln.ID,
 		nullIfEmpty(vuln.SchemaVersion),
 		rawJSON,
 		nullableRawJSON(vuln.DatabaseSpecific),
-	).Scan(&osvEntryID)
+	)
 	if err != nil {
 		return fmt.Errorf("insert osv_entry: %w", err)
 	}
@@ -174,7 +172,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source)
 			VALUES ($1, NULL, $2, $3, $4)`,
-			osvEntryID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
+			vuln.ID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
 		)
 		if err != nil {
 			return fmt.Errorf("insert severity: %w", err)
@@ -188,7 +186,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 			INSERT INTO osv_affected_packages (osv_entry_id, ecosystem, name, purl, versions, ecosystem_specific, database_specific)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			RETURNING id`,
-			osvEntryID,
+			vuln.ID,
 			affected.Package.Ecosystem,
 			affected.Package.Name,
 			nullIfEmpty(affected.Package.Purl),
@@ -225,7 +223,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 			_, err := tx.ExecContext(ctx, `
 				INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source)
 				VALUES ($1, $2, $3, $4, $5)`,
-				osvEntryID, affectedPkgID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
+				vuln.ID, affectedPkgID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
 			)
 			if err != nil {
 				return fmt.Errorf("insert affected severity: %w", err)
@@ -238,7 +236,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO osv_references (osv_entry_id, reference_type, url)
 			VALUES ($1, $2, $3)`,
-			osvEntryID, string(ref.Type), ref.URL,
+			vuln.ID, string(ref.Type), ref.URL,
 		)
 		if err != nil {
 			return fmt.Errorf("insert osv_reference: %w", err)
@@ -250,7 +248,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO osv_credits (osv_entry_id, name, contact, credit_type)
 			VALUES ($1, $2, $3, $4)`,
-			osvEntryID, credit.Name, pgTextArray(credit.Contact), nullIfEmpty(string(credit.Type)),
+			vuln.ID, credit.Name, pgTextArray(credit.Contact), nullIfEmpty(string(credit.Type)),
 		)
 		if err != nil {
 			return fmt.Errorf("insert osv_credit: %w", err)
@@ -317,7 +315,7 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	case query.PackageName != "" || query.Ecosystem != "":
 		baseQuery = `SELECT oe.raw_json FROM osv_entries oe
 			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
-			WHERE oe.id IN (
+			WHERE oe.osv_id IN (
 				SELECT ap.osv_entry_id FROM osv_affected_packages ap WHERE 1=1`
 		if query.Ecosystem != "" {
 			argIdx++
