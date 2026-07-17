@@ -1,0 +1,306 @@
+package fetcher
+
+import (
+	"archive/zip"
+	"bytes"
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+)
+
+// createTestZip creates an in-memory zip archive with the given files.
+func createTestZip(t *testing.T, files map[string]string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+
+	for name, content := range files {
+		f, err := w.Create(name)
+		if err != nil {
+			t.Fatalf("create zip file %s: %v", name, err)
+		}
+		if _, err := f.Write([]byte(content)); err != nil {
+			t.Fatalf("write zip file %s: %v", name, err)
+		}
+	}
+
+	if err := w.Close(); err != nil {
+		t.Fatalf("close zip writer: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func TestFetchAllZip(t *testing.T) {
+	// Create test zip with sample vulnerability JSONs
+	vulnJSON1 := `{"id":"GO-2024-0001","modified":"2024-01-01T00:00:00Z","summary":"Test vuln 1"}`
+	vulnJSON2 := `{"id":"GO-2024-0002","modified":"2024-02-01T00:00:00Z","summary":"Test vuln 2"}`
+
+	zipData := createTestZip(t, map[string]string{
+		"GO-2024-0001.json": vulnJSON1,
+		"GO-2024-0002.json": vulnJSON2,
+		"README.md":         "not a json file",
+	})
+
+	// Set up mock HTTP server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/Go/all.zip":
+			w.Header().Set("Content-Type", "application/zip")
+			w.Write(zipData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	// Create fetcher with mock server
+	f := New(WithBaseURL(server.URL))
+
+	// Test FetchAllZip
+	var progressCalls []int
+	results, err := f.FetchAllZip(context.Background(), "Go", func(current, total int) {
+		progressCalls = append(progressCalls, current)
+	})
+	if err != nil {
+		t.Fatalf("FetchAllZip failed: %v", err)
+	}
+
+	// Verify results
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if string(results["GO-2024-0001"]) != vulnJSON1 {
+		t.Errorf("GO-2024-0001 content mismatch")
+	}
+	if string(results["GO-2024-0002"]) != vulnJSON2 {
+		t.Errorf("GO-2024-0002 content mismatch")
+	}
+
+	// Verify progress was called
+	if len(progressCalls) != 2 {
+		t.Errorf("expected 2 progress calls, got %d", len(progressCalls))
+	}
+	if progressCalls[0] != 1 || progressCalls[1] != 2 {
+		t.Errorf("progress calls = %v, want [1, 2]", progressCalls)
+	}
+}
+
+func TestFetchVulnerability(t *testing.T) {
+	vulnJSON := `{"id":"GO-2024-0001","modified":"2024-01-01T00:00:00Z","summary":"Test"}`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/Go/GO-2024-0001.json":
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(vulnJSON))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	f := New(WithBaseURL(server.URL))
+
+	data, err := f.FetchVulnerability(context.Background(), "Go", "GO-2024-0001")
+	if err != nil {
+		t.Fatalf("FetchVulnerability failed: %v", err)
+	}
+	if string(data) != vulnJSON {
+		t.Errorf("content mismatch: got %q", string(data))
+	}
+}
+
+func TestFetchVulnerability_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	f := New(WithBaseURL(server.URL))
+
+	_, err := f.FetchVulnerability(context.Background(), "Go", "NONEXISTENT")
+	if err == nil {
+		t.Fatal("expected error for 404, got nil")
+	}
+}
+
+func TestFetchModifiedCSV(t *testing.T) {
+	csvContent := "2024-08-15T00:05:00Z,PYSEC-2021-123\n2024-08-14T12:00:00Z,PYSEC-2021-456\n"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/PyPI/modified_id.csv":
+			w.Write([]byte(csvContent))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	f := New(WithBaseURL(server.URL))
+
+	data, err := f.FetchModifiedCSV(context.Background(), "PyPI")
+	if err != nil {
+		t.Fatalf("FetchModifiedCSV failed: %v", err)
+	}
+	if string(data) != csvContent {
+		t.Errorf("CSV content mismatch")
+	}
+}
+
+func TestParseModifiedCSV_PerEcosystem(t *testing.T) {
+	csv := `2024-08-15T00:05:00Z,GO-2024-0001
+2024-08-14T12:00:00Z,GO-2023-1840
+2024-08-13T10:00:00Z,GO-2022-0100
+`
+
+	entries, err := ParseModifiedCSV([]byte(csv), "Go")
+	if err != nil {
+		t.Fatalf("ParseModifiedCSV failed: %v", err)
+	}
+
+	if len(entries) != 3 {
+		t.Fatalf("expected 3 entries, got %d", len(entries))
+	}
+
+	// Check first entry
+	if entries[0].ID != "GO-2024-0001" {
+		t.Errorf("entries[0].ID = %q, want GO-2024-0001", entries[0].ID)
+	}
+	if entries[0].Ecosystem != "Go" {
+		t.Errorf("entries[0].Ecosystem = %q, want Go", entries[0].Ecosystem)
+	}
+	expectedTime, _ := time.Parse(time.RFC3339, "2024-08-15T00:05:00Z")
+	if !entries[0].ModifiedAt.Equal(expectedTime) {
+		t.Errorf("entries[0].ModifiedAt = %v, want %v", entries[0].ModifiedAt, expectedTime)
+	}
+}
+
+func TestParseModifiedCSV_TopLevel(t *testing.T) {
+	csv := `2024-08-15T00:05:00Z,PyPI/PYSEC-2021-123
+2024-08-15T00:01:00Z,Go/GO-2022-0123
+2024-08-14T12:00:00Z,npm/1234
+`
+
+	entries, err := ParseModifiedCSV([]byte(csv), "")
+	if err != nil {
+		t.Fatalf("ParseModifiedCSV failed: %v", err)
+	}
+
+	if len(entries) != 3 {
+		t.Fatalf("expected 3 entries, got %d", len(entries))
+	}
+
+	// Check entries
+	tests := []struct {
+		ecosystem string
+		id        string
+	}{
+		{"PyPI", "PYSEC-2021-123"},
+		{"Go", "GO-2022-0123"},
+		{"npm", "1234"},
+	}
+
+	for i, tt := range tests {
+		if entries[i].Ecosystem != tt.ecosystem {
+			t.Errorf("entries[%d].Ecosystem = %q, want %q", i, entries[i].Ecosystem, tt.ecosystem)
+		}
+		if entries[i].ID != tt.id {
+			t.Errorf("entries[%d].ID = %q, want %q", i, entries[i].ID, tt.id)
+		}
+	}
+}
+
+func TestFilterModifiedSince(t *testing.T) {
+	entries := []ModifiedEntry{
+		{ModifiedAt: time.Date(2024, 8, 15, 0, 5, 0, 0, time.UTC), ID: "GO-2024-0003"},
+		{ModifiedAt: time.Date(2024, 8, 14, 12, 0, 0, 0, time.UTC), ID: "GO-2024-0002"},
+		{ModifiedAt: time.Date(2024, 8, 13, 10, 0, 0, 0, time.UTC), ID: "GO-2024-0001"},
+		{ModifiedAt: time.Date(2024, 8, 12, 8, 0, 0, 0, time.UTC), ID: "GO-2023-1840"},
+	}
+
+	// Filter since Aug 14 at noon — should get only the first entry
+	since := time.Date(2024, 8, 14, 12, 0, 0, 0, time.UTC)
+	filtered := FilterModifiedSince(entries, since)
+
+	if len(filtered) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(filtered))
+	}
+	if filtered[0].ID != "GO-2024-0003" {
+		t.Errorf("filtered[0].ID = %q, want GO-2024-0003", filtered[0].ID)
+	}
+
+	// Filter since Aug 12 — should get 3 entries
+	since = time.Date(2024, 8, 12, 8, 0, 0, 0, time.UTC)
+	filtered = FilterModifiedSince(entries, since)
+	if len(filtered) != 3 {
+		t.Fatalf("expected 3 entries, got %d", len(filtered))
+	}
+
+	// Filter with future date — should get 0
+	since = time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	filtered = FilterModifiedSince(entries, since)
+	if len(filtered) != 0 {
+		t.Fatalf("expected 0 entries, got %d", len(filtered))
+	}
+}
+
+func TestParseModifiedCSV_EmptyLines(t *testing.T) {
+	csv := `2024-08-15T00:05:00Z,GO-2024-0001
+
+2024-08-14T12:00:00Z,GO-2023-1840
+
+`
+	entries, err := ParseModifiedCSV([]byte(csv), "Go")
+	if err != nil {
+		t.Fatalf("ParseModifiedCSV failed: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(entries))
+	}
+}
+
+func TestParseModifiedCSV_InvalidFormat(t *testing.T) {
+	tests := []struct {
+		name string
+		csv  string
+	}{
+		{"no comma", "2024-08-15T00:05:00Z GO-2024-0001\n"},
+		{"invalid timestamp", "not-a-date,GO-2024-0001\n"},
+		{"no slash in top-level", "2024-08-15T00:05:00Z,GO-2024-0001\n"}, // top-level needs ecosystem/id
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := ParseModifiedCSV([]byte(tt.csv), "")
+			if err == nil {
+				t.Error("expected error, got nil")
+			}
+		})
+	}
+}
+
+func TestFetchAllZip_ContextCancellation(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Simulate slow response
+		select {
+		case <-r.Context().Done():
+			return
+		case <-time.After(5 * time.Second):
+			w.Write([]byte("too slow"))
+		}
+	}))
+	defer server.Close()
+
+	f := New(WithBaseURL(server.URL))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	_, err := f.FetchAllZip(ctx, "Go", nil)
+	if err == nil {
+		t.Fatal("expected error for cancelled context, got nil")
+	}
+}
