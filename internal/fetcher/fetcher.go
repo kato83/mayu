@@ -121,7 +121,7 @@ func (f *Fetcher) download(ctx context.Context, url string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status %d for %s", resp.StatusCode, url)
@@ -183,7 +183,7 @@ func readZipFile(file *zip.File) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 
 	// Guard against zip bombs: limit to 100MB per file
 	const maxFileSize = 100 * 1024 * 1024

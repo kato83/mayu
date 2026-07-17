@@ -106,7 +106,7 @@ func runIngest(args []string) error {
 	if err != nil {
 		return fmt.Errorf("connect to database: %w", err)
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 
 	// Create fetcher and parser
 	f := fetcher.New()
@@ -327,7 +327,7 @@ func runSearch(args []string) error {
 	if err != nil {
 		return fmt.Errorf("connect to database: %w", err)
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 
 	// Execute search
 	results, err := s.Search(ctx, query)

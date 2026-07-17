@@ -30,7 +30,7 @@ func NewPostgresStore(ctx context.Context, databaseURL string) (*PostgresStore, 
 	db.SetConnMaxLifetime(5 * time.Minute)
 
 	if err := db.PingContext(ctx); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
 
@@ -298,7 +298,7 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	if err != nil {
 		return nil, fmt.Errorf("query vulnerabilities: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []*model.Vulnerability
 	for rows.Next() {
