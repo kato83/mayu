@@ -78,7 +78,15 @@ func SetupPostgres(t *testing.T) *PostgresContainer {
 	if err != nil {
 		t.Fatalf("failed to create migrator: %v", err)
 	}
-	defer m.Close()
+	defer func() {
+		srcErr, dbErr := m.Close()
+		if srcErr != nil {
+			t.Logf("warning: failed to close migration source: %v", srcErr)
+		}
+		if dbErr != nil {
+			t.Logf("warning: failed to close migration db: %v", dbErr)
+		}
+	}()
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		t.Fatalf("failed to run migrations: %v", err)
