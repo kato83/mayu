@@ -29,11 +29,12 @@ func TestListEcosystems(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		var resp gcsListResponse
-		if token == "" {
+		switch token {
+		case "":
 			resp = page1
-		} else if token == "page2token" {
+		case "page2token":
 			resp = page2
-		} else {
+		default:
 			http.NotFound(w, r)
 			return
 		}
