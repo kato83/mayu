@@ -48,7 +48,7 @@ func TestFetchAllZip(t *testing.T) {
 		switch r.URL.Path {
 		case "/Go/all.zip":
 			w.Header().Set("Content-Type", "application/zip")
-			w.Write(zipData)
+			_, _ = w.Write(zipData)
 		default:
 			http.NotFound(w, r)
 		}
@@ -94,7 +94,7 @@ func TestFetchVulnerability(t *testing.T) {
 		switch r.URL.Path {
 		case "/Go/GO-2024-0001.json":
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(vulnJSON))
+			_, _ = w.Write([]byte(vulnJSON))
 		default:
 			http.NotFound(w, r)
 		}
@@ -132,7 +132,7 @@ func TestFetchModifiedCSV(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/PyPI/modified_id.csv":
-			w.Write([]byte(csvContent))
+			_, _ = w.Write([]byte(csvContent))
 		default:
 			http.NotFound(w, r)
 		}
@@ -289,7 +289,7 @@ func TestFetchAllZip_ContextCancellation(t *testing.T) {
 		case <-r.Context().Done():
 			return
 		case <-time.After(5 * time.Second):
-			w.Write([]byte("too slow"))
+			_, _ = w.Write([]byte("too slow"))
 		}
 	}))
 	defer server.Close()

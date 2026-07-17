@@ -62,7 +62,7 @@ func (s *PostgresStore) Insert(ctx context.Context, vuln *model.Vulnerability) e
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if err := s.upsertVulnerability(ctx, tx, vuln); err != nil {
 		return err
@@ -77,7 +77,7 @@ func (s *PostgresStore) UpsertBatch(ctx context.Context, vulns []*model.Vulnerab
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	for _, vuln := range vulns {
 		if err := s.upsertVulnerability(ctx, tx, vuln); err != nil {
