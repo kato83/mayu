@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/ingest"
+	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/parser"
 	"github.com/kato83/mayu/internal/store"
 )
@@ -33,6 +35,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "search":
+		if err := runSearch(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "help", "-h", "--help":
 		printUsage()
 	default:
@@ -47,6 +54,7 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("Commands:")
 	fmt.Println("  ingest     Import vulnerability data from OSV")
+	fmt.Println("  search     Search for vulnerabilities")
 	fmt.Println("  version    Print version information")
 	fmt.Println("  help       Show this help message")
 	fmt.Println()
@@ -249,4 +257,169 @@ var knownEcosystems = []string{
 	"RubyGems",
 	"SwiftURL",
 	"Ubuntu",
+}
+
+func runSearch(args []string) error {
+	fs := flag.NewFlagSet("search", flag.ExitOnError)
+
+	id := fs.String("id", "", "Search by vulnerability ID (e.g., CVE-2024-1234, GO-2024-2687)")
+	pkg := fs.String("package", "", "Search by package name (e.g., golang.org/x/crypto)")
+	ecosystem := fs.String("ecosystem", "", "Filter by ecosystem (e.g., Go, PyPI)")
+	alias := fs.String("alias", "", "Search by alias (e.g., CVE-2024-24790)")
+	format := fs.String("format", "table", "Output format: table, json")
+	limit := fs.Int("limit", 20, "Maximum number of results")
+	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
+
+	fs.Usage = func() {
+		fmt.Println("Usage: mayu search [options] [query]")
+		fmt.Println()
+		fmt.Println("Search for vulnerabilities in the local database.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fs.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  mayu search --id GO-2024-2687")
+		fmt.Println("  mayu search --package golang.org/x/crypto")
+		fmt.Println("  mayu search --ecosystem Go --limit 10")
+		fmt.Println("  mayu search --alias CVE-2024-24790")
+		fmt.Println("  mayu search --package net/http --format json")
+	}
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// If positional argument provided and no flags set, treat as alias/ID search
+	if *id == "" && *pkg == "" && *ecosystem == "" && *alias == "" {
+		if fs.NArg() > 0 {
+			query := strings.Join(fs.Args(), " ")
+			// Heuristic: if it looks like a vuln ID, search by ID; otherwise alias
+			if looksLikeVulnID(query) {
+				*id = query
+			} else {
+				*alias = query
+			}
+		} else {
+			fs.Usage()
+			return fmt.Errorf("at least one search parameter is required")
+		}
+	}
+
+	// Build search query
+	query := store.SearchQuery{
+		ID:          *id,
+		Ecosystem:   normalizeEcosystem(*ecosystem),
+		PackageName: *pkg,
+		Alias:       *alias,
+		Limit:       *limit,
+	}
+
+	// Resolve database URL
+	databaseURL := resolveDatabaseURL(*dbURL)
+
+	// Setup context
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	// Connect to database
+	s, err := store.NewPostgresStore(ctx, databaseURL)
+	if err != nil {
+		return fmt.Errorf("connect to database: %w", err)
+	}
+	defer s.Close()
+
+	// Execute search
+	results, err := s.Search(ctx, query)
+	if err != nil {
+		return fmt.Errorf("search: %w", err)
+	}
+
+	if len(results) == 0 {
+		fmt.Println("No results found.")
+		return nil
+	}
+
+	// Output results
+	switch *format {
+	case "json":
+		return outputJSON(results)
+	case "table":
+		outputTable(results)
+	default:
+		return fmt.Errorf("unknown format: %q (supported: table, json)", *format)
+	}
+
+	return nil
+}
+
+// outputJSON prints results as a JSON array.
+func outputJSON(vulns []*model.Vulnerability) error {
+	// Output raw JSON for maximum fidelity
+	fmt.Print("[")
+	for i, vuln := range vulns {
+		if i > 0 {
+			fmt.Print(",")
+		}
+		if vuln.RawJSON != nil {
+			fmt.Print(string(vuln.RawJSON))
+		} else {
+			data, err := json.Marshal(vuln)
+			if err != nil {
+				return err
+			}
+			fmt.Print(string(data))
+		}
+	}
+	fmt.Println("]")
+	return nil
+}
+
+// outputTable prints results in a human-readable table format.
+func outputTable(vulns []*model.Vulnerability) {
+	// Header
+	fmt.Printf("%-20s %-12s %-40s %s\n", "ID", "MODIFIED", "SUMMARY", "PACKAGES")
+	fmt.Printf("%-20s %-12s %-40s %s\n",
+		strings.Repeat("-", 20),
+		strings.Repeat("-", 12),
+		strings.Repeat("-", 40),
+		strings.Repeat("-", 30))
+
+	for _, vuln := range vulns {
+		// Truncate summary
+		summary := vuln.Summary
+		if len(summary) > 40 {
+			summary = summary[:37] + "..."
+		}
+
+		// Collect package names
+		var pkgs []string
+		for _, a := range vuln.Affected {
+			pkgs = append(pkgs, a.Package.Name)
+		}
+		pkgStr := strings.Join(pkgs, ", ")
+		if len(pkgStr) > 30 {
+			pkgStr = pkgStr[:27] + "..."
+		}
+
+		modified := vuln.Modified.Format("2006-01-02")
+
+		fmt.Printf("%-20s %-12s %-40s %s\n", vuln.ID, modified, summary, pkgStr)
+	}
+
+	fmt.Printf("\n%d result(s) found.\n", len(vulns))
+}
+
+// looksLikeVulnID returns true if the string looks like a vulnerability ID.
+func looksLikeVulnID(s string) bool {
+	// Common patterns: GO-2024-1234, CVE-2024-1234, GHSA-xxxx-xxxx-xxxx
+	s = strings.TrimSpace(s)
+	prefixes := []string{"GO-", "CVE-", "GHSA-", "PYSEC-", "RUSTSEC-", "DSA-", "DLA-", "USN-", "ALSA-", "RLSA-"}
+	upper := strings.ToUpper(s)
+	for _, p := range prefixes {
+		if strings.HasPrefix(upper, p) {
+			return true
+		}
+	}
+	return false
 }
