@@ -61,7 +61,7 @@ func (ing *Ingester) ImportConvertedSource(ctx context.Context, source fetcher.C
 	lastModified := findLatestModified(result.Vulnerabilities)
 	if !lastModified.IsZero() {
 		syncState := &store.SyncState{
-			Ecosystem:      source.Name,
+			Source:         source.Name,
 			LastModifiedAt: lastModified.Format(time.RFC3339),
 			RecordCount:    int64(stats.Inserted),
 		}

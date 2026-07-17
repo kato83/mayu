@@ -147,7 +147,7 @@ func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, 
 
 	// Update sync state
 	syncState := &store.SyncState{
-		Ecosystem:      ecosystem,
+		Source:         ecosystem,
 		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 		RecordCount:    int64(stats.Inserted),
 	}
@@ -256,7 +256,7 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 	// Update sync state with the latest modified timestamp from the CSV
 	if len(updated) > 0 {
 		newSyncState := &store.SyncState{
-			Ecosystem:      ecosystem,
+			Source:         ecosystem,
 			LastModifiedAt: updated[0].ModifiedAt.Format(time.RFC3339), // First entry is the newest
 			RecordCount:    syncState.RecordCount + int64(stats.Inserted),
 		}

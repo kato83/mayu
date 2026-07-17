@@ -1,5 +1,11 @@
 // Package store defines the interface and implementation for persisting
-// OSV vulnerability data in PostgreSQL.
+// vulnerability data in PostgreSQL.
+//
+// The schema separates concerns:
+//   - vulnerabilities: unified master table (source-agnostic)
+//   - vulnerability_aliases: CVE/GHSA/etc cross-references
+//   - osv_entries + osv_*: OSV-specific detail tables
+//   - Future: kev_entries, epss_scores, etc.
 package store
 
 import (
@@ -25,11 +31,11 @@ type Store interface {
 	// Search finds vulnerabilities matching the given query parameters.
 	Search(ctx context.Context, query SearchQuery) ([]*model.Vulnerability, error)
 
-	// GetSyncState retrieves the sync state for a given ecosystem.
-	// Returns nil, nil if no sync state exists for the ecosystem.
-	GetSyncState(ctx context.Context, ecosystem string) (*SyncState, error)
+	// GetSyncState retrieves the sync state for a given source.
+	// Returns nil, nil if no sync state exists for the source.
+	GetSyncState(ctx context.Context, source string) (*SyncState, error)
 
-	// UpdateSyncState creates or updates the sync state for an ecosystem.
+	// UpdateSyncState creates or updates the sync state for a source.
 	UpdateSyncState(ctx context.Context, state *SyncState) error
 
 	// Close releases any resources held by the store.
@@ -47,7 +53,7 @@ type SearchQuery struct {
 	// PackageName filters by package name (e.g., "golang.org/x/crypto")
 	PackageName string
 
-	// Alias searches in the aliases array
+	// Alias searches in the vulnerability_aliases table
 	Alias string
 
 	// Limit sets the maximum number of results (default: 100)
@@ -57,9 +63,9 @@ type SearchQuery struct {
 	Offset int
 }
 
-// SyncState tracks the incremental import state for an ecosystem.
+// SyncState tracks the incremental import state for a data source.
 type SyncState struct {
-	Ecosystem      string
+	Source         string // e.g., "Go", "npm", "NVD", "Debian"
 	LastModifiedAt string // ISO 8601 timestamp from modified_id.csv
 	RecordCount    int64
 }

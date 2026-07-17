@@ -46,11 +46,13 @@ func (s *PostgresStore) Close() error {
 func (s *PostgresStore) CleanAll(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `
 		DELETE FROM sync_state;
-		DELETE FROM credits;
-		DELETE FROM references_;
-		DELETE FROM severity;
-		DELETE FROM affected_ranges;
-		DELETE FROM affected_packages;
+		DELETE FROM vulnerability_aliases;
+		DELETE FROM osv_credits;
+		DELETE FROM osv_references;
+		DELETE FROM osv_severity;
+		DELETE FROM osv_affected_ranges;
+		DELETE FROM osv_affected_packages;
+		DELETE FROM osv_entries;
 		DELETE FROM vulnerabilities;
 	`)
 	return err
@@ -89,13 +91,12 @@ func (s *PostgresStore) UpsertBatch(ctx context.Context, vulns []*model.Vulnerab
 }
 
 // upsertVulnerability inserts or updates a vulnerability within a transaction.
+// This writes to:
+//   - vulnerabilities (unified master)
+//   - vulnerability_aliases (cross-references)
+//   - osv_entries (OSV-specific data)
+//   - osv_affected_packages, osv_affected_ranges, osv_severity, osv_references, osv_credits
 func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vuln *model.Vulnerability) error {
-	// Delete existing related data (cascade will handle child tables, but we
-	// delete explicitly for clarity and to avoid relying on cascade for upsert)
-	if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerabilities WHERE id = $1`, vuln.ID); err != nil {
-		return fmt.Errorf("delete existing vulnerability: %w", err)
-	}
-
 	// Determine raw_json: use RawJSON if available, otherwise marshal the struct
 	rawJSON := vuln.RawJSON
 	if rawJSON == nil {
@@ -106,51 +107,88 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 	}
 
-	// Insert vulnerability
+	// --- Step 1: Upsert into unified vulnerabilities table ---
 	var published, withdrawn *time.Time
 	published = vuln.Published
 	withdrawn = vuln.Withdrawn
 
 	_, err := tx.ExecContext(ctx, `
-		INSERT INTO vulnerabilities (id, schema_version, modified, published, withdrawn, aliases, related, upstream, summary, details, raw_json, database_specific)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+		INSERT INTO vulnerabilities (id, source, summary, details, published, modified, withdrawn)
+		VALUES ($1, 'osv', $2, $3, $4, $5, $6)
+		ON CONFLICT (id) DO UPDATE SET
+			summary = EXCLUDED.summary,
+			details = EXCLUDED.details,
+			published = EXCLUDED.published,
+			modified = EXCLUDED.modified,
+			withdrawn = EXCLUDED.withdrawn`,
 		vuln.ID,
-		nullIfEmpty(vuln.SchemaVersion),
-		vuln.Modified,
-		published,
-		withdrawn,
-		pgTextArray(vuln.Aliases),
-		pgTextArray(vuln.Related),
-		pgTextArray(vuln.Upstream),
 		nullIfEmpty(vuln.Summary),
 		nullIfEmpty(vuln.Details),
-		rawJSON,
-		nullableRawJSON(vuln.DatabaseSpecific),
+		published,
+		vuln.Modified,
+		withdrawn,
 	)
 	if err != nil {
-		return fmt.Errorf("insert vulnerability: %w", err)
+		return fmt.Errorf("upsert vulnerability: %w", err)
 	}
 
-	// Insert severity (top-level)
+	// --- Step 2: Upsert aliases ---
+	// Delete existing aliases for this vulnerability and re-insert
+	if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerability_aliases WHERE vulnerability_id = $1`, vuln.ID); err != nil {
+		return fmt.Errorf("delete aliases: %w", err)
+	}
+	for i, alias := range vuln.Aliases {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO vulnerability_aliases (vulnerability_id, alias, ordering)
+			VALUES ($1, $2, $3)`,
+			vuln.ID, alias, i,
+		)
+		if err != nil {
+			return fmt.Errorf("insert alias: %w", err)
+		}
+	}
+
+	// --- Step 3: Upsert osv_entries ---
+	// Delete existing osv_entry (cascade deletes child rows)
+	if _, err := tx.ExecContext(ctx, `DELETE FROM osv_entries WHERE vulnerability_id = $1`, vuln.ID); err != nil {
+		return fmt.Errorf("delete existing osv_entry: %w", err)
+	}
+
+	var osvEntryID int64
+	err = tx.QueryRowContext(ctx, `
+		INSERT INTO osv_entries (osv_id, vulnerability_id, schema_version, raw_json, database_specific)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id`,
+		vuln.ID,
+		vuln.ID,
+		nullIfEmpty(vuln.SchemaVersion),
+		rawJSON,
+		nullableRawJSON(vuln.DatabaseSpecific),
+	).Scan(&osvEntryID)
+	if err != nil {
+		return fmt.Errorf("insert osv_entry: %w", err)
+	}
+
+	// --- Step 4: Insert top-level severity ---
 	for _, sev := range vuln.Severity {
 		_, err := tx.ExecContext(ctx, `
-			INSERT INTO severity (vulnerability_id, affected_package_id, severity_type, score, source)
+			INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source)
 			VALUES ($1, NULL, $2, $3, $4)`,
-			vuln.ID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
+			osvEntryID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
 		)
 		if err != nil {
 			return fmt.Errorf("insert severity: %w", err)
 		}
 	}
 
-	// Insert affected packages
+	// --- Step 5: Insert affected packages ---
 	for _, affected := range vuln.Affected {
 		var affectedPkgID int64
 		err := tx.QueryRowContext(ctx, `
-			INSERT INTO affected_packages (vulnerability_id, ecosystem, name, purl, versions, ecosystem_specific, database_specific)
+			INSERT INTO osv_affected_packages (osv_entry_id, ecosystem, name, purl, versions, ecosystem_specific, database_specific)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			RETURNING id`,
-			vuln.ID,
+			osvEntryID,
 			affected.Package.Ecosystem,
 			affected.Package.Name,
 			nullIfEmpty(affected.Package.Purl),
@@ -159,7 +197,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 			nullableRawJSON(affected.DatabaseSpecific),
 		).Scan(&affectedPkgID)
 		if err != nil {
-			return fmt.Errorf("insert affected_package: %w", err)
+			return fmt.Errorf("insert osv_affected_package: %w", err)
 		}
 
 		// Insert ranges
@@ -169,7 +207,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 				return fmt.Errorf("marshal events: %w", err)
 			}
 			_, err = tx.ExecContext(ctx, `
-				INSERT INTO affected_ranges (affected_package_id, range_type, repo, events, database_specific)
+				INSERT INTO osv_affected_ranges (affected_package_id, range_type, repo, events, database_specific)
 				VALUES ($1, $2, $3, $4, $5)`,
 				affectedPkgID,
 				string(r.Type),
@@ -178,16 +216,16 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 				nullableRawJSON(r.DatabaseSpecific),
 			)
 			if err != nil {
-				return fmt.Errorf("insert affected_range: %w", err)
+				return fmt.Errorf("insert osv_affected_range: %w", err)
 			}
 		}
 
 		// Insert per-affected severity
 		for _, sev := range affected.Severity {
 			_, err := tx.ExecContext(ctx, `
-				INSERT INTO severity (vulnerability_id, affected_package_id, severity_type, score, source)
+				INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source)
 				VALUES ($1, $2, $3, $4, $5)`,
-				vuln.ID, affectedPkgID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
+				osvEntryID, affectedPkgID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
 			)
 			if err != nil {
 				return fmt.Errorf("insert affected severity: %w", err)
@@ -195,27 +233,27 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 	}
 
-	// Insert references
+	// --- Step 6: Insert references ---
 	for _, ref := range vuln.References {
 		_, err := tx.ExecContext(ctx, `
-			INSERT INTO references_ (vulnerability_id, reference_type, url)
+			INSERT INTO osv_references (osv_entry_id, reference_type, url)
 			VALUES ($1, $2, $3)`,
-			vuln.ID, string(ref.Type), ref.URL,
+			osvEntryID, string(ref.Type), ref.URL,
 		)
 		if err != nil {
-			return fmt.Errorf("insert reference: %w", err)
+			return fmt.Errorf("insert osv_reference: %w", err)
 		}
 	}
 
-	// Insert credits
+	// --- Step 7: Insert credits ---
 	for _, credit := range vuln.Credits {
 		_, err := tx.ExecContext(ctx, `
-			INSERT INTO credits (vulnerability_id, name, contact, credit_type)
+			INSERT INTO osv_credits (osv_entry_id, name, contact, credit_type)
 			VALUES ($1, $2, $3, $4)`,
-			vuln.ID, credit.Name, pgTextArray(credit.Contact), nullIfEmpty(string(credit.Type)),
+			osvEntryID, credit.Name, pgTextArray(credit.Contact), nullIfEmpty(string(credit.Type)),
 		)
 		if err != nil {
-			return fmt.Errorf("insert credit: %w", err)
+			return fmt.Errorf("insert osv_credit: %w", err)
 		}
 	}
 
@@ -224,7 +262,8 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 
 // GetByID retrieves a single vulnerability by its OSV ID.
 func (s *PostgresStore) GetByID(ctx context.Context, id string) (*model.Vulnerability, error) {
-	row := s.db.QueryRowContext(ctx, `SELECT raw_json FROM vulnerabilities WHERE id = $1`, id)
+	row := s.db.QueryRowContext(ctx, `
+		SELECT oe.raw_json FROM osv_entries oe WHERE oe.osv_id = $1`, id)
 
 	var rawJSON []byte
 	if err := row.Scan(&rawJSON); err != nil {
@@ -261,16 +300,25 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	switch {
 	case query.ID != "":
 		argIdx++
-		baseQuery = `SELECT v.raw_json FROM vulnerabilities v WHERE v.id = $` + fmt.Sprint(argIdx)
+		baseQuery = `SELECT oe.raw_json FROM osv_entries oe
+			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
+			WHERE oe.osv_id = $` + fmt.Sprint(argIdx)
 		args = append(args, query.ID)
 
 	case query.Alias != "":
 		argIdx++
-		baseQuery = `SELECT v.raw_json FROM vulnerabilities v WHERE $` + fmt.Sprint(argIdx) + ` = ANY(v.aliases)`
+		baseQuery = `SELECT oe.raw_json FROM osv_entries oe
+			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
+			WHERE oe.vulnerability_id IN (
+				SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $` + fmt.Sprint(argIdx) + `
+			)`
 		args = append(args, query.Alias)
 
 	case query.PackageName != "" || query.Ecosystem != "":
-		baseQuery = `SELECT v.raw_json FROM vulnerabilities v WHERE v.id IN (SELECT ap.vulnerability_id FROM affected_packages ap WHERE 1=1`
+		baseQuery = `SELECT oe.raw_json FROM osv_entries oe
+			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
+			WHERE oe.id IN (
+				SELECT ap.osv_entry_id FROM osv_affected_packages ap WHERE 1=1`
 		if query.Ecosystem != "" {
 			argIdx++
 			baseQuery += fmt.Sprintf(` AND ap.ecosystem = $%d`, argIdx)
@@ -284,7 +332,9 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 		baseQuery += `)`
 
 	default:
-		baseQuery = `SELECT v.raw_json FROM vulnerabilities v WHERE 1=1`
+		baseQuery = `SELECT oe.raw_json FROM osv_entries oe
+			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
+			WHERE 1=1`
 	}
 
 	argIdx++
@@ -319,16 +369,16 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	return results, nil
 }
 
-// GetSyncState retrieves the sync state for a given ecosystem.
-func (s *PostgresStore) GetSyncState(ctx context.Context, ecosystem string) (*SyncState, error) {
+// GetSyncState retrieves the sync state for a given source.
+func (s *PostgresStore) GetSyncState(ctx context.Context, source string) (*SyncState, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT ecosystem, last_modified_at, record_count FROM sync_state WHERE ecosystem = $1`,
-		ecosystem,
+		SELECT source, last_modified_at, record_count FROM sync_state WHERE source = $1`,
+		source,
 	)
 
 	var state SyncState
 	var lastModified time.Time
-	if err := row.Scan(&state.Ecosystem, &lastModified, &state.RecordCount); err != nil {
+	if err := row.Scan(&state.Source, &lastModified, &state.RecordCount); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -338,7 +388,7 @@ func (s *PostgresStore) GetSyncState(ctx context.Context, ecosystem string) (*Sy
 	return &state, nil
 }
 
-// UpdateSyncState creates or updates the sync state for an ecosystem.
+// UpdateSyncState creates or updates the sync state for a source.
 func (s *PostgresStore) UpdateSyncState(ctx context.Context, state *SyncState) error {
 	lastModified, err := time.Parse(time.RFC3339, state.LastModifiedAt)
 	if err != nil {
@@ -346,13 +396,13 @@ func (s *PostgresStore) UpdateSyncState(ctx context.Context, state *SyncState) e
 	}
 
 	_, err = s.db.ExecContext(ctx, `
-		INSERT INTO sync_state (ecosystem, last_modified_at, record_count)
+		INSERT INTO sync_state (source, last_modified_at, record_count)
 		VALUES ($1, $2, $3)
-		ON CONFLICT (ecosystem) DO UPDATE SET
+		ON CONFLICT (source) DO UPDATE SET
 			last_modified_at = EXCLUDED.last_modified_at,
 			last_synced_at = NOW(),
 			record_count = EXCLUDED.record_count`,
-		state.Ecosystem, lastModified, state.RecordCount,
+		state.Source, lastModified, state.RecordCount,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert sync_state: %w", err)
