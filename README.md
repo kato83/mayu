@@ -138,6 +138,8 @@ Print version information.
 | NVD (via OSV) | ✅ Supported | Included in OSV data |
 | [NVD CVE (converted)](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ Supported | `mayu ingest --source nvd` |
 | [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
+
+> **Note:** Converted sources (NVD, Debian) contain 50,000+ entries and are downloaded individually since no bulk archive is available. This may take significant time. Parallel download optimization is planned for a future release.
 | KEV | 🔜 Planned | — |
 | EPSS | 🔜 Planned | — |
 
