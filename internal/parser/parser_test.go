@@ -109,11 +109,11 @@ func TestParseBatch_MixedValidity(t *testing.T) {
 	p := New()
 
 	files := map[string][]byte{
-		"valid1.json":   []byte(`{"id":"TEST-0001","modified":"2024-01-01T00:00:00Z","summary":"valid"}`),
-		"valid2.json":   []byte(`{"id":"TEST-0002","modified":"2024-02-01T00:00:00Z","summary":"also valid"}`),
-		"invalid.json":  []byte(`{not valid json`),
-		"no_id.json":    []byte(`{"modified":"2024-01-01T00:00:00Z"}`),
-		"empty.json":    []byte(``),
+		"valid1.json":  []byte(`{"id":"TEST-0001","modified":"2024-01-01T00:00:00Z","summary":"valid"}`),
+		"valid2.json":  []byte(`{"id":"TEST-0002","modified":"2024-02-01T00:00:00Z","summary":"also valid"}`),
+		"invalid.json": []byte(`{not valid json`),
+		"no_id.json":   []byte(`{"modified":"2024-01-01T00:00:00Z"}`),
+		"empty.json":   []byte(``),
 	}
 
 	result, err := p.ParseBatch(files)

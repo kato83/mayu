@@ -16,13 +16,13 @@ import (
 
 // Stats contains statistics about an ingestion run.
 type Stats struct {
-	Ecosystem   string
-	Total       int
-	Inserted    int
-	Skipped     int
-	Errors      int
-	Duration    time.Duration
-	IsFullSync  bool
+	Ecosystem  string
+	Total      int
+	Inserted   int
+	Skipped    int
+	Errors     int
+	Duration   time.Duration
+	IsFullSync bool
 }
 
 // Progress reports current ingestion progress.
