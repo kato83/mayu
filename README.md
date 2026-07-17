@@ -55,8 +55,11 @@ make build
 # Import with delta update (only new/modified since last sync)
 ./bin/mayu ingest --ecosystem Go --update
 
-# Import all supported ecosystems
+# Import all supported ecosystems (each ecosystem's all.zip individually)
 ./bin/mayu ingest --all
+
+# Bulk import from single top-level all.zip (~1.3GB, all ecosystems at once)
+./bin/mayu ingest --all --bulk
 ```
 
 ### Search Vulnerabilities
@@ -90,8 +93,10 @@ Import vulnerability data from OSV into the local database.
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--ecosystem` | Ecosystem to import (e.g., Go, PyPI, npm) | — |
-| `--all` | Import all known ecosystems | `false` |
+| `--all` | Import all ecosystems (dynamically fetched from GCS) | `false` |
+| `--bulk` | Use top-level all.zip for bulk import (with `--all`) | `false` |
 | `--update` | Perform delta update instead of full import | `false` |
+| `--source` | Import from converted source (nvd, debian) | — |
 | `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 | `--batch-size` | Number of vulnerabilities per batch insert | `100` |
 
@@ -115,23 +120,19 @@ Print version information.
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────┐
-│              CLI (cmd/mayu)                 │
-├─────────────┬───────────────────────────────┤
-│   ingest    │           search              │
-└──────┬──────┴───────────────┬───────────────┘
-       │                      │
-┌──────┴──────────────────────┴───────────────┐
-│            Core (internal/)                 │
-├─────────┬──────────┬────────┬───────────────┤
-│ Fetcher │  Parser  │ Store  │    Ingest     │
-│  (GCS)  │  (OSV)   │  (PG)  │  (Pipeline)   │
-└─────────┴──────────┴────┬───┴───────────────┘
-                          │
-                   ┌──────┴──────┐
-                   │ PostgreSQL  │
-                   └─────────────┘
+```mermaid
+graph TD
+    CLI["CLI (cmd/mayu)"]
+    CLI --> Ingest[ingest]
+    CLI --> Search[search]
+
+    Ingest --> Fetcher["Fetcher (GCS)"]
+    Ingest --> Parser["Parser (OSV)"]
+    Ingest --> IngestPipeline["Ingest (Pipeline)"]
+    Search --> Store["Store (PG)"]
+    IngestPipeline --> Store
+
+    Store --> DB[(PostgreSQL)]
 ```
 
 ## Data Sources
