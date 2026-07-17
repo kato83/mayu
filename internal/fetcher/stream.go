@@ -2,10 +2,12 @@ package fetcher
 
 import (
 	"archive/zip"
-	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -15,14 +17,16 @@ type ZipEntry struct {
 	Data []byte // Raw JSON content
 }
 
-// StreamAllZip downloads the all.zip for a given ecosystem and streams
-// entries through a channel. This avoids loading the entire zip contents
-// into memory at once - only the zip archive itself is held in memory,
-// and entries are read one at a time.
+// StreamAllZip downloads the all.zip for a given ecosystem to a temporary file
+// and streams entries through a channel. The ZIP is written directly to disk
+// to avoid holding the entire archive in memory, then read via random access.
 //
 // The caller should consume entries from the returned channel.
 // The channel is closed when all entries have been sent or an error occurs.
 // Check the error channel for any errors after the entries channel is closed.
+//
+// The temporary file is automatically cleaned up when streaming completes or
+// an error occurs.
 func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan ZipEntry, <-chan error, error) {
 	if err := validatePathSegment("ecosystem", ecosystem); err != nil {
 		return nil, nil, err
@@ -30,20 +34,21 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 
 	u := fmt.Sprintf("%s/%s/all.zip", f.baseURL, url.PathEscape(ecosystem))
 
-	// We still need to download the full zip to memory (zip requires random access),
-	// but we stream the extraction - reading one file at a time and sending it
-	// through the channel so the consumer can process and release each entry.
-	data, err := f.download(ctx, u)
+	// Download the zip to a temporary file instead of memory.
+	tmpFile, fileSize, err := f.downloadToTempFile(ctx, u)
 	if err != nil {
 		return nil, nil, fmt.Errorf("download %s: %w", u, err)
 	}
 
-	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	// Open zip reader from the temporary file (random access via *os.File).
+	reader, err := zip.NewReader(tmpFile, fileSize)
 	if err != nil {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpFile.Name())
 		return nil, nil, fmt.Errorf("open zip: %w", err)
 	}
 
-	// Check entry count limit
+	// Check entry count limit.
 	jsonCount := 0
 	for _, file := range reader.File {
 		if strings.HasSuffix(file.Name, ".json") {
@@ -51,6 +56,8 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 		}
 	}
 	if jsonCount > MaxZipEntries {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpFile.Name())
 		return nil, nil, fmt.Errorf("zip contains %d entries, exceeding maximum of %d", jsonCount, MaxZipEntries)
 	}
 
@@ -60,6 +67,10 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 	go func() {
 		defer close(entries)
 		defer close(errCh)
+		defer func() {
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpFile.Name())
+		}()
 
 		var totalSize int64
 
@@ -104,10 +115,69 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 	return entries, errCh, nil
 }
 
-// CountZipEntries returns the total number of JSON files in the zip
-// (used for progress reporting). This is called before streaming.
-func CountZipEntries(data []byte) (int, error) {
-	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+// downloadToTempFile downloads the URL content directly to a temporary file,
+// avoiding loading the entire response into memory. It returns the open file
+// (seeked to beginning) and its size.
+//
+// Security considerations:
+//   - The temp file is created with mode 0600 (owner-only read/write).
+//   - The file is created in the OS default temp directory.
+//   - MaxResponseSize is enforced to prevent disk exhaustion.
+//   - The caller is responsible for closing and removing the file.
+func (f *Fetcher) downloadToTempFile(ctx context.Context, url string) (*os.File, int64, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, 0, fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := f.httpClient.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("execute request: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, 0, fmt.Errorf("unexpected status %d for %s", resp.StatusCode, url)
+	}
+
+	// Create temp file with restricted permissions (0600).
+	tmpFile, err := os.CreateTemp("", "mayu-zip-*.tmp")
+	if err != nil {
+		return nil, 0, fmt.Errorf("create temp file: %w", err)
+	}
+
+	// Ensure cleanup on error paths.
+	success := false
+	defer func() {
+		if !success {
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpFile.Name())
+		}
+	}()
+
+	// Stream response body to the temp file with a size limit.
+	limited := io.LimitReader(resp.Body, MaxResponseSize+1)
+	written, err := io.Copy(tmpFile, limited)
+	if err != nil {
+		return nil, 0, fmt.Errorf("write to temp file: %w", err)
+	}
+	if written > MaxResponseSize {
+		return nil, 0, fmt.Errorf("response body exceeds maximum size of %d bytes for %s", MaxResponseSize, url)
+	}
+
+	// Seek back to the beginning for reading.
+	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
+		return nil, 0, fmt.Errorf("seek temp file: %w", err)
+	}
+
+	success = true
+	return tmpFile, written, nil
+}
+
+// CountZipEntriesFromFile returns the total number of JSON files in a zip file on disk.
+// Used for progress reporting before streaming.
+func CountZipEntriesFromFile(f *os.File, size int64) (int, error) {
+	reader, err := zip.NewReader(f, size)
 	if err != nil {
 		return 0, err
 	}

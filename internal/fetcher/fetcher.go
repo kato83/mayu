@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"regexp"
 	"strings"
@@ -97,6 +98,9 @@ func New(opts ...Option) *Fetcher {
 // FetchAllZip downloads and extracts the all.zip for a given ecosystem.
 // It returns a map of filename → JSON content for each vulnerability file.
 // The callback (if non-nil) is called with progress info: (current, total).
+//
+// The ZIP is downloaded to a temporary file to avoid holding the entire archive
+// in memory, then extracted entry-by-entry.
 func (f *Fetcher) FetchAllZip(ctx context.Context, ecosystem string, progress func(current, total int)) (map[string][]byte, error) {
 	if err := validatePathSegment("ecosystem", ecosystem); err != nil {
 		return nil, err
@@ -104,12 +108,16 @@ func (f *Fetcher) FetchAllZip(ctx context.Context, ecosystem string, progress fu
 
 	u := fmt.Sprintf("%s/%s/all.zip", f.baseURL, url.PathEscape(ecosystem))
 
-	data, err := f.download(ctx, u)
+	tmpFile, fileSize, err := f.downloadToTempFile(ctx, u)
 	if err != nil {
 		return nil, fmt.Errorf("download %s: %w", u, err)
 	}
+	defer func() {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpFile.Name())
+	}()
 
-	return f.extractZip(data, progress)
+	return f.extractZipFromFile(tmpFile, fileSize, progress)
 }
 
 // FetchVulnerability downloads a single vulnerability JSON by ecosystem and ID.
@@ -193,12 +201,29 @@ func (f *Fetcher) download(ctx context.Context, url string) ([]byte, error) {
 
 // extractZip extracts JSON files from a zip archive in memory.
 // Returns a map of filename (without extension) → file content.
+// This method is retained for backward compatibility with tests and small archives.
 func (f *Fetcher) extractZip(data []byte, progress func(current, total int)) (map[string][]byte, error) {
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		return nil, fmt.Errorf("open zip: %w", err)
 	}
 
+	return f.extractZipEntries(reader, progress)
+}
+
+// extractZipFromFile extracts JSON files from a zip archive stored in a file.
+// Uses os.File for random access without loading the entire ZIP into memory.
+func (f *Fetcher) extractZipFromFile(file *os.File, size int64, progress func(current, total int)) (map[string][]byte, error) {
+	reader, err := zip.NewReader(file, size)
+	if err != nil {
+		return nil, fmt.Errorf("open zip: %w", err)
+	}
+
+	return f.extractZipEntries(reader, progress)
+}
+
+// extractZipEntries is the shared implementation for extracting JSON entries from a zip.Reader.
+func (f *Fetcher) extractZipEntries(reader *zip.Reader, progress func(current, total int)) (map[string][]byte, error) {
 	// Count JSON files for progress and enforce entry limit
 	total := 0
 	for _, file := range reader.File {

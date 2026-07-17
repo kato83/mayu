@@ -6,6 +6,8 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -410,5 +412,177 @@ func TestDownload_RejectsOversizedResponse(t *testing.T) {
 	}
 	if string(data) != "small ok" {
 		t.Errorf("content mismatch: %q", string(data))
+	}
+}
+
+func TestStreamAllZip(t *testing.T) {
+	vulnJSON1 := `{"id":"GO-2024-0001","modified":"2024-01-01T00:00:00Z","summary":"Test vuln 1"}`
+	vulnJSON2 := `{"id":"GO-2024-0002","modified":"2024-02-01T00:00:00Z","summary":"Test vuln 2"}`
+
+	zipData := createTestZip(t, map[string]string{
+		"GO-2024-0001.json": vulnJSON1,
+		"GO-2024-0002.json": vulnJSON2,
+		"README.md":         "not a json file",
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/Go/all.zip":
+			w.Header().Set("Content-Type", "application/zip")
+			_, _ = w.Write(zipData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	f := New(WithBaseURL(server.URL))
+
+	entries, errCh, err := f.StreamAllZip(context.Background(), "Go")
+	if err != nil {
+		t.Fatalf("StreamAllZip failed: %v", err)
+	}
+
+	// Collect all entries
+	results := make(map[string]string)
+	for entry := range entries {
+		results[entry.Name] = string(entry.Data)
+	}
+
+	// Check for streaming errors
+	if streamErr := <-errCh; streamErr != nil {
+		t.Fatalf("stream error: %v", streamErr)
+	}
+
+	// Verify results
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+	if results["GO-2024-0001"] != vulnJSON1 {
+		t.Errorf("GO-2024-0001 content mismatch: got %q", results["GO-2024-0001"])
+	}
+	if results["GO-2024-0002"] != vulnJSON2 {
+		t.Errorf("GO-2024-0002 content mismatch: got %q", results["GO-2024-0002"])
+	}
+}
+
+func TestStreamAllZip_TempFileCleanup(t *testing.T) {
+	vulnJSON := `{"id":"GO-2024-0001","modified":"2024-01-01T00:00:00Z"}`
+	zipData := createTestZip(t, map[string]string{
+		"GO-2024-0001.json": vulnJSON,
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		_, _ = w.Write(zipData)
+	}))
+	defer server.Close()
+
+	f := New(WithBaseURL(server.URL))
+
+	entries, errCh, err := f.StreamAllZip(context.Background(), "Go")
+	if err != nil {
+		t.Fatalf("StreamAllZip failed: %v", err)
+	}
+
+	// Drain entries
+	for range entries {
+	}
+	<-errCh
+
+	// After streaming completes, verify no mayu-zip temp files remain.
+	// Give a brief moment for cleanup goroutine.
+	time.Sleep(10 * time.Millisecond)
+
+	tmpDir := os.TempDir()
+	dirEntries, err := os.ReadDir(tmpDir)
+	if err != nil {
+		t.Fatalf("read temp dir: %v", err)
+	}
+	for _, de := range dirEntries {
+		if strings.HasPrefix(de.Name(), "mayu-zip-") && strings.HasSuffix(de.Name(), ".tmp") {
+			t.Errorf("temp file not cleaned up: %s", de.Name())
+		}
+	}
+}
+
+func TestStreamAllZip_ContextCancellation(t *testing.T) {
+	vulnJSON := `{"id":"GO-2024-0001","modified":"2024-01-01T00:00:00Z"}`
+	zipData := createTestZip(t, map[string]string{
+		"GO-2024-0001.json": vulnJSON,
+		"GO-2024-0002.json": vulnJSON,
+		"GO-2024-0003.json": vulnJSON,
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		_, _ = w.Write(zipData)
+	}))
+	defer server.Close()
+
+	f := New(WithBaseURL(server.URL))
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	entries, errCh, err := f.StreamAllZip(ctx, "Go")
+	if err != nil {
+		t.Fatalf("StreamAllZip failed: %v", err)
+	}
+
+	// Read one entry then cancel
+	<-entries
+	cancel()
+
+	// Drain remaining
+	for range entries {
+	}
+
+	// Should get context cancellation error (or nil if entries finished before cancel took effect)
+	streamErr := <-errCh
+	if streamErr != nil && streamErr != context.Canceled {
+		t.Fatalf("unexpected error: %v", streamErr)
+	}
+}
+
+func TestDownloadToTempFile(t *testing.T) {
+	content := "test content for temp file download"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(content))
+	}))
+	defer server.Close()
+
+	f := New(WithBaseURL(server.URL))
+
+	tmpFile, size, err := f.downloadToTempFile(context.Background(), server.URL)
+	if err != nil {
+		t.Fatalf("downloadToTempFile failed: %v", err)
+	}
+	defer func() {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpFile.Name())
+	}()
+
+	if size != int64(len(content)) {
+		t.Errorf("size = %d, want %d", size, len(content))
+	}
+
+	// Read back and verify content
+	buf := make([]byte, size)
+	_, err = tmpFile.Read(buf)
+	if err != nil {
+		t.Fatalf("read temp file: %v", err)
+	}
+	if string(buf) != content {
+		t.Errorf("content mismatch: got %q", string(buf))
+	}
+
+	// Verify file permissions (0600)
+	info, err := os.Stat(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("stat temp file: %v", err)
+	}
+	perm := info.Mode().Perm()
+	if perm != 0600 {
+		t.Errorf("file permissions = %o, want 0600", perm)
 	}
 }
