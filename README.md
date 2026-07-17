@@ -140,6 +140,9 @@ Print version information.
 | [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
 
 > **Note:** Converted sources (NVD, Debian) contain 50,000+ entries and are downloaded individually since no bulk archive is available. This may take significant time. Parallel download optimization is planned for a future release.
+
+| Source | Status | Method |
+|--------|--------|--------|
 | KEV | 🔜 Planned | — |
 | EPSS | 🔜 Planned | — |
 
@@ -176,7 +179,7 @@ See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 
 - [x] Phase 1: Data Pipeline (OSV ingestion)
 - [x] Phase 2: CLI (ingest + search)
-- [ ] Phase 3: CI/CD (GitHub Actions)
+- [x] Phase 3: CI/CD (GitHub Actions)
 - [ ] Phase 4: API Server (REST)
 - [ ] Phase 5: Web UI (Angular)
 - [ ] Phase 6: Additional Data Sources (KEV, EPSS, MITRE CVE)
