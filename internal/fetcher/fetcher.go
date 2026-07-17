@@ -29,15 +29,18 @@ const (
 	// DefaultHTTPTimeout is the default timeout for HTTP requests.
 	DefaultHTTPTimeout = 5 * time.Minute
 
+	// LargeFileHTTPTimeout is the timeout for large file downloads (e.g., top-level all.zip ~1.3GB).
+	LargeFileHTTPTimeout = 60 * time.Minute
+
 	// MaxResponseSize is the maximum allowed HTTP response body size (2 GB).
 	// This prevents memory exhaustion from unexpectedly large responses.
 	MaxResponseSize = 2 * 1024 * 1024 * 1024 // 2 GB
 
-	// MaxZipTotalSize is the maximum total extracted size from a zip archive (4 GB).
-	MaxZipTotalSize = 4 * 1024 * 1024 * 1024 // 4 GB
+	// MaxZipTotalSize is the maximum total extracted size from a zip archive (16 GB).
+	MaxZipTotalSize = 16 * 1024 * 1024 * 1024 // 16 GB
 
 	// MaxZipEntries is the maximum number of entries allowed in a zip archive.
-	MaxZipEntries = 500_000
+	MaxZipEntries = 1_000_000
 )
 
 // Fetcher downloads OSV vulnerability data from the GCS bucket.
@@ -78,6 +81,13 @@ func WithBaseURL(url string) Option {
 func WithHTTPClient(client *http.Client) Option {
 	return func(f *Fetcher) {
 		f.httpClient = client
+	}
+}
+
+// WithTimeout sets a custom HTTP timeout.
+func WithTimeout(d time.Duration) Option {
+	return func(f *Fetcher) {
+		f.httpClient.Timeout = d
 	}
 }
 

@@ -586,3 +586,93 @@ func TestDownloadToTempFile(t *testing.T) {
 		t.Errorf("file permissions = %o, want 0600", perm)
 	}
 }
+
+func TestStreamTopLevelAllZip(t *testing.T) {
+	// The top-level all.zip contains files with paths like "ecosystem/vuln_id.json"
+	vulnJSON1 := `{"id":"GO-2024-0001","modified":"2024-01-01T00:00:00Z","summary":"Test vuln 1"}`
+	vulnJSON2 := `{"id":"PYSEC-2024-0001","modified":"2024-02-01T00:00:00Z","summary":"Test vuln 2"}`
+
+	zipData := createTestZip(t, map[string]string{
+		"Go/GO-2024-0001.json":      vulnJSON1,
+		"PyPI/PYSEC-2024-0001.json": vulnJSON2,
+		"README.md":                 "not a json file",
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/all.zip":
+			w.Header().Set("Content-Type", "application/zip")
+			_, _ = w.Write(zipData)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	f := New(WithBaseURL(server.URL))
+
+	entries, errCh, err := f.StreamTopLevelAllZip(context.Background())
+	if err != nil {
+		t.Fatalf("StreamTopLevelAllZip failed: %v", err)
+	}
+
+	// Collect all entries
+	results := make(map[string]string)
+	for entry := range entries {
+		results[entry.Name] = string(entry.Data)
+	}
+
+	// Check for streaming errors
+	if streamErr := <-errCh; streamErr != nil {
+		t.Fatalf("stream error: %v", streamErr)
+	}
+
+	// Verify results - should extract vuln_id from "ecosystem/vuln_id.json"
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d: %v", len(results), results)
+	}
+	if results["GO-2024-0001"] != vulnJSON1 {
+		t.Errorf("GO-2024-0001 content mismatch: got %q", results["GO-2024-0001"])
+	}
+	if results["PYSEC-2024-0001"] != vulnJSON2 {
+		t.Errorf("PYSEC-2024-0001 content mismatch: got %q", results["PYSEC-2024-0001"])
+	}
+}
+
+func TestStreamTopLevelAllZip_ContextCancellation(t *testing.T) {
+	vulnJSON := `{"id":"GO-2024-0001","modified":"2024-01-01T00:00:00Z"}`
+	zipData := createTestZip(t, map[string]string{
+		"Go/GO-2024-0001.json":    vulnJSON,
+		"Go/GO-2024-0002.json":    vulnJSON,
+		"PyPI/PYSEC-2024-01.json": vulnJSON,
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		_, _ = w.Write(zipData)
+	}))
+	defer server.Close()
+
+	f := New(WithBaseURL(server.URL))
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	entries, errCh, err := f.StreamTopLevelAllZip(ctx)
+	if err != nil {
+		t.Fatalf("StreamTopLevelAllZip failed: %v", err)
+	}
+
+	// Read one entry then cancel
+	<-entries
+	cancel()
+
+	// Drain remaining
+	for range entries {
+	}
+
+	// Should get context cancellation error (or nil if finished)
+	streamErr := <-errCh
+	if streamErr != nil && streamErr != context.Canceled {
+		t.Fatalf("unexpected error: %v", streamErr)
+	}
+}

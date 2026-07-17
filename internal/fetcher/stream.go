@@ -115,6 +115,106 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 	return entries, errCh, nil
 }
 
+// StreamTopLevelAllZip downloads the top-level all.zip (which contains
+// vulnerabilities from ALL ecosystems, ~1.3GB) to a temporary file and
+// streams entries through a channel. Each entry's filename in the zip has
+// the format "ecosystem/vuln_id.json".
+//
+// This uses a longer timeout appropriate for large file downloads.
+// The temporary file is automatically cleaned up when streaming completes.
+func (f *Fetcher) StreamTopLevelAllZip(ctx context.Context) (<-chan ZipEntry, <-chan error, error) {
+	u := fmt.Sprintf("%s/all.zip", f.baseURL)
+
+	// Use a longer timeout for the large download.
+	// Create a separate client to avoid modifying the shared one.
+	largeClient := &http.Client{
+		Timeout: LargeFileHTTPTimeout,
+	}
+	origClient := f.httpClient
+	f.httpClient = largeClient
+	tmpFile, fileSize, err := f.downloadToTempFile(ctx, u)
+	f.httpClient = origClient
+	if err != nil {
+		return nil, nil, fmt.Errorf("download top-level all.zip: %w", err)
+	}
+
+	// Open zip reader from the temporary file.
+	reader, err := zip.NewReader(tmpFile, fileSize)
+	if err != nil {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpFile.Name())
+		return nil, nil, fmt.Errorf("open zip: %w", err)
+	}
+
+	// Check entry count limit.
+	jsonCount := 0
+	for _, file := range reader.File {
+		if strings.HasSuffix(file.Name, ".json") {
+			jsonCount++
+		}
+	}
+	if jsonCount > MaxZipEntries {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpFile.Name())
+		return nil, nil, fmt.Errorf("zip contains %d entries, exceeding maximum of %d", jsonCount, MaxZipEntries)
+	}
+
+	entries := make(chan ZipEntry, 100)
+	errCh := make(chan error, 1)
+
+	go func() {
+		defer close(entries)
+		defer close(errCh)
+		defer func() {
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpFile.Name())
+		}()
+
+		var totalSize int64
+
+		for _, file := range reader.File {
+			if !strings.HasSuffix(file.Name, ".json") {
+				continue
+			}
+
+			select {
+			case <-ctx.Done():
+				errCh <- ctx.Err()
+				return
+			default:
+			}
+
+			content, err := readZipFile(file)
+			if err != nil {
+				errCh <- fmt.Errorf("read %s: %w", file.Name, err)
+				return
+			}
+
+			totalSize += int64(len(content))
+			if totalSize > MaxZipTotalSize {
+				errCh <- fmt.Errorf("zip total extracted size exceeds maximum of %d bytes", MaxZipTotalSize)
+				return
+			}
+
+			// For top-level all.zip, the filename is "ecosystem/vuln_id.json"
+			// Extract just the vuln_id part.
+			name := strings.TrimSuffix(file.Name, ".json")
+			if idx := strings.LastIndex(name, "/"); idx >= 0 {
+				name = name[idx+1:]
+			}
+
+			select {
+			case entries <- ZipEntry{Name: name, Data: content}:
+			case <-ctx.Done():
+				errCh <- ctx.Err()
+				return
+			}
+		}
+	}()
+
+	return entries, errCh, nil
+}
+
 // downloadToTempFile downloads the URL content directly to a temporary file,
 // avoiding loading the entire response into memory. It returns the open file
 // (seeked to beginning) and its size.

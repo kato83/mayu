@@ -271,6 +271,86 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 	return stats, nil
 }
 
+// BulkImportAll performs a bulk import from the top-level all.zip, which
+// contains vulnerabilities from all ecosystems in a single archive (~1.3GB).
+// This is more efficient than importing each ecosystem separately when doing
+// a complete fresh import.
+func (ing *Ingester) BulkImportAll(ctx context.Context) (*Stats, error) {
+	start := time.Now()
+	stats := &Stats{
+		Ecosystem:  "all",
+		IsFullSync: true,
+	}
+
+	// Phase 1: Download the top-level all.zip.
+	ing.progress(Progress{Phase: "download", Message: "Downloading top-level all.zip (~1.3GB)... this may take a while."})
+
+	entries, errCh, err := ing.fetcher.StreamTopLevelAllZip(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fetch top-level all.zip: %w", err)
+	}
+
+	// Phase 2+3: Stream parse and store in batches.
+	ing.progress(Progress{Phase: "store", Message: "Processing entries..."})
+
+	batch := make([]*model.Vulnerability, 0, ing.batchSize)
+	processed := 0
+
+	for entry := range entries {
+		vuln, err := ing.parser.Parse(entry.Data)
+		if err != nil {
+			stats.Errors++
+			ing.logger.Printf("parse error: %s: %v", entry.Name, err)
+			continue
+		}
+
+		batch = append(batch, vuln)
+		processed++
+
+		// Flush batch when full.
+		if len(batch) >= ing.batchSize {
+			if err := ing.store.UpsertBatch(ctx, batch); err != nil {
+				return nil, fmt.Errorf("upsert batch: %w", err)
+			}
+			stats.Inserted += len(batch)
+			batch = batch[:0]
+
+			ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: 0, Message: fmt.Sprintf("Stored %d entries...", stats.Inserted)})
+		}
+	}
+
+	// Check for streaming errors.
+	if streamErr := <-errCh; streamErr != nil {
+		return nil, fmt.Errorf("stream zip: %w", streamErr)
+	}
+
+	// Flush remaining batch.
+	if len(batch) > 0 {
+		if err := ing.store.UpsertBatch(ctx, batch); err != nil {
+			return nil, fmt.Errorf("upsert final batch: %w", err)
+		}
+		stats.Inserted += len(batch)
+	}
+
+	stats.Total = processed + stats.Errors
+	stats.Skipped = stats.Errors
+
+	// Update sync state for "all".
+	syncState := &store.SyncState{
+		Source:         "all",
+		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
+		RecordCount:    int64(stats.Inserted),
+	}
+	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
+		ing.logger.Printf("warning: failed to update sync state: %v", err)
+	}
+
+	stats.Duration = time.Since(start)
+	ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: stats.Total, Message: fmt.Sprintf("Done: %d inserted in %s", stats.Inserted, stats.Duration.Round(time.Millisecond))})
+
+	return stats, nil
+}
+
 // storeBatches inserts vulnerabilities in batches, returning the total count inserted.
 func (ing *Ingester) storeBatches(ctx context.Context, vulns []*model.Vulnerability) (int, error) {
 	inserted := 0

@@ -68,6 +68,7 @@ func runIngest(args []string) error {
 	ecosystem := fs.String("ecosystem", "", "Ecosystem to import (e.g., Go, PyPI, npm)")
 	source := fs.String("source", "", "Import from converted source (nvd, debian)")
 	all := fs.Bool("all", false, "Import all ecosystems")
+	bulk := fs.Bool("bulk", false, "Use top-level all.zip for bulk import (with --all)")
 	update := fs.Bool("update", false, "Perform delta update instead of full import")
 	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
 	batchSize := fs.Int("batch-size", 100, "Number of vulnerabilities per batch insert")
@@ -84,6 +85,7 @@ func runIngest(args []string) error {
 		fmt.Println("  mayu ingest --ecosystem Go")
 		fmt.Println("  mayu ingest --ecosystem Go --update")
 		fmt.Println("  mayu ingest --all")
+		fmt.Println("  mayu ingest --all --bulk    # Download single all.zip (~1.3GB) for all ecosystems")
 		fmt.Println("  mayu ingest --source nvd")
 		fmt.Println("  mayu ingest --source debian")
 		fmt.Println("  mayu ingest --ecosystem PyPI --db-url postgres://user:pass@host/db")
@@ -141,8 +143,23 @@ func runIngest(args []string) error {
 		return nil
 	}
 
+	// Handle --all --bulk: download the single top-level all.zip (~1.3GB)
+	if *all && *bulk {
+		fmt.Println("\n=== Bulk import from top-level all.zip ===")
+		stats, err := ing.BulkImportAll(ctx)
+		if err != nil {
+			if ctx.Err() != nil {
+				fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+				return nil
+			}
+			return fmt.Errorf("bulk import: %w", err)
+		}
+		printStats(stats)
+		return nil
+	}
+
 	// Determine ecosystems to import
-	ecosystems, err := resolveEcosystems(*all, *ecosystem)
+	ecosystems, err := resolveEcosystems(ctx, f, *all, *ecosystem)
 	if err != nil {
 		return err
 	}
@@ -275,58 +292,24 @@ func isLocalHost(host string) bool {
 }
 
 // resolveEcosystems returns the list of ecosystems to import.
-func resolveEcosystems(all bool, ecosystem string) ([]string, error) {
+// When all is true, it dynamically fetches the full list from the OSV GCS bucket.
+func resolveEcosystems(ctx context.Context, f *fetcher.Fetcher, all bool, ecosystem string) ([]string, error) {
 	if all {
-		// Known ecosystems from OSV - a subset of the most common ones
-		return knownEcosystems, nil
+		fmt.Println("Fetching ecosystem list from OSV GCS bucket...")
+		ecosystems, err := f.ListEcosystems(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list ecosystems: %w", err)
+		}
+		fmt.Printf("Found %d ecosystems.\n", len(ecosystems))
+		return ecosystems, nil
 	}
 
-	// Normalize: accept lowercase input
-	eco := normalizeEcosystem(ecosystem)
+	// Accept the ecosystem name as-is (GCS is case-sensitive).
+	eco := strings.TrimSpace(ecosystem)
 	if eco == "" {
-		return nil, fmt.Errorf("unknown ecosystem: %q", ecosystem)
+		return nil, fmt.Errorf("ecosystem must not be empty")
 	}
 	return []string{eco}, nil
-}
-
-// normalizeEcosystem maps common lowercase inputs to the correct ecosystem name.
-func normalizeEcosystem(input string) string {
-	lower := strings.ToLower(strings.TrimSpace(input))
-	for _, eco := range knownEcosystems {
-		if strings.ToLower(eco) == lower {
-			return eco
-		}
-	}
-	// If not found in known list, return as-is (GCS may still have it)
-	if input != "" {
-		return input
-	}
-	return ""
-}
-
-// knownEcosystems is a list of ecosystems available in the OSV GCS bucket.
-var knownEcosystems = []string{
-	"AlmaLinux",
-	"Alpine",
-	"Android",
-	"Bitnami",
-	"crates.io",
-	"Debian",
-	"GitHub Actions",
-	"Go",
-	"Hackage",
-	"Hex",
-	"Linux",
-	"Maven",
-	"npm",
-	"NuGet",
-	"Packagist",
-	"Pub",
-	"PyPI",
-	"Rocky Linux",
-	"RubyGems",
-	"SwiftURL",
-	"Ubuntu",
 }
 
 func runSearch(args []string) error {
@@ -379,7 +362,7 @@ func runSearch(args []string) error {
 	// Build search query
 	query := store.SearchQuery{
 		ID:          *id,
-		Ecosystem:   normalizeEcosystem(*ecosystem),
+		Ecosystem:   strings.TrimSpace(*ecosystem),
 		PackageName: *pkg,
 		Alias:       *alias,
 		Limit:       *limit,
