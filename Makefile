@@ -18,7 +18,7 @@ test-integration:
 
 # Lint
 lint:
-	golangci-lint run ./...
+	$(shell go env GOBIN)/golangci-lint run ./...
 
 # Clean
 clean:
