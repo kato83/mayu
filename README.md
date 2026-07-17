@@ -14,6 +14,10 @@ Mayu ingests vulnerability data from the [OSV](https://osv.dev/) ecosystem into 
 - Supports all OSV ecosystems (Go, PyPI, npm, Maven, crates.io, etc.)
 - Raw OSV JSON preserved for full data reversibility
 
+## Naming
+
+**Mayu** comes from the Japanese word *繭 (mayu)*, meaning "cocoon" — the protective casing a silkworm spins around itself. The name reflects the tool's purpose: using vulnerability intelligence to wrap your environment in a gentle yet resilient layer of protection. As a four-letter, lowercase-friendly name, it also lends itself well to a modern CLI / API / Web UI toolchain (`mayu`, `mayu-server`, etc.).
+
 ## Quick Start
 
 ### Prerequisites
@@ -113,17 +117,17 @@ Print version information.
 
 ```
 ┌─────────────────────────────────────────────┐
-│              CLI (cmd/mayu)                  │
+│              CLI (cmd/mayu)                 │
 ├─────────────┬───────────────────────────────┤
 │   ingest    │           search              │
 └──────┬──────┴───────────────┬───────────────┘
        │                      │
 ┌──────┴──────────────────────┴───────────────┐
-│            Core (internal/)                  │
+│            Core (internal/)                 │
 ├─────────┬──────────┬────────┬───────────────┤
 │ Fetcher │  Parser  │ Store  │    Ingest     │
 │  (GCS)  │  (OSV)   │  (PG)  │  (Pipeline)   │
-└─────────┴──────────┴───┬────┴───────────────┘
+└─────────┴──────────┴────┬───┴───────────────┘
                           │
                    ┌──────┴──────┐
                    │ PostgreSQL  │
