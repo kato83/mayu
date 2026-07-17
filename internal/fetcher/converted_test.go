@@ -147,7 +147,7 @@ func TestListBucketObjects_Pagination(t *testing.T) {
 			}
 		} else {
 			// Download request
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"id":"%s","modified":"2024-01-01T00:00:00Z"}`, r.URL.Path)))
+			_, _ = fmt.Fprintf(w, `{"id":"%s","modified":"2024-01-01T00:00:00Z"}`, r.URL.Path)
 		}
 	}))
 	defer fullServer.Close()
