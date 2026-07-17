@@ -14,7 +14,7 @@ test:
 	go test ./... -v -count=1
 
 test-integration:
-	go test ./... -v -count=1 -tags=integration
+	go test ./... -v -count=1 -tags=integration -p 1
 
 # Lint
 lint:
