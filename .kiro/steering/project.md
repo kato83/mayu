@@ -62,6 +62,7 @@ mayu/
 - Always provide both up and down migrations
 - Use JSONB for flexible/raw data storage (e.g., `raw_json`, `database_specific`)
 - Index frequently queried columns
+- When the DB schema changes, always update `.kiro/steering/erd.md` to reflect the new structure
 
 ### Dependencies
 
