@@ -189,7 +189,7 @@ make docker-down
 
 ## License
 
-TBD
+[MIT](LICENSE)
 
 ## Roadmap
 

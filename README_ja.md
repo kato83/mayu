@@ -188,7 +188,7 @@ make docker-down
 
 ## ライセンス
 
-未定
+[MIT](LICENSE)
 
 ## ロードマップ
 
