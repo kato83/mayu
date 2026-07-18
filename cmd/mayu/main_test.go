@@ -120,7 +120,7 @@ func TestFormatAliases(t *testing.T) {
 		{"single non-CVE", []string{"GHSA-xxxx-yyyy"}, 20, "GHSA-xxxx-yyyy"},
 		{"CVE prioritized", []string{"GHSA-xxxx-yyyy", "CVE-2024-1234"}, 20, "CVE-2024-1234 +1"},
 		{"multiple CVEs", []string{"CVE-2024-1111", "CVE-2024-2222", "GHSA-aaaa"}, 20, "CVE-2024-1111 +2"},
-		{"truncated", []string{"CVE-2024-1234"}, 10, "CVE-20..."},
+		{"truncated", []string{"CVE-2024-1234"}, 10, "CVE-202..."},
 		{"multiple non-CVE", []string{"GHSA-aaaa", "GHSA-bbbb", "GHSA-cccc"}, 20, "GHSA-aaaa +2"},
 	}
 
