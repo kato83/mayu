@@ -375,23 +375,9 @@ func (s *PostgresStore) GetByID(ctx context.Context, id string) (*model.Vulnerab
 	return vuln, nil
 }
 
-// Search finds vulnerabilities matching the given query parameters.
-func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model.Vulnerability, error) {
-	limit := query.Limit
-	if limit <= 0 {
-		limit = 100
-	}
-	offset := query.Offset
-	if offset < 0 {
-		offset = 0
-	}
-
-	var (
-		baseQuery string
-		args      []interface{}
-		argIdx    int
-	)
-
+// buildSearchConditions constructs the WHERE clause and arguments for a SearchQuery.
+// It returns the base SELECT query with conditions, the arguments, and the current argIdx.
+func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery string, args []interface{}, argIdx int) {
 	switch {
 	case query.ID != "":
 		argIdx++
@@ -432,6 +418,73 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 			WHERE 1=1`
 	}
 
+	// Additional filter: --severity (filter by CVSS score range)
+	if query.Severity != "" {
+		minScore, maxScore := severityToScoreRange(query.Severity)
+		if minScore >= 0 {
+			argIdx++
+			baseQuery += fmt.Sprintf(` AND oe.osv_id IN (
+				SELECT s.osv_entry_id FROM osv_severity s
+				WHERE s.severity_type IN ('CVSS_V3', 'CVSS_V4', 'CVSS_V2')
+				AND cvss_base_score(s.score) >= $%d`, argIdx)
+			args = append(args, minScore)
+			argIdx++
+			baseQuery += fmt.Sprintf(` AND cvss_base_score(s.score) < $%d)`, argIdx)
+			args = append(args, maxScore)
+		}
+	}
+
+	// Additional filter: --since (modified date)
+	if query.Since != "" {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND v.modified >= $%d`, argIdx)
+		args = append(args, query.Since)
+	}
+
+	// Additional filter: --version (check if version appears in affected versions list)
+	if query.Version != "" {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND oe.osv_id IN (
+			SELECT ap2.osv_entry_id FROM osv_affected_packages ap2
+			WHERE $%d = ANY(ap2.versions))`, argIdx)
+		args = append(args, query.Version)
+	}
+
+	return baseQuery, args, argIdx
+}
+
+// severityToScoreRange maps a severity level string to CVSS v3 score ranges.
+// Returns (minScore, maxScore). Returns (-1, -1) for unknown levels.
+func severityToScoreRange(level string) (float64, float64) {
+	switch strings.ToLower(level) {
+	case "critical":
+		return 9.0, 10.1
+	case "high":
+		return 7.0, 9.0
+	case "medium":
+		return 4.0, 7.0
+	case "low":
+		return 0.1, 4.0
+	case "none":
+		return 0.0, 0.1
+	default:
+		return -1, -1
+	}
+}
+
+// Search finds vulnerabilities matching the given query parameters.
+func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model.Vulnerability, error) {
+	limit := query.Limit
+	if limit <= 0 {
+		limit = 100
+	}
+	offset := query.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	baseQuery, args, argIdx := s.buildSearchConditions(query)
+
 	argIdx++
 	baseQuery += fmt.Sprintf(` ORDER BY v.modified DESC LIMIT $%d`, argIdx)
 	args = append(args, limit)
@@ -462,6 +515,20 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	}
 
 	return results, nil
+}
+
+// Count returns the number of vulnerabilities matching the given query parameters.
+func (s *PostgresStore) Count(ctx context.Context, query SearchQuery) (int64, error) {
+	baseQuery, args, _ := s.buildSearchConditions(query)
+
+	// Replace the SELECT clause with COUNT(*)
+	countQuery := strings.Replace(baseQuery, "SELECT oe.raw_json", "SELECT COUNT(*)", 1)
+
+	var count int64
+	if err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&count); err != nil {
+		return 0, fmt.Errorf("count vulnerabilities: %w", err)
+	}
+	return count, nil
 }
 
 // GetSyncState retrieves the sync state for a given source.
