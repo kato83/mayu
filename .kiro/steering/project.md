@@ -73,6 +73,10 @@ mayu/
 
 ## Development Workflow
 
+### Parallel Development
+
+This project supports parallel development using `git worktree`. See [worktree.md](worktree.md) for the full workflow, directory layout, and rules.
+
 ### Prerequisites
 
 - Go 1.26.5 (managed via asdf, `.tool-versions`)
