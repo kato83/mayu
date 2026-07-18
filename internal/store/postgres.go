@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kato83/mayu/internal/model"
@@ -152,9 +153,9 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 			return fmt.Errorf("delete old osv_entry for migration: %w", err)
 		}
 
-		// Remove aliases that belonged to this OSV entry under the old vulnerability
-		if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerability_aliases WHERE vulnerability_id = $1 AND alias = $2`, oldID, osvID); err != nil {
-			return fmt.Errorf("delete old osv alias: %w", err)
+		// Remove all aliases that this OSV entry contributed under the old vulnerability
+		if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, oldID, osvID); err != nil {
+			return fmt.Errorf("delete old osv aliases: %w", err)
 		}
 
 		// Check if the old vulnerability has any remaining osv_entries
@@ -206,16 +207,46 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 	}
 	allAliases = append(allAliases, vuln.Aliases...)
 
-	// Insert aliases with ON CONFLICT to handle multiple OSV entries contributing aliases
+	// Insert aliases with ON CONFLICT to handle multiple OSV entries contributing aliases.
+	// Each alias is tagged with source_osv_id to track which OSV entry contributed it.
 	for i, alias := range allAliases {
 		_, err := tx.ExecContext(ctx, `
-			INSERT INTO vulnerability_aliases (vulnerability_id, alias, ordering)
-			VALUES ($1, $2, $3)
-			ON CONFLICT (vulnerability_id, alias) DO UPDATE SET ordering = EXCLUDED.ordering`,
-			canID, alias, i,
+			INSERT INTO vulnerability_aliases (vulnerability_id, alias, ordering, source_osv_id)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT (vulnerability_id, alias, source_osv_id) DO UPDATE SET ordering = EXCLUDED.ordering`,
+			canID, alias, i, osvID,
 		)
 		if err != nil {
 			return fmt.Errorf("insert alias %q: %w", alias, err)
+		}
+	}
+
+	// Delete aliases that this OSV entry previously contributed but are no longer in the list.
+	// This handles the case where an OSV entry's aliases field shrinks over time.
+	if len(allAliases) > 0 {
+		// Build placeholder list for NOT IN clause
+		placeholders := make([]string, len(allAliases))
+		args := make([]interface{}, 0, len(allAliases)+2)
+		args = append(args, canID, osvID)
+		for i, alias := range allAliases {
+			placeholders[i] = fmt.Sprintf("$%d", i+3)
+			args = append(args, alias)
+		}
+		query := fmt.Sprintf(`
+			DELETE FROM vulnerability_aliases
+			WHERE vulnerability_id = $1 AND source_osv_id = $2
+			AND alias NOT IN (%s)`, strings.Join(placeholders, ", "))
+		if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+			return fmt.Errorf("delete stale aliases: %w", err)
+		}
+	} else {
+		// No aliases at all — delete all aliases contributed by this OSV entry
+		if _, err := tx.ExecContext(ctx, `
+			DELETE FROM vulnerability_aliases
+			WHERE vulnerability_id = $1 AND source_osv_id = $2`,
+			canID, osvID,
+		); err != nil {
+			return fmt.Errorf("delete all aliases for osv entry: %w", err)
 		}
 	}
 

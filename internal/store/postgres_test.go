@@ -531,3 +531,149 @@ func TestCanonicalID(t *testing.T) {
 		})
 	}
 }
+
+func TestAliasRemovalOnReimport(t *testing.T) {
+	store := setupTestStore(t)
+	ctx := context.Background()
+
+	now := time.Now().UTC().Truncate(time.Second)
+
+	// First import: GO-2024-8000 with 3 aliases
+	vuln := &model.Vulnerability{
+		ID:       "GO-2024-8000",
+		Modified: now,
+		Summary:  "Test vulnerability",
+		Aliases:  []string{"CVE-2024-8000", "GHSA-aaaa-bbbb-cccc", "BIT-golang-2024-8000"},
+		Affected: []model.Affected{{
+			Package: model.Package{Ecosystem: "Go", Name: "example.com/foo"},
+		}},
+	}
+	if err := store.Insert(ctx, vuln); err != nil {
+		t.Fatalf("Insert failed: %v", err)
+	}
+
+	// Verify 4 aliases exist (3 original + OSV ID since canonical is CVE)
+	var count int
+	err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, "CVE-2024-8000", "GO-2024-8000").Scan(&count)
+	if err != nil {
+		t.Fatalf("query aliases: %v", err)
+	}
+	if count != 4 {
+		t.Errorf("expected 4 aliases after first import, got %d", count)
+	}
+
+	// Second import: same OSV entry but GHSA alias was removed
+	vulnUpdated := &model.Vulnerability{
+		ID:       "GO-2024-8000",
+		Modified: now.Add(time.Hour),
+		Summary:  "Test vulnerability updated",
+		Aliases:  []string{"CVE-2024-8000", "BIT-golang-2024-8000"},
+		Affected: []model.Affected{{
+			Package: model.Package{Ecosystem: "Go", Name: "example.com/foo"},
+		}},
+	}
+	if err := store.Insert(ctx, vulnUpdated); err != nil {
+		t.Fatalf("Insert (updated) failed: %v", err)
+	}
+
+	// Verify: now only 3 aliases (OSV ID + 2 remaining)
+	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, "CVE-2024-8000", "GO-2024-8000").Scan(&count)
+	if err != nil {
+		t.Fatalf("query aliases after update: %v", err)
+	}
+	if count != 3 {
+		t.Errorf("expected 3 aliases after removal, got %d", count)
+	}
+
+	// Verify the removed alias is gone
+	var ghsaCount int
+	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1 AND alias = $2`, "CVE-2024-8000", "GHSA-aaaa-bbbb-cccc").Scan(&ghsaCount)
+	if err != nil {
+		t.Fatalf("query GHSA alias: %v", err)
+	}
+	if ghsaCount != 0 {
+		t.Errorf("expected GHSA alias to be removed, got count=%d", ghsaCount)
+	}
+}
+
+func TestAliasRemovalDoesNotAffectOtherSources(t *testing.T) {
+	store := setupTestStore(t)
+	ctx := context.Background()
+
+	now := time.Now().UTC().Truncate(time.Second)
+
+	// Insert Ubuntu OSV entry
+	vuln1 := &model.Vulnerability{
+		ID:       "USN-7000-1",
+		Modified: now,
+		Summary:  "Ubuntu advisory",
+		Aliases:  []string{"CVE-2024-7000", "GHSA-zzzz-yyyy-xxxx"},
+		Affected: []model.Affected{{
+			Package: model.Package{Ecosystem: "Ubuntu", Name: "libfoo"},
+		}},
+	}
+	if err := store.Insert(ctx, vuln1); err != nil {
+		t.Fatalf("Insert vuln1 failed: %v", err)
+	}
+
+	// Insert Red Hat OSV entry (same CVE)
+	vuln2 := &model.Vulnerability{
+		ID:       "RHSA-2024:7000",
+		Modified: now,
+		Summary:  "Red Hat advisory",
+		Aliases:  []string{"CVE-2024-7000", "RHSA-EXTRA-1"},
+		Affected: []model.Affected{{
+			Package: model.Package{Ecosystem: "Red Hat", Name: "libfoo"},
+		}},
+	}
+	if err := store.Insert(ctx, vuln2); err != nil {
+		t.Fatalf("Insert vuln2 failed: %v", err)
+	}
+
+	// Verify total aliases for CVE-2024-7000
+	var totalBefore int
+	err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1`, "CVE-2024-7000").Scan(&totalBefore)
+	if err != nil {
+		t.Fatalf("query total aliases: %v", err)
+	}
+	// USN-7000-1 contributes: USN-7000-1, CVE-2024-7000, GHSA-zzzz-yyyy-xxxx (3)
+	// RHSA-2024:7000 contributes: RHSA-2024:7000, CVE-2024-7000, RHSA-EXTRA-1 (3)
+	// Total unique rows = 6 (CVE-2024-7000 appears twice with different source_osv_id)
+	if totalBefore != 6 {
+		t.Errorf("expected 6 alias rows before update, got %d", totalBefore)
+	}
+
+	// Re-import Ubuntu entry with GHSA alias removed
+	vuln1Updated := &model.Vulnerability{
+		ID:       "USN-7000-1",
+		Modified: now.Add(time.Hour),
+		Summary:  "Ubuntu advisory updated",
+		Aliases:  []string{"CVE-2024-7000"},
+		Affected: []model.Affected{{
+			Package: model.Package{Ecosystem: "Ubuntu", Name: "libfoo"},
+		}},
+	}
+	if err := store.Insert(ctx, vuln1Updated); err != nil {
+		t.Fatalf("Insert vuln1 updated failed: %v", err)
+	}
+
+	// Verify Ubuntu's aliases reduced (now: USN-7000-1, CVE-2024-7000 = 2)
+	var usnCount int
+	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, "CVE-2024-7000", "USN-7000-1").Scan(&usnCount)
+	if err != nil {
+		t.Fatalf("query USN aliases: %v", err)
+	}
+	if usnCount != 2 {
+		t.Errorf("expected 2 USN aliases after update, got %d", usnCount)
+	}
+
+	// Verify Red Hat's aliases unchanged (still 3)
+	var rhCount int
+	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, "CVE-2024-7000", "RHSA-2024:7000").Scan(&rhCount)
+	if err != nil {
+		t.Fatalf("query RHSA aliases: %v", err)
+	}
+	if rhCount != 3 {
+		t.Errorf("expected 3 RHSA aliases unchanged, got %d", rhCount)
+	}
+}
