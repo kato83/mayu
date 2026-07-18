@@ -93,8 +93,10 @@ func TestParseCVSSScore(t *testing.T) {
 		{"zero", "0.0", 0.0},
 		{"low score", "3.1", 3.1},
 		{"empty string", "", 0},
-		{"non-numeric", "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", 0},
+		{"non-numeric", "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", 9.8},
 		{"whitespace padded", "  9.8  ", 9.8},
+		{"vector with scope changed", "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N", 6.1},
+		{"cvss v4 unsupported", "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", 0},
 	}
 
 	for _, tt := range tests {
@@ -189,7 +191,16 @@ func TestFormatSeverity(t *testing.T) {
 			want: "8.1",
 		},
 		{
-			name: "non-numeric score ignored",
+			name: "CVSS vector string produces score",
+			vuln: &model.Vulnerability{
+				Severity: []model.Severity{
+					{Type: model.SeverityTypeCVSSV3, Score: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"},
+				},
+			},
+			want: "9.8",
+		},
+		{
+			name: "incomplete CVSS vector ignored",
 			vuln: &model.Vulnerability{
 				Severity: []model.Severity{
 					{Type: model.SeverityTypeCVSSV3, Score: "CVSS:3.1/AV:N/AC:L"},
