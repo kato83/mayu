@@ -4,6 +4,7 @@ package ingest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -192,6 +193,12 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 
 	csvData, err := ing.fetcher.FetchModifiedCSV(ctx, ecosystem)
 	if err != nil {
+		if errors.Is(err, fetcher.ErrNotFound) {
+			// modified_id.csv does not exist for this ecosystem — fall back to full import
+			ing.logger.Printf("modified_id.csv not found for %s, falling back to full import", ecosystem)
+			ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("modified_id.csv not found for %s, falling back to full import...", ecosystem)})
+			return ing.FullImport(ctx, ecosystem)
+		}
 		return nil, fmt.Errorf("fetch modified_id.csv: %w", err)
 	}
 

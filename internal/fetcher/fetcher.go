@@ -11,6 +11,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,6 +22,9 @@ import (
 	"strings"
 	"time"
 )
+
+// ErrNotFound is returned when a requested resource does not exist (HTTP 404).
+var ErrNotFound = errors.New("not found")
 
 const (
 	// DefaultBaseURL is the base URL for the OSV GCS bucket.
@@ -193,6 +197,9 @@ func (f *Fetcher) download(ctx context.Context, url string) ([]byte, error) {
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("unexpected status %d for %s: %w", resp.StatusCode, url, ErrNotFound)
+		}
 		return nil, fmt.Errorf("unexpected status %d for %s", resp.StatusCode, url)
 	}
 
