@@ -108,6 +108,18 @@ make build
 ./bin/mayu search --ecosystem Go --format csv > vulns.csv
 ```
 
+### Start API Server
+
+```bash
+# Start the API server (default port: 8080)
+./bin/mayu serve
+
+# Start on custom port
+./bin/mayu serve --addr :3000
+
+# OpenAPI spec available at http://localhost:8080/openapi.yaml
+```
+
 ## CLI Reference
 
 ### `mayu ingest`
@@ -149,6 +161,41 @@ Search for vulnerabilities in the local database.
 
 Print version information.
 
+### `mayu serve`
+
+Start the API server for programmatic access to vulnerability data.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--addr` | Address to listen on (host:port) | `:8080` |
+| `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
+
+**Endpoints:**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/vulnerabilities` | Search vulnerabilities (same params as CLI search) |
+| GET | `/api/v1/vulnerabilities/{id}` | Get a single vulnerability by OSV ID |
+| GET | `/healthz` | Health check |
+| GET | `/openapi.yaml` | OpenAPI 3.1 specification |
+
+**Examples:**
+
+```bash
+# Start the server on default port
+./bin/mayu serve
+
+# Start on a custom port
+./bin/mayu serve --addr :3000
+
+# Query the API
+curl "http://localhost:8080/api/v1/vulnerabilities?ecosystem=Go&limit=5"
+curl "http://localhost:8080/api/v1/vulnerabilities/GO-2024-2687"
+curl "http://localhost:8080/api/v1/vulnerabilities?package=golang.org/x/crypto"
+curl "http://localhost:8080/api/v1/vulnerabilities?severity=critical"
+curl "http://localhost:8080/api/v1/vulnerabilities?purl=pkg:golang/golang.org/x/crypto"
+```
+
 ## Architecture
 
 ```mermaid
@@ -156,11 +203,14 @@ graph TD
     CLI["CLI (cmd/mayu)"]
     CLI --> Ingest[ingest]
     CLI --> Search[search]
+    CLI --> Serve[serve]
 
     Ingest --> Fetcher["Fetcher (GCS)"]
     Ingest --> Parser["Parser (OSV)"]
     Ingest --> IngestPipeline["Ingest (Pipeline)"]
     Search --> Store["Store (PG)"]
+    Serve --> Server["Server (HTTP/REST)"]
+    Server --> Store
     IngestPipeline --> Store
 
     Store --> DB[(PostgreSQL)]
@@ -225,6 +275,6 @@ See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 - [x] Phase 1: Data Pipeline (OSV ingestion)
 - [x] Phase 2: CLI (ingest + search)
 - [x] Phase 3: CI/CD (GitHub Actions)
-- [ ] Phase 4: API Server (REST)
+- [x] Phase 4: API Server (REST)
 - [ ] Phase 5: Web UI (Angular)
 - [ ] Phase 6: Additional Data Sources (KEV, EPSS, MITRE CVE)
