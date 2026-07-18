@@ -83,8 +83,29 @@ make build
 # Positional argument (auto-detects ID vs alias)
 ./bin/mayu search CVE-2024-24790
 
+# Filter by severity level
+./bin/mayu search --severity critical --ecosystem Go
+
+# Filter by date (modified since)
+./bin/mayu search --since 2024-01-01 --ecosystem npm
+
+# Filter by affected version
+./bin/mayu search --package golang.org/x/crypto --version 0.17.0
+
+# Pagination
+./bin/mayu search --ecosystem Go --limit 10 --offset 20
+
+# Count results only
+./bin/mayu search --ecosystem Go --count
+
+# Detailed view (all fields)
+./bin/mayu search --id GO-2024-2687 --detail
+
 # JSON output for scripting
 ./bin/mayu search --id GO-2024-2687 --format json
+
+# CSV export
+./bin/mayu search --ecosystem Go --format csv > vulns.csv
 ```
 
 ## CLI Reference
@@ -114,8 +135,14 @@ Search for vulnerabilities in the local database.
 | `--ecosystem` | Filter by ecosystem | — |
 | `--alias` | Search by alias (e.g., CVE ID) | — |
 | `--purl` | Search by Package URL (e.g., `pkg:npm/%40angular/core`) | — |
-| `--format` | Output format: `table`, `json` | `table` |
+| `--severity` | Filter by CVSS severity level (critical, high, medium, low, none) | — |
+| `--since` | Filter by modified date (YYYY-MM-DD or RFC3339) | — |
+| `--version` | Filter by affected version | — |
+| `--format` | Output format: `table`, `json`, `csv` | `table` |
 | `--limit` | Maximum number of results | `20` |
+| `--offset` | Offset for pagination | `0` |
+| `--count` | Show only the result count | `false` |
+| `--detail` | Show detailed information for each result | `false` |
 | `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 
 ### `mayu version`
