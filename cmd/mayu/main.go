@@ -15,6 +15,7 @@ import (
 	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/parser"
+	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
 )
 
@@ -319,6 +320,7 @@ func runSearch(args []string) error {
 	pkg := fs.String("package", "", "Search by package name (e.g., golang.org/x/crypto)")
 	ecosystem := fs.String("ecosystem", "", "Filter by ecosystem (e.g., Go, PyPI)")
 	alias := fs.String("alias", "", "Search by alias (e.g., CVE-2024-24790)")
+	purl := fs.String("purl", "", "Search by Package URL (e.g., pkg:golang/golang.org/x/crypto)")
 	format := fs.String("format", "table", "Output format: table, json")
 	limit := fs.Int("limit", 20, "Maximum number of results")
 	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
@@ -336,6 +338,7 @@ func runSearch(args []string) error {
 		fmt.Println("  mayu search --package golang.org/x/crypto")
 		fmt.Println("  mayu search --ecosystem Go --limit 10")
 		fmt.Println("  mayu search --alias CVE-2024-24790")
+		fmt.Println("  mayu search --purl pkg:golang/golang.org/x/crypto")
 		fmt.Println("  mayu search --package net/http --format json")
 	}
 
@@ -344,7 +347,7 @@ func runSearch(args []string) error {
 	}
 
 	// If positional argument provided and no flags set, treat as alias/ID search
-	if *id == "" && *pkg == "" && *ecosystem == "" && *alias == "" {
+	if *id == "" && *pkg == "" && *ecosystem == "" && *alias == "" && *purl == "" {
 		if fs.NArg() > 0 {
 			query := strings.Join(fs.Args(), " ")
 			// Heuristic: if it looks like a vuln ID, search by ID; otherwise alias
@@ -360,10 +363,23 @@ func runSearch(args []string) error {
 	}
 
 	// Build search query
+	searchPkg := *pkg
+	searchEcosystem := strings.TrimSpace(*ecosystem)
+
+	// If purl is specified, parse it into package name + ecosystem
+	if *purl != "" {
+		parsed, err := purlpkg.Parse(*purl)
+		if err != nil {
+			return fmt.Errorf("invalid purl %q: %w", *purl, err)
+		}
+		searchPkg = parsed.Package
+		searchEcosystem = parsed.Ecosystem
+	}
+
 	query := store.SearchQuery{
 		ID:          *id,
-		Ecosystem:   strings.TrimSpace(*ecosystem),
-		PackageName: *pkg,
+		Ecosystem:   searchEcosystem,
+		PackageName: searchPkg,
 		Alias:       *alias,
 		Limit:       *limit,
 	}

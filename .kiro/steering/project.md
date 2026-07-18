@@ -71,6 +71,12 @@ mayu/
 - Keep `go.mod` lean; justify new dependencies
 - No CLI framework — uses Go standard `flag` package
 
+### Documentation
+
+- When CLI commands, flags, or behavior change, update both `README.md` and `README_ja.md` to reflect the new usage
+- Keep CLI Reference tables in READMEs in sync with actual flag definitions in code
+- When adding new data sources or features, update the relevant sections (Data Sources, Overview, etc.)
+
 ## Development Workflow
 
 ### Parallel Development

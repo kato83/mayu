@@ -77,6 +77,9 @@ make build
 # Search by CVE alias
 ./bin/mayu search --alias CVE-2024-24790
 
+# Search by Package URL (purl)
+./bin/mayu search --purl pkg:npm/%40angular/core
+
 # Positional argument (auto-detects ID vs alias)
 ./bin/mayu search CVE-2024-24790
 
@@ -110,6 +113,7 @@ Search for vulnerabilities in the local database.
 | `--package` | Search by package name | — |
 | `--ecosystem` | Filter by ecosystem | — |
 | `--alias` | Search by alias (e.g., CVE ID) | — |
+| `--purl` | Search by Package URL (e.g., `pkg:npm/%40angular/core`) | — |
 | `--format` | Output format: `table`, `json` | `table` |
 | `--limit` | Maximum number of results | `20` |
 | `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
