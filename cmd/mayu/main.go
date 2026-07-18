@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/ingest"
@@ -321,8 +322,14 @@ func runSearch(args []string) error {
 	ecosystem := fs.String("ecosystem", "", "Filter by ecosystem (e.g., Go, PyPI)")
 	alias := fs.String("alias", "", "Search by alias (e.g., CVE-2024-24790)")
 	purl := fs.String("purl", "", "Search by Package URL (e.g., pkg:golang/golang.org/x/crypto)")
-	format := fs.String("format", "table", "Output format: table, json")
+	severity := fs.String("severity", "", "Filter by severity level (critical, high, medium, low, none). Note: filters by CVSS score range; entries without scores are excluded")
+	since := fs.String("since", "", "Filter by modified date (YYYY-MM-DD or RFC3339)")
+	version := fs.String("version", "", "Filter by affected version")
+	format := fs.String("format", "table", "Output format: table, json, csv")
 	limit := fs.Int("limit", 20, "Maximum number of results")
+	offset := fs.Int("offset", 0, "Offset for pagination")
+	count := fs.Bool("count", false, "Show only the result count")
+	detail := fs.Bool("detail", false, "Show detailed information for each result")
 	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
 
 	fs.Usage = func() {
@@ -339,24 +346,53 @@ func runSearch(args []string) error {
 		fmt.Println("  mayu search --ecosystem Go --limit 10")
 		fmt.Println("  mayu search --alias CVE-2024-24790")
 		fmt.Println("  mayu search --purl pkg:golang/golang.org/x/crypto")
+		fmt.Println("  mayu search --severity critical --ecosystem Go")
+		fmt.Println("  mayu search --since 2024-01-01 --ecosystem npm")
+		fmt.Println("  mayu search --package net/http --version 1.21.0")
 		fmt.Println("  mayu search --package net/http --format json")
+		fmt.Println("  mayu search --package net/http --format csv")
+		fmt.Println("  mayu search --ecosystem Go --count")
+		fmt.Println("  mayu search --id GO-2024-2687 --detail")
+		fmt.Println("  mayu search --ecosystem Go --offset 20 --limit 10")
 	}
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
+	// Validate severity flag
+	if *severity != "" {
+		validSeverities := []string{"critical", "high", "medium", "low", "none"}
+		valid := false
+		for _, s := range validSeverities {
+			if strings.ToLower(*severity) == s {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			return fmt.Errorf("invalid severity %q (valid: critical, high, medium, low, none)", *severity)
+		}
+	}
+
+	// Validate --since date format
+	if *since != "" {
+		if err := validateDateInput(*since); err != nil {
+			return fmt.Errorf("invalid --since value %q: %w", *since, err)
+		}
+	}
+
 	// If positional argument provided and no flags set, treat as alias/ID search
 	if *id == "" && *pkg == "" && *ecosystem == "" && *alias == "" && *purl == "" {
 		if fs.NArg() > 0 {
-			query := strings.Join(fs.Args(), " ")
+			positional := strings.Join(fs.Args(), " ")
 			// Heuristic: if it looks like a vuln ID, search by ID; otherwise alias
-			if looksLikeVulnID(query) {
-				*id = query
+			if looksLikeVulnID(positional) {
+				*id = positional
 			} else {
-				*alias = query
+				*alias = positional
 			}
-		} else {
+		} else if *severity == "" && *since == "" && *version == "" {
 			fs.Usage()
 			return fmt.Errorf("at least one search parameter is required")
 		}
@@ -381,7 +417,11 @@ func runSearch(args []string) error {
 		Ecosystem:   searchEcosystem,
 		PackageName: searchPkg,
 		Alias:       *alias,
+		Severity:    *severity,
+		Since:       *since,
+		Version:     *version,
 		Limit:       *limit,
+		Offset:      *offset,
 	}
 
 	// Resolve database URL
@@ -398,6 +438,16 @@ func runSearch(args []string) error {
 	}
 	defer func() { _ = s.Close() }()
 
+	// If --count flag is set, just show the count
+	if *count {
+		n, err := s.Count(ctx, query)
+		if err != nil {
+			return fmt.Errorf("count: %w", err)
+		}
+		fmt.Printf("%d\n", n)
+		return nil
+	}
+
 	// Execute search
 	results, err := s.Search(ctx, query)
 	if err != nil {
@@ -413,10 +463,16 @@ func runSearch(args []string) error {
 	switch *format {
 	case "json":
 		return outputJSON(results)
+	case "csv":
+		outputCSV(results)
 	case "table":
-		outputTable(results)
+		if *detail {
+			outputDetail(results)
+		} else {
+			outputTable(results)
+		}
 	default:
-		return fmt.Errorf("unknown format: %q (supported: table, json)", *format)
+		return fmt.Errorf("unknown format: %q (supported: table, json, csv)", *format)
 	}
 
 	return nil
@@ -444,33 +500,301 @@ func outputJSON(vulns []*model.Vulnerability) error {
 	return nil
 }
 
+// outputCSV prints results in CSV format suitable for spreadsheet import or scripting.
+func outputCSV(vulns []*model.Vulnerability) {
+	// Header
+	fmt.Println("id,aliases,severity,modified,published,ecosystem,package,summary")
+
+	for _, vuln := range vulns {
+		aliases := strings.Join(vuln.Aliases, "; ")
+		sevStr := formatSeverity(vuln)
+
+		modified := vuln.Modified.Format("2006-01-02")
+		published := ""
+		if vuln.Published != nil {
+			published = vuln.Published.Format("2006-01-02")
+		}
+
+		// Output one row per affected package (denormalized)
+		if len(vuln.Affected) == 0 {
+			fmt.Printf("%s,%s,%s,%s,%s,%s,%s,%s\n",
+				csvEscape(vuln.ID),
+				csvEscape(aliases),
+				csvEscape(sevStr),
+				csvEscape(modified),
+				csvEscape(published),
+				"",
+				"",
+				csvEscape(vuln.Summary),
+			)
+		} else {
+			for _, affected := range vuln.Affected {
+				fmt.Printf("%s,%s,%s,%s,%s,%s,%s,%s\n",
+					csvEscape(vuln.ID),
+					csvEscape(aliases),
+					csvEscape(sevStr),
+					csvEscape(modified),
+					csvEscape(published),
+					csvEscape(affected.Package.Ecosystem),
+					csvEscape(affected.Package.Name),
+					csvEscape(vuln.Summary),
+				)
+			}
+		}
+	}
+}
+
+// csvEscape wraps a value in double quotes if it contains commas, quotes, or newlines.
+func csvEscape(s string) string {
+	if strings.ContainsAny(s, ",\"\n\r") {
+		return "\"" + strings.ReplaceAll(s, "\"", "\"\"") + "\""
+	}
+	return s
+}
+
 // outputTable prints results in a human-readable table format.
 func outputTable(vulns []*model.Vulnerability) {
 	// Header
-	fmt.Printf("%-20s %-12s %-40s %s\n", "ID", "MODIFIED", "SUMMARY", "PACKAGES")
-	fmt.Printf("%-20s %-12s %-40s %s\n",
+	fmt.Printf("%-20s %-15s %-8s %-12s %-30s %s\n", "ID", "ALIASES", "SEVERITY", "MODIFIED", "SUMMARY", "PACKAGES")
+	fmt.Printf("%-20s %-15s %-8s %-12s %-30s %s\n",
 		strings.Repeat("-", 20),
+		strings.Repeat("-", 15),
+		strings.Repeat("-", 8),
 		strings.Repeat("-", 12),
-		strings.Repeat("-", 40),
-		strings.Repeat("-", 30))
+		strings.Repeat("-", 30),
+		strings.Repeat("-", 25))
 
 	for _, vuln := range vulns {
 		// Truncate summary (rune-safe)
-		summary := truncateString(vuln.Summary, 40)
+		summary := truncateString(vuln.Summary, 30)
+
+		// Collect aliases (show first CVE or first alias)
+		aliasStr := formatAliases(vuln.Aliases, 15)
+
+		// Extract severity
+		sevStr := formatSeverity(vuln)
 
 		// Collect package names
 		var pkgs []string
 		for _, a := range vuln.Affected {
 			pkgs = append(pkgs, a.Package.Name)
 		}
-		pkgStr := truncateString(strings.Join(pkgs, ", "), 30)
+		pkgStr := truncateString(strings.Join(pkgs, ", "), 25)
 
 		modified := vuln.Modified.Format("2006-01-02")
 
-		fmt.Printf("%-20s %-12s %-40s %s\n", vuln.ID, modified, summary, pkgStr)
+		fmt.Printf("%-20s %-15s %-8s %-12s %-30s %s\n", vuln.ID, aliasStr, sevStr, modified, summary, pkgStr)
 	}
 
 	fmt.Printf("\n%d result(s) found.\n", len(vulns))
+}
+
+// formatAliases returns a formatted alias string for table display.
+// Prioritizes CVE IDs, truncated to maxLen.
+func formatAliases(aliases []string, maxLen int) string {
+	if len(aliases) == 0 {
+		return "-"
+	}
+
+	// Prioritize CVE aliases
+	var cves []string
+	var others []string
+	for _, a := range aliases {
+		if strings.HasPrefix(strings.ToUpper(a), "CVE-") {
+			cves = append(cves, a)
+		} else {
+			others = append(others, a)
+		}
+	}
+
+	var display string
+	if len(cves) > 0 {
+		display = cves[0]
+		if len(cves) > 1 {
+			display += fmt.Sprintf(" +%d", len(cves)-1+len(others))
+		} else if len(others) > 0 {
+			display += fmt.Sprintf(" +%d", len(others))
+		}
+	} else {
+		display = others[0]
+		if len(others) > 1 {
+			display += fmt.Sprintf(" +%d", len(others)-1)
+		}
+	}
+
+	return truncateString(display, maxLen)
+}
+
+// formatSeverity extracts and formats the highest severity score from a vulnerability.
+func formatSeverity(vuln *model.Vulnerability) string {
+	var maxScore float64
+	var found bool
+
+	// Check top-level severity
+	for _, sev := range vuln.Severity {
+		score := parseCVSSScore(sev.Score)
+		if score > maxScore {
+			maxScore = score
+			found = true
+		}
+	}
+
+	// Check per-affected severity
+	for _, affected := range vuln.Affected {
+		for _, sev := range affected.Severity {
+			score := parseCVSSScore(sev.Score)
+			if score > maxScore {
+				maxScore = score
+				found = true
+			}
+		}
+	}
+
+	if !found {
+		return "-"
+	}
+
+	return fmt.Sprintf("%.1f", maxScore)
+}
+
+// parseCVSSScore tries to extract a numeric score from a CVSS score string.
+// It handles both plain numeric scores ("9.8") and CVSS vector strings.
+func parseCVSSScore(score string) float64 {
+	score = strings.TrimSpace(score)
+	// Try plain numeric parse
+	var f float64
+	if _, err := fmt.Sscanf(score, "%f", &f); err == nil {
+		return f
+	}
+	// Try to extract from CVSS vector (not typically stored as score, but handle defensively)
+	return 0
+}
+
+// outputDetail prints detailed information for each vulnerability.
+func outputDetail(vulns []*model.Vulnerability) {
+	for i, vuln := range vulns {
+		if i > 0 {
+			fmt.Println(strings.Repeat("=", 80))
+		}
+
+		fmt.Printf("ID:        %s\n", vuln.ID)
+		fmt.Printf("Modified:  %s\n", vuln.Modified.Format(time.RFC3339))
+		if vuln.Published != nil {
+			fmt.Printf("Published: %s\n", vuln.Published.Format(time.RFC3339))
+		}
+		if vuln.Withdrawn != nil {
+			fmt.Printf("Withdrawn: %s\n", vuln.Withdrawn.Format(time.RFC3339))
+		}
+
+		// Aliases
+		if len(vuln.Aliases) > 0 {
+			fmt.Printf("Aliases:   %s\n", strings.Join(vuln.Aliases, ", "))
+		}
+
+		// Related
+		if len(vuln.Related) > 0 {
+			fmt.Printf("Related:   %s\n", strings.Join(vuln.Related, ", "))
+		}
+
+		// Summary & Details
+		if vuln.Summary != "" {
+			fmt.Printf("Summary:   %s\n", vuln.Summary)
+		}
+		if vuln.Details != "" {
+			fmt.Printf("Details:\n")
+			// Indent details for readability
+			for _, line := range strings.Split(vuln.Details, "\n") {
+				fmt.Printf("  %s\n", line)
+			}
+		}
+
+		// Severity
+		if len(vuln.Severity) > 0 {
+			fmt.Printf("Severity:\n")
+			for _, sev := range vuln.Severity {
+				source := sev.Source
+				if source == "" {
+					source = "unspecified"
+				}
+				fmt.Printf("  - %s: %s (source: %s)\n", sev.Type, sev.Score, source)
+			}
+		}
+
+		// Affected packages
+		if len(vuln.Affected) > 0 {
+			fmt.Printf("Affected Packages:\n")
+			for _, affected := range vuln.Affected {
+				fmt.Printf("  - %s/%s", affected.Package.Ecosystem, affected.Package.Name)
+				if affected.Package.Purl != "" {
+					fmt.Printf(" (%s)", affected.Package.Purl)
+				}
+				fmt.Println()
+
+				// Per-affected severity
+				for _, sev := range affected.Severity {
+					fmt.Printf("    Severity: %s %s\n", sev.Type, sev.Score)
+				}
+
+				// Version ranges
+				for _, r := range affected.Ranges {
+					fmt.Printf("    Range (%s):", r.Type)
+					if r.Repo != "" {
+						fmt.Printf(" repo=%s", r.Repo)
+					}
+					fmt.Println()
+					for _, ev := range r.Events {
+						if ev.Introduced != "" {
+							fmt.Printf("      introduced: %s\n", ev.Introduced)
+						}
+						if ev.Fixed != "" {
+							fmt.Printf("      fixed: %s\n", ev.Fixed)
+						}
+						if ev.LastAffected != "" {
+							fmt.Printf("      last_affected: %s\n", ev.LastAffected)
+						}
+						if ev.Limit != "" {
+							fmt.Printf("      limit: %s\n", ev.Limit)
+						}
+					}
+				}
+
+				// Enumerated versions
+				if len(affected.Versions) > 0 {
+					versionsStr := strings.Join(affected.Versions, ", ")
+					if len(versionsStr) > 100 {
+						versionsStr = truncateString(versionsStr, 100)
+						fmt.Printf("    Versions: %s (%d total)\n", versionsStr, len(affected.Versions))
+					} else {
+						fmt.Printf("    Versions: %s\n", versionsStr)
+					}
+				}
+			}
+		}
+
+		// References
+		if len(vuln.References) > 0 {
+			fmt.Printf("References:\n")
+			for _, ref := range vuln.References {
+				fmt.Printf("  - [%s] %s\n", ref.Type, ref.URL)
+			}
+		}
+
+		// Credits
+		if len(vuln.Credits) > 0 {
+			fmt.Printf("Credits:\n")
+			for _, credit := range vuln.Credits {
+				ctype := string(credit.Type)
+				if ctype == "" {
+					ctype = "OTHER"
+				}
+				fmt.Printf("  - %s (%s)\n", credit.Name, ctype)
+			}
+		}
+
+		fmt.Println()
+	}
+
+	fmt.Printf("%d result(s) found.\n", len(vulns))
 }
 
 // truncateString truncates a string to maxRunes runes, appending "..." if truncated.
@@ -498,4 +822,17 @@ func looksLikeVulnID(s string) bool {
 		}
 	}
 	return false
+}
+
+// validateDateInput checks that a date string is valid (YYYY-MM-DD or RFC3339).
+func validateDateInput(s string) error {
+	// Try RFC3339 first
+	if _, err := time.Parse(time.RFC3339, s); err == nil {
+		return nil
+	}
+	// Try YYYY-MM-DD
+	if _, err := time.Parse("2006-01-02", s); err == nil {
+		return nil
+	}
+	return fmt.Errorf("expected format YYYY-MM-DD or RFC3339 (e.g., 2024-01-15 or 2024-01-15T00:00:00Z)")
 }

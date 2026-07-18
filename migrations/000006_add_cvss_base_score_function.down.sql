@@ -1,0 +1,3 @@
+BEGIN;
+DROP FUNCTION IF EXISTS cvss_base_score(TEXT);
+COMMIT;

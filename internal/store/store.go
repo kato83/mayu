@@ -31,6 +31,9 @@ type Store interface {
 	// Search finds vulnerabilities matching the given query parameters.
 	Search(ctx context.Context, query SearchQuery) ([]*model.Vulnerability, error)
 
+	// Count returns the number of vulnerabilities matching the given query parameters.
+	Count(ctx context.Context, query SearchQuery) (int64, error)
+
 	// GetSyncState retrieves the sync state for a given source.
 	// Returns nil, nil if no sync state exists for the source.
 	GetSyncState(ctx context.Context, source string) (*SyncState, error)
@@ -55,6 +58,15 @@ type SearchQuery struct {
 
 	// Alias searches in the vulnerability_aliases table
 	Alias string
+
+	// Severity filters by minimum CVSS severity level (critical, high, medium, low)
+	Severity string
+
+	// Since filters vulnerabilities modified on or after this date (RFC3339 or YYYY-MM-DD)
+	Since string
+
+	// Version filters by affected version (checks version ranges)
+	Version string
 
 	// Limit sets the maximum number of results (default: 100)
 	Limit int
