@@ -90,11 +90,35 @@ func (s *PostgresStore) UpsertBatch(ctx context.Context, vulns []*model.Vulnerab
 	return tx.Commit()
 }
 
+// extractCVE returns the first CVE alias from the list, or empty string if none found.
+func extractCVE(aliases []string) string {
+	for _, alias := range aliases {
+		if len(alias) > 4 && alias[:4] == "CVE-" {
+			return alias
+		}
+	}
+	return ""
+}
+
+// canonicalID determines the canonical vulnerability ID for an OSV entry.
+// If a CVE alias exists, the CVE is used; otherwise the OSV ID is used as-is.
+func canonicalID(osvID string, aliases []string) string {
+	if cve := extractCVE(aliases); cve != "" {
+		return cve
+	}
+	return osvID
+}
+
 // upsertVulnerability inserts or updates a vulnerability within a transaction.
+// It resolves the canonical vulnerability ID (CVE if available) and handles:
+//   - Multiple OSV entries pointing to the same CVE (shared vulnerabilities row)
+//   - Late CVE assignment (migrating from OSV ID to CVE)
+//   - Cleanup of orphaned vulnerabilities rows
+//
 // This writes to:
-//   - vulnerabilities (unified master)
-//   - vulnerability_aliases (cross-references)
-//   - osv_entries (OSV-specific data)
+//   - vulnerabilities (unified master, keyed by CVE or OSV ID)
+//   - vulnerability_aliases (cross-references including OSV ID itself)
+//   - osv_entries (OSV-specific data, keyed by osv_id)
 //   - osv_affected_packages, osv_affected_ranges, osv_severity, osv_references, osv_credits
 func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vuln *model.Vulnerability) error {
 	// Determine raw_json: use RawJSON if available, otherwise marshal the struct
@@ -107,58 +131,100 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 	}
 
-	// --- Step 1: Upsert into unified vulnerabilities table ---
-	var published, withdrawn *time.Time
-	published = vuln.Published
-	withdrawn = vuln.Withdrawn
+	osvID := vuln.ID
+	canID := canonicalID(osvID, vuln.Aliases)
 
-	_, err := tx.ExecContext(ctx, `
+	// --- Step 1: Check if this OSV entry already exists and get its current vulnerability_id ---
+	var oldVulnID sql.NullString
+	err := tx.QueryRowContext(ctx, `SELECT vulnerability_id FROM osv_entries WHERE osv_id = $1`, osvID).Scan(&oldVulnID)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("lookup existing osv_entry: %w", err)
+	}
+
+	// --- Step 2: Handle migration when canonical ID changes (e.g., late CVE assignment) ---
+	if oldVulnID.Valid && oldVulnID.String != canID {
+		// The osv_entry previously pointed to a different vulnerability.
+		// We need to re-point it and potentially clean up the old vulnerability row.
+		oldID := oldVulnID.String
+
+		// Delete the osv_entry and its children (will be re-created below)
+		if _, err := tx.ExecContext(ctx, `DELETE FROM osv_entries WHERE osv_id = $1`, osvID); err != nil {
+			return fmt.Errorf("delete old osv_entry for migration: %w", err)
+		}
+
+		// Remove aliases that belonged to this OSV entry under the old vulnerability
+		if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerability_aliases WHERE vulnerability_id = $1 AND alias = $2`, oldID, osvID); err != nil {
+			return fmt.Errorf("delete old osv alias: %w", err)
+		}
+
+		// Check if the old vulnerability has any remaining osv_entries
+		var remainingCount int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM osv_entries WHERE vulnerability_id = $1`, oldID).Scan(&remainingCount); err != nil {
+			return fmt.Errorf("count remaining osv_entries: %w", err)
+		}
+
+		if remainingCount == 0 {
+			// No other OSV entries reference the old vulnerability — safe to delete
+			// CASCADE will clean up vulnerability_aliases
+			if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerabilities WHERE id = $1`, oldID); err != nil {
+				return fmt.Errorf("delete orphaned vulnerability: %w", err)
+			}
+		}
+	} else if oldVulnID.Valid && oldVulnID.String == canID {
+		// Same canonical ID — delete old osv_entry data (will be re-created below)
+		if _, err := tx.ExecContext(ctx, `DELETE FROM osv_entries WHERE osv_id = $1`, osvID); err != nil {
+			return fmt.Errorf("delete existing osv_entry: %w", err)
+		}
+	}
+
+	// --- Step 3: Upsert into unified vulnerabilities table ---
+	_, err = tx.ExecContext(ctx, `
 		INSERT INTO vulnerabilities (id, source, summary, details, published, modified, withdrawn)
 		VALUES ($1, 'osv', $2, $3, $4, $5, $6)
 		ON CONFLICT (id) DO UPDATE SET
-			summary = EXCLUDED.summary,
-			details = EXCLUDED.details,
-			published = EXCLUDED.published,
-			modified = EXCLUDED.modified,
+			summary = COALESCE(NULLIF(EXCLUDED.summary, ''), vulnerabilities.summary),
+			details = COALESCE(NULLIF(EXCLUDED.details, ''), vulnerabilities.details),
+			published = COALESCE(EXCLUDED.published, vulnerabilities.published),
+			modified = GREATEST(EXCLUDED.modified, vulnerabilities.modified),
 			withdrawn = EXCLUDED.withdrawn`,
-		vuln.ID,
+		canID,
 		nullIfEmpty(vuln.Summary),
 		nullIfEmpty(vuln.Details),
-		published,
+		vuln.Published,
 		vuln.Modified,
-		withdrawn,
+		vuln.Withdrawn,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert vulnerability: %w", err)
 	}
 
-	// --- Step 2: Upsert aliases ---
-	// Delete existing aliases for this vulnerability and re-insert
-	if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerability_aliases WHERE vulnerability_id = $1`, vuln.ID); err != nil {
-		return fmt.Errorf("delete aliases: %w", err)
+	// --- Step 4: Upsert aliases ---
+	// Build alias set: original aliases + OSV ID itself (if canonical is different)
+	allAliases := make([]string, 0, len(vuln.Aliases)+1)
+	if canID != osvID {
+		allAliases = append(allAliases, osvID)
 	}
-	for i, alias := range vuln.Aliases {
+	allAliases = append(allAliases, vuln.Aliases...)
+
+	// Insert aliases with ON CONFLICT to handle multiple OSV entries contributing aliases
+	for i, alias := range allAliases {
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO vulnerability_aliases (vulnerability_id, alias, ordering)
-			VALUES ($1, $2, $3)`,
-			vuln.ID, alias, i,
+			VALUES ($1, $2, $3)
+			ON CONFLICT (vulnerability_id, alias) DO UPDATE SET ordering = EXCLUDED.ordering`,
+			canID, alias, i,
 		)
 		if err != nil {
-			return fmt.Errorf("insert alias: %w", err)
+			return fmt.Errorf("insert alias %q: %w", alias, err)
 		}
 	}
 
-	// --- Step 3: Upsert osv_entries ---
-	// Delete existing osv_entry (cascade deletes child rows)
-	if _, err := tx.ExecContext(ctx, `DELETE FROM osv_entries WHERE vulnerability_id = $1`, vuln.ID); err != nil {
-		return fmt.Errorf("delete existing osv_entry: %w", err)
-	}
-
+	// --- Step 5: Insert osv_entry ---
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO osv_entries (osv_id, vulnerability_id, schema_version, raw_json, database_specific)
 		VALUES ($1, $2, $3, $4, $5)`,
-		vuln.ID,
-		vuln.ID,
+		osvID,
+		canID,
 		nullIfEmpty(vuln.SchemaVersion),
 		rawJSON,
 		nullableRawJSON(vuln.DatabaseSpecific),
@@ -167,26 +233,26 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		return fmt.Errorf("insert osv_entry: %w", err)
 	}
 
-	// --- Step 4: Insert top-level severity ---
+	// --- Step 6: Insert top-level severity ---
 	for _, sev := range vuln.Severity {
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source)
 			VALUES ($1, NULL, $2, $3, $4)`,
-			vuln.ID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
+			osvID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
 		)
 		if err != nil {
 			return fmt.Errorf("insert severity: %w", err)
 		}
 	}
 
-	// --- Step 5: Insert affected packages ---
+	// --- Step 7: Insert affected packages ---
 	for _, affected := range vuln.Affected {
 		var affectedPkgID int64
 		err := tx.QueryRowContext(ctx, `
 			INSERT INTO osv_affected_packages (osv_entry_id, ecosystem, name, purl, versions, ecosystem_specific, database_specific)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			RETURNING id`,
-			vuln.ID,
+			osvID,
 			affected.Package.Ecosystem,
 			affected.Package.Name,
 			nullIfEmpty(affected.Package.Purl),
@@ -223,7 +289,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 			_, err := tx.ExecContext(ctx, `
 				INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source)
 				VALUES ($1, $2, $3, $4, $5)`,
-				vuln.ID, affectedPkgID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
+				osvID, affectedPkgID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
 			)
 			if err != nil {
 				return fmt.Errorf("insert affected severity: %w", err)
@@ -231,24 +297,24 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 	}
 
-	// --- Step 6: Insert references ---
+	// --- Step 8: Insert references ---
 	for _, ref := range vuln.References {
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO osv_references (osv_entry_id, reference_type, url)
 			VALUES ($1, $2, $3)`,
-			vuln.ID, string(ref.Type), ref.URL,
+			osvID, string(ref.Type), ref.URL,
 		)
 		if err != nil {
 			return fmt.Errorf("insert osv_reference: %w", err)
 		}
 	}
 
-	// --- Step 7: Insert credits ---
+	// --- Step 9: Insert credits ---
 	for _, credit := range vuln.Credits {
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO osv_credits (osv_entry_id, name, contact, credit_type)
 			VALUES ($1, $2, $3, $4)`,
-			vuln.ID, credit.Name, pgTextArray(credit.Contact), nullIfEmpty(string(credit.Type)),
+			osvID, credit.Name, pgTextArray(credit.Contact), nullIfEmpty(string(credit.Type)),
 		)
 		if err != nil {
 			return fmt.Errorf("insert osv_credit: %w", err)

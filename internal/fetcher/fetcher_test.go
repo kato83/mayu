@@ -478,6 +478,9 @@ func TestStreamAllZip_TempFileCleanup(t *testing.T) {
 	}))
 	defer server.Close()
 
+	// Record pre-existing temp files to exclude them from the check.
+	preExisting := listMayuTempFiles(t)
+
 	f := New(WithBaseURL(server.URL))
 
 	entries, errCh, err := f.StreamAllZip(context.Background(), "Go")
@@ -490,20 +493,56 @@ func TestStreamAllZip_TempFileCleanup(t *testing.T) {
 	}
 	<-errCh
 
-	// After streaming completes, verify no mayu-zip temp files remain.
-	// Give a brief moment for cleanup goroutine.
-	time.Sleep(10 * time.Millisecond)
+	// After streaming completes, verify no new mayu-zip temp files remain.
+	// Poll with a short timeout to accommodate goroutine scheduling.
+	deadline := time.Now().Add(500 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		newFiles := diffMayuTempFiles(t, preExisting)
+		if len(newFiles) == 0 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 
-	tmpDir := os.TempDir()
-	dirEntries, err := os.ReadDir(tmpDir)
+	newFiles := diffMayuTempFiles(t, preExisting)
+	for _, name := range newFiles {
+		t.Errorf("temp file not cleaned up: %s", name)
+	}
+}
+
+// listMayuTempFiles returns a set of mayu-zip-*.tmp filenames in the temp directory.
+func listMayuTempFiles(t *testing.T) map[string]struct{} {
+	t.Helper()
+	result := make(map[string]struct{})
+	dirEntries, err := os.ReadDir(os.TempDir())
 	if err != nil {
 		t.Fatalf("read temp dir: %v", err)
 	}
 	for _, de := range dirEntries {
 		if strings.HasPrefix(de.Name(), "mayu-zip-") && strings.HasSuffix(de.Name(), ".tmp") {
-			t.Errorf("temp file not cleaned up: %s", de.Name())
+			result[de.Name()] = struct{}{}
 		}
 	}
+	return result
+}
+
+// diffMayuTempFiles returns mayu-zip temp files that exist now but were not in preExisting.
+func diffMayuTempFiles(t *testing.T, preExisting map[string]struct{}) []string {
+	t.Helper()
+	var newFiles []string
+	dirEntries, err := os.ReadDir(os.TempDir())
+	if err != nil {
+		t.Fatalf("read temp dir: %v", err)
+	}
+	for _, de := range dirEntries {
+		name := de.Name()
+		if strings.HasPrefix(name, "mayu-zip-") && strings.HasSuffix(name, ".tmp") {
+			if _, existed := preExisting[name]; !existed {
+				newFiles = append(newFiles, name)
+			}
+		}
+	}
+	return newFiles
 }
 
 func TestStreamAllZip_ContextCancellation(t *testing.T) {
