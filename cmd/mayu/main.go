@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/kato83/mayu/internal/cvss"
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/model"
@@ -658,7 +659,8 @@ func formatSeverity(vuln *model.Vulnerability) string {
 }
 
 // parseCVSSScore tries to extract a numeric score from a CVSS score string.
-// It handles both plain numeric scores ("9.8") and CVSS vector strings.
+// It handles both plain numeric scores ("9.8") and CVSS vector strings
+// ("CVSS:3.1/AV:N/AC:L/...") by computing the base score from the vector.
 func parseCVSSScore(score string) float64 {
 	score = strings.TrimSpace(score)
 	// Try plain numeric parse
@@ -666,7 +668,10 @@ func parseCVSSScore(score string) float64 {
 	if _, err := fmt.Sscanf(score, "%f", &f); err == nil {
 		return f
 	}
-	// Try to extract from CVSS vector (not typically stored as score, but handle defensively)
+	// Try to compute base score from CVSS vector string
+	if baseScore, ok := cvss.BaseScore(score); ok {
+		return baseScore
+	}
 	return 0
 }
 
