@@ -88,6 +88,7 @@ func runIngest(args []string) error {
 	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
 	batchSize := fs.Int("batch-size", 100, "Number of vulnerabilities per batch insert")
 	storeWorkers := fs.Int("store-workers", ingest.DefaultStoreWorkers(), "Number of parallel DB store workers per ecosystem")
+	native := fs.Bool("native", false, "Use native data source feed instead of OSV conversion (with --source nvd)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu ingest [options]")
@@ -103,6 +104,8 @@ func runIngest(args []string) error {
 		fmt.Println("  mayu ingest --all")
 		fmt.Println("  mayu ingest --all --bulk    # Download single all.zip (~1.3GB) for all ecosystems")
 		fmt.Println("  mayu ingest --source nvd")
+		fmt.Println("  mayu ingest --source nvd --native        # Import directly from NVD JSON Feed 2.0")
+		fmt.Println("  mayu ingest --source nvd --native --update  # Delta update from NVD modified feed")
 		fmt.Println("  mayu ingest --source debian")
 		fmt.Println("  mayu ingest --ecosystem PyPI --db-url postgres://user:pass@host/db")
 	}
@@ -143,6 +146,31 @@ func runIngest(args []string) error {
 
 	// Handle --source (converted data sources)
 	if *source != "" {
+		// NVD native import via JSON Feed 2.0
+		if *native {
+			if strings.ToLower(*source) != "nvd" {
+				return fmt.Errorf("--native flag is only supported with --source nvd")
+			}
+			fmt.Println("\n=== Importing NVD (native JSON Feed 2.0) ===")
+			var stats *ingest.Stats
+			var err error
+			if *update {
+				stats, err = ing.UpdateNVDNative(ctx)
+			} else {
+				stats, err = ing.ImportNVDNative(ctx)
+			}
+			if err != nil {
+				if ctx.Err() != nil {
+					fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+					return nil
+				}
+				return fmt.Errorf("NVD native import: %w", err)
+			}
+			printStats(stats)
+			return nil
+		}
+
+		// Existing converted source logic
 		src := ingest.GetConvertedSource(*source)
 		if src == nil {
 			return fmt.Errorf("unknown source: %q (supported: nvd, debian)", *source)

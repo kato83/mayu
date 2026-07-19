@@ -70,8 +70,75 @@ erDiagram
         TEXT credit_type
     }
 
+    nvd_entries {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT cve_id UK "CVE-YYYY-NNNNN"
+        TEXT vulnerability_id FK "→ vulnerabilities(id)"
+        TEXT source_identifier "e.g. cve@mitre.org"
+        TEXT vuln_status "Analyzed, Modified, Rejected, etc."
+        TIMESTAMPTZ published
+        TIMESTAMPTZ last_modified
+        JSONB raw_json "Full cve object (reversibility)"
+    }
+
+    nvd_descriptions {
+        BIGINT id PK
+        BIGINT nvd_entry_id FK "→ nvd_entries(id)"
+        TEXT lang "en, es, etc."
+        TEXT value
+    }
+
+    nvd_metrics {
+        BIGINT id PK
+        BIGINT nvd_entry_id FK "→ nvd_entries(id)"
+        TEXT version "v2, v31, v40"
+        TEXT source "nvd@nist.gov, etc."
+        TEXT type "Primary / Secondary"
+        JSONB cvss_data "CVSS vector details"
+        FLOAT8 base_score
+        TEXT base_severity
+        FLOAT8 exploitability_score
+        FLOAT8 impact_score
+    }
+
+    nvd_weaknesses {
+        BIGINT id PK
+        BIGINT nvd_entry_id FK "→ nvd_entries(id)"
+        TEXT source
+        TEXT type "Primary / Secondary"
+        TEXT cwe_id "CWE-79, etc."
+    }
+
+    nvd_configurations {
+        BIGINT id PK
+        BIGINT nvd_entry_id FK "→ nvd_entries(id)"
+        TEXT operator "AND / OR"
+        BOOLEAN negate
+        JSONB raw_nodes "Full node tree (reversibility)"
+    }
+
+    nvd_cpe_matches {
+        BIGINT id PK
+        BIGINT configuration_id FK "→ nvd_configurations(id)"
+        BOOLEAN vulnerable
+        TEXT criteria "CPE 2.3 URI"
+        TEXT match_criteria_id "UUID"
+        TEXT version_start_including
+        TEXT version_start_excluding
+        TEXT version_end_including
+        TEXT version_end_excluding
+    }
+
+    nvd_references {
+        BIGINT id PK
+        BIGINT nvd_entry_id FK "→ nvd_entries(id)"
+        TEXT url
+        TEXT source
+        TEXT[] tags
+    }
+
     sync_state {
-        TEXT source PK "e.g. Go, npm, NVD, Debian"
+        TEXT source PK "e.g. Go, npm, NVD, NVD-native, Debian"
         TIMESTAMPTZ last_modified_at
         TIMESTAMPTZ last_synced_at
         BIGINT record_count
@@ -79,12 +146,19 @@ erDiagram
 
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--o{ osv_entries : "has"
+    vulnerabilities ||--o{ nvd_entries : "has"
     osv_entries ||--o{ osv_affected_packages : "has"
     osv_entries ||--o{ osv_severity : "top-level severity"
     osv_entries ||--o{ osv_references : "has"
     osv_entries ||--o{ osv_credits : "has"
     osv_affected_packages ||--o{ osv_affected_ranges : "has"
     osv_affected_packages ||--o{ osv_severity : "per-package severity"
+    nvd_entries ||--o{ nvd_descriptions : "has"
+    nvd_entries ||--o{ nvd_metrics : "has"
+    nvd_entries ||--o{ nvd_weaknesses : "has"
+    nvd_entries ||--o{ nvd_configurations : "has"
+    nvd_configurations ||--o{ nvd_cpe_matches : "has"
+    nvd_entries ||--o{ nvd_references : "has"
 ```
 
 ## Design Principles
@@ -106,6 +180,18 @@ Externalized from an array column into a proper relation to enable fast reverse 
 
 ### `osv_*` Tables
 OSV-specific detail tables. Future data sources (e.g., `kev_entries`, `epss_scores`) will be added as sibling table groups with their own prefix.
+
+### `nvd_*` Tables
+NVD-specific detail tables for CVE data ingested directly from the NVD JSON Feed 2.0. Mirrors the NVD CVE 2.0 schema structure.
+
+- `nvd_entries`: One row per CVE. The `raw_json` column stores the complete `cve` object for reversibility (same pattern as `osv_entries.raw_json`). Linked to `vulnerabilities` via `vulnerability_id` (CVE ID).
+- `nvd_descriptions`: Multi-language CVE descriptions (en, es, etc.).
+- `nvd_metrics`: CVSS scores from multiple sources (NVD, CNA) and versions (v2, v31, v40). `cvss_data` stores the full CVSS vector as JSONB since the structure varies by version.
+- `nvd_weaknesses`: CWE classification with source distinction (Primary/Secondary).
+- `nvd_configurations`: CPE applicability statements. `raw_nodes` preserves the full node tree for reversibility; `nvd_cpe_matches` provides a flattened view for efficient CPE-based search.
+- `nvd_cpe_matches`: Flattened CPE match criteria extracted from configuration nodes. Enables direct CPE URI search without JSONB traversal.
+- `nvd_references`: External references with source attribution and tags (Patch, Third Party Advisory, etc.).
+- Upsert strategy: On reimport, existing `nvd_entries` row is deleted (CASCADE removes children) and re-inserted. `vulnerabilities` row uses COALESCE to preserve OSV-contributed data when available.
 
 ### `sync_state`
 Standalone table (no FK relationships) that tracks per-source delta synchronization state.
