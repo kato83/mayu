@@ -19,8 +19,11 @@ mayu/
 │   ├── parser/            # OSV JSON parsing
 │   ├── store/             # PostgreSQL persistence (database/sql + pgx stdlib)
 │   ├── model/             # OSV schema Go structs
-│   ├── query/             # (empty — search logic is in store.Store interface)
-│   └── ingest/            # Pipeline orchestrator (OSV ecosystems + converted sources)
+│   ├── server/            # HTTP/REST API server (go-chi)
+│   ├── ingest/            # Pipeline orchestrator (OSV ecosystems + converted sources)
+│   ├── cvss/              # CVSS score parsing utilities
+│   ├── purl/              # Package URL parsing
+│   └── validate/          # Input validation helpers
 ├── migrations/            # golang-migrate SQL files (000001–000002)
 ├── testdata/              # Test fixtures (OSV JSON samples)
 ├── docs/                  # Documentation (PLAN.md)
@@ -68,6 +71,7 @@ mayu/
 
 - Database driver: `github.com/jackc/pgx/v5` (v5.10.0, stdlib mode)
 - Migration: `github.com/golang-migrate/migrate/v4`
+- Concurrency: `golang.org/x/sync` (errgroup)
 - Keep `go.mod` lean; justify new dependencies
 - No CLI framework — uses Go standard `flag` package
 
@@ -100,6 +104,7 @@ make migrate-up       # Run migrations
 make migrate-down     # Rollback migrations
 make migrate-create   # Create new migration (interactive)
 make build            # Build binary → bin/mayu
+make build-release    # Build release binary (stripped, ~30% smaller)
 make test             # Run unit tests
 make test-integration # Run integration tests (requires PostgreSQL)
 make lint             # Run golangci-lint
@@ -133,28 +138,28 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR to `main`:
 - `database_specific` and `ecosystem_specific` fields stored as `json.RawMessage` (preserves unknown fields)
 - Each vulnerability stores its complete original JSON in `raw_json` JSONB column
 - Sync state tracked per-ecosystem for efficient delta updates via `modified_id.csv`
-- Search interface: `store.Store.Search()` with `SearchQuery` struct (ID, Ecosystem, PackageName, Alias, Limit, Offset)
+- Search interface: `store.Store.Search()` with `SearchQuery` struct (ID, Ecosystem, PackageName, Alias, Severity, Since, Version, Limit, Offset)
 
 ## Data Sources
 
 | Source | Status | Implementation |
 |--------|--------|----------------|
 | OSV (all ecosystems) | ✅ Supported | GCS zip archives via `internal/fetcher` |
-| NVD (OSV converted) | ✅ Supported | GCS XML listing → individual JSON download |
-| Debian (OSV converted) | ✅ Supported | GCS XML listing → individual JSON download |
+| NVD (OSV converted) | ✅ Supported | GCS XML listing → parallel JSON download |
+| Debian (OSV converted) | ✅ Supported | GCS XML listing → parallel JSON download |
 | KEV | 🔜 Planned | — |
 | EPSS | 🔜 Planned | — |
 | MITRE CVE | 🔜 Planned | — |
 
 ## Current Phase
 
-Phases 1–3 complete (Data Pipeline, CLI, CI/CD). Next up: Phase 4 (API Server).
+Phases 1–4 complete (Data Pipeline, CLI, CI/CD, API Server). Next up: Phase 5 (Web UI).
 
 See [docs/PLAN.md](../docs/PLAN.md) for the full roadmap.
 
 - [x] Phase 1: Data Pipeline (OSV ingestion)
 - [x] Phase 2: CLI (ingest + search)
 - [x] Phase 3: CI/CD (GitHub Actions)
-- [ ] Phase 4: API Server (REST)
+- [x] Phase 4: API Server (REST)
 - [ ] Phase 5: Web UI (Angular)
 - [ ] Phase 6: Additional Data Sources (KEV, EPSS, MITRE CVE)
