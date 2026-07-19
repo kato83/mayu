@@ -26,7 +26,7 @@ mayu/
 │   └── validate/          # Input validation helpers
 ├── migrations/            # golang-migrate SQL files (000001–000002)
 ├── testdata/              # Test fixtures (OSV JSON samples)
-├── docs/                  # Documentation (PLAN.md)
+├── docs/                  # Documentation (PLAN.md, import-ghsa-json.md)
 ├── .github/workflows/     # CI (lint, test, build)
 ├── compose.yml            # Dev PostgreSQL 17
 ├── lefthook.yml           # Pre-commit hooks (fmt, lint)
