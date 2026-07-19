@@ -1,0 +1,10 @@
+BEGIN;
+DROP TABLE IF EXISTS mitre_credits CASCADE;
+DROP TABLE IF EXISTS mitre_references CASCADE;
+DROP TABLE IF EXISTS mitre_problem_types CASCADE;
+DROP TABLE IF EXISTS mitre_metrics CASCADE;
+DROP TABLE IF EXISTS mitre_affected_versions CASCADE;
+DROP TABLE IF EXISTS mitre_affected CASCADE;
+DROP TABLE IF EXISTS mitre_containers CASCADE;
+DROP TABLE IF EXISTS mitre_entries CASCADE;
+COMMIT;
