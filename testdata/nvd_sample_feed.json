@@ -1,0 +1,100 @@
+{
+  "resultsPerPage": 2,
+  "startIndex": 0,
+  "totalResults": 2,
+  "format": "NVD_CVE",
+  "version": "2.0",
+  "timestamp": "2024-01-15T10:00:00.000",
+  "vulnerabilities": [
+    {
+      "cve": {
+        "id": "CVE-2023-44487",
+        "sourceIdentifier": "cve@mitre.org",
+        "vulnStatus": "Analyzed",
+        "published": "2023-10-10T14:15:10.883",
+        "lastModified": "2024-06-27T18:34:20.210",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "The HTTP/2 protocol allows a denial of service."
+          }
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {
+              "source": "nvd@nist.gov",
+              "type": "Primary",
+              "cvssData": {
+                "version": "3.1",
+                "baseScore": 7.5,
+                "baseSeverity": "HIGH"
+              },
+              "exploitabilityScore": 3.9,
+              "impactScore": 3.6
+            }
+          ]
+        },
+        "weaknesses": [],
+        "configurations": [],
+        "references": []
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2024-0001",
+        "sourceIdentifier": "security@example.com",
+        "vulnStatus": "Modified",
+        "published": "2024-01-05T09:00:00.000",
+        "lastModified": "2024-01-10T12:00:00.000",
+        "descriptions": [
+          {
+            "lang": "en",
+            "value": "A buffer overflow in Example Software allows remote code execution."
+          }
+        ],
+        "metrics": {},
+        "weaknesses": [
+          {
+            "source": "nvd@nist.gov",
+            "type": "Primary",
+            "description": [
+              {
+                "lang": "en",
+                "value": "CWE-120"
+              }
+            ]
+          }
+        ],
+        "configurations": [
+          {
+            "operator": "OR",
+            "negate": false,
+            "nodes": [
+              {
+                "operator": "OR",
+                "negate": false,
+                "cpeMatch": [
+                  {
+                    "vulnerable": true,
+                    "criteria": "cpe:2.3:a:example:software:*:*:*:*:*:*:*:*",
+                    "versionEndIncluding": "2.5.0",
+                    "matchCriteriaId": "ABCDEF12-3456-7890-ABCD-EF1234567890"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://example.com/advisory/2024-001",
+            "source": "security@example.com",
+            "tags": [
+              "Vendor Advisory"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
