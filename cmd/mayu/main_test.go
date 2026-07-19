@@ -155,7 +155,7 @@ func TestFormatSeverity(t *testing.T) {
 					{Type: model.SeverityTypeCVSSV3, Score: "9.8"},
 				},
 			},
-			want: "9.8",
+			want: "9.8 CRITICAL",
 		},
 		{
 			name: "per-affected severity",
@@ -168,7 +168,7 @@ func TestFormatSeverity(t *testing.T) {
 					},
 				},
 			},
-			want: "7.5",
+			want: "7.5 HIGH",
 		},
 		{
 			name: "highest score wins",
@@ -189,7 +189,7 @@ func TestFormatSeverity(t *testing.T) {
 					},
 				},
 			},
-			want: "8.1",
+			want: "8.1 HIGH",
 		},
 		{
 			name: "CVSS vector string produces score",
@@ -198,7 +198,7 @@ func TestFormatSeverity(t *testing.T) {
 					{Type: model.SeverityTypeCVSSV3, Score: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"},
 				},
 			},
-			want: "9.8",
+			want: "9.8 CRITICAL",
 		},
 		{
 			name: "incomplete CVSS vector ignored",
@@ -208,6 +208,15 @@ func TestFormatSeverity(t *testing.T) {
 				},
 			},
 			want: "-",
+		},
+		{
+			name: "max score 10.0",
+			vuln: &model.Vulnerability{
+				Severity: []model.Severity{
+					{Type: model.SeverityTypeCVSSV3, Score: "10.0"},
+				},
+			},
+			want: "10.0 CRITICAL",
 		},
 	}
 

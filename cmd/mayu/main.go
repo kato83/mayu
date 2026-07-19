@@ -687,11 +687,11 @@ func csvEscape(s string) string {
 // outputTable prints results in a human-readable table format.
 func outputTable(vulns []*model.Vulnerability) {
 	// Header
-	fmt.Printf("%-20s %-15s %-8s %-12s %-30s %s\n", "ID", "ALIASES", "SEVERITY", "MODIFIED", "SUMMARY", "PACKAGES")
-	fmt.Printf("%-20s %-15s %-8s %-12s %-30s %s\n",
+	fmt.Printf("%-20s %-15s %-14s %-12s %-30s %s\n", "ID", "ALIASES", "SEVERITY", "MODIFIED", "SUMMARY", "PACKAGES")
+	fmt.Printf("%-20s %-15s %-14s %-12s %-30s %s\n",
 		strings.Repeat("-", 20),
 		strings.Repeat("-", 15),
-		strings.Repeat("-", 8),
+		strings.Repeat("-", 14),
 		strings.Repeat("-", 12),
 		strings.Repeat("-", 30),
 		strings.Repeat("-", 25))
@@ -715,7 +715,7 @@ func outputTable(vulns []*model.Vulnerability) {
 
 		modified := vuln.Modified.Format("2006-01-02")
 
-		fmt.Printf("%-20s %-15s %-8s %-12s %-30s %s\n", vuln.ID, aliasStr, sevStr, modified, summary, pkgStr)
+		fmt.Printf("%-20s %-15s %-14s %-12s %-30s %s\n", vuln.ID, aliasStr, sevStr, modified, summary, pkgStr)
 	}
 
 	fmt.Printf("\n%d result(s) found.\n", len(vulns))
@@ -758,6 +758,7 @@ func formatAliases(aliases []string, maxLen int) string {
 }
 
 // formatSeverity extracts and formats the highest severity score from a vulnerability.
+// Returns a string like "9.8 CRITICAL", "7.5 HIGH", etc.
 func formatSeverity(vuln *model.Vulnerability) string {
 	var maxScore float64
 	var found bool
@@ -786,7 +787,24 @@ func formatSeverity(vuln *model.Vulnerability) string {
 		return "-"
 	}
 
-	return fmt.Sprintf("%.1f", maxScore)
+	label := scoreToSeverityLabel(maxScore)
+	return fmt.Sprintf("%.1f %s", maxScore, label)
+}
+
+// scoreToSeverityLabel converts a CVSS score to a severity label.
+func scoreToSeverityLabel(score float64) string {
+	switch {
+	case score >= 9.0:
+		return "CRITICAL"
+	case score >= 7.0:
+		return "HIGH"
+	case score >= 4.0:
+		return "MEDIUM"
+	case score >= 0.1:
+		return "LOW"
+	default:
+		return "NONE"
+	}
 }
 
 // parseCVSSScore tries to extract a numeric score from a CVSS score string.
