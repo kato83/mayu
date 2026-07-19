@@ -1,5 +1,12 @@
 # Mayu
 
+[![CI](https://github.com/kato83/mayu/actions/workflows/ci.yml/badge.svg)](https://github.com/kato83/mayu/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/kato83/mayu/branch/main/graph/badge.svg)](https://codecov.io/gh/kato83/mayu)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kato83/mayu)](https://goreportcard.com/report/github.com/kato83/mayu)
+[![Go Reference](https://pkg.go.dev/badge/github.com/kato83/mayu.svg)](https://pkg.go.dev/github.com/kato83/mayu)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/kato83/mayu)](https://github.com/kato83/mayu/blob/main/go.mod)
+
 [日本語版 (Japanese)](README_ja.md)
 
 A unified vulnerability intelligence tool that aggregates multiple sources (OSV, NVD, etc.) for cross-platform lookup via CLI, API, and Web UI.
