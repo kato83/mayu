@@ -54,6 +54,13 @@ func (s *PostgresStore) CleanAll(ctx context.Context) error {
 		DELETE FROM osv_affected_ranges;
 		DELETE FROM osv_affected_packages;
 		DELETE FROM osv_entries;
+		DELETE FROM nvd_cpe_matches;
+		DELETE FROM nvd_configurations;
+		DELETE FROM nvd_references;
+		DELETE FROM nvd_weaknesses;
+		DELETE FROM nvd_metrics;
+		DELETE FROM nvd_descriptions;
+		DELETE FROM nvd_entries;
 		DELETE FROM vulnerabilities;
 	`)
 	return err
