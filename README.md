@@ -17,34 +17,21 @@ Mayu ingests vulnerability data from the [OSV](https://osv.dev/) ecosystem into 
 
 ## Naming
 
-**Mayu** comes from the Japanese word *繭 (mayu)*, meaning "cocoon" — the protective casing a silkworm spins around itself. The name reflects the tool's purpose: using vulnerability intelligence to wrap your environment in a gentle yet resilient layer of protection. As a four-letter, lowercase-friendly name, it also lends itself well to a modern CLI / API / Web UI toolchain (`mayu`, `mayu-server`, etc.).
+**Mayu** comes from the Japanese word *繭 (mayu)*, meaning "cocoon" — the protective casing a silkworm spins around itself. The name reflects the tool's purpose: using vulnerability intelligence to wrap your environment in a gentle yet resilient layer of protection.
 
 ## Quick Start
 
 ### Prerequisites
 
-- [Go 1.26+](https://go.dev/) (managed via [asdf](https://asdf-vm.com/))
-- [Docker](https://www.docker.com/) & Docker Compose
-- [golang-migrate](https://github.com/golang-migrate/migrate) CLI
+- [Go 1.26+](https://go.dev/)
+- PostgreSQL 17+
 
-### Setup
+### Build from Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/kato83/mayu.git
 cd mayu
-
-# Install Go via asdf
-asdf install
-
-# Start PostgreSQL
-make docker-up
-
-# Run database migrations
-make migrate-up
-
-# Build the CLI
-make build
+go build -o bin/mayu ./cmd/mayu
 ```
 
 ### Import Vulnerability Data
@@ -56,7 +43,7 @@ make build
 # Import with delta update (only new/modified since last sync)
 ./bin/mayu ingest --ecosystem Go --update
 
-# Import all supported ecosystems (each ecosystem's all.zip individually)
+# Import all supported ecosystems
 ./bin/mayu ingest --all
 
 # Import all ecosystems with custom parallelism
@@ -163,10 +150,6 @@ Search for vulnerabilities in the local database.
 | `--detail` | Show detailed information for each result | `false` |
 | `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 
-### `mayu version`
-
-Print version information.
-
 ### `mayu serve`
 
 Start the API server for programmatic access to vulnerability data.
@@ -188,13 +171,6 @@ Start the API server for programmatic access to vulnerability data.
 **Examples:**
 
 ```bash
-# Start the server on default port
-./bin/mayu serve
-
-# Start on a custom port
-./bin/mayu serve --addr :3000
-
-# Query the API
 curl "http://localhost:8080/api/v1/vulnerabilities?ecosystem=Go&limit=5"
 curl "http://localhost:8080/api/v1/vulnerabilities/GO-2024-2687"
 curl "http://localhost:8080/api/v1/vulnerabilities?package=golang.org/x/crypto"
@@ -202,64 +178,9 @@ curl "http://localhost:8080/api/v1/vulnerabilities?severity=critical"
 curl "http://localhost:8080/api/v1/vulnerabilities?purl=pkg:golang/golang.org/x/crypto"
 ```
 
-## Architecture
+### `mayu version`
 
-```mermaid
-graph TD
-    CLI["CLI (cmd/mayu)"]
-    CLI --> Ingest[ingest]
-    CLI --> Search[search]
-    CLI --> Serve[serve]
-
-    Ingest --> Fetcher["Fetcher (GCS)"]
-    Ingest --> Parser["Parser (OSV)"]
-    Ingest --> IngestPipeline["Ingest (Pipeline)"]
-    Search --> Store["Store (PG)"]
-    Serve --> Server["Server (HTTP/REST)"]
-    Server --> Store
-    IngestPipeline --> Store
-
-    Store --> DB[(PostgreSQL)]
-```
-
-## Data Sources
-
-| Source | Status | Method |
-|--------|--------|--------|
-| [OSV](https://osv.dev/) | ✅ Supported | GCS bucket (`gs://osv-vulnerabilities/`) |
-| NVD (via OSV) | ✅ Supported | Included in OSV data |
-| [NVD CVE (converted)](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ Supported | `mayu ingest --source nvd` |
-| [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
-
-> **Note:** Converted sources (NVD, Debian) contain 50,000+ entries and are downloaded individually since no bulk archive is available. This may take significant time. Parallel download optimization is planned for a future release.
-
-| Source | Status | Method |
-|--------|--------|--------|
-| KEV | 🔜 Planned | — |
-| EPSS | 🔜 Planned | — |
-
-## Development
-
-```bash
-# Run unit tests
-make test
-
-# Run integration tests (requires PostgreSQL)
-make docker-up && make migrate-up
-make test-integration
-
-# Lint
-make lint
-
-# Build (development, with debug symbols)
-make build
-
-# Build (release, stripped binary ~30% smaller)
-make build-release
-
-# Stop PostgreSQL
-make docker-down
-```
+Print version information.
 
 ## Configuration
 
@@ -275,6 +196,26 @@ make docker-down
 > `postgres://user:pass@db.example.com:5432/mayu?sslmode=verify-full`.
 > Mayu prints a warning when it detects a connection to a non-local host without
 > enforced TLS.
+
+## Data Sources
+
+| Source | Status | Method |
+|--------|--------|--------|
+| [OSV](https://osv.dev/) | ✅ Supported | GCS bucket (`gs://osv-vulnerabilities/`) |
+| NVD (via OSV) | ✅ Supported | Included in OSV data |
+| [NVD CVE (converted)](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ Supported | `mayu ingest --source nvd` |
+| [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
+
+> **Note:** Converted sources (NVD, Debian) contain 50,000+ entries and are downloaded individually since no bulk archive is available. This may take significant time.
+
+| Source | Status | Method |
+|--------|--------|--------|
+| KEV | 🔜 Planned | — |
+| EPSS | 🔜 Planned | — |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding conventions, and how to submit changes.
 
 ## License
 
