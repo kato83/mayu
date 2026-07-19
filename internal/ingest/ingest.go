@@ -356,13 +356,32 @@ func (ing *Ingester) BulkImportAll(ctx context.Context) (*Stats, error) {
 	stats.Skipped = parseErrors
 
 	// Update sync state for "all".
+	now := time.Now().UTC().Format(time.RFC3339)
 	syncState := &store.SyncState{
 		Source:         "all",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
+		LastModifiedAt: now,
 		RecordCount:    int64(stats.Inserted),
 	}
 	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
 		ing.logger.Printf("warning: failed to update sync state: %v", err)
+	}
+
+	// Update sync state for each ecosystem so that subsequent delta updates
+	// (--all --update) can use the bulk import timestamp as baseline.
+	ecosystems, listErr := ing.fetcher.ListEcosystems(ctx)
+	if listErr != nil {
+		ing.logger.Printf("warning: failed to list ecosystems for sync state update: %v", listErr)
+	} else {
+		for _, eco := range ecosystems {
+			ecoState := &store.SyncState{
+				Source:         eco,
+				LastModifiedAt: now,
+				RecordCount:    0, // Exact per-ecosystem count unknown; will be corrected on next full/delta import.
+			}
+			if err := ing.store.UpdateSyncState(ctx, ecoState); err != nil {
+				ing.logger.Printf("warning: failed to update sync state for %s: %v", eco, err)
+			}
+		}
 	}
 
 	stats.Duration = time.Since(start)
