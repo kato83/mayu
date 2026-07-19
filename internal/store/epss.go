@@ -68,9 +68,10 @@ func (s *PostgresStore) upsertEPSSScore(ctx context.Context, tx *sql.Tx, score *
 	// --- Step 1: Ensure vulnerability row exists ---
 	// EPSS only contributes the CVE ID; it doesn't provide summary/details/dates.
 	// Use DO NOTHING to preserve data from richer sources (OSV, NVD, MITRE).
+	// modified uses NOW() because the column has a NOT NULL constraint.
 	_, err := tx.ExecContext(ctx, `
 		INSERT INTO vulnerabilities (id, source, summary, details, published, modified, withdrawn)
-		VALUES ($1, 'epss', NULL, NULL, NULL, NULL, NULL)
+		VALUES ($1, 'epss', NULL, NULL, NULL, NOW(), NULL)
 		ON CONFLICT (id) DO NOTHING`,
 		cveID,
 	)

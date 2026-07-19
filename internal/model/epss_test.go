@@ -136,12 +136,12 @@ func TestParseEPSSCSVLine(t *testing.T) {
 	scoreDate := time.Date(2026, 7, 19, 0, 0, 0, 0, time.UTC)
 
 	tests := []struct {
-		name       string
-		line       string
-		wantCVE    string
-		wantEPSS   float64
-		wantPerc   float64
-		wantErr    bool
+		name     string
+		line     string
+		wantCVE  string
+		wantEPSS float64
+		wantPerc float64
+		wantErr  bool
 	}{
 		{
 			name:     "valid line",
