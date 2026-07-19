@@ -1,0 +1,117 @@
+{
+  "id": "CVE-2023-44487",
+  "sourceIdentifier": "cve@mitre.org",
+  "vulnStatus": "Analyzed",
+  "published": "2023-10-10T14:15:10.883",
+  "lastModified": "2024-06-27T18:34:20.210",
+  "descriptions": [
+    {
+      "lang": "en",
+      "value": "The HTTP/2 protocol allows a denial of service (server resource consumption) because request cancellation can reset many streams quickly, as exploited in the wild in August through October 2023."
+    },
+    {
+      "lang": "es",
+      "value": "El protocolo HTTP/2 permite una denegaci\u00f3n de servicio (consumo de recursos del servidor) porque la cancelaci\u00f3n de solicitudes puede restablecer muchos flujos r\u00e1pidamente."
+    }
+  ],
+  "metrics": {
+    "cvssMetricV31": [
+      {
+        "source": "nvd@nist.gov",
+        "type": "Primary",
+        "cvssData": {
+          "version": "3.1",
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "attackVector": "NETWORK",
+          "attackComplexity": "LOW",
+          "privilegesRequired": "NONE",
+          "userInteraction": "NONE",
+          "scope": "UNCHANGED",
+          "confidentialityImpact": "NONE",
+          "integrityImpact": "NONE",
+          "availabilityImpact": "HIGH",
+          "baseScore": 7.5,
+          "baseSeverity": "HIGH"
+        },
+        "exploitabilityScore": 3.9,
+        "impactScore": 3.6
+      }
+    ]
+  },
+  "weaknesses": [
+    {
+      "source": "nvd@nist.gov",
+      "type": "Primary",
+      "description": [
+        {
+          "lang": "en",
+          "value": "CWE-400"
+        }
+      ]
+    }
+  ],
+  "configurations": [
+    {
+      "operator": "OR",
+      "negate": false,
+      "nodes": [
+        {
+          "operator": "OR",
+          "negate": false,
+          "cpeMatch": [
+            {
+              "vulnerable": true,
+              "criteria": "cpe:2.3:a:ietf:http:2.0:*:*:*:*:*:*:*",
+              "matchCriteriaId": "A5A4B40C-5CE2-4B4E-8F28-B6B234ED6CE0"
+            },
+            {
+              "vulnerable": true,
+              "criteria": "cpe:2.3:a:golang:go:*:*:*:*:*:*:*:*",
+              "versionEndExcluding": "1.21.3",
+              "matchCriteriaId": "B4561D0C-E3E2-4D11-B193-73CC5F5B0131"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "url": "https://github.com/golang/go/issues/63417",
+      "source": "cve@mitre.org",
+      "tags": [
+        "Issue Tracking",
+        "Third Party Advisory"
+      ]
+    },
+    {
+      "url": "https://www.cve.org/CVERecord?id=CVE-2023-44487",
+      "source": "nvd@nist.gov",
+      "tags": [
+        "Patch"
+      ]
+    }
+  ],
+  "cveTags": [
+    {
+      "sourceIdentifier": "cve@mitre.org",
+      "tags": [
+        "disputed"
+      ]
+    }
+  ],
+  "evaluatorComment": "This CVE is related to the HTTP/2 Rapid Reset attack.",
+  "evaluatorSolution": "Update affected software to the latest version.",
+  "evaluatorImpact": "Denial of service affecting availability.",
+  "cisaExploitAdd": "2023-10-10",
+  "cisaActionDue": "2023-10-31",
+  "cisaRequiredAction": "Apply mitigations per vendor instructions.",
+  "cisaVulnerabilityName": "HTTP/2 Rapid Reset Attack",
+  "vendorComments": [
+    {
+      "organization": "Golang",
+      "comment": "Fixed in Go 1.21.3 and 1.20.10.",
+      "lastModified": "2023-10-11T12:00:00.000"
+    }
+  ]
+}
