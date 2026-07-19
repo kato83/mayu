@@ -189,3 +189,177 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 
 	return inserted, nil
 }
+
+
+// EPSSv3StartDate is the release date of EPSS v3, which is the earliest date
+// for which daily EPSS CSV data is reliably available from epss.cyentia.com.
+// Used as the default --from value for backfill operations.
+const EPSSv3StartDate = "2023-03-07"
+
+// epssBackfillStore extends epssBatchStore with the ability to query which
+// dates have already been imported (to avoid redundant downloads).
+type epssBackfillStore interface {
+	epssBatchStore
+	GetEPSSImportedDates(ctx context.Context) (map[string]bool, error)
+}
+
+// BackfillEPSS imports historical EPSS daily scores from the EPSS v3 start date
+// (2023-03-07) through today. Dates that already have scores in the database
+// are skipped automatically. This is the recommended way to build up the
+// time-series data needed for accurate LEV computation.
+func (ing *Ingester) BackfillEPSS(ctx context.Context) (*Stats, error) {
+	today := time.Now().UTC().Format("2006-01-02")
+	return ing.BackfillEPSSRange(ctx, EPSSv3StartDate, today)
+}
+
+// BackfillEPSSRange imports historical EPSS daily scores for the specified
+// date range [from, to] inclusive. Both dates must be in YYYY-MM-DD format.
+// Dates that already have scores in the database are skipped automatically.
+//
+// Each day's CSV is approximately 5-7 MB compressed, containing ~200,000+ scores.
+// The backfill processes dates sequentially with progress reporting.
+//
+// Example:
+//
+//	ing.BackfillEPSSRange(ctx, "2024-01-01", "2025-07-19")
+func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*Stats, error) {
+	start := time.Now()
+	stats := &Stats{
+		Ecosystem:  epssSource,
+		IsFullSync: true,
+	}
+
+	// Parse and validate date range
+	fromDate, err := time.Parse("2006-01-02", from)
+	if err != nil {
+		return nil, fmt.Errorf("invalid --from date %q: must be YYYY-MM-DD", from)
+	}
+	toDate, err := time.Parse("2006-01-02", to)
+	if err != nil {
+		return nil, fmt.Errorf("invalid --to date %q: must be YYYY-MM-DD", to)
+	}
+
+	epssStart, _ := time.Parse("2006-01-02", EPSSv3StartDate)
+	if fromDate.Before(epssStart) {
+		return nil, fmt.Errorf("--from date %s is before EPSS v3 availability (%s)", from, EPSSv3StartDate)
+	}
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	if toDate.After(today) {
+		toDate = today
+	}
+	if fromDate.After(toDate) {
+		return nil, fmt.Errorf("--from date %s is after --to date %s", from, to)
+	}
+
+	// Calculate total days in range
+	totalDays := int(toDate.Sub(fromDate).Hours()/24) + 1
+
+	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf(
+		"EPSS backfill: %s to %s (%d days)", from, toDate.Format("2006-01-02"), totalDays)})
+
+	// Query already-imported dates to skip them
+	var importedDates map[string]bool
+	bs, ok := ing.store.(epssBackfillStore)
+	if ok {
+		importedDates, err = bs.GetEPSSImportedDates(ctx)
+		if err != nil {
+			ing.logger.Printf("warning: could not fetch imported dates (will import all): %v", err)
+			importedDates = nil
+		}
+	}
+
+	skippedDays := 0
+	if importedDates != nil {
+		for d := fromDate; !d.After(toDate); d = d.AddDate(0, 0, 1) {
+			if importedDates[d.Format("2006-01-02")] {
+				skippedDays++
+			}
+		}
+	}
+
+	pendingDays := totalDays - skippedDays
+	if pendingDays == 0 {
+		stats.Duration = time.Since(start)
+		stats.Skipped = totalDays
+		ing.progress(Progress{Phase: "store", Message: fmt.Sprintf(
+			"All %d days already imported, nothing to do.", totalDays)})
+		return stats, nil
+	}
+
+	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf(
+		"  %d days to import (%d already in DB, skipping)", pendingDays, skippedDays)})
+
+	// Process each date sequentially
+	processedDays := 0
+	totalInserted := 0
+	failedDays := 0
+
+	for d := fromDate; !d.After(toDate); d = d.AddDate(0, 0, 1) {
+		select {
+		case <-ctx.Done():
+			stats.Duration = time.Since(start)
+			stats.Total = processedDays
+			stats.Inserted = totalInserted
+			stats.Skipped = skippedDays
+			stats.Errors = failedDays
+			return stats, ctx.Err()
+		default:
+		}
+
+		dateStr := d.Format("2006-01-02")
+
+		// Skip already-imported dates
+		if importedDates != nil && importedDates[dateStr] {
+			continue
+		}
+
+		processedDays++
+
+		// Download and parse
+		scores, err := ing.fetcher.FetchEPSSByCSVDate(ctx, dateStr)
+		if err != nil {
+			// Log the error but continue with next date (transient failures, missing dates, etc.)
+			ing.logger.Printf("warning: failed to fetch EPSS for %s: %v (skipping)", dateStr, err)
+			failedDays++
+			ing.progress(Progress{Phase: "store", Current: processedDays, Total: pendingDays,
+				Message: fmt.Sprintf("  [%d/%d] %s - FAILED: %v", processedDays, pendingDays, dateStr, err)})
+			continue
+		}
+
+		// Store
+		inserted, err := ing.storeEPSSBatches(ctx, scores)
+		if err != nil {
+			ing.logger.Printf("warning: failed to store EPSS for %s: %v (skipping)", dateStr, err)
+			failedDays++
+			ing.progress(Progress{Phase: "store", Current: processedDays, Total: pendingDays,
+				Message: fmt.Sprintf("  [%d/%d] %s - STORE FAILED: %v", processedDays, pendingDays, dateStr, err)})
+			continue
+		}
+
+		totalInserted += inserted
+		ing.progress(Progress{Phase: "store", Current: processedDays, Total: pendingDays,
+			Message: fmt.Sprintf("  [%d/%d] %s - %d scores", processedDays, pendingDays, dateStr, inserted)})
+	}
+
+	// Update sync state
+	syncState := &store.SyncState{
+		Source:         epssSource,
+		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
+		RecordCount:    int64(totalInserted),
+	}
+	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
+		ing.logger.Printf("warning: failed to update sync state: %v", err)
+	}
+
+	stats.Duration = time.Since(start)
+	stats.Total = processedDays
+	stats.Inserted = totalInserted
+	stats.Skipped = skippedDays
+	stats.Errors = failedDays
+
+	ing.progress(Progress{Phase: "store", Current: processedDays, Total: pendingDays,
+		Message: fmt.Sprintf("Done: %d days processed, %d scores inserted, %d skipped, %d failed in %s",
+			processedDays, totalInserted, skippedDays, failedDays, stats.Duration.Round(time.Second))})
+
+	return stats, nil
+}

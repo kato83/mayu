@@ -157,3 +157,33 @@ func (s *PostgresStore) CountEPSSScores(ctx context.Context) (int64, error) {
 	}
 	return count, nil
 }
+
+
+// GetEPSSImportedDates returns a set of dates (YYYY-MM-DD) for which EPSS scores
+// already exist in the database. This is used by the backfill process to skip
+// dates that have already been imported, avoiding redundant downloads.
+func (s *PostgresStore) GetEPSSImportedDates(ctx context.Context) (map[string]bool, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT DISTINCT score_date::text FROM epss_scores`)
+	if err != nil {
+		return nil, fmt.Errorf("query distinct EPSS dates: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	dates := make(map[string]bool)
+	for rows.Next() {
+		var date string
+		if err := rows.Scan(&date); err != nil {
+			return nil, fmt.Errorf("scan EPSS date: %w", err)
+		}
+		// Normalize to YYYY-MM-DD (PostgreSQL may return "2024-01-15" directly)
+		if len(date) >= 10 {
+			dates[date[:10]] = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate EPSS dates: %w", err)
+	}
+
+	return dates, nil
+}
