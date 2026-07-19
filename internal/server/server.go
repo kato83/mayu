@@ -8,7 +8,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,6 +19,7 @@ import (
 	"github.com/go-chi/cors"
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/validate"
 )
 
 //go:embed openapi.yaml
@@ -124,7 +125,6 @@ func (s *Server) handleOpenAPISpec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(data)
 }
@@ -187,7 +187,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 
 	// Validate since
 	if since != "" {
-		if err := validateDateInput(since); err != nil {
+		if err := validate.DateInput(since); err != nil {
 			writeError(w, http.StatusBadRequest,
 				fmt.Sprintf("invalid since parameter: %v", err))
 			return
@@ -232,7 +232,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 	// Get total count
 	total, err := s.store.Count(ctx, query)
 	if err != nil {
-		log.Printf("error counting vulnerabilities: %v", err)
+		slog.Error("failed to count vulnerabilities", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -240,7 +240,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 	// Execute search
 	results, err := s.store.Search(ctx, query)
 	if err != nil {
-		log.Printf("error searching vulnerabilities: %v", err)
+		slog.Error("failed to search vulnerabilities", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -253,7 +253,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		} else {
 			data, err := json.Marshal(vuln)
 			if err != nil {
-				log.Printf("error marshaling vulnerability %s: %v", vuln.ID, err)
+				slog.Error("failed to marshal vulnerability", "id", vuln.ID, "error", err)
 				continue
 			}
 			vulns = append(vulns, data)
@@ -279,7 +279,7 @@ func (s *Server) handleGetVulnerability(w http.ResponseWriter, r *http.Request) 
 
 	vuln, err := s.store.GetByID(r.Context(), id)
 	if err != nil {
-		log.Printf("error getting vulnerability %s: %v", id, err)
+		slog.Error("failed to get vulnerability", "id", id, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -318,22 +318,11 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
-		log.Printf("error encoding response: %v", err)
+		slog.Error("failed to encode response", "error", err)
 	}
 }
 
 // writeError writes a JSON error response.
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
-}
-
-// validateDateInput checks that a date string is valid (YYYY-MM-DD or RFC3339).
-func validateDateInput(s string) error {
-	if _, err := time.Parse(time.RFC3339, s); err == nil {
-		return nil
-	}
-	if _, err := time.Parse("2006-01-02", s); err == nil {
-		return nil
-	}
-	return fmt.Errorf("expected format YYYY-MM-DD or RFC3339 (e.g., 2024-01-15 or 2024-01-15T00:00:00Z)")
 }

@@ -170,6 +170,10 @@ components:
       properties:
         vulnerabilities:
           type: array
+          description: |
+            Array of vulnerability entries. Each element is raw OSV JSON
+            preserved from the original source, so additional fields beyond
+            the Vulnerability schema may be present.
           items:
             $ref: "#/components/schemas/Vulnerability"
         total:

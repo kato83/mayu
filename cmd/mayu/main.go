@@ -21,6 +21,7 @@ import (
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/server"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/validate"
 )
 
 var version = "dev"
@@ -386,7 +387,7 @@ func runSearch(args []string) error {
 
 	// Validate --since date format
 	if *since != "" {
-		if err := validateDateInput(*since); err != nil {
+		if err := validate.DateInput(*since); err != nil {
 			return fmt.Errorf("invalid --since value %q: %w", *since, err)
 		}
 	}
@@ -837,20 +838,6 @@ func looksLikeVulnID(s string) bool {
 	return false
 }
 
-// validateDateInput checks that a date string is valid (YYYY-MM-DD or RFC3339).
-func validateDateInput(s string) error {
-	// Try RFC3339 first
-	if _, err := time.Parse(time.RFC3339, s); err == nil {
-		return nil
-	}
-	// Try YYYY-MM-DD
-	if _, err := time.Parse("2006-01-02", s); err == nil {
-		return nil
-	}
-	return fmt.Errorf("expected format YYYY-MM-DD or RFC3339 (e.g., 2024-01-15 or 2024-01-15T00:00:00Z)")
-}
-
-
 func runServe(args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 
@@ -905,7 +892,10 @@ func runServe(args []string) error {
 		Version: version,
 	})
 
-	// Start server in goroutine
+	// Start server in goroutine.
+	// errCh is buffered (cap 1) so the goroutine never blocks on send.
+	// On graceful shutdown (ErrServerClosed), the channel is closed without
+	// sending an error, causing the select below to receive nil.
 	errCh := make(chan error, 1)
 	go func() {
 		fmt.Printf("Mayu API server starting on %s\n", *addr)
