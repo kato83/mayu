@@ -75,6 +75,12 @@ go build -o bin/mayu ./cmd/mayu
 # Update EPSS scores (daily refresh if outdated)
 ./bin/mayu ingest --source epss --update
 
+# Import CISA KEV catalog (Known Exploited Vulnerabilities)
+./bin/mayu ingest --source kev
+
+# Update KEV catalog (refresh if outdated)
+./bin/mayu ingest --source kev --update
+
 # Import local OSV JSON files (e.g., manually constructed GHSA advisories)
 ./bin/mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
 ```
@@ -149,7 +155,7 @@ Import vulnerability data from OSV into the local database.
 | `--all` | Import all ecosystems (dynamically fetched from GCS) | `false` |
 | `--bulk` | Use top-level all.zip for bulk import (with `--all`) | `false` |
 | `--update` | Perform delta update instead of full import | `false` |
-| `--source` | Import from source (nvd, debian, mitre, epss) | — |
+| `--source` | Import from source (nvd, debian, mitre, epss, kev) | — |
 | `--native` | Use native data source feed (with `--source nvd`) | `false` |
 | `--file` | Import from local OSV JSON files (paths as positional args) | `false` |
 | `--concurrency` | Number of ecosystems to import in parallel (with `--all`) | `3` |
@@ -240,7 +246,7 @@ Print version information.
 
 | Source | Status | Method |
 |--------|--------|--------|
-| KEV | 🔜 Planned | — |
+| KEV | ✅ Supported | `mayu ingest --source kev` |
 | EPSS | ✅ Supported | `mayu ingest --source epss` |
 | LEV | 🔜 Planned | — |
 
@@ -261,4 +267,4 @@ See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 - [x] Phase 3: CI/CD (GitHub Actions)
 - [x] Phase 4: API Server (REST)
 - [ ] Phase 5: Web UI (Angular)
-- [ ] Phase 6: Additional Data Sources (KEV, LEV)
+- [ ] Phase 6: Additional Data Sources (LEV)
