@@ -21,9 +21,6 @@ const (
 	// epssCSVBaseURL is the base URL for EPSS bulk CSV downloads.
 	epssCSVBaseURL = "https://epss.cyentia.com"
 
-	// epssAPIDefaultLimit is the default number of results per API page.
-	epssAPIDefaultLimit = 100
-
 	// epssAPIMaxLimit is the maximum number of results per API page.
 	epssAPIMaxLimit = 1000
 )
