@@ -14,6 +14,7 @@ Mayu ingests vulnerability data from the [OSV](https://osv.dev/) ecosystem into 
 
 **Current capabilities:**
 - Full and delta import of OSV vulnerability data from the GCS bucket
+- Direct import of GitHub Security Advisories — even before they reach OSV, just `wget` the API response and feed it to mayu
 - CLI-based vulnerability search by ID, package name, ecosystem, or alias
 - REST API server with OpenAPI 3.1 specification
 - Supports all OSV ecosystems (Go, PyPI, npm, Maven, crates.io, etc.)
@@ -67,6 +68,9 @@ go build -o bin/mayu ./cmd/mayu
 
 # Delta update from hourly MITRE releases
 ./bin/mayu ingest --source mitre --update
+
+# Import local OSV JSON files (e.g., manually constructed GHSA advisories)
+./bin/mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
 ```
 
 ### Search Vulnerabilities
@@ -141,6 +145,7 @@ Import vulnerability data from OSV into the local database.
 | `--update` | Perform delta update instead of full import | `false` |
 | `--source` | Import from source (nvd, debian, mitre) | — |
 | `--native` | Use native data source feed (with `--source nvd`) | `false` |
+| `--file` | Import from local OSV JSON files (paths as positional args) | `false` |
 | `--concurrency` | Number of ecosystems to import in parallel (with `--all`) | `3` |
 | `--store-workers` | Number of parallel DB store workers per ecosystem | CPU cores - 1 |
 | `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |

@@ -89,6 +89,7 @@ func runIngest(args []string) error {
 	batchSize := fs.Int("batch-size", 100, "Number of vulnerabilities per batch insert")
 	storeWorkers := fs.Int("store-workers", ingest.DefaultStoreWorkers(), "Number of parallel DB store workers per ecosystem")
 	native := fs.Bool("native", false, "Use native data source feed instead of OSV conversion (with --source nvd)")
+	fileMode := fs.Bool("file", false, "Import from local OSV JSON files (paths as positional arguments)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu ingest [options]")
@@ -109,6 +110,7 @@ func runIngest(args []string) error {
 		fmt.Println("  mayu ingest --source debian")
 		fmt.Println("  mayu ingest --source mitre              # Import MITRE CVE from cvelistV5")
 		fmt.Println("  mayu ingest --source mitre --update     # Delta update from hourly releases")
+		fmt.Println("  mayu ingest --file vuln1.json vuln2.json # Import local OSV JSON files")
 		fmt.Println("  mayu ingest --ecosystem PyPI --db-url postgres://user:pass@host/db")
 	}
 
@@ -117,8 +119,8 @@ func runIngest(args []string) error {
 	}
 
 	// Validate flags
-	if !*all && *ecosystem == "" && *source == "" {
-		return fmt.Errorf("either --ecosystem, --source, or --all is required")
+	if !*all && *ecosystem == "" && *source == "" && !*fileMode {
+		return fmt.Errorf("either --ecosystem, --source, --all, or --file is required")
 	}
 
 	// Resolve database URL
@@ -127,6 +129,71 @@ func runIngest(args []string) error {
 	// Setup context with signal handling
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
+
+	// Handle --file: import local OSV JSON files
+	if *fileMode {
+		files := fs.Args()
+		if len(files) == 0 {
+			return fmt.Errorf("--file requires at least one file path as positional argument")
+		}
+
+		// Connect to database
+		s, err := store.NewPostgresStore(ctx, databaseURL)
+		if err != nil {
+			return fmt.Errorf("connect to database: %w", err)
+		}
+		defer func() { _ = s.Close() }()
+
+		p := parser.New()
+		var imported, failed int
+
+		fmt.Printf("\n=== Importing %d local OSV JSON file(s) ===\n", len(files))
+		for _, path := range files {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "  ✗ %s: %v\n", path, err)
+				failed++
+				continue
+			}
+
+			var vuln *model.Vulnerability
+
+			// Auto-detect GitHub REST API advisory format and convert to OSV
+			if parser.IsGitHubAdvisoryJSON(data) {
+				vuln, err = parser.ConvertGitHubToOSV(data)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "  ✗ %s: GitHub→OSV conversion error: %v\n", path, err)
+					failed++
+					continue
+				}
+				fmt.Printf("  ℹ %s: detected GitHub Advisory format, converted to OSV\n", path)
+			} else {
+				vuln, err = p.Parse(data)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "  ✗ %s: parse error: %v\n", path, err)
+					failed++
+					continue
+				}
+				// Set RawJSON for storage (preserves original JSON)
+				vuln.RawJSON = data
+			}
+
+			if err := s.Insert(ctx, vuln); err != nil {
+				fmt.Fprintf(os.Stderr, "  ✗ %s (id=%s): insert error: %v\n", path, vuln.ID, err)
+				failed++
+				continue
+			}
+
+			fmt.Printf("  ✓ %s (id=%s, aliases=%v)\n", path, vuln.ID, vuln.Aliases)
+			imported++
+		}
+
+		fmt.Printf("\nDone: %d imported, %d failed\n", imported, failed)
+		if failed > 0 {
+			return fmt.Errorf("%d file(s) failed to import", failed)
+		}
+		return nil
+	}
 
 	// Connect to database
 	s, err := store.NewPostgresStore(ctx, databaseURL)
