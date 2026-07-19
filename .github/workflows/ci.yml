@@ -61,13 +61,7 @@ jobs:
           migrate -database "postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable" -path migrations up
 
       - name: Run unit tests
-        run: go test ./... -v -count=1 -coverprofile=coverage.out -covermode=atomic
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage.out
-          fail_ci_if_error: false
+        run: go test ./... -v -count=1
 
       - name: Run integration tests
         env:
