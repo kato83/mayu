@@ -86,6 +86,50 @@ func isMITRECVEEntry(name string) bool {
 	return strings.HasPrefix(name, "cves/") && strings.HasSuffix(name, ".json")
 }
 
+// unwrapMITREZip handles the MITRE baseline zip-in-zip structure.
+// The baseline asset (.zip.zip) contains a single inner zip file (e.g., "cves.zip")
+// which in turn contains all CVE JSON files.
+//
+// If the outer zip contains CVE entries directly (flat structure), it returns
+// the outer reader as-is. Otherwise, it extracts the inner zip into memory
+// and returns a reader over it.
+//
+// The returned []byte keeps the inner zip data alive (the zip.Reader references it).
+func unwrapMITREZip(outerReader *zip.Reader) (*zip.Reader, []byte, error) {
+	// Check if the outer zip directly contains CVE entries.
+	for _, f := range outerReader.File {
+		if isMITRECVEEntry(f.Name) {
+			// Flat structure — return outer reader directly.
+			return outerReader, nil, nil
+		}
+	}
+
+	// Look for an inner zip file (e.g., "cves.zip").
+	for _, f := range outerReader.File {
+		if strings.HasSuffix(f.Name, ".zip") {
+			rc, err := f.Open()
+			if err != nil {
+				return nil, nil, fmt.Errorf("open inner zip %s: %w", f.Name, err)
+			}
+			defer func() { _ = rc.Close() }()
+
+			data, err := io.ReadAll(rc)
+			if err != nil {
+				return nil, nil, fmt.Errorf("read inner zip %s: %w", f.Name, err)
+			}
+
+			innerReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+			if err != nil {
+				return nil, nil, fmt.Errorf("parse inner zip %s: %w", f.Name, err)
+			}
+
+			return innerReader, data, nil
+		}
+	}
+
+	return nil, nil, fmt.Errorf("no CVE entries or inner zip found in archive")
+}
+
 // FindMITRELatestMidnightTag queries the GitHub Releases API to find the most
 // recent midnight (0000Z) release tag from CVEProject/cvelistV5.
 // Returns the full tag name and the date portion (YYYY-MM-DD).
@@ -159,13 +203,24 @@ func (f *Fetcher) StreamMITREBaselineZip(ctx context.Context) (<-chan ZipEntry, 
 		return nil, nil, fmt.Errorf("download MITRE baseline zip: %w", err)
 	}
 
-	// Open zip reader from the temporary file.
-	reader, err := zip.NewReader(tmpFile, fileSize)
+	// Open outer zip reader from the temporary file.
+	outerReader, err := zip.NewReader(tmpFile, fileSize)
 	if err != nil {
 		_ = tmpFile.Close()
 		_ = os.Remove(tmpFile.Name())
 		return nil, nil, fmt.Errorf("open zip: %w", err)
 	}
+
+	// The MITRE baseline asset is a zip-in-zip structure:
+	// outer.zip.zip contains a single "cves.zip" which holds all CVE JSON files.
+	// Detect and unwrap the inner zip if present.
+	reader, innerData, err := unwrapMITREZip(outerReader)
+	if err != nil {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpFile.Name())
+		return nil, nil, fmt.Errorf("unwrap MITRE zip: %w", err)
+	}
+	_ = innerData // kept alive for the zip.Reader that references it
 
 	// Count CVE JSON entries and enforce entry limit.
 	jsonCount := 0
