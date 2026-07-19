@@ -142,20 +142,21 @@ func TestFindMITRELatestMidnightTag(t *testing.T) {
 			PublishedAt: time.Date(2026, 7, 19, 14, 0, 0, 0, time.UTC),
 			Assets: []mitreReleaseAsset{
 				{Name: "2026-07-19_delta_CVEs_at_1400Z.zip", BrowserDownloadURL: "https://example.com/delta.zip"},
+				{Name: "2026-07-19_all_CVEs_at_midnight.zip.zip", BrowserDownloadURL: "https://example.com/baseline-latest.zip"},
 			},
 		},
 		{
 			TagName:     "cve_2026-07-19_0000Z",
 			PublishedAt: time.Date(2026, 7, 19, 0, 5, 0, 0, time.UTC),
 			Assets: []mitreReleaseAsset{
-				{Name: "2026-07-19_all_CVEs_at_midnight.zip", BrowserDownloadURL: "https://example.com/baseline.zip"},
+				{Name: "2026-07-18_all_CVEs_at_midnight.zip.zip", BrowserDownloadURL: "https://example.com/baseline.zip"},
 			},
 		},
 		{
 			TagName:     "cve_2026-07-18_0000Z",
 			PublishedAt: time.Date(2026, 7, 18, 0, 5, 0, 0, time.UTC),
 			Assets: []mitreReleaseAsset{
-				{Name: "2026-07-18_all_CVEs_at_midnight.zip", BrowserDownloadURL: "https://example.com/old-baseline.zip"},
+				{Name: "2026-07-18_all_CVEs_at_midnight.zip.zip", BrowserDownloadURL: "https://example.com/old-baseline.zip"},
 			},
 		},
 	}
@@ -171,35 +172,21 @@ func TestFindMITRELatestMidnightTag(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Override the releases URL by creating a fetcher that hits our mock server.
-	// We use a custom approach: patch the fetchMITREReleases behavior by setting
-	// the server URL. Since fetchMITREReleases uses a hardcoded URL, we need to
-	// test via a wrapper or use the real function with a modified fetcher.
-	// Instead, we test the URL construction and parsing logic directly.
-
-	// For this test, we verify the tag parsing logic by calling the function
-	// with a fetcher whose HTTP client points to our mock.
 	f := &Fetcher{
-		httpClient: server.Client(),
-	}
-
-	// We need to override mitreReleasesURL for testing. Since it's a const,
-	// we'll test by calling fetchMITREReleases indirectly through FindMITRELatestMidnightTag
-	// after making the server respond at the expected path.
-	// Actually, we need to intercept the HTTP request. Let's use a transport-based approach.
-	f.httpClient = &http.Client{
-		Transport: &mitreTestTransport{
-			handler: func(req *http.Request) (*http.Response, error) {
-				// Redirect all requests to our test server
-				req.URL.Scheme = "http"
-				req.URL.Host = server.Listener.Addr().String()
-				req.URL.Path = "/"
-				req.URL.RawQuery = ""
-				return http.DefaultTransport.RoundTrip(req)
+		httpClient: &http.Client{
+			Transport: &mitreTestTransport{
+				handler: func(req *http.Request) (*http.Response, error) {
+					req.URL.Scheme = "http"
+					req.URL.Host = server.Listener.Addr().String()
+					req.URL.Path = "/"
+					req.URL.RawQuery = ""
+					return http.DefaultTransport.RoundTrip(req)
+				},
 			},
 		},
 	}
 
+	// FindMITRELatestMidnightTag still works (returns first midnight tag)
 	tag, date, err := f.FindMITRELatestMidnightTag(context.Background())
 	if err != nil {
 		t.Fatalf("FindMITRELatestMidnightTag failed: %v", err)
@@ -210,6 +197,15 @@ func TestFindMITRELatestMidnightTag(t *testing.T) {
 	}
 	if date != "2026-07-19" {
 		t.Errorf("date = %q, want %q", date, "2026-07-19")
+	}
+
+	// FindMITREBaselineURL returns the first baseline asset URL found
+	baselineURL, err := f.FindMITREBaselineURL(context.Background())
+	if err != nil {
+		t.Fatalf("FindMITREBaselineURL failed: %v", err)
+	}
+	if baselineURL != "https://example.com/baseline-latest.zip" {
+		t.Errorf("baselineURL = %q, want %q", baselineURL, "https://example.com/baseline-latest.zip")
 	}
 }
 
@@ -231,70 +227,42 @@ func TestStreamMITREBaselineZip(t *testing.T) {
 		"CVE-2024-5678": cve2,
 	})
 
-	// Build a mock releases response pointing to today's midnight.
-	todayDate := time.Now().UTC().Format("2006-01-02")
-	releases := []mitreRelease{
-		{
-			TagName:     fmt.Sprintf("cve_%s_0000Z", todayDate),
-			PublishedAt: time.Now().UTC(),
-			Assets: []mitreReleaseAsset{
-				{
-					Name:               fmt.Sprintf("%s_all_CVEs_at_midnight.zip", todayDate),
-					BrowserDownloadURL: "will-be-overridden",
-				},
-			},
-		},
-	}
-	releasesJSON, err := json.Marshal(releases)
-	if err != nil {
-		t.Fatalf("marshal releases: %v", err)
-	}
-
+	// Single test server that handles both the releases API and the zip download.
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		// Serve releases API
-		if path == "/releases" {
+		switch r.URL.Path {
+		case "/repos/CVEProject/cvelistV5/releases":
+			// BrowserDownloadURL uses a relative-like path that our transport will resolve.
+			releases := []mitreRelease{
+				{
+					TagName:     "cve_2026-07-19_1400Z",
+					PublishedAt: time.Now().UTC(),
+					Assets: []mitreReleaseAsset{
+						{
+							Name:               "2026-07-19_all_CVEs_at_midnight.zip.zip",
+							BrowserDownloadURL: "http://test-server/baseline.zip",
+						},
+					},
+				},
+			}
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write(releasesJSON)
-			return
-		}
-		// Serve zip download
-		if path == fmt.Sprintf("/download/cve_%s_0000Z/%s_all_CVEs_at_midnight.zip", todayDate, todayDate) {
+			_ = json.NewEncoder(w).Encode(releases)
+		case "/baseline.zip":
 			w.Header().Set("Content-Type", "application/zip")
 			_, _ = w.Write(zipData)
-			return
+		default:
+			http.NotFound(w, r)
 		}
-		http.NotFound(w, r)
 	}))
 	defer server.Close()
 
-	// Create a fetcher with a transport that redirects MITRE URLs to our test server.
+	// Create a fetcher whose HTTP client redirects all requests to our test server.
 	f := &Fetcher{
 		httpClient: &http.Client{
 			Transport: &mitreTestTransport{
 				handler: func(req *http.Request) (*http.Response, error) {
-					// Map the real MITRE URLs to our test server paths.
-					originalURL := req.URL.String()
-					var newPath string
-					if req.URL.Host == "api.github.com" {
-						newPath = "/releases"
-					} else if req.URL.Host == "github.com" {
-						// Extract the download path portion.
-						// e.g., /CVEProject/cvelistV5/releases/download/cve_2026.../file.zip
-						parts := req.URL.Path
-						idx := len("/CVEProject/cvelistV5/releases")
-						if idx < len(parts) {
-							newPath = parts[idx:]
-						}
-					}
-					if newPath == "" {
-						t.Logf("unexpected request URL: %s", originalURL)
-						return nil, fmt.Errorf("unexpected URL: %s", originalURL)
-					}
+					// Rewrite any request to go to our test server, preserving the path.
 					req.URL.Scheme = "http"
 					req.URL.Host = server.Listener.Addr().String()
-					req.URL.Path = newPath
-					req.URL.RawQuery = ""
 					return http.DefaultTransport.RoundTrip(req)
 				},
 			},
@@ -351,24 +319,29 @@ func TestStreamMITREBaselineZip_FiltersNonCVE(t *testing.T) {
 	_ = w.Close()
 	zipData := buf.Bytes()
 
-	todayDate := time.Now().UTC().Format("2006-01-02")
-	releases := []mitreRelease{
-		{
-			TagName:     fmt.Sprintf("cve_%s_0000Z", todayDate),
-			PublishedAt: time.Now().UTC(),
-			Assets:      []mitreReleaseAsset{{Name: "baseline.zip"}},
-		},
-	}
-	releasesJSON, _ := json.Marshal(releases)
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/releases" {
+		switch r.URL.Path {
+		case "/repos/CVEProject/cvelistV5/releases":
+			releases := []mitreRelease{
+				{
+					TagName:     "cve_2026-07-19_1400Z",
+					PublishedAt: time.Now().UTC(),
+					Assets: []mitreReleaseAsset{
+						{
+							Name:               "2026-07-19_all_CVEs_at_midnight.zip.zip",
+							BrowserDownloadURL: "http://test-server/baseline.zip",
+						},
+					},
+				},
+			}
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write(releasesJSON)
-			return
+			_ = json.NewEncoder(w).Encode(releases)
+		case "/baseline.zip":
+			w.Header().Set("Content-Type", "application/zip")
+			_, _ = w.Write(zipData)
+		default:
+			http.NotFound(w, r)
 		}
-		w.Header().Set("Content-Type", "application/zip")
-		_, _ = w.Write(zipData)
 	}))
 	defer server.Close()
 
@@ -378,15 +351,6 @@ func TestStreamMITREBaselineZip_FiltersNonCVE(t *testing.T) {
 				handler: func(req *http.Request) (*http.Response, error) {
 					req.URL.Scheme = "http"
 					req.URL.Host = server.Listener.Addr().String()
-					if req.URL.Host == "" {
-						req.URL.Host = server.Listener.Addr().String()
-					}
-					if req.Header.Get("Accept") == "application/vnd.github+json" {
-						req.URL.Path = "/releases"
-					} else {
-						req.URL.Path = "/download"
-					}
-					req.URL.RawQuery = ""
 					return http.DefaultTransport.RoundTrip(req)
 				},
 			},

@@ -110,6 +110,26 @@ func (f *Fetcher) FindMITRELatestMidnightTag(ctx context.Context) (tag string, d
 	return "", "", fmt.Errorf("no midnight release found in recent releases")
 }
 
+// FindMITREBaselineURL queries the GitHub Releases API and returns the download
+// URL for the baseline zip (all_CVEs_at_midnight) from the most recent release.
+// Every hourly release includes the baseline zip asset, so we simply use the latest.
+func (f *Fetcher) FindMITREBaselineURL(ctx context.Context) (downloadURL string, err error) {
+	releases, err := f.fetchMITREReleases(ctx)
+	if err != nil {
+		return "", fmt.Errorf("fetch MITRE releases: %w", err)
+	}
+
+	for _, rel := range releases {
+		for _, asset := range rel.Assets {
+			if strings.Contains(asset.Name, "all_CVEs_at_midnight") {
+				return asset.BrowserDownloadURL, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("no baseline zip asset found in recent releases")
+}
+
 // StreamMITREBaselineZip downloads the latest midnight baseline zip from
 // CVEProject/cvelistV5 and streams CVE JSON entries through a channel.
 //
@@ -122,13 +142,11 @@ func (f *Fetcher) FindMITRELatestMidnightTag(ctx context.Context) (tag string, d
 // The channel is closed when all entries have been sent or an error occurs.
 // Check the error channel for any errors after the entries channel is closed.
 func (f *Fetcher) StreamMITREBaselineZip(ctx context.Context) (<-chan ZipEntry, <-chan error, error) {
-	// Find the latest midnight tag via the API.
-	_, date, err := f.FindMITRELatestMidnightTag(ctx)
+	// Find the baseline zip URL from the latest release via the API.
+	u, err := f.FindMITREBaselineURL(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("find latest midnight tag: %w", err)
+		return nil, nil, fmt.Errorf("find MITRE baseline zip: %w", err)
 	}
-
-	u := mitreBaselineURL(date)
 
 	// Use a longer timeout for the large baseline download.
 	// Create a dedicated client to avoid mutating the shared httpClient (thread-safety).
