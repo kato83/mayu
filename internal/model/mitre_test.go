@@ -424,7 +424,7 @@ func TestMITRETime_UnmarshalJSON_Empty(t *testing.T) {
 			if err := mt.UnmarshalJSON([]byte(tt.input)); err != nil {
 				t.Fatalf("UnmarshalJSON(%s) returned error: %v", tt.input, err)
 			}
-			if !mt.Time.IsZero() {
+			if !mt.IsZero() {
 				t.Errorf("expected zero time, got %v", mt.Time)
 			}
 		})

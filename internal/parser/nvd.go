@@ -82,10 +82,10 @@ func validateNVDEntry(cve *model.NVDCVE) error {
 	if !isValidCVEID(cve.ID) {
 		return fmt.Errorf("invalid CVE ID format: %s", cve.ID)
 	}
-	if cve.Published.Time.IsZero() {
+	if cve.Published.IsZero() {
 		return fmt.Errorf("missing required field: published (CVE: %s)", cve.ID)
 	}
-	if cve.LastModified.Time.IsZero() {
+	if cve.LastModified.IsZero() {
 		return fmt.Errorf("missing required field: lastModified (CVE: %s)", cve.ID)
 	}
 	if len(cve.Descriptions) == 0 {

@@ -236,10 +236,10 @@ func TestParseNVDEntry_Roundtrip(t *testing.T) {
 	if cve2.VulnStatus != cve.VulnStatus {
 		t.Errorf("roundtrip VulnStatus = %q, want %q", cve2.VulnStatus, cve.VulnStatus)
 	}
-	if !cve2.Published.Time.Equal(cve.Published.Time) {
+	if !cve2.Published.Equal(cve.Published.Time) {
 		t.Errorf("roundtrip Published = %v, want %v", cve2.Published.Time, cve.Published.Time)
 	}
-	if !cve2.LastModified.Time.Equal(cve.LastModified.Time) {
+	if !cve2.LastModified.Equal(cve.LastModified.Time) {
 		t.Errorf("roundtrip LastModified = %v, want %v", cve2.LastModified.Time, cve.LastModified.Time)
 	}
 	if len(cve2.Descriptions) != len(cve.Descriptions) {

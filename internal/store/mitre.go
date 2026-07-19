@@ -122,13 +122,13 @@ func (s *PostgresStore) upsertMITREEntry(ctx context.Context, tx *sql.Tx, entry 
 
 	// Step 7: Insert into mitre_entries
 	var dateReservedPtr, datePublishedPtr, dateUpdatedPtr interface{}
-	if !entry.CVEMetadata.DateReserved.Time.IsZero() {
+	if !entry.CVEMetadata.DateReserved.IsZero() {
 		dateReservedPtr = entry.CVEMetadata.DateReserved.Time
 	}
-	if !entry.CVEMetadata.DatePublished.Time.IsZero() {
+	if !entry.CVEMetadata.DatePublished.IsZero() {
 		datePublishedPtr = entry.CVEMetadata.DatePublished.Time
 	}
-	if !entry.CVEMetadata.DateUpdated.Time.IsZero() {
+	if !entry.CVEMetadata.DateUpdated.IsZero() {
 		dateUpdatedPtr = entry.CVEMetadata.DateUpdated.Time
 	}
 
@@ -156,7 +156,7 @@ func (s *PostgresStore) upsertMITREEntry(ctx context.Context, tx *sql.Tx, entry 
 	if entry.Containers.CNA != nil {
 		cna := entry.Containers.CNA
 		var cnaDateUpdated interface{}
-		if !cna.ProviderMetadata.DateUpdated.Time.IsZero() {
+		if !cna.ProviderMetadata.DateUpdated.IsZero() {
 			cnaDateUpdated = cna.ProviderMetadata.DateUpdated.Time
 		}
 		cnaContainerID, err := insertMITREContainer(ctx, tx, mitreEntryID, "cna",
@@ -190,7 +190,7 @@ func (s *PostgresStore) upsertMITREEntry(ctx context.Context, tx *sql.Tx, entry 
 	// Step 9: Insert ADP containers
 	for i, adp := range entry.Containers.ADP {
 		var adpDateUpdated interface{}
-		if !adp.ProviderMetadata.DateUpdated.Time.IsZero() {
+		if !adp.ProviderMetadata.DateUpdated.IsZero() {
 			adpDateUpdated = adp.ProviderMetadata.DateUpdated.Time
 		}
 		adpContainerID, err := insertMITREContainer(ctx, tx, mitreEntryID, "adp",

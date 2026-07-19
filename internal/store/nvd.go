@@ -69,12 +69,12 @@ func (s *PostgresStore) upsertNVDEntry(ctx context.Context, tx *sql.Tx, entry *m
 	}
 
 	// --- Step 1: Upsert into unified vulnerabilities table ---
-	// ON CONFLICT: preserve existing OSV summary via COALESCE, use GREATEST for modified
+	// ON CONFLICT: preserve existing summary (OSV priority) via COALESCE, use GREATEST for modified
 	_, err := tx.ExecContext(ctx, `
 		INSERT INTO vulnerabilities (id, source, summary, details, published, modified, withdrawn)
 		VALUES ($1, 'nvd', $2, NULL, $3, $4, NULL)
 		ON CONFLICT (id) DO UPDATE SET
-			summary = COALESCE(NULLIF(EXCLUDED.summary, ''), vulnerabilities.summary),
+			summary = COALESCE(NULLIF(vulnerabilities.summary, ''), EXCLUDED.summary),
 			published = COALESCE(EXCLUDED.published, vulnerabilities.published),
 			modified = GREATEST(EXCLUDED.modified, vulnerabilities.modified)`,
 		cveID,

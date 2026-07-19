@@ -51,7 +51,7 @@ func (t *NVDTime) UnmarshalJSON(data []byte) error {
 // MarshalJSON implements json.Marshaler for NVDTime.
 // Outputs in the NVD format without timezone suffix.
 func (t NVDTime) MarshalJSON() ([]byte, error) {
-	if t.Time.IsZero() {
+	if t.IsZero() {
 		return []byte(`null`), nil
 	}
 	return []byte(fmt.Sprintf(`"%s"`, t.Time.UTC().Format("2006-01-02T15:04:05.000"))), nil
