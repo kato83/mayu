@@ -126,14 +126,12 @@ func (f *Fetcher) StreamTopLevelAllZip(ctx context.Context) (<-chan ZipEntry, <-
 	u := fmt.Sprintf("%s/all.zip", f.baseURL)
 
 	// Use a longer timeout for the large download.
-	// Create a separate client to avoid modifying the shared one.
+	// Create a dedicated client to avoid mutating the shared httpClient (thread-safety).
 	largeClient := &http.Client{
-		Timeout: LargeFileHTTPTimeout,
+		Timeout:   LargeFileHTTPTimeout,
+		Transport: f.httpClient.Transport,
 	}
-	origClient := f.httpClient
-	f.httpClient = largeClient
-	tmpFile, fileSize, err := f.downloadToTempFile(ctx, u)
-	f.httpClient = origClient
+	tmpFile, fileSize, err := f.downloadToTempFileWith(ctx, u, largeClient, MaxResponseSize)
 	if err != nil {
 		return nil, nil, fmt.Errorf("download top-level all.zip: %w", err)
 	}
@@ -225,12 +223,18 @@ func (f *Fetcher) StreamTopLevelAllZip(ctx context.Context) (<-chan ZipEntry, <-
 //   - MaxResponseSize is enforced to prevent disk exhaustion.
 //   - The caller is responsible for closing and removing the file.
 func (f *Fetcher) downloadToTempFile(ctx context.Context, url string) (*os.File, int64, error) {
+	return f.downloadToTempFileWith(ctx, url, f.httpClient, MaxResponseSize)
+}
+
+// downloadToTempFileWith downloads a URL to a temporary file using the provided
+// HTTP client and size limit. This avoids mutating shared state on the Fetcher.
+func (f *Fetcher) downloadToTempFileWith(ctx context.Context, url string, client *http.Client, maxSize int64) (*os.File, int64, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, 0, fmt.Errorf("create request: %w", err)
 	}
 
-	resp, err := f.httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, 0, fmt.Errorf("execute request: %w", err)
 	}
@@ -256,13 +260,13 @@ func (f *Fetcher) downloadToTempFile(ctx context.Context, url string) (*os.File,
 	}()
 
 	// Stream response body to the temp file with a size limit.
-	limited := io.LimitReader(resp.Body, MaxResponseSize+1)
+	limited := io.LimitReader(resp.Body, maxSize+1)
 	written, err := io.Copy(tmpFile, limited)
 	if err != nil {
 		return nil, 0, fmt.Errorf("write to temp file: %w", err)
 	}
-	if written > MaxResponseSize {
-		return nil, 0, fmt.Errorf("response body exceeds maximum size of %d bytes for %s", MaxResponseSize, url)
+	if written > maxSize {
+		return nil, 0, fmt.Errorf("response body exceeds maximum size of %d bytes for %s", maxSize, url)
 	}
 
 	// Seek back to the beginning for reading.
