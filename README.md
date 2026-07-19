@@ -11,6 +11,7 @@ Mayu ingests vulnerability data from the [OSV](https://osv.dev/) ecosystem into 
 **Current capabilities:**
 - Full and delta import of OSV vulnerability data from the GCS bucket
 - CLI-based vulnerability search by ID, package name, ecosystem, or alias
+- REST API server with OpenAPI 3.1 specification
 - Supports all OSV ecosystems (Go, PyPI, npm, Maven, crates.io, etc.)
 - Raw OSV JSON preserved for full data reversibility
 
