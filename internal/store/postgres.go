@@ -450,6 +450,18 @@ func (s *PostgresStore) GetByID(ctx context.Context, id string) (*model.Vulnerab
 // buildSearchConditions constructs the WHERE clause and arguments for a SearchQuery.
 // It returns the base SELECT query with conditions, the arguments, and the current argIdx.
 func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery string, args []interface{}, argIdx int) {
+	// nvdScoreSubquery retrieves the maximum CVSS base_score from NVD or MITRE metrics
+	// for vulnerabilities that have no OSV severity data.
+	const nvdScoreSubquery = `COALESCE(
+				(SELECT MAX(nm.base_score) FROM nvd_metrics nm
+				 JOIN nvd_entries ne ON ne.id = nm.nvd_entry_id
+				 WHERE ne.vulnerability_id = v.id),
+				(SELECT MAX(mm.base_score) FROM mitre_metrics mm
+				 JOIN mitre_containers mc ON mc.id = mm.container_id
+				 JOIN mitre_entries me ON me.id = mc.mitre_entry_id
+				 WHERE me.vulnerability_id = v.id)
+			)`
+
 	switch {
 	case query.ID != "":
 		// Use UNION ALL to avoid OR across joined tables which causes full table scans.
@@ -457,12 +469,12 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		// Branch 2: match by osv_entries.osv_id (PK lookup), resolve the parent vulnerability
 		// The NOT EXISTS clause prevents duplicates when query.ID matches both v.id and oe.osv_id.
 		argIdx++
-		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id FROM (
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM vulnerabilities v
+		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, nvd_score FROM (
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
 			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
 			WHERE v.id = $` + fmt.Sprint(argIdx) + `
 			UNION ALL
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM osv_entries oe
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM osv_entries oe
 			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
 			WHERE oe.osv_id = $` + fmt.Sprint(argIdx) + `
 			AND NOT EXISTS (SELECT 1 FROM vulnerabilities WHERE id = $` + fmt.Sprint(argIdx) + ` AND id = oe.osv_id)
@@ -473,12 +485,12 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		// Use UNION ALL: branch 1 matches by vulnerabilities.id directly (user passed a CVE as alias),
 		// branch 2 resolves via vulnerability_aliases table, excluding any already found in branch 1.
 		argIdx++
-		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id FROM (
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM vulnerabilities v
+		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, nvd_score FROM (
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
 			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
 			WHERE v.id = $` + fmt.Sprint(argIdx) + `
 			UNION ALL
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM vulnerabilities v
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
 			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
 			WHERE v.id IN (
 				SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $` + fmt.Sprint(argIdx) + `
@@ -487,7 +499,7 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		args = append(args, query.Alias)
 
 	case query.PackageName != "" || query.Ecosystem != "":
-		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM vulnerabilities v
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
 			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
 			WHERE oe.osv_id IN (
 				SELECT ap.osv_entry_id FROM osv_affected_packages ap WHERE 1=1`
@@ -504,7 +516,7 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		baseQuery += `)`
 
 	default:
-		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM vulnerabilities v
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
 			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
 			WHERE 1=1`
 	}
@@ -595,14 +607,22 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 		var vulnID string
 		var summary, details sql.NullString
 		var published, modified sql.NullTime
-		var osvID sql.NullString // unused but required for consistent column count
-		if err := rows.Scan(&rawJSON, &vulnID, &summary, &details, &published, &modified, &osvID); err != nil {
+		var osvID sql.NullString     // used for additional filters; not consumed here
+		var nvdScore sql.NullFloat64 // NVD/MITRE base_score fallback
+		if err := rows.Scan(&rawJSON, &vulnID, &summary, &details, &published, &modified, &osvID, &nvdScore); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 		if rawJSON != nil {
 			vuln, err := model.ParseVulnerability(rawJSON)
 			if err != nil {
 				return nil, fmt.Errorf("parse vulnerability: %w", err)
+			}
+			// If OSV entry has no severity but NVD/MITRE does, supplement it
+			if len(vuln.Severity) == 0 && nvdScore.Valid {
+				vuln.Severity = []model.Severity{{
+					Type:  model.SeverityTypeCVSSV3,
+					Score: fmt.Sprintf("%.1f", nvdScore.Float64),
+				}}
 			}
 			results = append(results, vuln)
 		} else {
@@ -617,6 +637,12 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 			}
 			if published.Valid {
 				vuln.Published = &published.Time
+			}
+			if nvdScore.Valid {
+				vuln.Severity = []model.Severity{{
+					Type:  model.SeverityTypeCVSSV3,
+					Score: fmt.Sprintf("%.1f", nvdScore.Float64),
+				}}
 			}
 			results = append(results, vuln)
 		}
