@@ -661,15 +661,17 @@ func runSearch(args []string) error {
 	// Output results
 	switch *format {
 	case "json":
+		if *detail {
+			return outputDetailJSON(ctx, s, results)
+		}
 		return outputJSON(results)
 	case "csv":
 		outputCSV(results)
 	case "table":
 		if *detail {
-			outputDetail(results)
-		} else {
-			outputTable(results)
+			return outputDetailEnriched(ctx, s, results)
 		}
+		outputTable(results)
 	default:
 		return fmt.Errorf("unknown format: %q (supported: table, json, csv)", *format)
 	}
@@ -1016,6 +1018,251 @@ func outputDetail(vulns []*model.Vulnerability) {
 	}
 
 	fmt.Printf("%d result(s) found.\n", len(vulns))
+}
+
+// outputDetailEnriched prints enriched detail (with NVD/MITRE data) for each vulnerability.
+func outputDetailEnriched(ctx context.Context, s *store.PostgresStore, results []*model.Vulnerability) error {
+	for i, vuln := range results {
+		if i > 0 {
+			fmt.Println(strings.Repeat("=", 80))
+		}
+
+		detail, err := s.GetVulnerabilityDetail(ctx, vuln.ID)
+		if err != nil {
+			return fmt.Errorf("get detail for %s: %w", vuln.ID, err)
+		}
+		if detail == nil {
+			// Fallback to basic output
+			outputDetail([]*model.Vulnerability{vuln})
+			continue
+		}
+
+		// Base info
+		fmt.Printf("ID:        %s\n", detail.ID)
+		fmt.Printf("Modified:  %s\n", detail.Modified.Format(time.RFC3339))
+		if detail.Published != nil {
+			fmt.Printf("Published: %s\n", detail.Published.Format(time.RFC3339))
+		}
+		if detail.Withdrawn != nil {
+			fmt.Printf("Withdrawn: %s\n", detail.Withdrawn.Format(time.RFC3339))
+		}
+
+		if len(detail.Aliases) > 0 {
+			fmt.Printf("Aliases:   %s\n", strings.Join(detail.Aliases, ", "))
+		}
+		if len(detail.Related) > 0 {
+			fmt.Printf("Related:   %s\n", strings.Join(detail.Related, ", "))
+		}
+
+		if detail.Summary != "" {
+			fmt.Printf("Summary:   %s\n", detail.Summary)
+		}
+		if detail.Details != "" {
+			fmt.Printf("Details:\n")
+			for _, line := range strings.Split(detail.Details, "\n") {
+				fmt.Printf("  %s\n", line)
+			}
+		}
+
+		// OSV Severity
+		if len(detail.Severity) > 0 {
+			fmt.Printf("Severity (OSV):\n")
+			for _, sev := range detail.Severity {
+				source := sev.Source
+				if source == "" {
+					source = "unspecified"
+				}
+				fmt.Printf("  - %s: %s (source: %s)\n", sev.Type, sev.Score, source)
+			}
+		}
+
+		// NVD Enrichment
+		if detail.NVD != nil {
+			fmt.Printf("NVD:\n")
+			fmt.Printf("  Status:     %s\n", detail.NVD.VulnStatus)
+			if detail.NVD.SourceIdentifier != "" {
+				fmt.Printf("  Source:     %s\n", detail.NVD.SourceIdentifier)
+			}
+			if detail.NVD.Description != "" {
+				fmt.Printf("  Description: %s\n", detail.NVD.Description)
+			}
+			if len(detail.NVD.Metrics) > 0 {
+				fmt.Printf("  CVSS Metrics:\n")
+				for _, m := range detail.NVD.Metrics {
+					fmt.Printf("    - %s %s (source: %s, type: %s)\n",
+						m.BaseSeverity, fmt.Sprintf("%.1f", m.BaseScore), m.Source, m.Type)
+					if m.VectorString != "" {
+						fmt.Printf("      Vector: %s\n", m.VectorString)
+					}
+					if m.ExploitabilityScore != nil {
+						fmt.Printf("      Exploitability: %.1f\n", *m.ExploitabilityScore)
+					}
+					if m.ImpactScore != nil {
+						fmt.Printf("      Impact: %.1f\n", *m.ImpactScore)
+					}
+				}
+			}
+			if len(detail.NVD.Weaknesses) > 0 {
+				fmt.Printf("  Weaknesses (CWE):\n")
+				for _, w := range detail.NVD.Weaknesses {
+					fmt.Printf("    - %s (source: %s, type: %s)\n", w.CWEID, w.Source, w.Type)
+				}
+			}
+			if len(detail.NVD.References) > 0 {
+				fmt.Printf("  References:\n")
+				for _, r := range detail.NVD.References {
+					tags := ""
+					if len(r.Tags) > 0 {
+						tags = " [" + strings.Join(r.Tags, ", ") + "]"
+					}
+					fmt.Printf("    - %s%s\n", r.URL, tags)
+				}
+			}
+		}
+
+		// MITRE Enrichment
+		if detail.MITRE != nil {
+			fmt.Printf("MITRE:\n")
+			fmt.Printf("  State:    %s\n", detail.MITRE.State)
+			if detail.MITRE.AssignerShortName != "" {
+				fmt.Printf("  Assigner: %s\n", detail.MITRE.AssignerShortName)
+			}
+			if len(detail.MITRE.Metrics) > 0 {
+				fmt.Printf("  CVSS Metrics:\n")
+				for _, m := range detail.MITRE.Metrics {
+					fmt.Printf("    - %s %s (v%s, source: %s)\n",
+						m.BaseSeverity, fmt.Sprintf("%.1f", m.BaseScore), m.CvssVersion, m.Source)
+					if m.VectorString != "" {
+						fmt.Printf("      Vector: %s\n", m.VectorString)
+					}
+				}
+			}
+			if detail.MITRE.SSVC != nil {
+				fmt.Printf("  SSVC Assessment:\n")
+				if detail.MITRE.SSVC.Role != "" {
+					fmt.Printf("    Role: %s\n", detail.MITRE.SSVC.Role)
+				}
+				if detail.MITRE.SSVC.Version != "" {
+					fmt.Printf("    Version: %s\n", detail.MITRE.SSVC.Version)
+				}
+				for _, opt := range detail.MITRE.SSVC.Options {
+					fmt.Printf("    - %s: %s\n", opt.Key, opt.Value)
+				}
+				if detail.MITRE.SSVC.Timestamp != "" {
+					fmt.Printf("    Timestamp: %s\n", detail.MITRE.SSVC.Timestamp)
+				}
+			}
+			if len(detail.MITRE.ProblemTypes) > 0 {
+				fmt.Printf("  Problem Types (CWE):\n")
+				for _, pt := range detail.MITRE.ProblemTypes {
+					if pt.CWEID != "" {
+						fmt.Printf("    - %s: %s\n", pt.CWEID, pt.Description)
+					} else {
+						fmt.Printf("    - %s\n", pt.Description)
+					}
+				}
+			}
+			if len(detail.MITRE.Credits) > 0 {
+				fmt.Printf("  Credits:\n")
+				for _, c := range detail.MITRE.Credits {
+					ctype := c.Type
+					if ctype == "" {
+						ctype = "other"
+					}
+					fmt.Printf("    - %s (%s)\n", c.Value, ctype)
+				}
+			}
+			if len(detail.MITRE.References) > 0 {
+				fmt.Printf("  References:\n")
+				for _, r := range detail.MITRE.References {
+					tags := ""
+					if len(r.Tags) > 0 {
+						tags = " [" + strings.Join(r.Tags, ", ") + "]"
+					}
+					fmt.Printf("    - %s%s\n", r.URL, tags)
+				}
+			}
+		}
+
+		// Affected packages (from OSV)
+		if len(detail.Affected) > 0 {
+			fmt.Printf("Affected Packages:\n")
+			for _, affected := range detail.Affected {
+				fmt.Printf("  - %s/%s", affected.Package.Ecosystem, affected.Package.Name)
+				if affected.Package.Purl != "" {
+					fmt.Printf(" (%s)", affected.Package.Purl)
+				}
+				fmt.Println()
+				for _, r := range affected.Ranges {
+					fmt.Printf("    Range (%s):", r.Type)
+					if r.Repo != "" {
+						fmt.Printf(" repo=%s", r.Repo)
+					}
+					fmt.Println()
+					for _, ev := range r.Events {
+						if ev.Introduced != "" {
+							fmt.Printf("      introduced: %s\n", ev.Introduced)
+						}
+						if ev.Fixed != "" {
+							fmt.Printf("      fixed: %s\n", ev.Fixed)
+						}
+						if ev.LastAffected != "" {
+							fmt.Printf("      last_affected: %s\n", ev.LastAffected)
+						}
+						if ev.Limit != "" {
+							fmt.Printf("      limit: %s\n", ev.Limit)
+						}
+					}
+				}
+			}
+		}
+
+		// OSV References
+		if len(detail.References) > 0 {
+			fmt.Printf("References (OSV):\n")
+			for _, ref := range detail.References {
+				fmt.Printf("  - [%s] %s\n", ref.Type, ref.URL)
+			}
+		}
+
+		// OSV Credits
+		if len(detail.Credits) > 0 {
+			fmt.Printf("Credits (OSV):\n")
+			for _, credit := range detail.Credits {
+				ctype := string(credit.Type)
+				if ctype == "" {
+					ctype = "OTHER"
+				}
+				fmt.Printf("  - %s (%s)\n", credit.Name, ctype)
+			}
+		}
+
+		fmt.Println()
+	}
+
+	fmt.Printf("\n%d result(s) found.\n", len(results))
+	return nil
+}
+
+// outputDetailJSON prints enriched detail as JSON for each vulnerability.
+func outputDetailJSON(ctx context.Context, s *store.PostgresStore, results []*model.Vulnerability) error {
+	var details []*model.VulnerabilityDetail
+	for _, vuln := range results {
+		detail, err := s.GetVulnerabilityDetail(ctx, vuln.ID)
+		if err != nil {
+			return fmt.Errorf("get detail for %s: %w", vuln.ID, err)
+		}
+		if detail != nil {
+			details = append(details, detail)
+		}
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(details); err != nil {
+		return fmt.Errorf("encode JSON: %w", err)
+	}
+	return nil
 }
 
 // truncateString truncates a string to maxRunes runes, appending "..." if truncated.
