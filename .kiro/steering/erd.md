@@ -236,11 +236,29 @@ erDiagram
         JSONB raw_json "Original API entry (reversibility)"
     }
 
+    kev_entries {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT cve_id UK "CVE-YYYY-NNNNN"
+        TEXT vulnerability_id FK "→ vulnerabilities(id)"
+        TEXT vendor_project "e.g. Microsoft, Fortinet"
+        TEXT product "e.g. SharePoint, FortiSandbox"
+        TEXT vulnerability_name "Human-readable vulnerability title"
+        DATE date_added "Date added to KEV catalog"
+        TEXT short_description "Brief vulnerability description"
+        TEXT required_action "Remediation action required"
+        DATE due_date "Remediation due date"
+        TEXT known_ransomware_campaign_use "Known or Unknown"
+        TEXT notes "Additional notes and URLs"
+        TEXT_ARRAY cwes "CWE IDs (e.g. CWE-502, CWE-78)"
+        JSONB raw_json "Original catalog entry (reversibility)"
+    }
+
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--o{ osv_entries : "has"
     vulnerabilities ||--o{ nvd_entries : "has"
     vulnerabilities ||--o{ mitre_entries : "has"
     vulnerabilities ||--o{ epss_scores : "has"
+    vulnerabilities ||--o{ kev_entries : "has"
     osv_entries ||--o{ osv_affected_packages : "has"
     osv_entries ||--o{ osv_severity : "top-level severity"
     osv_entries ||--o{ osv_references : "has"
@@ -305,6 +323,17 @@ EPSS (Exploit Prediction Scoring System) scores from the FIRST API. Stores the d
 - Upsert strategy: On reimport for the same date, existing scores are updated in-place (ON CONFLICT DO UPDATE). The `vulnerabilities` row is created with DO NOTHING to avoid overwriting richer data from OSV/NVD/MITRE.
 - Delta strategy: EPSS scores are recalculated daily for ALL CVEs. There is no true delta — each day is a complete snapshot. The `--update` flag skips import if already synced today.
 - Future extensibility: This table pattern (CVE-linked scoring with raw_json reversibility) is designed to be reusable for future scoring systems such as LEV (Likely Exploited Vulnerabilities, NIST CSWP 41).
+
+### `kev_entries` Table
+CISA KEV (Known Exploited Vulnerabilities) catalog entries. Stores CVEs that have been confirmed to be actively exploited in the wild, along with remediation requirements and due dates.
+
+- `kev_entries`: One row per CVE. The `raw_json` column stores the original catalog entry for reversibility (same pattern as `osv_entries.raw_json`, `nvd_entries.raw_json`, `mitre_entries.raw_json`, and `epss_scores.raw_json`). Linked to `vulnerabilities` via `vulnerability_id` (CVE ID).
+- UNIQUE constraint: `(cve_id)` — one entry per CVE in the KEV catalog.
+- Upsert strategy: On reimport, existing entries are updated in-place (ON CONFLICT DO UPDATE on cve_id). The `vulnerabilities` row is created with DO NOTHING to avoid overwriting richer data from OSV/NVD/MITRE.
+- Delta strategy: The KEV catalog is cumulative (entries are never removed, only added). The catalog is small (~1-2 MB, ~1,600 entries) and updates a few times per week. The `--update` flag skips import if already synced within the last hour.
+- `known_ransomware_campaign_use`: Indicates whether the vulnerability is known to be used in ransomware campaigns ("Known" or "Unknown").
+- `cwes`: CWE classifications as a TEXT[] array (e.g., CWE-502, CWE-78).
+- `notes`: Contains URLs and additional context (CISA BOD references, vendor advisories, NVD links).
 
 ### `mitre_*` Tables
 MITRE CVE-specific detail tables for CVE Records ingested from the CVEProject/cvelistV5 GitHub Releases in CVE JSON 5.x format (5.0, 5.1, 5.2).
