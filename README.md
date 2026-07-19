@@ -51,6 +51,12 @@ go build -o bin/mayu ./cmd/mayu
 
 # Bulk import from single top-level all.zip (~1.3GB, all ecosystems at once)
 ./bin/mayu ingest --all --bulk
+
+# Import NVD CVE data directly from NVD JSON Feed 2.0
+./bin/mayu ingest --source nvd --native
+
+# Delta update from NVD modified feed
+./bin/mayu ingest --source nvd --native --update
 ```
 
 ### Search Vulnerabilities
@@ -124,6 +130,7 @@ Import vulnerability data from OSV into the local database.
 | `--bulk` | Use top-level all.zip for bulk import (with `--all`) | `false` |
 | `--update` | Perform delta update instead of full import | `false` |
 | `--source` | Import from converted source (nvd, debian) | — |
+| `--native` | Use native data source feed (with `--source nvd`) | `false` |
 | `--concurrency` | Number of ecosystems to import in parallel (with `--all`) | `3` |
 | `--store-workers` | Number of parallel DB store workers per ecosystem | CPU cores - 1 |
 | `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
@@ -204,6 +211,7 @@ Print version information.
 | [OSV](https://osv.dev/) | ✅ Supported | GCS bucket (`gs://osv-vulnerabilities/`) |
 | NVD (via OSV) | ✅ Supported | Included in OSV data |
 | [NVD CVE (converted)](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ Supported | `mayu ingest --source nvd` |
+| [NVD CVE (native)](https://nvd.nist.gov/vuln/data-feeds) | ✅ Supported | `mayu ingest --source nvd --native` |
 | [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
 
 > **Note:** Converted sources (NVD, Debian) contain 50,000+ entries and are downloaded individually since no bulk archive is available. This may take significant time.
