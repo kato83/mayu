@@ -287,6 +287,23 @@ func (s *Server) handleGetVulnerability(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// If ?detail=true, return enriched vulnerability data from all sources
+	if r.URL.Query().Get("detail") == "true" {
+		detail, err := s.store.GetVulnerabilityDetail(r.Context(), id)
+		if err != nil {
+			slog.Error("failed to get vulnerability detail", "id", id, "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		if detail == nil {
+			writeError(w, http.StatusNotFound,
+				fmt.Sprintf("vulnerability %q not found", id))
+			return
+		}
+		writeJSON(w, http.StatusOK, detail)
+		return
+	}
+
 	vuln, err := s.store.GetByID(r.Context(), id)
 	if err != nil {
 		slog.Error("failed to get vulnerability", "id", id, "error", err)

@@ -28,6 +28,11 @@ type Store interface {
 	// Returns nil, nil if not found.
 	GetByID(ctx context.Context, id string) (*model.Vulnerability, error)
 
+	// GetVulnerabilityDetail retrieves enriched vulnerability information by ID,
+	// combining OSV, NVD, and MITRE data. The id can be a vulnerability_id,
+	// osv_id, or alias. Returns nil, nil if not found.
+	GetVulnerabilityDetail(ctx context.Context, id string) (*model.VulnerabilityDetail, error)
+
 	// Search finds vulnerabilities matching the given query parameters.
 	Search(ctx context.Context, query SearchQuery) ([]*model.Vulnerability, error)
 

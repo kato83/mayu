@@ -15,9 +15,10 @@ import (
 
 // mockStore implements store.Store for testing.
 type mockStore struct {
-	getByIDFunc func(ctx context.Context, id string) (*model.Vulnerability, error)
-	searchFunc  func(ctx context.Context, query store.SearchQuery) ([]*model.Vulnerability, error)
-	countFunc   func(ctx context.Context, query store.SearchQuery) (int64, error)
+	getByIDFunc                func(ctx context.Context, id string) (*model.Vulnerability, error)
+	getVulnerabilityDetailFunc func(ctx context.Context, id string) (*model.VulnerabilityDetail, error)
+	searchFunc                 func(ctx context.Context, query store.SearchQuery) ([]*model.Vulnerability, error)
+	countFunc                  func(ctx context.Context, query store.SearchQuery) (int64, error)
 }
 
 func (m *mockStore) Insert(ctx context.Context, vuln *model.Vulnerability) error { return nil }
@@ -27,6 +28,12 @@ func (m *mockStore) UpsertBatch(ctx context.Context, vulns []*model.Vulnerabilit
 func (m *mockStore) GetByID(ctx context.Context, id string) (*model.Vulnerability, error) {
 	if m.getByIDFunc != nil {
 		return m.getByIDFunc(ctx, id)
+	}
+	return nil, nil
+}
+func (m *mockStore) GetVulnerabilityDetail(ctx context.Context, id string) (*model.VulnerabilityDetail, error) {
+	if m.getVulnerabilityDetailFunc != nil {
+		return m.getVulnerabilityDetailFunc(ctx, id)
 	}
 	return nil, nil
 }
