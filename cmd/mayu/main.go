@@ -67,7 +67,7 @@ func printUsage() {
 	fmt.Println("Usage: mayu <command> [options]")
 	fmt.Println()
 	fmt.Println("Commands:")
-	fmt.Println("  ingest     Import vulnerability data from OSV")
+	fmt.Println("  ingest     Import vulnerability data from OSV, NVD, MITRE, EPSS")
 	fmt.Println("  search     Search for vulnerabilities")
 	fmt.Println("  serve      Start the API server")
 	fmt.Println("  version    Print version information")
@@ -80,7 +80,7 @@ func runIngest(args []string) error {
 	fs := flag.NewFlagSet("ingest", flag.ExitOnError)
 
 	ecosystem := fs.String("ecosystem", "", "Ecosystem to import (e.g., Go, PyPI, npm)")
-	source := fs.String("source", "", "Import from source (nvd, debian, mitre)")
+	source := fs.String("source", "", "Import from source (nvd, debian, mitre, epss)")
 	all := fs.Bool("all", false, "Import all ecosystems")
 	bulk := fs.Bool("bulk", false, "Use top-level all.zip for bulk import (with --all)")
 	update := fs.Bool("update", false, "Perform delta update instead of full import")
@@ -110,6 +110,8 @@ func runIngest(args []string) error {
 		fmt.Println("  mayu ingest --source debian")
 		fmt.Println("  mayu ingest --source mitre              # Import MITRE CVE from cvelistV5")
 		fmt.Println("  mayu ingest --source mitre --update     # Delta update from hourly releases")
+		fmt.Println("  mayu ingest --source epss               # Import EPSS scores (bulk CSV)")
+		fmt.Println("  mayu ingest --source epss --update      # Update EPSS scores if outdated")
 		fmt.Println("  mayu ingest --file vuln1.json vuln2.json # Import local OSV JSON files")
 		fmt.Println("  mayu ingest --ecosystem PyPI --db-url postgres://user:pass@host/db")
 	}
@@ -260,10 +262,31 @@ func runIngest(args []string) error {
 			return nil
 		}
 
+		// EPSS score import from FIRST bulk CSV
+		if strings.ToLower(*source) == "epss" {
+			fmt.Println("\n=== Importing EPSS scores (FIRST bulk CSV) ===")
+			var stats *ingest.Stats
+			var err error
+			if *update {
+				stats, err = ing.UpdateEPSS(ctx)
+			} else {
+				stats, err = ing.ImportEPSS(ctx)
+			}
+			if err != nil {
+				if ctx.Err() != nil {
+					fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+					return nil
+				}
+				return fmt.Errorf("EPSS import: %w", err)
+			}
+			printStats(stats)
+			return nil
+		}
+
 		// Existing converted source logic
 		src := ingest.GetConvertedSource(*source)
 		if src == nil {
-			return fmt.Errorf("unknown source: %q (supported: nvd, debian, mitre)", *source)
+			return fmt.Errorf("unknown source: %q (supported: nvd, debian, mitre, epss)", *source)
 		}
 		fmt.Printf("\n=== Importing %s (converted source: gs://%s/%s) ===\n", src.Name, src.Bucket, src.Prefix)
 		stats, err := ing.ImportConvertedSource(ctx, *src)

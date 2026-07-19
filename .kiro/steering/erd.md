@@ -2,7 +2,7 @@
 erDiagram
     vulnerabilities {
         TEXT id PK "Canonical ID (CVE-xxx or source-specific ID)"
-        TEXT source "osv / nvd / kev / epss"
+        TEXT source "osv / nvd / kev / epss / lev"
         TEXT summary
         TEXT details
         TIMESTAMPTZ published
@@ -220,16 +220,27 @@ erDiagram
     }
 
     sync_state {
-        TEXT source PK "e.g. Go, npm, NVD, NVD-native, Debian, MITRE"
+        TEXT source PK "e.g. Go, npm, NVD, NVD-native, Debian, MITRE, EPSS"
         TIMESTAMPTZ last_modified_at
         TIMESTAMPTZ last_synced_at
         BIGINT record_count
+    }
+
+    epss_scores {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT cve_id "CVE-YYYY-NNNNN"
+        TEXT vulnerability_id FK "→ vulnerabilities(id)"
+        FLOAT8 epss "Exploitation probability (0.0-1.0)"
+        FLOAT8 percentile "Relative ranking (0.0-1.0)"
+        DATE score_date "Date the score was calculated"
+        JSONB raw_json "Original API entry (reversibility)"
     }
 
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--o{ osv_entries : "has"
     vulnerabilities ||--o{ nvd_entries : "has"
     vulnerabilities ||--o{ mitre_entries : "has"
+    vulnerabilities ||--o{ epss_scores : "has"
     osv_entries ||--o{ osv_affected_packages : "has"
     osv_entries ||--o{ osv_severity : "top-level severity"
     osv_entries ||--o{ osv_references : "has"
@@ -257,7 +268,7 @@ erDiagram
 Source-agnostic normalized vulnerability records at the granularity displayed in Mayu's vulnerability listing.
 
 - `id`: Uses CVE ID when available (extracted from aliases); otherwise uses the source-specific ID (e.g., GO-2024-XXXX) as-is. Multiple OSV entries sharing the same CVE are grouped under a single row.
-- `source`: Identifies the data origin. Future sources (`nvd`, `kev`, `epss`) will be added at this level.
+- `source`: Identifies the data origin. Future sources (`kev`, `lev`) will be added at this level.
 - `modified`: Uses `GREATEST` on upsert so the most recent modification time across all contributing OSV entries is retained.
 
 ### `vulnerability_aliases`
@@ -269,7 +280,7 @@ Externalized from an array column into a proper relation to enable fast reverse 
 - When an OSV entry is reimported, stale aliases (previously contributed by that entry but no longer in its aliases list) are automatically deleted.
 
 ### `osv_*` Tables
-OSV-specific detail tables. Future data sources (e.g., `kev_entries`, `epss_scores`) will be added as sibling table groups with their own prefix.
+OSV-specific detail tables. Other data sources (`nvd_*`, `mitre_*`, `epss_scores`) are added as sibling table groups. Future: `kev_entries`, `lev_scores`.
 
 ### `nvd_*` Tables
 NVD-specific detail tables for CVE data ingested directly from the NVD JSON Feed 2.0. Mirrors the NVD CVE 2.0 schema structure.
@@ -285,6 +296,15 @@ NVD-specific detail tables for CVE data ingested directly from the NVD JSON Feed
 
 ### `sync_state`
 Standalone table (no FK relationships) that tracks per-source delta synchronization state.
+
+### `epss_scores` Table
+EPSS (Exploit Prediction Scoring System) scores from the FIRST API. Stores the daily probability that a CVE will be exploited in the next 30 days, along with its relative percentile ranking.
+
+- `epss_scores`: One row per CVE per score_date. The `raw_json` column stores the original API response entry for reversibility (same pattern as `osv_entries.raw_json`, `nvd_entries.raw_json`, and `mitre_entries.raw_json`). Linked to `vulnerabilities` via `vulnerability_id` (CVE ID).
+- UNIQUE constraint: `(cve_id, score_date)` — allows storing historical scores if needed, but typical usage stores only the latest day's score.
+- Upsert strategy: On reimport for the same date, existing scores are updated in-place (ON CONFLICT DO UPDATE). The `vulnerabilities` row is created with DO NOTHING to avoid overwriting richer data from OSV/NVD/MITRE.
+- Delta strategy: EPSS scores are recalculated daily for ALL CVEs. There is no true delta — each day is a complete snapshot. The `--update` flag skips import if already synced today.
+- Future extensibility: This table pattern (CVE-linked scoring with raw_json reversibility) is designed to be reusable for future scoring systems such as LEV (Likely Exploited Vulnerabilities, NIST CSWP 41).
 
 ### `mitre_*` Tables
 MITRE CVE-specific detail tables for CVE Records ingested from the CVEProject/cvelistV5 GitHub Releases in CVE JSON 5.x format (5.0, 5.1, 5.2).
