@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/kato83/mayu/internal/cvss"
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/ingest"
@@ -82,8 +84,10 @@ func runIngest(args []string) error {
 	all := fs.Bool("all", false, "Import all ecosystems")
 	bulk := fs.Bool("bulk", false, "Use top-level all.zip for bulk import (with --all)")
 	update := fs.Bool("update", false, "Perform delta update instead of full import")
+	concurrency := fs.Int("concurrency", 3, "Number of ecosystems to import in parallel (with --all)")
 	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
 	batchSize := fs.Int("batch-size", 100, "Number of vulnerabilities per batch insert")
+	storeWorkers := fs.Int("store-workers", ingest.DefaultStoreWorkers(), "Number of parallel DB store workers per ecosystem")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu ingest [options]")
@@ -133,6 +137,7 @@ func runIngest(args []string) error {
 	// Create ingester with progress output
 	ing := ingest.New(f, p, s,
 		ingest.WithBatchSize(*batchSize),
+		ingest.WithStoreWorkers(*storeWorkers),
 		ingest.WithProgress(printProgress),
 	)
 
@@ -176,26 +181,91 @@ func runIngest(args []string) error {
 		return err
 	}
 
-	// Run import for each ecosystem
+	// Run import for each ecosystem (parallel with semaphore)
+	maxConcurrency := *concurrency
+	if maxConcurrency < 1 {
+		maxConcurrency = 1
+	}
+	if len(ecosystems) == 1 {
+		maxConcurrency = 1
+	}
+
+	sem := make(chan struct{}, maxConcurrency)
+	g, gCtx := errgroup.WithContext(ctx)
+
 	for _, eco := range ecosystems {
-		fmt.Printf("\n=== Importing %s ===\n", eco)
+		eco := eco // capture loop var
+		g.Go(func() error {
+			sem <- struct{}{}        // acquire
+			defer func() { <-sem }() // release
 
-		var stats *ingest.Stats
-		if *update {
-			stats, err = ing.DeltaImport(ctx, eco)
-		} else {
-			stats, err = ing.FullImport(ctx, eco)
-		}
-
-		if err != nil {
-			if ctx.Err() != nil {
-				fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
-				return nil
+			select {
+			case <-gCtx.Done():
+				return gCtx.Err()
+			default:
 			}
-			return fmt.Errorf("import %s: %w", eco, err)
-		}
 
-		printStats(stats)
+			fmt.Printf("\n=== Importing %s ===\n", eco)
+
+			// Each goroutine uses its own Ingester to avoid shared state issues
+			ecoIng := ingest.New(f, p, s,
+				ingest.WithBatchSize(*batchSize),
+				ingest.WithStoreWorkers(*storeWorkers),
+				ingest.WithProgress(func(prog ingest.Progress) {
+					// Prefix progress with ecosystem name for parallel output
+					switch prog.Phase {
+					case "download":
+						if prog.Total > 0 && prog.Current > 0 {
+							fmt.Printf("\r  [%s/%s] %d/%d", eco, prog.Phase, prog.Current, prog.Total)
+							if prog.Current == prog.Total {
+								fmt.Println()
+							}
+						} else if prog.Message != "" {
+							fmt.Printf("  [%s] %s\n", eco, prog.Message)
+						}
+					case "store":
+						if prog.Total > 0 && prog.Current > 0 && prog.Message == "" {
+							fmt.Printf("\r  [%s/%s] %d/%d", eco, prog.Phase, prog.Current, prog.Total)
+							if prog.Current == prog.Total {
+								fmt.Println()
+							}
+						} else if prog.Message != "" {
+							fmt.Printf("  [%s] %s\n", eco, prog.Message)
+						}
+					default:
+						if prog.Message != "" {
+							fmt.Printf("  [%s] %s\n", eco, prog.Message)
+						}
+					}
+				}),
+			)
+
+			var stats *ingest.Stats
+			var err error
+			if *update {
+				stats, err = ecoIng.DeltaImport(gCtx, eco)
+			} else {
+				stats, err = ecoIng.FullImport(gCtx, eco)
+			}
+
+			if err != nil {
+				if gCtx.Err() != nil {
+					return gCtx.Err()
+				}
+				return fmt.Errorf("import %s: %w", eco, err)
+			}
+
+			printStats(stats)
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		if ctx.Err() != nil {
+			fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+			return nil
+		}
+		return err
 	}
 
 	return nil

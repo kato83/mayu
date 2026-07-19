@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync"
+	"sync/atomic"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // ConvertedSource defines a converted data source with its GCS bucket and prefix.
@@ -44,7 +48,7 @@ type gcsObject struct {
 }
 
 // FetchConvertedSource downloads all JSON files from a converted data source bucket.
-// It lists objects via GCS XML API and downloads each .json file.
+// It lists objects via GCS XML API and downloads each .json file in parallel.
 // Returns a map of ID (filename without .json) → JSON content.
 func (f *Fetcher) FetchConvertedSource(ctx context.Context, source ConvertedSource, progress func(current, total int)) (map[string][]byte, error) {
 	// Phase 1: List all .json files
@@ -62,42 +66,63 @@ func (f *Fetcher) FetchConvertedSource(ctx context.Context, source ConvertedSour
 	}
 
 	total := len(jsonKeys)
+	var completed atomic.Int64
+
+	// Use a mutex-protected map for concurrent writes
+	var mu sync.Mutex
 	results := make(map[string][]byte, total)
 
-	// Phase 2: Download each file
-	for i, key := range jsonKeys {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
+	// Phase 2: Download files in parallel using a worker pool
+	const maxWorkers = 20
+	g, gCtx := errgroup.WithContext(ctx)
+	g.SetLimit(maxWorkers)
 
-		// Server-provided key: reject traversal and escape each path segment
-		// while preserving "/" separators, to prevent URL escape / injection.
-		safeKey, err := sanitizeObjectKey(key)
-		if err != nil {
-			// Skip malicious/malformed keys and continue.
-			continue
-		}
+	for _, key := range jsonKeys {
+		key := key // capture loop var
+		g.Go(func() error {
+			select {
+			case <-gCtx.Done():
+				return gCtx.Err()
+			default:
+			}
 
-		u := fmt.Sprintf("https://storage.googleapis.com/%s/%s", source.Bucket, safeKey)
-		data, err := f.download(ctx, u)
-		if err != nil {
-			// Skip individual file errors, log and continue
-			continue
-		}
+			// Server-provided key: reject traversal and escape each path segment
+			safeKey, err := sanitizeObjectKey(key)
+			if err != nil {
+				// Skip malicious/malformed keys and continue.
+				return nil
+			}
 
-		// Extract ID from key: "prefix/CVE-2024-1234.json" → "CVE-2024-1234"
-		name := key
-		if idx := strings.LastIndex(name, "/"); idx >= 0 {
-			name = name[idx+1:]
-		}
-		name = strings.TrimSuffix(name, ".json")
-		results[name] = data
+			u := fmt.Sprintf("https://storage.googleapis.com/%s/%s", source.Bucket, safeKey)
+			data, err := f.download(gCtx, u)
+			if err != nil {
+				// Skip individual file errors, continue
+				completed.Add(1)
+				return nil
+			}
 
-		if progress != nil && ((i+1)%100 == 0 || i+1 == total) {
-			progress(i+1, total)
-		}
+			// Extract ID from key: "prefix/CVE-2024-1234.json" → "CVE-2024-1234"
+			name := key
+			if idx := strings.LastIndex(name, "/"); idx >= 0 {
+				name = name[idx+1:]
+			}
+			name = strings.TrimSuffix(name, ".json")
+
+			mu.Lock()
+			results[name] = data
+			mu.Unlock()
+
+			cur := int(completed.Add(1))
+			if progress != nil && (cur%100 == 0 || cur == total) {
+				progress(cur, total)
+			}
+
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
 	return results, nil

@@ -1,4 +1,4 @@
-.PHONY: build test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down
+.PHONY: build build-release test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down
 
 # Variables
 BINARY_NAME=mayu
@@ -8,6 +8,9 @@ VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 # Build
 build:
 	go build -ldflags "-X main.version=$(VERSION)" -o bin/$(BINARY_NAME) ./cmd/mayu
+
+build-release:
+	go build -ldflags "-s -w -X main.version=$(VERSION)" -o bin/$(BINARY_NAME) ./cmd/mayu
 
 # Test
 test:

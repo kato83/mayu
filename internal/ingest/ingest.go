@@ -7,7 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"runtime"
+	"sync"
+	"sync/atomic"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/model"
@@ -58,24 +63,45 @@ func WithProgress(fn func(Progress)) Option {
 	}
 }
 
+// WithStoreWorkers sets the number of parallel store workers for batch writes.
+func WithStoreWorkers(n int) Option {
+	return func(ing *Ingester) {
+		if n > 0 {
+			ing.storeWorkers = n
+		}
+	}
+}
+
 // Ingester orchestrates the full ingestion pipeline.
 type Ingester struct {
-	fetcher    *fetcher.Fetcher
-	parser     *parser.Parser
-	store      store.Store
-	logger     *log.Logger
-	batchSize  int
-	progressFn func(Progress)
+	fetcher      *fetcher.Fetcher
+	parser       *parser.Parser
+	store        store.Store
+	logger       *log.Logger
+	batchSize    int
+	storeWorkers int
+	progressFn   func(Progress)
+}
+
+// DefaultStoreWorkers returns the default number of parallel store workers
+// based on the number of CPU cores (NumCPU - 1, minimum 1).
+func DefaultStoreWorkers() int {
+	n := runtime.NumCPU() - 1
+	if n < 1 {
+		return 1
+	}
+	return n
 }
 
 // New creates a new Ingester.
 func New(f *fetcher.Fetcher, p *parser.Parser, s store.Store, opts ...Option) *Ingester {
 	ing := &Ingester{
-		fetcher:   f,
-		parser:    p,
-		store:     s,
-		logger:    log.Default(),
-		batchSize: 100,
+		fetcher:      f,
+		parser:       p,
+		store:        s,
+		logger:       log.Default(),
+		batchSize:    100,
+		storeWorkers: DefaultStoreWorkers(),
 	}
 	for _, opt := range opts {
 		opt(ing)
@@ -101,50 +127,18 @@ func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, 
 		return nil, fmt.Errorf("fetch all.zip for %s: %w", ecosystem, err)
 	}
 
-	// Phase 2+3: Stream parse and store in batches
+	// Phase 2+3: Parallel parse and store with multiple workers.
 	ing.progress(Progress{Phase: "store", Message: "Processing entries..."})
 
-	batch := make([]*model.Vulnerability, 0, ing.batchSize)
-	processed := 0
-
-	for entry := range entries {
-		vuln, err := ing.parser.Parse(entry.Data)
-		if err != nil {
-			stats.Errors++
-			ing.logger.Printf("parse error: %s: %v", entry.Name, err)
-			continue
-		}
-
-		batch = append(batch, vuln)
-		processed++
-
-		// Flush batch when full
-		if len(batch) >= ing.batchSize {
-			if err := ing.store.UpsertBatch(ctx, batch); err != nil {
-				return nil, fmt.Errorf("upsert batch: %w", err)
-			}
-			stats.Inserted += len(batch)
-			batch = batch[:0] // Reset slice, reuse backing array
-
-			ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: 0, Message: fmt.Sprintf("Stored %d entries...", stats.Inserted)})
-		}
+	inserted, processed, parseErrors, err := ing.streamParseAndStore(ctx, entries, errCh)
+	if err != nil {
+		return nil, err
 	}
 
-	// Check for streaming errors
-	if streamErr := <-errCh; streamErr != nil {
-		return nil, fmt.Errorf("stream zip: %w", streamErr)
-	}
-
-	// Flush remaining batch
-	if len(batch) > 0 {
-		if err := ing.store.UpsertBatch(ctx, batch); err != nil {
-			return nil, fmt.Errorf("upsert final batch: %w", err)
-		}
-		stats.Inserted += len(batch)
-	}
-
-	stats.Total = processed + stats.Errors
-	stats.Skipped = stats.Errors
+	stats.Inserted = inserted
+	stats.Total = processed + parseErrors
+	stats.Errors = parseErrors
+	stats.Skipped = parseErrors
 
 	// Update sync state
 	syncState := &store.SyncState{
@@ -219,45 +213,96 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 
 	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Found %d updated entries since %s", stats.Total, since.Format(time.RFC3339))})
 
-	// Phase 2: Fetch individual vulnerabilities
-	var vulns []*model.Vulnerability
-	for i, entry := range updated {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
+	// Phase 2+3: Fetch, parse, and store in parallel pipeline.
+	batchCh := make(chan []*model.Vulnerability, ing.storeWorkers*2)
+
+	// Producer: fetch and parse in parallel, dispatch batches.
+	const maxDeltaWorkers = 10
+	var fetchErrors int64
+
+	producerDone := make(chan struct{})
+	go func() {
+		defer close(producerDone)
+		defer close(batchCh)
+
+		var mu sync.Mutex
+		batch := make([]*model.Vulnerability, 0, ing.batchSize)
+
+		fg, fCtx := errgroup.WithContext(ctx)
+		fg.SetLimit(maxDeltaWorkers)
+
+		for i, entry := range updated {
+			i, entry := i, entry
+			fg.Go(func() error {
+				select {
+				case <-fCtx.Done():
+					return fCtx.Err()
+				default:
+				}
+
+				data, err := ing.fetcher.FetchVulnerability(fCtx, ecosystem, entry.ID)
+				if err != nil {
+					ing.logger.Printf("fetch %s: %v (skipping)", entry.ID, err)
+					atomic.AddInt64(&fetchErrors, 1)
+					return nil
+				}
+
+				vuln, err := ing.parser.Parse(data)
+				if err != nil {
+					ing.logger.Printf("parse %s: %v (skipping)", entry.ID, err)
+					atomic.AddInt64(&fetchErrors, 1)
+					return nil
+				}
+
+				mu.Lock()
+				batch = append(batch, vuln)
+				shouldFlush := len(batch) >= ing.batchSize
+				var sendBatch []*model.Vulnerability
+				if shouldFlush {
+					sendBatch = make([]*model.Vulnerability, len(batch))
+					copy(sendBatch, batch)
+					batch = batch[:0]
+				}
+				mu.Unlock()
+
+				if shouldFlush {
+					select {
+					case batchCh <- sendBatch:
+					case <-fCtx.Done():
+						return fCtx.Err()
+					}
+				}
+
+				if (i+1)%10 == 0 || i+1 == stats.Total {
+					ing.progress(Progress{Phase: "download", Current: i + 1, Total: stats.Total})
+				}
+				return nil
+			})
 		}
 
-		data, err := ing.fetcher.FetchVulnerability(ctx, ecosystem, entry.ID)
-		if err != nil {
-			ing.logger.Printf("fetch %s: %v (skipping)", entry.ID, err)
-			stats.Errors++
-			continue
+		if err := fg.Wait(); err != nil {
+			return
 		}
 
-		vuln, err := ing.parser.Parse(data)
-		if err != nil {
-			ing.logger.Printf("parse %s: %v (skipping)", entry.ID, err)
-			stats.Errors++
-			continue
+		// Flush remaining batch.
+		mu.Lock()
+		remaining := batch
+		mu.Unlock()
+		if len(remaining) > 0 {
+			batchCh <- remaining
 		}
+	}()
 
-		vulns = append(vulns, vuln)
+	// Consumers: parallel store workers.
+	inserted, storeErr := ing.consumeBatches(ctx, batchCh, 0)
+	<-producerDone
 
-		if (i+1)%10 == 0 || i+1 == stats.Total {
-			ing.progress(Progress{Phase: "download", Current: i + 1, Total: stats.Total})
-		}
+	if storeErr != nil {
+		return nil, fmt.Errorf("store vulnerabilities: %w", storeErr)
 	}
 
+	stats.Errors = int(fetchErrors)
 	stats.Skipped = stats.Errors
-
-	// Phase 3: Store in batches
-	ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Storing %d vulnerabilities...", len(vulns))})
-
-	inserted, err := ing.storeBatches(ctx, vulns)
-	if err != nil {
-		return nil, fmt.Errorf("store vulnerabilities: %w", err)
-	}
 	stats.Inserted = inserted
 
 	// Update sync state with the latest modified timestamp from the CSV
@@ -273,7 +318,7 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 	}
 
 	stats.Duration = time.Since(start)
-	ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: len(vulns), Message: fmt.Sprintf("Done: %d inserted in %s", stats.Inserted, stats.Duration.Round(time.Millisecond))})
+	ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: stats.Total - stats.Errors, Message: fmt.Sprintf("Done: %d inserted in %s", stats.Inserted, stats.Duration.Round(time.Millisecond))})
 
 	return stats, nil
 }
@@ -297,50 +342,18 @@ func (ing *Ingester) BulkImportAll(ctx context.Context) (*Stats, error) {
 		return nil, fmt.Errorf("fetch top-level all.zip: %w", err)
 	}
 
-	// Phase 2+3: Stream parse and store in batches.
+	// Phase 2+3: Parallel parse and store with multiple workers.
 	ing.progress(Progress{Phase: "store", Message: "Processing entries..."})
 
-	batch := make([]*model.Vulnerability, 0, ing.batchSize)
-	processed := 0
-
-	for entry := range entries {
-		vuln, err := ing.parser.Parse(entry.Data)
-		if err != nil {
-			stats.Errors++
-			ing.logger.Printf("parse error: %s: %v", entry.Name, err)
-			continue
-		}
-
-		batch = append(batch, vuln)
-		processed++
-
-		// Flush batch when full.
-		if len(batch) >= ing.batchSize {
-			if err := ing.store.UpsertBatch(ctx, batch); err != nil {
-				return nil, fmt.Errorf("upsert batch: %w", err)
-			}
-			stats.Inserted += len(batch)
-			batch = batch[:0]
-
-			ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: 0, Message: fmt.Sprintf("Stored %d entries...", stats.Inserted)})
-		}
+	inserted, processed, parseErrors, err := ing.streamParseAndStore(ctx, entries, errCh)
+	if err != nil {
+		return nil, err
 	}
 
-	// Check for streaming errors.
-	if streamErr := <-errCh; streamErr != nil {
-		return nil, fmt.Errorf("stream zip: %w", streamErr)
-	}
-
-	// Flush remaining batch.
-	if len(batch) > 0 {
-		if err := ing.store.UpsertBatch(ctx, batch); err != nil {
-			return nil, fmt.Errorf("upsert final batch: %w", err)
-		}
-		stats.Inserted += len(batch)
-	}
-
-	stats.Total = processed + stats.Errors
-	stats.Skipped = stats.Errors
+	stats.Inserted = inserted
+	stats.Total = processed + parseErrors
+	stats.Errors = parseErrors
+	stats.Skipped = parseErrors
 
 	// Update sync state for "all".
 	syncState := &store.SyncState{
@@ -358,30 +371,144 @@ func (ing *Ingester) BulkImportAll(ctx context.Context) (*Stats, error) {
 	return stats, nil
 }
 
-// storeBatches inserts vulnerabilities in batches, returning the total count inserted.
+// storeBatches splits a slice of vulnerabilities into batches and stores them
+// using parallel workers. Returns the total count inserted.
 func (ing *Ingester) storeBatches(ctx context.Context, vulns []*model.Vulnerability) (int, error) {
-	inserted := 0
-	for i := 0; i < len(vulns); i += ing.batchSize {
-		select {
-		case <-ctx.Done():
-			return inserted, ctx.Err()
-		default:
-		}
-
-		end := i + ing.batchSize
-		if end > len(vulns) {
-			end = len(vulns)
-		}
-
-		batch := vulns[i:end]
-		if err := ing.store.UpsertBatch(ctx, batch); err != nil {
-			return inserted, fmt.Errorf("upsert batch [%d:%d]: %w", i, end, err)
-		}
-
-		inserted += len(batch)
-		ing.progress(Progress{Phase: "store", Current: inserted, Total: len(vulns)})
+	if len(vulns) == 0 {
+		return 0, nil
 	}
-	return inserted, nil
+
+	// Split into batches and send to channel
+	batchCh := make(chan []*model.Vulnerability, ing.storeWorkers*2)
+
+	go func() {
+		defer close(batchCh)
+		for i := 0; i < len(vulns); i += ing.batchSize {
+			end := i + ing.batchSize
+			if end > len(vulns) {
+				end = len(vulns)
+			}
+			select {
+			case batchCh <- vulns[i:end]:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return ing.consumeBatches(ctx, batchCh, len(vulns))
+}
+
+// streamParseAndStore reads ZipEntry values from a channel, parses them, and
+// stores them in parallel batches. This is the shared pipeline used by both
+// FullImport and BulkImportAll.
+//
+// It returns (inserted, processed, errors, err).
+func (ing *Ingester) streamParseAndStore(ctx context.Context, entries <-chan fetcher.ZipEntry, errCh <-chan error) (inserted int, processed int, parseErrors int, err error) {
+	batchCh := make(chan []*model.Vulnerability, ing.storeWorkers*2)
+
+	// Producer: read from entries channel, parse, and dispatch batches.
+	var producerErr error
+	var totalProcessed int64
+	var totalErrors int64
+
+	producerDone := make(chan struct{})
+	go func() {
+		defer close(producerDone)
+		defer close(batchCh)
+
+		batch := make([]*model.Vulnerability, 0, ing.batchSize)
+
+		for entry := range entries {
+			vuln, parseErr := ing.parser.Parse(entry.Data)
+			if parseErr != nil {
+				atomic.AddInt64(&totalErrors, 1)
+				ing.logger.Printf("parse error: %s: %v", entry.Name, parseErr)
+				continue
+			}
+
+			batch = append(batch, vuln)
+			atomic.AddInt64(&totalProcessed, 1)
+
+			if len(batch) >= ing.batchSize {
+				sendBatch := make([]*model.Vulnerability, len(batch))
+				copy(sendBatch, batch)
+				select {
+				case batchCh <- sendBatch:
+				case <-ctx.Done():
+					producerErr = ctx.Err()
+					return
+				}
+				batch = batch[:0]
+			}
+		}
+
+		// Flush remaining.
+		if len(batch) > 0 {
+			select {
+			case batchCh <- batch:
+			case <-ctx.Done():
+				producerErr = ctx.Err()
+				return
+			}
+		}
+	}()
+
+	// Consumers: parallel store workers.
+	totalInserted, storeErr := ing.consumeBatches(ctx, batchCh, 0)
+
+	// Wait for producer to finish.
+	<-producerDone
+	if storeErr != nil {
+		return 0, 0, 0, storeErr
+	}
+	if producerErr != nil {
+		return 0, 0, 0, producerErr
+	}
+
+	// Check for streaming errors from the zip reader.
+	if streamErr := <-errCh; streamErr != nil {
+		return 0, 0, 0, fmt.Errorf("stream zip: %w", streamErr)
+	}
+
+	return totalInserted, int(totalProcessed), int(totalErrors), nil
+}
+
+// consumeBatches reads batches from a channel and writes them to the store
+// using parallel workers. total is used for progress reporting (0 = unknown).
+// Returns the total number of records inserted.
+func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model.Vulnerability, total int) (int, error) {
+	var insertedTotal int64
+
+	g, gCtx := errgroup.WithContext(ctx)
+	for i := 0; i < ing.storeWorkers; i++ {
+		g.Go(func() error {
+			for batch := range batchCh {
+				select {
+				case <-gCtx.Done():
+					return gCtx.Err()
+				default:
+				}
+
+				if err := ing.store.UpsertBatch(gCtx, batch); err != nil {
+					return fmt.Errorf("upsert batch: %w", err)
+				}
+
+				cur := int(atomic.AddInt64(&insertedTotal, int64(len(batch))))
+				if total > 0 {
+					ing.progress(Progress{Phase: "store", Current: cur, Total: total})
+				} else {
+					ing.progress(Progress{Phase: "store", Current: cur, Total: 0, Message: fmt.Sprintf("Stored %d entries...", cur)})
+				}
+			}
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return int(insertedTotal), err
+	}
+	return int(insertedTotal), nil
 }
 
 // findLatestModified returns the most recent Modified time from a slice of vulnerabilities.
