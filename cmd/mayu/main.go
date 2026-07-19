@@ -1230,6 +1230,41 @@ func outputDetailEnriched(ctx context.Context, s *store.PostgresStore, results [
 			}
 		}
 
+		// EPSS Enrichment
+		if detail.EPSS != nil {
+			fmt.Printf("EPSS:\n")
+			fmt.Printf("  Score:      %.5f (%.1f%%)\n", detail.EPSS.EPSS, detail.EPSS.EPSS*100)
+			fmt.Printf("  Percentile: %.5f (%.1f%%)\n", detail.EPSS.Percentile, detail.EPSS.Percentile*100)
+			fmt.Printf("  Score Date: %s\n", detail.EPSS.ScoreDate)
+		}
+
+		// KEV Enrichment
+		if detail.KEV != nil {
+			fmt.Printf("KEV (CISA Known Exploited Vulnerabilities):\n")
+			fmt.Printf("  Vendor/Project: %s\n", detail.KEV.VendorProject)
+			fmt.Printf("  Product:        %s\n", detail.KEV.Product)
+			fmt.Printf("  Vuln Name:      %s\n", detail.KEV.VulnerabilityName)
+			fmt.Printf("  Date Added:     %s\n", detail.KEV.DateAdded)
+			fmt.Printf("  Due Date:       %s\n", detail.KEV.DueDate)
+			fmt.Printf("  Required Action: %s\n", detail.KEV.RequiredAction)
+			fmt.Printf("  Ransomware Use: %s\n", detail.KEV.KnownRansomwareCampaignUse)
+		}
+
+		// LEV (Likely Exploited Vulnerabilities) Score
+		if detail.LEV != nil {
+			fmt.Printf("LEV (Likely Exploited Vulnerabilities - NIST CSWP 41):\n")
+			fmt.Printf("  Score:       %.5f (%.1f%%)\n", detail.LEV.LEV, detail.LEV.LEV*100)
+			fmt.Printf("  In KEV:      %t\n", detail.LEV.InKEV)
+			fmt.Printf("  EPSS Days:   %d\n", detail.LEV.EPSSScoreCount)
+			if detail.LEV.FirstEPSSDate != "" {
+				fmt.Printf("  First EPSS:  %s\n", detail.LEV.FirstEPSSDate)
+			}
+			if detail.LEV.LastEPSSDate != "" {
+				fmt.Printf("  Last EPSS:   %s\n", detail.LEV.LastEPSSDate)
+			}
+			fmt.Printf("  Computed At: %s\n", detail.LEV.ComputedAt)
+		}
+
 		// Affected packages (from OSV)
 		if len(detail.Affected) > 0 {
 			fmt.Printf("Affected Packages:\n")
