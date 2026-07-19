@@ -392,7 +392,7 @@ func TestIsMITRECVEEntry(t *testing.T) {
 		{"readme in cves", "cves/README.md", false},
 		{"empty", "", false},
 		{"just cves/", "cves/", false},
-		{"cves with json suffix", "cves/file.json", true},
+		{"cves with json suffix", "cves/file.json", false},
 	}
 
 	for _, tt := range tests {
