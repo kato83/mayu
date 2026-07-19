@@ -137,8 +137,90 @@ erDiagram
         TEXT[] tags
     }
 
+    mitre_entries {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT cve_id UK "CVE-YYYY-NNNNN"
+        TEXT vulnerability_id FK "→ vulnerabilities(id)"
+        TEXT data_version "5.0, 5.1, 5.2"
+        TEXT state "PUBLISHED, REJECTED"
+        TEXT assigner_org_id
+        TEXT assigner_short_name
+        TIMESTAMPTZ date_reserved
+        TIMESTAMPTZ date_published
+        TIMESTAMPTZ date_updated
+        JSONB raw_json "Full CVE Record (reversibility)"
+    }
+
+    mitre_containers {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT mitre_entry_id FK "→ mitre_entries(id) CASCADE"
+        TEXT container_type "cna or adp"
+        TEXT title "nullable"
+        TEXT provider_org_id
+        TEXT provider_short_name
+        TIMESTAMPTZ date_updated
+    }
+
+    mitre_affected {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT container_id FK "→ mitre_containers(id) CASCADE"
+        TEXT vendor
+        TEXT product
+        TEXT default_status
+        TEXT[] platforms
+        TEXT[] modules
+        TEXT package_url
+    }
+
+    mitre_affected_versions {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT affected_id FK "→ mitre_affected(id) CASCADE"
+        TEXT version
+        TEXT version_type
+        TEXT status
+        TEXT less_than
+        TEXT less_than_or_equal
+        JSONB changes
+    }
+
+    mitre_metrics {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT container_id FK "→ mitre_containers(id) CASCADE"
+        TEXT format "CVSS, SSVC, etc."
+        TEXT cvss_version "3.1, 4.0, etc."
+        FLOAT8 base_score
+        TEXT base_severity
+        TEXT vector_string
+        JSONB cvss_data
+        JSONB scenarios
+    }
+
+    mitre_problem_types {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT container_id FK "→ mitre_containers(id) CASCADE"
+        TEXT cwe_id
+        TEXT description
+        TEXT lang
+    }
+
+    mitre_references {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT container_id FK "→ mitre_containers(id) CASCADE"
+        TEXT url
+        TEXT name
+        TEXT[] tags
+    }
+
+    mitre_credits {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT container_id FK "→ mitre_containers(id) CASCADE"
+        TEXT credit_type
+        TEXT value
+        TEXT lang
+    }
+
     sync_state {
-        TEXT source PK "e.g. Go, npm, NVD, NVD-native, Debian"
+        TEXT source PK "e.g. Go, npm, NVD, NVD-native, Debian, MITRE"
         TIMESTAMPTZ last_modified_at
         TIMESTAMPTZ last_synced_at
         BIGINT record_count
@@ -147,6 +229,7 @@ erDiagram
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--o{ osv_entries : "has"
     vulnerabilities ||--o{ nvd_entries : "has"
+    vulnerabilities ||--o{ mitre_entries : "has"
     osv_entries ||--o{ osv_affected_packages : "has"
     osv_entries ||--o{ osv_severity : "top-level severity"
     osv_entries ||--o{ osv_references : "has"
@@ -159,6 +242,13 @@ erDiagram
     nvd_entries ||--o{ nvd_configurations : "has"
     nvd_configurations ||--o{ nvd_cpe_matches : "has"
     nvd_entries ||--o{ nvd_references : "has"
+    mitre_entries ||--o{ mitre_containers : "has"
+    mitre_containers ||--o{ mitre_affected : "has"
+    mitre_containers ||--o{ mitre_metrics : "has"
+    mitre_containers ||--o{ mitre_problem_types : "has"
+    mitre_containers ||--o{ mitre_references : "has"
+    mitre_containers ||--o{ mitre_credits : "has"
+    mitre_affected ||--o{ mitre_affected_versions : "has"
 ```
 
 ## Design Principles
@@ -195,6 +285,20 @@ NVD-specific detail tables for CVE data ingested directly from the NVD JSON Feed
 
 ### `sync_state`
 Standalone table (no FK relationships) that tracks per-source delta synchronization state.
+
+### `mitre_*` Tables
+MITRE CVE-specific detail tables for CVE Records ingested from the CVEProject/cvelistV5 GitHub Releases in CVE JSON 5.x format (5.0, 5.1, 5.2).
+
+- `mitre_entries`: One row per CVE Record. The `raw_json` column stores the complete CVE Record JSON for reversibility (same pattern as `osv_entries.raw_json` and `nvd_entries.raw_json`). Linked to `vulnerabilities` via `vulnerability_id` (CVE ID). Only PUBLISHED records are stored (REJECTED/RESERVED are skipped during ingestion).
+- `mitre_containers`: Separates CNA (CVE Numbering Authority) and ADP (Authorized Data Publisher) containers. Each CVE has exactly one CNA container and zero or more ADP containers (e.g., CISA Vulnrichment, CVE Program Container).
+- `mitre_affected`: Products/packages affected by the vulnerability. References a container (CNA or ADP can both declare affected products).
+- `mitre_affected_versions`: Version ranges for affected products. Uses `less_than`/`less_than_or_equal` for range semantics; `changes` JSONB stores version-level status transitions.
+- `mitre_metrics`: CVSS and SSVC scoring. Supports multiple CVSS versions (2.0, 3.0, 3.1, 4.0) via `cvss_version`; SSVC assessments stored with `format="SSVC"` and data in `cvss_data` JSONB.
+- `mitre_problem_types`: CWE classifications expanded from nested `problemTypes[].descriptions[]` arrays.
+- `mitre_references`: External references with optional name and tags.
+- `mitre_credits`: Vulnerability discovery/coordination credits with type classification.
+- Upsert strategy: On reimport, existing `mitre_entries` row is deleted (CASCADE removes children) and re-inserted. `vulnerabilities` row uses COALESCE to preserve existing NVD/OSV-contributed data, only filling gaps from MITRE.
+- Delta strategy: Uses GitHub Releases hourly delta zips. Fallback to full baseline import if last sync > 24 hours ago.
 
 ### CVE Canonicalization Logic
 1. On ingest, the first `CVE-*` alias is extracted as the canonical ID.

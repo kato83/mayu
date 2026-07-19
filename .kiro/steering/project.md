@@ -147,9 +147,10 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR to `main`:
 | OSV (all ecosystems) | ✅ Supported | GCS zip archives via `internal/fetcher` |
 | NVD (OSV converted) | ✅ Supported | GCS XML listing → parallel JSON download |
 | Debian (OSV converted) | ✅ Supported | GCS XML listing → parallel JSON download |
+| NVD CVE (native) | ✅ Supported | NVD JSON Feed 2.0 via `internal/fetcher/nvdfeed` |
+| MITRE CVE (cvelistV5) | ✅ Supported | GitHub Releases zip via `internal/fetcher/mitre` |
 | KEV | 🔜 Planned | — |
 | EPSS | 🔜 Planned | — |
-| MITRE CVE | 🔜 Planned | — |
 
 ## Current Phase
 
@@ -162,4 +163,4 @@ See [docs/PLAN.md](../docs/PLAN.md) for the full roadmap.
 - [x] Phase 3: CI/CD (GitHub Actions)
 - [x] Phase 4: API Server (REST)
 - [ ] Phase 5: Web UI (Angular)
-- [ ] Phase 6: Additional Data Sources (KEV, EPSS, MITRE CVE)
+- [ ] Phase 6: Additional Data Sources (KEV, EPSS)
