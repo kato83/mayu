@@ -42,7 +42,9 @@ A unified vulnerability intelligence tool that aggregates multiple sources (OSV,
 
 Data Sources:
   - OSV (osv.dev) ← Primary
-  - NVD (via OSV conversion)
+  - NVD (via OSV conversion) ← OSS関連CVEのみ (~25%)
+  - NVD JSON Feed 2.0 / API 2.0 ← 全CVE (future)
+  - Debian (via OSV conversion)
   - KEV (future)
   - MITRE CVE (future)
   - EPSS (future)
@@ -143,7 +145,51 @@ mayu/
 ### Phase 6: Additional Data Sources (Future)
 
 - ✅ NVD CVE (OSV変換済み、`gs://cve-osv-conversion/osv-output/`) - `mayu ingest --source nvd`
+  - ⚠️ OSV変換済みデータはNVD全体の約25%のみ（OSSに関連し、Gitリポジトリ＋バージョン情報が解決可能なCVEに限定）
 - ✅ Debian Security Advisories (`gs://debian-osv/debian-cve-osv/`) - `mayu ingest --source debian`
+
+#### Phase 6a: NVD 全件取り込み（JSON Feed 2.0 / API 2.0）
+
+NVDが提供する全CVE（367,000件超）をネイティブスキーマで取り込む。OSV変換データでは
+カバーされないクローズドソース製品のCVEも含めて横断検索可能にする。
+
+**データ取得方式:**
+
+| 方式 | 用途 | URL パターン |
+|------|------|-------------|
+| JSON Feed 2.0 (年別) | 初回フルインポート | `https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-{year}.json.gz` |
+| JSON Feed 2.0 (modified) | 差分更新（2時間ごと更新、過去8日分） | `https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-modified.json.gz` |
+| JSON Feed 2.0 (recent) | 新規追加の確認 | `https://nvd.nist.gov/feeds/json/cve/2.0/nvdcve-2.0-recent.json.gz` |
+| CVE API 2.0 | 個別CVE取得、細かいクエリ | `https://services.nvd.nist.gov/rest/json/cves/2.0` |
+| META ファイル | フィード更新判定（sha256比較） | `*.meta` |
+
+**スキーマ:** NVD API 2.0 スキーマ (`cve_api_json_2.0.schema`)。API とフィードで同一形式。
+
+**実装タスク:**
+- [ ] NVD 2.0 スキーマの Go モデル定義 (`internal/model/nvd.go`)
+- [ ] NVD JSON Feed fetcher (`internal/fetcher/nvd.go`) — 年別gz一括DL + META差分判定
+- [ ] NVD JSON パーサー (`internal/parser/nvd.go`)
+- [ ] NVD 専用テーブル群のマイグレーション (`nvd_entries`, `nvd_configurations`, `nvd_cpe_matches`, `nvd_weaknesses`)
+- [ ] `vulnerabilities` テーブルへの統合（CVE ID で OSV エントリとマージ）
+- [ ] CLI: `mayu ingest --source nvd-full` （JSON Feed 2.0 経由のフルインポート）
+- [ ] 差分更新: `modified` フィード + META ファイルの sha256 比較
+- [ ] API 2.0 クライアント（オプション: APIキー対応、レートリミット制御）
+
+**NVD固有のデータ構造（OSVに無いもの）:**
+- CPE Match Criteria（ベンダー/プロダクト/バージョンのツリー構造）
+- CWE（脆弱性タイプ分類）
+- CVSS スコアソース区別（NVD vs CNA）
+- CVE Status（Analyzed, Modified, Rejected 等）
+
+#### Phase 6b: NVD 固有の検索機能
+
+- [ ] CPE ベースの検索（ベンダー、プロダクト、バージョン）
+- [ ] CWE フィルタ
+- [ ] CVSS スコアソース（NVD / CNA）の区別表示
+- [ ] CVE ステータスフィルタ
+
+#### Phase 6c: KEV / EPSS
+
 - KEV (Known Exploited Vulnerabilities) 対応
 - EPSS (Exploit Prediction Scoring System) 対応
 - 各ソース専用テーブル追加
