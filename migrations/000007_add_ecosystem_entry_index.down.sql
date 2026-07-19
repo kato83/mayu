@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_osv_affected_packages_ecosystem_entry;
