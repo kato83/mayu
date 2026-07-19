@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
@@ -18,7 +19,9 @@ import (
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/parser"
 	purlpkg "github.com/kato83/mayu/internal/purl"
+	"github.com/kato83/mayu/internal/server"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/validate"
 )
 
 var version = "dev"
@@ -44,6 +47,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "serve":
+		if err := runServe(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "help", "-h", "--help":
 		printUsage()
 	default:
@@ -59,6 +67,7 @@ func printUsage() {
 	fmt.Println("Commands:")
 	fmt.Println("  ingest     Import vulnerability data from OSV")
 	fmt.Println("  search     Search for vulnerabilities")
+	fmt.Println("  serve      Start the API server")
 	fmt.Println("  version    Print version information")
 	fmt.Println("  help       Show this help message")
 	fmt.Println()
@@ -378,7 +387,7 @@ func runSearch(args []string) error {
 
 	// Validate --since date format
 	if *since != "" {
-		if err := validateDateInput(*since); err != nil {
+		if err := validate.DateInput(*since); err != nil {
 			return fmt.Errorf("invalid --since value %q: %w", *since, err)
 		}
 	}
@@ -829,15 +838,94 @@ func looksLikeVulnID(s string) bool {
 	return false
 }
 
-// validateDateInput checks that a date string is valid (YYYY-MM-DD or RFC3339).
-func validateDateInput(s string) error {
-	// Try RFC3339 first
-	if _, err := time.Parse(time.RFC3339, s); err == nil {
+func runServe(args []string) error {
+	fs := flag.NewFlagSet("serve", flag.ExitOnError)
+
+	addr := fs.String("addr", ":8080", "Address to listen on (host:port)")
+	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
+
+	fs.Usage = func() {
+		fmt.Println("Usage: mayu serve [options]")
+		fmt.Println()
+		fmt.Println("Start the Mayu API server.")
+		fmt.Println()
+		fmt.Println("The server exposes REST API endpoints for vulnerability search,")
+		fmt.Println("matching the functionality of the 'mayu search' command.")
+		fmt.Println()
+		fmt.Println("Endpoints:")
+		fmt.Println("  GET /api/v1/vulnerabilities       Search vulnerabilities")
+		fmt.Println("  GET /api/v1/vulnerabilities/{id}  Get vulnerability by ID")
+		fmt.Println("  GET /healthz                      Health check")
+		fmt.Println("  GET /openapi.yaml                 OpenAPI specification")
+		fmt.Println()
+		fmt.Println("Options:")
+		fs.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  mayu serve")
+		fmt.Println("  mayu serve --addr :3000")
+		fmt.Println("  mayu serve --db-url postgres://user:pass@host/db")
+	}
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// Resolve database URL
+	databaseURL := resolveDatabaseURL(*dbURL)
+
+	// Setup context with signal handling
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	// Connect to database
+	s, err := store.NewPostgresStore(ctx, databaseURL)
+	if err != nil {
+		return fmt.Errorf("connect to database: %w", err)
+	}
+	defer func() { _ = s.Close() }()
+
+	// Create and start server
+	srv := server.New(server.Config{
+		Addr:    *addr,
+		Store:   s,
+		Version: version,
+	})
+
+	// Start server in goroutine.
+	// errCh is buffered (cap 1) so the goroutine never blocks on send.
+	// On graceful shutdown (ErrServerClosed), the channel is closed without
+	// sending an error, causing the select below to receive nil.
+	errCh := make(chan error, 1)
+	go func() {
+		fmt.Printf("Mayu API server starting on %s\n", *addr)
+		fmt.Printf("  API:     http://localhost%s/api/v1/vulnerabilities\n", *addr)
+		fmt.Printf("  OpenAPI: http://localhost%s/openapi.yaml\n", *addr)
+		fmt.Printf("  Health:  http://localhost%s/healthz\n", *addr)
+		fmt.Println()
+		fmt.Println("Press Ctrl+C to stop.")
+
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errCh <- err
+		}
+		close(errCh)
+	}()
+
+	// Wait for interrupt or error
+	select {
+	case <-ctx.Done():
+		fmt.Println("\nShutting down server...")
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("server shutdown: %w", err)
+		}
+		fmt.Println("Server stopped.")
+		return nil
+	case err := <-errCh:
+		if err != nil {
+			return fmt.Errorf("server error: %w", err)
+		}
 		return nil
 	}
-	// Try YYYY-MM-DD
-	if _, err := time.Parse("2006-01-02", s); err == nil {
-		return nil
-	}
-	return fmt.Errorf("expected format YYYY-MM-DD or RFC3339 (e.g., 2024-01-15 or 2024-01-15T00:00:00Z)")
 }

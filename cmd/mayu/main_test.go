@@ -5,6 +5,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/kato83/mayu/internal/model"
+	"github.com/kato83/mayu/internal/validate"
 )
 
 func TestTruncateString(t *testing.T) {
@@ -291,9 +292,9 @@ func TestValidateDateInput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateDateInput(tt.input)
+			err := validate.DateInput(tt.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("validateDateInput(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+				t.Errorf("validate.DateInput(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}
