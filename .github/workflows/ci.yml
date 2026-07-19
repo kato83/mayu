@@ -16,6 +16,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+          cache: true
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
@@ -46,6 +47,10 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+          cache: true
+
+      - name: Download modules
+        run: go mod download
 
       - name: Install migrate CLI
         run: |
@@ -72,6 +77,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+          cache: true
 
       - name: Build
         run: make build
