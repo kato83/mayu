@@ -173,6 +173,7 @@ func (ing *Ingester) UpdateMITRE(ctx context.Context) (*Stats, error) {
 // in batches. Returns (inserted, skipped, errors, err).
 func (ing *Ingester) streamParseMITRE(ctx context.Context, entries <-chan fetcher.ZipEntry, errCh <-chan error) (inserted int, skipped int, parseErrors int, err error) {
 	var batch []*model.MITRECVERecord
+	processed := 0
 
 	for entry := range entries {
 		select {
@@ -181,6 +182,7 @@ func (ing *Ingester) streamParseMITRE(ctx context.Context, entries <-chan fetche
 		default:
 		}
 
+		processed++
 		record, parseErr := ing.parser.ParseMITRERecord(entry.Data)
 		if parseErr != nil {
 			if errors.Is(parseErr, parser.ErrMITRENotPublished) {
@@ -201,6 +203,7 @@ func (ing *Ingester) streamParseMITRE(ctx context.Context, entries <-chan fetche
 			}
 			inserted += n
 			batch = batch[:0]
+			ing.progress(Progress{Phase: "store", Current: inserted, Total: 0, Message: fmt.Sprintf("Stored %d CVEs (%d processed, %d skipped)...", inserted, processed, skipped)})
 		}
 	}
 
@@ -254,7 +257,6 @@ func (ing *Ingester) storeMITREBatches(ctx context.Context, entries []*model.MIT
 		}
 
 		inserted += len(batch)
-		ing.progress(Progress{Phase: "store", Current: inserted, Total: total})
 	}
 
 	return inserted, nil
