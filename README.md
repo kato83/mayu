@@ -57,6 +57,12 @@ go build -o bin/mayu ./cmd/mayu
 
 # Delta update from NVD modified feed
 ./bin/mayu ingest --source nvd --native --update
+
+# Import MITRE CVE data from cvelistV5 GitHub Releases
+./bin/mayu ingest --source mitre
+
+# Delta update from hourly MITRE releases
+./bin/mayu ingest --source mitre --update
 ```
 
 ### Search Vulnerabilities
@@ -129,7 +135,7 @@ Import vulnerability data from OSV into the local database.
 | `--all` | Import all ecosystems (dynamically fetched from GCS) | `false` |
 | `--bulk` | Use top-level all.zip for bulk import (with `--all`) | `false` |
 | `--update` | Perform delta update instead of full import | `false` |
-| `--source` | Import from converted source (nvd, debian) | — |
+| `--source` | Import from source (nvd, debian, mitre) | — |
 | `--native` | Use native data source feed (with `--source nvd`) | `false` |
 | `--concurrency` | Number of ecosystems to import in parallel (with `--all`) | `3` |
 | `--store-workers` | Number of parallel DB store workers per ecosystem | CPU cores - 1 |
@@ -213,6 +219,7 @@ Print version information.
 | [NVD CVE (converted)](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ Supported | `mayu ingest --source nvd` |
 | [NVD CVE (native)](https://nvd.nist.gov/vuln/data-feeds) | ✅ Supported | `mayu ingest --source nvd --native` |
 | [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
+| [MITRE CVE (cvelistV5)](https://github.com/CVEProject/cvelistV5) | ✅ Supported | `mayu ingest --source mitre` |
 
 > **Note:** Converted sources (NVD, Debian) contain 50,000+ entries and are downloaded individually since no bulk archive is available. This may take significant time.
 
@@ -238,4 +245,4 @@ See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 - [x] Phase 3: CI/CD (GitHub Actions)
 - [x] Phase 4: API Server (REST)
 - [ ] Phase 5: Web UI (Angular)
-- [ ] Phase 6: Additional Data Sources (KEV, EPSS, MITRE CVE)
+- [ ] Phase 6: Additional Data Sources (KEV, EPSS)
