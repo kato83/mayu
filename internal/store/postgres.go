@@ -452,23 +452,42 @@ func (s *PostgresStore) GetByID(ctx context.Context, id string) (*model.Vulnerab
 func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery string, args []interface{}, argIdx int) {
 	switch {
 	case query.ID != "":
+		// Use UNION ALL to avoid OR across joined tables which causes full table scans.
+		// Branch 1: match by vulnerabilities.id (PK lookup), join osv_entries via vulnerability_id FK
+		// Branch 2: match by osv_entries.osv_id (PK lookup), resolve the parent vulnerability
+		// The NOT EXISTS clause prevents duplicates when query.ID matches both v.id and oe.osv_id.
 		argIdx++
-		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified FROM vulnerabilities v
+		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id FROM (
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM vulnerabilities v
 			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
-			WHERE (v.id = $` + fmt.Sprint(argIdx) + ` OR oe.osv_id = $` + fmt.Sprint(argIdx) + `)`
+			WHERE v.id = $` + fmt.Sprint(argIdx) + `
+			UNION ALL
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM osv_entries oe
+			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
+			WHERE oe.osv_id = $` + fmt.Sprint(argIdx) + `
+			AND NOT EXISTS (SELECT 1 FROM vulnerabilities WHERE id = $` + fmt.Sprint(argIdx) + ` AND id = oe.osv_id)
+		) sub WHERE 1=1`
 		args = append(args, query.ID)
 
 	case query.Alias != "":
+		// Use UNION ALL: branch 1 matches by vulnerabilities.id directly (user passed a CVE as alias),
+		// branch 2 resolves via vulnerability_aliases table, excluding any already found in branch 1.
 		argIdx++
-		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified FROM vulnerabilities v
+		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id FROM (
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM vulnerabilities v
 			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
-			WHERE (v.id = $` + fmt.Sprint(argIdx) + ` OR v.id IN (
+			WHERE v.id = $` + fmt.Sprint(argIdx) + `
+			UNION ALL
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM vulnerabilities v
+			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
+			WHERE v.id IN (
 				SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $` + fmt.Sprint(argIdx) + `
-			))`
+			) AND v.id != $` + fmt.Sprint(argIdx) + `
+		) sub WHERE 1=1`
 		args = append(args, query.Alias)
 
 	case query.PackageName != "" || query.Ecosystem != "":
-		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified FROM vulnerabilities v
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM vulnerabilities v
 			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
 			WHERE oe.osv_id IN (
 				SELECT ap.osv_entry_id FROM osv_affected_packages ap WHERE 1=1`
@@ -485,7 +504,7 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		baseQuery += `)`
 
 	default:
-		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified FROM vulnerabilities v
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id FROM vulnerabilities v
 			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
 			WHERE 1=1`
 	}
@@ -495,7 +514,7 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		minScore, maxScore := severityToScoreRange(query.Severity)
 		if minScore >= 0 {
 			argIdx++
-			baseQuery += fmt.Sprintf(` AND oe.osv_id IN (
+			baseQuery += fmt.Sprintf(` AND osv_id IN (
 				SELECT s.osv_entry_id FROM osv_severity s
 				WHERE s.severity_type IN ('CVSS_V3', 'CVSS_V4', 'CVSS_V2')
 				AND cvss_base_score(s.score) >= $%d`, argIdx)
@@ -509,14 +528,14 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 	// Additional filter: --since (modified date)
 	if query.Since != "" {
 		argIdx++
-		baseQuery += fmt.Sprintf(` AND v.modified >= $%d`, argIdx)
+		baseQuery += fmt.Sprintf(` AND modified >= $%d`, argIdx)
 		args = append(args, query.Since)
 	}
 
 	// Additional filter: --version (check if version appears in affected versions list)
 	if query.Version != "" {
 		argIdx++
-		baseQuery += fmt.Sprintf(` AND oe.osv_id IN (
+		baseQuery += fmt.Sprintf(` AND osv_id IN (
 			SELECT ap2.osv_entry_id FROM osv_affected_packages ap2
 			WHERE $%d = ANY(ap2.versions))`, argIdx)
 		args = append(args, query.Version)
@@ -558,7 +577,7 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	baseQuery, args, argIdx := s.buildSearchConditions(query)
 
 	argIdx++
-	baseQuery += fmt.Sprintf(` ORDER BY v.modified DESC LIMIT $%d`, argIdx)
+	baseQuery += fmt.Sprintf(` ORDER BY modified DESC LIMIT $%d`, argIdx)
 	args = append(args, limit)
 	argIdx++
 	baseQuery += fmt.Sprintf(` OFFSET $%d`, argIdx)
@@ -576,7 +595,8 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 		var vulnID string
 		var summary, details sql.NullString
 		var published, modified sql.NullTime
-		if err := rows.Scan(&rawJSON, &vulnID, &summary, &details, &published, &modified); err != nil {
+		var osvID sql.NullString // unused but required for consistent column count
+		if err := rows.Scan(&rawJSON, &vulnID, &summary, &details, &published, &modified, &osvID); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 		if rawJSON != nil {
@@ -612,8 +632,9 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 func (s *PostgresStore) Count(ctx context.Context, query SearchQuery) (int64, error) {
 	baseQuery, args, _ := s.buildSearchConditions(query)
 
-	// Replace the SELECT clause with COUNT(*)
-	countQuery := strings.Replace(baseQuery, "SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified", "SELECT COUNT(*)", 1)
+	// Wrap the base query as a subquery to count results universally
+	// (works for both simple queries and UNION ALL queries).
+	countQuery := `SELECT COUNT(*) FROM (` + baseQuery + `) count_sub`
 
 	var count int64
 	if err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&count); err != nil {
