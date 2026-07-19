@@ -453,23 +453,23 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 	switch {
 	case query.ID != "":
 		argIdx++
-		baseQuery = `SELECT oe.raw_json FROM osv_entries oe
-			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
-			WHERE oe.osv_id = $` + fmt.Sprint(argIdx)
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified FROM vulnerabilities v
+			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
+			WHERE (v.id = $` + fmt.Sprint(argIdx) + ` OR oe.osv_id = $` + fmt.Sprint(argIdx) + `)`
 		args = append(args, query.ID)
 
 	case query.Alias != "":
 		argIdx++
-		baseQuery = `SELECT oe.raw_json FROM osv_entries oe
-			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
-			WHERE oe.vulnerability_id IN (
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified FROM vulnerabilities v
+			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
+			WHERE (v.id = $` + fmt.Sprint(argIdx) + ` OR v.id IN (
 				SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $` + fmt.Sprint(argIdx) + `
-			)`
+			))`
 		args = append(args, query.Alias)
 
 	case query.PackageName != "" || query.Ecosystem != "":
-		baseQuery = `SELECT oe.raw_json FROM osv_entries oe
-			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified FROM vulnerabilities v
+			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
 			WHERE oe.osv_id IN (
 				SELECT ap.osv_entry_id FROM osv_affected_packages ap WHERE 1=1`
 		if query.Ecosystem != "" {
@@ -485,8 +485,8 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		baseQuery += `)`
 
 	default:
-		baseQuery = `SELECT oe.raw_json FROM osv_entries oe
-			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified FROM vulnerabilities v
+			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
 			WHERE 1=1`
 	}
 
@@ -573,14 +573,33 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	var results []*model.Vulnerability
 	for rows.Next() {
 		var rawJSON []byte
-		if err := rows.Scan(&rawJSON); err != nil {
+		var vulnID string
+		var summary, details sql.NullString
+		var published, modified sql.NullTime
+		if err := rows.Scan(&rawJSON, &vulnID, &summary, &details, &published, &modified); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
-		vuln, err := model.ParseVulnerability(rawJSON)
-		if err != nil {
-			return nil, fmt.Errorf("parse vulnerability: %w", err)
+		if rawJSON != nil {
+			vuln, err := model.ParseVulnerability(rawJSON)
+			if err != nil {
+				return nil, fmt.Errorf("parse vulnerability: %w", err)
+			}
+			results = append(results, vuln)
+		} else {
+			// Fallback: build minimal Vulnerability from vulnerabilities table
+			vuln := &model.Vulnerability{
+				ID:      vulnID,
+				Summary: summary.String,
+				Details: details.String,
+			}
+			if modified.Valid {
+				vuln.Modified = modified.Time
+			}
+			if published.Valid {
+				vuln.Published = &published.Time
+			}
+			results = append(results, vuln)
 		}
-		results = append(results, vuln)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("rows iteration: %w", err)
@@ -594,7 +613,7 @@ func (s *PostgresStore) Count(ctx context.Context, query SearchQuery) (int64, er
 	baseQuery, args, _ := s.buildSearchConditions(query)
 
 	// Replace the SELECT clause with COUNT(*)
-	countQuery := strings.Replace(baseQuery, "SELECT oe.raw_json", "SELECT COUNT(*)", 1)
+	countQuery := strings.Replace(baseQuery, "SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified", "SELECT COUNT(*)", 1)
 
 	var count int64
 	if err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&count); err != nil {
