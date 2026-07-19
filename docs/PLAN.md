@@ -26,7 +26,7 @@ A unified vulnerability intelligence tool that aggregates multiple sources (OSV,
 │                     Interfaces                          │
 ├──────────────┬──────────────────┬───────────────────────┤
 │  CLI         │  API Server      │  Web UI (Angular)     │
-│  cmd/mayu    │  cmd/mayu-server │  (future)             │
+│  cmd/mayu    │  internal/server │  (future)             │
 └──────┬───────┴────────┬─────────┴───────────────────────┘
        │                │
 ┌──────┴────────────────┴─────────────────────────────────┐
@@ -65,20 +65,22 @@ Data Sources:
 ```
 mayu/
 ├── cmd/
-│   ├── mayu/              # CLI entrypoint
-│   └── mayu-server/       # API server entrypoint (future)
+│   └── mayu/              # CLI entrypoint (ingest, search, serve)
 ├── internal/
 │   ├── fetcher/           # GCS data download
 │   ├── parser/            # OSV JSON parsing
 │   ├── store/             # PostgreSQL persistence
 │   ├── model/             # OSV schema Go structs
-│   ├── query/             # Search logic
+│   ├── server/            # HTTP API server (chi router, REST handlers)
+│   ├── purl/              # Package URL parsing
+│   ├── cvss/              # CVSS score computation
 │   └── ingest/            # Pipeline orchestrator
 ├── migrations/            # DB migration files
 ├── testdata/              # Test fixtures (OSV JSON samples)
 ├── docs/                  # Documentation
-│   └── PLAN.md            # This file
-├── docker-compose.yml     # Dev environment (PostgreSQL)
+│   ├── PLAN.md            # This file
+│   └── openapi.yaml       # OpenAPI 3.1 specification
+├── compose.yml            # Dev environment (PostgreSQL)
 ├── .tool-versions         # asdf (Go 1.26.5)
 ├── .kiro/                 # Kiro configuration
 │   └── steering/          # Kiro steering docs
@@ -124,8 +126,13 @@ mayu/
 
 ### Phase 4: API Server (Future)
 
-- REST API サーバー実装
-- 認証・認可
+- ✅ REST API サーバー実装 (`mayu serve`)
+- ✅ OpenAPI 3.1 仕様書 (`docs/openapi.yaml`, `GET /openapi.yaml`)
+- ✅ 検索API (`GET /api/v1/vulnerabilities`)
+- ✅ 個別取得API (`GET /api/v1/vulnerabilities/{id}`)
+- ✅ ヘルスチェック (`GET /healthz`)
+- ✅ CORS対応
+- 認証・認可 (future)
 
 ### Phase 5: Web UI (Future)
 
