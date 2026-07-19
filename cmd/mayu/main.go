@@ -304,10 +304,11 @@ func isLocalHost(host string) bool {
 }
 
 // resolveEcosystems returns the list of ecosystems to import.
-// When all is true, it dynamically fetches the full list from the OSV GCS bucket.
+// When all is true, it dynamically fetches the full list from ecosystems.txt
+// in the OSV GCS bucket (gs://osv-vulnerabilities/ecosystems.txt).
 func resolveEcosystems(ctx context.Context, f *fetcher.Fetcher, all bool, ecosystem string) ([]string, error) {
 	if all {
-		fmt.Println("Fetching ecosystem list from OSV GCS bucket...")
+		fmt.Println("Fetching ecosystem list from ecosystems.txt...")
 		ecosystems, err := f.ListEcosystems(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("list ecosystems: %w", err)

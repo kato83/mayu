@@ -1,8 +1,9 @@
 package fetcher
 
 import (
+	"bufio"
+	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,102 +11,72 @@ import (
 )
 
 const (
-	// gcsJSONAPIBaseURL is the base URL for the GCS JSON API.
-	gcsJSONAPIBaseURL = "https://storage.googleapis.com/storage/v1/b"
+	// ecosystemsTxtPath is the path to ecosystems.txt within the OSV bucket.
+	ecosystemsTxtPath = "ecosystems.txt"
 
-	// osvBucketName is the GCS bucket name for OSV vulnerabilities.
-	osvBucketName = "osv-vulnerabilities"
+	// maxEcosystemsTxtSize is the maximum allowed size for ecosystems.txt (1 MB).
+	maxEcosystemsTxtSize = 1 * 1024 * 1024
 )
 
-// gcsListResponse represents the JSON response from the GCS Objects: list API.
-type gcsListResponse struct {
-	Prefixes      []string `json:"prefixes"`
-	NextPageToken string   `json:"nextPageToken"`
-}
-
-// excludedPrefixes are GCS prefixes that do not represent real ecosystems.
-var excludedPrefixes = map[string]bool{
-	"all/":     true,
-	"icons/":   true,
-	"[EMPTY]/": true,
-}
-
 // ListEcosystems fetches the list of ecosystems from the OSV GCS bucket
-// using the GCS JSON API. It returns all directory prefixes (with trailing
-// slash removed) that represent actual ecosystems, excluding non-ecosystem
-// directories like "all/", "icons/", "[EMPTY]/".
+// by downloading ecosystems.txt (gs://osv-vulnerabilities/ecosystems.txt).
 //
-// The listBaseURL parameter allows overriding the GCS JSON API base URL for
-// testing. If empty, the default GCS JSON API URL is used.
+// This file is maintained by the OSV team and contains one ecosystem name
+// per line. Sub-ecosystem directories (e.g., Debian:11) were deprecated
+// in October 2024 and are no longer included.
+//
+// See: https://google.github.io/osv.dev/data/
 func (f *Fetcher) ListEcosystems(ctx context.Context) ([]string, error) {
 	return f.listEcosystems(ctx, "")
 }
 
 // listEcosystems is the internal implementation that accepts an optional
 // override URL for testing.
-func (f *Fetcher) listEcosystems(ctx context.Context, listBaseURL string) ([]string, error) {
-	baseURL := listBaseURL
-	if baseURL == "" {
-		baseURL = fmt.Sprintf("%s/%s/o", gcsJSONAPIBaseURL, osvBucketName)
+func (f *Fetcher) listEcosystems(ctx context.Context, overrideURL string) ([]string, error) {
+	u := overrideURL
+	if u == "" {
+		u = fmt.Sprintf("%s/%s", f.baseURL, ecosystemsTxtPath)
 	}
 
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := f.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("execute request: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status %d fetching ecosystems.txt", resp.StatusCode)
+	}
+
+	// Limit response body to prevent memory exhaustion.
+	limited := io.LimitReader(resp.Body, maxEcosystemsTxtSize+1)
+	body, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+	if int64(len(body)) > maxEcosystemsTxtSize {
+		return nil, fmt.Errorf("ecosystems.txt exceeds maximum size of %d bytes", maxEcosystemsTxtSize)
+	}
+
+	return parseEcosystemsTxt(body), nil
+}
+
+// parseEcosystemsTxt parses the content of ecosystems.txt into a list of
+// ecosystem names. It skips empty lines and trims whitespace from each line.
+func parseEcosystemsTxt(data []byte) []string {
 	var ecosystems []string
-	pageToken := ""
-
-	for {
-		reqURL := baseURL + "?delimiter=/"
-		if pageToken != "" {
-			reqURL += "&pageToken=" + pageToken
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
 		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-		if err != nil {
-			return nil, fmt.Errorf("create request: %w", err)
-		}
-
-		resp, err := f.httpClient.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("execute request: %w", err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			_ = resp.Body.Close()
-			return nil, fmt.Errorf("unexpected status %d from GCS listing API", resp.StatusCode)
-		}
-
-		// Limit response body to 10MB (listing should be small).
-		const maxListResponseSize = 10 * 1024 * 1024
-		limited := io.LimitReader(resp.Body, maxListResponseSize+1)
-		body, err := io.ReadAll(limited)
-		_ = resp.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("read response: %w", err)
-		}
-		if int64(len(body)) > maxListResponseSize {
-			return nil, fmt.Errorf("listing response exceeds maximum size")
-		}
-
-		var listResp gcsListResponse
-		if err := json.Unmarshal(body, &listResp); err != nil {
-			return nil, fmt.Errorf("parse listing response: %w", err)
-		}
-
-		for _, prefix := range listResp.Prefixes {
-			if excludedPrefixes[prefix] {
-				continue
-			}
-			// Remove trailing slash to get the ecosystem name.
-			eco := strings.TrimSuffix(prefix, "/")
-			if eco != "" {
-				ecosystems = append(ecosystems, eco)
-			}
-		}
-
-		if listResp.NextPageToken == "" {
-			break
-		}
-		pageToken = listResp.NextPageToken
+		ecosystems = append(ecosystems, line)
 	}
-
-	return ecosystems, nil
+	return ecosystems
 }
