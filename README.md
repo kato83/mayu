@@ -58,6 +58,9 @@ make build
 # Import all supported ecosystems (each ecosystem's all.zip individually)
 ./bin/mayu ingest --all
 
+# Import all ecosystems with custom parallelism
+./bin/mayu ingest --all --concurrency 5 --store-workers 8
+
 # Bulk import from single top-level all.zip (~1.3GB, all ecosystems at once)
 ./bin/mayu ingest --all --bulk
 ```
@@ -133,6 +136,8 @@ Import vulnerability data from OSV into the local database.
 | `--bulk` | Use top-level all.zip for bulk import (with `--all`) | `false` |
 | `--update` | Perform delta update instead of full import | `false` |
 | `--source` | Import from converted source (nvd, debian) | — |
+| `--concurrency` | Number of ecosystems to import in parallel (with `--all`) | `3` |
+| `--store-workers` | Number of parallel DB store workers per ecosystem | CPU cores - 1 |
 | `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 | `--batch-size` | Number of vulnerabilities per batch insert | `100` |
 
@@ -244,6 +249,12 @@ make test-integration
 
 # Lint
 make lint
+
+# Build (development, with debug symbols)
+make build
+
+# Build (release, stripped binary ~30% smaller)
+make build-release
 
 # Stop PostgreSQL
 make docker-down

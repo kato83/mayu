@@ -75,7 +75,35 @@ func (s *PostgresStore) Insert(ctx context.Context, vuln *model.Vulnerability) e
 }
 
 // UpsertBatch stores multiple vulnerabilities in a single transaction.
+// It retries automatically on deadlock (PostgreSQL error code 40P01).
 func (s *PostgresStore) UpsertBatch(ctx context.Context, vulns []*model.Vulnerability) error {
+	const maxRetries = 5
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		err := s.upsertBatchOnce(ctx, vulns)
+		if err == nil {
+			return nil
+		}
+
+		// Check if the error is a deadlock (SQLSTATE 40P01)
+		if isDeadlock(err) && attempt < maxRetries {
+			// Exponential backoff: 10ms, 20ms, 40ms, 80ms, 160ms
+			backoff := time.Duration(10<<uint(attempt)) * time.Millisecond
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(backoff):
+			}
+			continue
+		}
+
+		return err
+	}
+	return fmt.Errorf("upsert batch: exceeded max retries due to deadlock")
+}
+
+// upsertBatchOnce performs a single attempt of UpsertBatch.
+func (s *PostgresStore) upsertBatchOnce(ctx context.Context, vulns []*model.Vulnerability) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -89,6 +117,11 @@ func (s *PostgresStore) UpsertBatch(ctx context.Context, vulns []*model.Vulnerab
 	}
 
 	return tx.Commit()
+}
+
+// isDeadlock checks if an error is a PostgreSQL deadlock (SQLSTATE 40P01).
+func isDeadlock(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "40P01")
 }
 
 // extractCVE returns the first CVE alias from the list, or empty string if none found.
@@ -209,15 +242,21 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 
 	// Insert aliases with ON CONFLICT to handle multiple OSV entries contributing aliases.
 	// Each alias is tagged with source_osv_id to track which OSV entry contributed it.
-	for i, alias := range allAliases {
-		_, err := tx.ExecContext(ctx, `
-			INSERT INTO vulnerability_aliases (vulnerability_id, alias, ordering, source_osv_id)
-			VALUES ($1, $2, $3, $4)
-			ON CONFLICT (vulnerability_id, alias, source_osv_id) DO UPDATE SET ordering = EXCLUDED.ordering`,
-			canID, alias, i, osvID,
-		)
-		if err != nil {
-			return fmt.Errorf("insert alias %q: %w", alias, err)
+	if len(allAliases) > 0 {
+		aliasQuery := "INSERT INTO vulnerability_aliases (vulnerability_id, alias, ordering, source_osv_id) VALUES "
+		aliasArgs := make([]interface{}, 0, len(allAliases)*2+2)
+		aliasArgs = append(aliasArgs, canID, osvID)
+		for i, alias := range allAliases {
+			if i > 0 {
+				aliasQuery += ", "
+			}
+			base := i*2 + 3
+			aliasQuery += fmt.Sprintf("($1, $%d, $%d, $2)", base, base+1)
+			aliasArgs = append(aliasArgs, alias, i)
+		}
+		aliasQuery += " ON CONFLICT (vulnerability_id, alias, source_osv_id) DO UPDATE SET ordering = EXCLUDED.ordering"
+		if _, err := tx.ExecContext(ctx, aliasQuery, aliasArgs...); err != nil {
+			return fmt.Errorf("insert aliases: %w", err)
 		}
 	}
 
@@ -264,14 +303,20 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		return fmt.Errorf("insert osv_entry: %w", err)
 	}
 
-	// --- Step 6: Insert top-level severity ---
-	for _, sev := range vuln.Severity {
-		_, err := tx.ExecContext(ctx, `
-			INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source)
-			VALUES ($1, NULL, $2, $3, $4)`,
-			osvID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
-		)
-		if err != nil {
+	// --- Step 6: Insert top-level severity (bulk) ---
+	if len(vuln.Severity) > 0 {
+		sevQuery := "INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source) VALUES "
+		sevArgs := make([]interface{}, 0, len(vuln.Severity)*3+1)
+		sevArgs = append(sevArgs, osvID)
+		for i, sev := range vuln.Severity {
+			if i > 0 {
+				sevQuery += ", "
+			}
+			base := i*3 + 2 // $1 is osvID, then groups of 3
+			sevQuery += fmt.Sprintf("($1, NULL, $%d, $%d, $%d)", base, base+1, base+2)
+			sevArgs = append(sevArgs, string(sev.Type), sev.Score, nullIfEmpty(sev.Source))
+		}
+		if _, err := tx.ExecContext(ctx, sevQuery, sevArgs...); err != nil {
 			return fmt.Errorf("insert severity: %w", err)
 		}
 	}
@@ -295,59 +340,79 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 			return fmt.Errorf("insert osv_affected_package: %w", err)
 		}
 
-		// Insert ranges
-		for _, r := range affected.Ranges {
-			eventsJSON, err := json.Marshal(r.Events)
-			if err != nil {
-				return fmt.Errorf("marshal events: %w", err)
+		// Insert ranges (bulk)
+		if len(affected.Ranges) > 0 {
+			rangeQuery := "INSERT INTO osv_affected_ranges (affected_package_id, range_type, repo, events, database_specific) VALUES "
+			rangeArgs := make([]interface{}, 0, len(affected.Ranges)*4+1)
+			rangeArgs = append(rangeArgs, affectedPkgID)
+			for i, r := range affected.Ranges {
+				if i > 0 {
+					rangeQuery += ", "
+				}
+				eventsJSON, err := json.Marshal(r.Events)
+				if err != nil {
+					return fmt.Errorf("marshal events: %w", err)
+				}
+				base := i*4 + 2
+				rangeQuery += fmt.Sprintf("($1, $%d, $%d, $%d, $%d)", base, base+1, base+2, base+3)
+				rangeArgs = append(rangeArgs, string(r.Type), nullIfEmpty(r.Repo), eventsJSON, nullableRawJSON(r.DatabaseSpecific))
 			}
-			_, err = tx.ExecContext(ctx, `
-				INSERT INTO osv_affected_ranges (affected_package_id, range_type, repo, events, database_specific)
-				VALUES ($1, $2, $3, $4, $5)`,
-				affectedPkgID,
-				string(r.Type),
-				nullIfEmpty(r.Repo),
-				eventsJSON,
-				nullableRawJSON(r.DatabaseSpecific),
-			)
-			if err != nil {
+			if _, err := tx.ExecContext(ctx, rangeQuery, rangeArgs...); err != nil {
 				return fmt.Errorf("insert osv_affected_range: %w", err)
 			}
 		}
 
-		// Insert per-affected severity
-		for _, sev := range affected.Severity {
-			_, err := tx.ExecContext(ctx, `
-				INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source)
-				VALUES ($1, $2, $3, $4, $5)`,
-				osvID, affectedPkgID, string(sev.Type), sev.Score, nullIfEmpty(sev.Source),
-			)
-			if err != nil {
+		// Insert per-affected severity (bulk)
+		if len(affected.Severity) > 0 {
+			sevQuery := "INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source) VALUES "
+			sevArgs := make([]interface{}, 0, len(affected.Severity)*3+2)
+			sevArgs = append(sevArgs, osvID, affectedPkgID)
+			for i, sev := range affected.Severity {
+				if i > 0 {
+					sevQuery += ", "
+				}
+				base := i*3 + 3
+				sevQuery += fmt.Sprintf("($1, $2, $%d, $%d, $%d)", base, base+1, base+2)
+				sevArgs = append(sevArgs, string(sev.Type), sev.Score, nullIfEmpty(sev.Source))
+			}
+			if _, err := tx.ExecContext(ctx, sevQuery, sevArgs...); err != nil {
 				return fmt.Errorf("insert affected severity: %w", err)
 			}
 		}
 	}
 
-	// --- Step 8: Insert references ---
-	for _, ref := range vuln.References {
-		_, err := tx.ExecContext(ctx, `
-			INSERT INTO osv_references (osv_entry_id, reference_type, url)
-			VALUES ($1, $2, $3)`,
-			osvID, string(ref.Type), ref.URL,
-		)
-		if err != nil {
+	// --- Step 8: Insert references (bulk) ---
+	if len(vuln.References) > 0 {
+		refQuery := "INSERT INTO osv_references (osv_entry_id, reference_type, url) VALUES "
+		refArgs := make([]interface{}, 0, len(vuln.References)*2+1)
+		refArgs = append(refArgs, osvID)
+		for i, ref := range vuln.References {
+			if i > 0 {
+				refQuery += ", "
+			}
+			base := i*2 + 2
+			refQuery += fmt.Sprintf("($1, $%d, $%d)", base, base+1)
+			refArgs = append(refArgs, string(ref.Type), ref.URL)
+		}
+		if _, err := tx.ExecContext(ctx, refQuery, refArgs...); err != nil {
 			return fmt.Errorf("insert osv_reference: %w", err)
 		}
 	}
 
-	// --- Step 9: Insert credits ---
-	for _, credit := range vuln.Credits {
-		_, err := tx.ExecContext(ctx, `
-			INSERT INTO osv_credits (osv_entry_id, name, contact, credit_type)
-			VALUES ($1, $2, $3, $4)`,
-			osvID, credit.Name, pgTextArray(credit.Contact), nullIfEmpty(string(credit.Type)),
-		)
-		if err != nil {
+	// --- Step 9: Insert credits (bulk) ---
+	if len(vuln.Credits) > 0 {
+		credQuery := "INSERT INTO osv_credits (osv_entry_id, name, contact, credit_type) VALUES "
+		credArgs := make([]interface{}, 0, len(vuln.Credits)*3+1)
+		credArgs = append(credArgs, osvID)
+		for i, credit := range vuln.Credits {
+			if i > 0 {
+				credQuery += ", "
+			}
+			base := i*3 + 2
+			credQuery += fmt.Sprintf("($1, $%d, $%d, $%d)", base, base+1, base+2)
+			credArgs = append(credArgs, credit.Name, pgTextArray(credit.Contact), nullIfEmpty(string(credit.Type)))
+		}
+		if _, err := tx.ExecContext(ctx, credQuery, credArgs...); err != nil {
 			return fmt.Errorf("insert osv_credit: %w", err)
 		}
 	}
