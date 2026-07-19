@@ -54,7 +54,7 @@ func (t *MITRETime) UnmarshalJSON(data []byte) error {
 // MarshalJSON implements json.Marshaler for MITRETime.
 // Outputs in RFC3339 format with millisecond precision.
 func (t MITRETime) MarshalJSON() ([]byte, error) {
-	if t.Time.IsZero() {
+	if t.IsZero() {
 		return []byte(`null`), nil
 	}
 	return []byte(fmt.Sprintf(`"%s"`, t.Time.UTC().Format("2006-01-02T15:04:05.000Z"))), nil

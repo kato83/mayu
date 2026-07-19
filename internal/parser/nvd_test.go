@@ -188,10 +188,10 @@ func TestParseNVDSingle(t *testing.T) {
 	}
 
 	// Verify timestamps
-	if cve.Published.Time.IsZero() {
+	if cve.Published.IsZero() {
 		t.Error("Published is zero")
 	}
-	if cve.LastModified.Time.IsZero() {
+	if cve.LastModified.IsZero() {
 		t.Error("LastModified is zero")
 	}
 

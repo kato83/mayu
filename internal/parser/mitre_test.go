@@ -31,7 +31,7 @@ func TestParseMITRERecord_Published(t *testing.T) {
 	if record.Containers.CNA.Title == "" {
 		t.Error("CNA title is empty")
 	}
-	if record.CVEMetadata.DatePublished.Time.IsZero() {
+	if record.CVEMetadata.DatePublished.IsZero() {
 		t.Error("DatePublished is zero")
 	}
 	if len(record.RawJSON) == 0 {

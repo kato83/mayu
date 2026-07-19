@@ -52,7 +52,7 @@ func (p *Parser) ParseMITRERecord(data []byte) (*model.MITRECVERecord, error) {
 	}
 
 	// For PUBLISHED records, datePublished should be present.
-	if record.CVEMetadata.DatePublished.Time.IsZero() {
+	if record.CVEMetadata.DatePublished.IsZero() {
 		p.logf("MITRE CVE %s: datePublished is missing for PUBLISHED record", cveID)
 	}
 
