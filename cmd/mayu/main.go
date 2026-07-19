@@ -80,7 +80,7 @@ func runIngest(args []string) error {
 	fs := flag.NewFlagSet("ingest", flag.ExitOnError)
 
 	ecosystem := fs.String("ecosystem", "", "Ecosystem to import (e.g., Go, PyPI, npm)")
-	source := fs.String("source", "", "Import from converted source (nvd, debian)")
+	source := fs.String("source", "", "Import from source (nvd, debian, mitre)")
 	all := fs.Bool("all", false, "Import all ecosystems")
 	bulk := fs.Bool("bulk", false, "Use top-level all.zip for bulk import (with --all)")
 	update := fs.Bool("update", false, "Perform delta update instead of full import")
@@ -107,6 +107,8 @@ func runIngest(args []string) error {
 		fmt.Println("  mayu ingest --source nvd --native        # Import directly from NVD JSON Feed 2.0")
 		fmt.Println("  mayu ingest --source nvd --native --update  # Delta update from NVD modified feed")
 		fmt.Println("  mayu ingest --source debian")
+		fmt.Println("  mayu ingest --source mitre              # Import MITRE CVE from cvelistV5")
+		fmt.Println("  mayu ingest --source mitre --update     # Delta update from hourly releases")
 		fmt.Println("  mayu ingest --ecosystem PyPI --db-url postgres://user:pass@host/db")
 	}
 
@@ -170,10 +172,31 @@ func runIngest(args []string) error {
 			return nil
 		}
 
+		// MITRE CVE import from cvelistV5 GitHub Releases
+		if strings.ToLower(*source) == "mitre" {
+			fmt.Println("\n=== Importing MITRE CVE (cvelistV5 GitHub Releases) ===")
+			var stats *ingest.Stats
+			var err error
+			if *update {
+				stats, err = ing.UpdateMITRE(ctx)
+			} else {
+				stats, err = ing.ImportMITRE(ctx)
+			}
+			if err != nil {
+				if ctx.Err() != nil {
+					fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+					return nil
+				}
+				return fmt.Errorf("MITRE import: %w", err)
+			}
+			printStats(stats)
+			return nil
+		}
+
 		// Existing converted source logic
 		src := ingest.GetConvertedSource(*source)
 		if src == nil {
-			return fmt.Errorf("unknown source: %q (supported: nvd, debian)", *source)
+			return fmt.Errorf("unknown source: %q (supported: nvd, debian, mitre)", *source)
 		}
 		fmt.Printf("\n=== Importing %s (converted source: gs://%s/%s) ===\n", src.Name, src.Bucket, src.Prefix)
 		stats, err := ing.ImportConvertedSource(ctx, *src)
