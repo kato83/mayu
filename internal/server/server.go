@@ -17,9 +17,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/validate"
+	"golang.org/x/sync/errgroup"
 )
 
 //go:embed openapi.yaml
@@ -229,17 +231,25 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 
 	ctx := r.Context()
 
-	// Get total count
-	total, err := s.store.Count(ctx, query)
-	if err != nil {
-		slog.Error("failed to count vulnerabilities", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
-		return
-	}
+	// Execute count and search in parallel
+	var total int64
+	var results []*model.Vulnerability
 
-	// Execute search
-	results, err := s.store.Search(ctx, query)
-	if err != nil {
+	g, gCtx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		var err error
+		total, err = s.store.Count(gCtx, query)
+		return err
+	})
+
+	g.Go(func() error {
+		var err error
+		results, err = s.store.Search(gCtx, query)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
 		slog.Error("failed to search vulnerabilities", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
