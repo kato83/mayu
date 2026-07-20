@@ -1,4 +1,4 @@
-.PHONY: build build-release test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down ui-dev ui-dev-ja ui-build ui-test ui-lint ui-i18n-extract
+.PHONY: build build-release build-embed test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down ui-dev ui-dev-ja ui-build ui-test ui-lint ui-i18n-extract
 
 # Variables
 BINARY_NAME=mayu
@@ -11,6 +11,11 @@ build:
 
 build-release:
 	go build -ldflags "-s -w -X main.version=$(VERSION)" -o bin/$(BINARY_NAME) ./cmd/mayu
+
+build-embed: ui-build
+	rm -rf internal/uiassets/dist
+	cp -r ui/dist/mayu/browser internal/uiassets/dist
+	go build -tags uiembed -ldflags "-s -w -X main.version=$(VERSION)" -o bin/$(BINARY_NAME) ./cmd/mayu
 
 # Test
 test:
@@ -64,6 +69,7 @@ ui-dev-ja:
 	pnpm --prefix ui run start:ja
 
 ui-build:
+	pnpm --prefix ui install
 	pnpm --prefix ui run build
 
 ui-test:

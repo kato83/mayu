@@ -8,6 +8,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -41,8 +42,13 @@ type Config struct {
 	Version string
 
 	// UIDir is the path to the SPA static files directory.
-	// If empty, no static file serving is configured.
+	// If empty, no static file serving is configured (unless EmbedFS is set).
 	UIDir string
+
+	// EmbedFS is an embedded filesystem containing SPA static files.
+	// Used when the binary is built with UI assets embedded.
+	// UIDir takes precedence over EmbedFS when both are set.
+	EmbedFS fs.FS
 }
 
 // Server is the HTTP API server.
@@ -51,6 +57,7 @@ type Server struct {
 	store      store.Store
 	version    string
 	uiDir      string
+	embedFS    fs.FS
 }
 
 // New creates a new Server with the given configuration.
@@ -59,6 +66,7 @@ func New(cfg Config) *Server {
 		store:   cfg.Store,
 		version: cfg.Version,
 		uiDir:   cfg.UIDir,
+		embedFS: cfg.EmbedFS,
 	}
 
 	router := s.routes()
@@ -115,7 +123,7 @@ func (s *Server) routes() http.Handler {
 	})
 
 	// SPA static file serving with fallback to index.html
-	if s.uiDir != "" {
+	if s.uiDir != "" || s.embedFS != nil {
 		r.Get("/*", s.handleSPA)
 	}
 
@@ -398,10 +406,8 @@ func (s *Server) handleSPA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Try serving the file directly from ui-dir
-	fullPath := filepath.Join(s.uiDir, reqPath)
-	if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
-		http.ServeFile(w, r, fullPath)
+	// Try serving the file directly
+	if s.serveStaticFile(w, r, reqPath) {
 		return
 	}
 
@@ -410,17 +416,77 @@ func (s *Server) handleSPA(w http.ResponseWriter, r *http.Request) {
 	if idx := strings.IndexByte(reqPath, '/'); idx >= 0 {
 		locale = reqPath[:idx]
 	}
-	indexFile := filepath.Join(s.uiDir, locale, "index.html")
-	if _, err := os.Stat(indexFile); err == nil {
-		http.ServeFile(w, r, indexFile)
+	if s.serveStaticFile(w, r, locale+"/index.html") {
 		return
 	}
 
 	http.NotFound(w, r)
 }
 
+// serveStaticFile tries to serve a file at the given path.
+// It checks uiDir first (filesystem), then embedFS.
+// Returns true if the file was served.
+func (s *Server) serveStaticFile(w http.ResponseWriter, r *http.Request, filePath string) bool {
+	// Priority 1: filesystem (--ui-dir)
+	if s.uiDir != "" {
+		fullPath := filepath.Join(s.uiDir, filePath)
+		if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+			http.ServeFile(w, r, fullPath)
+			return true
+		}
+	}
+
+	// Priority 2: embedded FS
+	if s.embedFS != nil {
+		f, err := s.embedFS.Open(filePath)
+		if err != nil {
+			return false
+		}
+		defer func() { _ = f.Close() }()
+
+		stat, err := f.Stat()
+		if err != nil || stat.IsDir() {
+			return false
+		}
+
+		// embed.FS files implement io.ReadSeeker
+		seeker, ok := f.(readSeeker)
+		if !ok {
+			return false
+		}
+		http.ServeContent(w, r, stat.Name(), stat.ModTime(), seeker)
+		return true
+	}
+
+	return false
+}
+
+// readSeeker combines io.Reader and io.Seeker for http.ServeContent.
+type readSeeker interface {
+	Read(p []byte) (n int, err error)
+	Seek(offset int64, whence int) (int64, error)
+}
+
+// hasLocaleDir checks if a locale directory exists (filesystem or embedFS).
+func (s *Server) hasLocaleDir(locale string) bool {
+	if s.uiDir != "" {
+		info, err := os.Stat(filepath.Join(s.uiDir, locale))
+		return err == nil && info.IsDir()
+	}
+	if s.embedFS != nil {
+		f, err := s.embedFS.Open(locale)
+		if err != nil {
+			return false
+		}
+		defer func() { _ = f.Close() }()
+		stat, err := f.Stat()
+		return err == nil && stat.IsDir()
+	}
+	return false
+}
+
 // detectLocale determines the preferred locale from the Accept-Language header.
-// Returns the best matching locale directory that exists under uiDir.
+// Returns the best matching locale directory that exists under uiDir/embedFS.
 // Falls back to "en" if no match is found.
 func (s *Server) detectLocale(r *http.Request) string {
 	acceptLang := r.Header.Get("Accept-Language")
@@ -432,15 +498,13 @@ func (s *Server) detectLocale(r *http.Request) string {
 	locales := parseAcceptLanguage(acceptLang)
 	for _, lang := range locales {
 		// Check exact match (e.g., "ja", "en")
-		dir := filepath.Join(s.uiDir, lang)
-		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+		if s.hasLocaleDir(lang) {
 			return lang
 		}
 		// Check base language (e.g., "ja-JP" → "ja")
 		if idx := strings.IndexAny(lang, "-_"); idx > 0 {
 			base := lang[:idx]
-			dir = filepath.Join(s.uiDir, base)
-			if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			if s.hasLocaleDir(base) {
 				return base
 			}
 		}

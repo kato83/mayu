@@ -39,6 +39,18 @@ cd mayu
 go build -o bin/mayu ./cmd/mayu
 ```
 
+### Web UI 埋め込みビルド
+
+Web UI を含む単一バイナリをビルドします（実行時に `--ui-dir` 不要）：
+
+```bash
+# UI をビルドして Go バイナリに埋め込み
+make build-embed
+
+# 実行 — UI は / で自動配信
+./bin/mayu serve
+```
+
 ### 脆弱性データの取り込み
 
 ```bash

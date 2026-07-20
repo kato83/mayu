@@ -39,6 +39,18 @@ cd mayu
 go build -o bin/mayu ./cmd/mayu
 ```
 
+### Build with Embedded Web UI
+
+Build a single binary that includes the Web UI (no `--ui-dir` needed at runtime):
+
+```bash
+# Build UI and embed into Go binary
+make build-embed
+
+# Run — UI is served automatically at /
+./bin/mayu serve
+```
+
 ### Import Vulnerability Data
 
 ```bash
