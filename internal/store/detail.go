@@ -10,8 +10,8 @@ import (
 )
 
 // GetVulnerabilityDetail retrieves enriched vulnerability information by ID,
-// combining OSV, NVD, and MITRE data sources. The id can be a vulnerability_id
-// (e.g., CVE-xxx) or an osv_id (e.g., GHSA-xxx, GO-xxx).
+// combining OSV, NVD, MITRE, EPSS, KEV, and LEV data sources. The id can be
+// a vulnerability_id (e.g., CVE-xxx) or an osv_id (e.g., GHSA-xxx, GO-xxx).
 // Returns nil, nil if not found.
 func (s *PostgresStore) GetVulnerabilityDetail(ctx context.Context, id string) (*model.VulnerabilityDetail, error) {
 	// Step 1: Resolve vulnerability_id from either vulnerabilities.id or osv_entries.osv_id or aliases
@@ -42,6 +42,41 @@ func (s *PostgresStore) GetVulnerabilityDetail(ctx context.Context, id string) (
 		return nil, fmt.Errorf("fetch MITRE detail: %w", err)
 	}
 	detail.MITRE = mitreDetail
+
+	// Step 5: Enrich with EPSS data (latest score)
+	epssDetail, err := s.fetchEPSSDetail(ctx, vulnID)
+	if err != nil {
+		return nil, fmt.Errorf("fetch EPSS detail: %w", err)
+	}
+	detail.EPSS = epssDetail
+
+	// Step 6: Enrich with KEV data
+	kevDetail, err := s.fetchKEVDetail(ctx, vulnID)
+	if err != nil {
+		return nil, fmt.Errorf("fetch KEV detail: %w", err)
+	}
+	detail.KEV = kevDetail
+
+	// Step 7: Compute LEV score (combines EPSS history + KEV status)
+	levScore, err := s.GetLEVByVulnerabilityID(ctx, vulnID)
+	if err != nil {
+		return nil, fmt.Errorf("compute LEV: %w", err)
+	}
+	if levScore != nil {
+		levDetail := &model.LEVDetail{
+			LEV:            levScore.LEV,
+			InKEV:          levScore.InKEV,
+			EPSSScoreCount: levScore.EPSSScoreCount,
+			ComputedAt:     levScore.ComputedAt.Format("2006-01-02T15:04:05Z"),
+		}
+		if levScore.FirstEPSSDate != nil {
+			levDetail.FirstEPSSDate = levScore.FirstEPSSDate.Format("2006-01-02")
+		}
+		if levScore.LastEPSSDate != nil {
+			levDetail.LastEPSSDate = levScore.LastEPSSDate.Format("2006-01-02")
+		}
+		detail.LEV = levDetail
+	}
 
 	return detail, nil
 }
@@ -555,6 +590,63 @@ func (s *PostgresStore) fetchMITREReferences(ctx context.Context, containerIDs [
 		refs = append(refs, r)
 	}
 	return refs, rows.Err()
+}
+
+// fetchEPSSDetail retrieves the latest EPSS score for a vulnerability.
+// Returns nil if no EPSS data exists.
+func (s *PostgresStore) fetchEPSSDetail(ctx context.Context, vulnID string) (*model.EPSSDetail, error) {
+	var epss, percentile float64
+	var scoreDate string
+	err := s.db.QueryRowContext(ctx, `
+		SELECT epss, percentile, score_date::text
+		FROM epss_scores
+		WHERE vulnerability_id = $1
+		ORDER BY score_date DESC
+		LIMIT 1`,
+		vulnID,
+	).Scan(&epss, &percentile, &scoreDate)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query epss_scores for detail: %w", err)
+	}
+
+	return &model.EPSSDetail{
+		EPSS:       epss,
+		Percentile: percentile,
+		ScoreDate:  scoreDate,
+	}, nil
+}
+
+// fetchKEVDetail retrieves the KEV catalog entry for a vulnerability.
+// Returns nil if the vulnerability is not in the KEV catalog.
+func (s *PostgresStore) fetchKEVDetail(ctx context.Context, vulnID string) (*model.KEVDetail, error) {
+	var vendorProject, product, vulnName, dateAdded, dueDate, requiredAction, ransomware string
+	err := s.db.QueryRowContext(ctx, `
+		SELECT vendor_project, product, vulnerability_name,
+		       date_added::text, due_date::text, required_action,
+		       known_ransomware_campaign_use
+		FROM kev_entries
+		WHERE vulnerability_id = $1`,
+		vulnID,
+	).Scan(&vendorProject, &product, &vulnName, &dateAdded, &dueDate, &requiredAction, &ransomware)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query kev_entries for detail: %w", err)
+	}
+
+	return &model.KEVDetail{
+		VendorProject:              vendorProject,
+		Product:                    product,
+		VulnerabilityName:          vulnName,
+		DateAdded:                  dateAdded,
+		DueDate:                    dueDate,
+		RequiredAction:             requiredAction,
+		KnownRansomwareCampaignUse: ransomware,
+	}, nil
 }
 
 // parseTextArray parses a PostgreSQL TEXT[] literal (e.g., "{foo,bar}") into a Go string slice.

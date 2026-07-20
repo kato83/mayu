@@ -84,6 +84,9 @@ func runIngest(args []string) error {
 	all := fs.Bool("all", false, "Import all ecosystems")
 	bulk := fs.Bool("bulk", false, "Use top-level all.zip for bulk import (with --all)")
 	update := fs.Bool("update", false, "Perform delta update instead of full import")
+	backfill := fs.Bool("backfill", false, "Backfill historical data (with --source epss)")
+	fromDate := fs.String("from", "", "Start date for backfill (YYYY-MM-DD, default: 2023-03-07 for EPSS v3)")
+	toDate := fs.String("to", "", "End date for backfill (YYYY-MM-DD, default: today)")
 	concurrency := fs.Int("concurrency", 3, "Number of ecosystems to import in parallel (with --all)")
 	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
 	batchSize := fs.Int("batch-size", 100, "Number of vulnerabilities per batch insert")
@@ -112,6 +115,8 @@ func runIngest(args []string) error {
 		fmt.Println("  mayu ingest --source mitre --update     # Delta update from hourly releases")
 		fmt.Println("  mayu ingest --source epss               # Import EPSS scores (bulk CSV)")
 		fmt.Println("  mayu ingest --source epss --update      # Update EPSS scores if outdated")
+		fmt.Println("  mayu ingest --source epss --backfill    # Backfill all EPSS history (2023-03-07 to today)")
+		fmt.Println("  mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19")
 		fmt.Println("  mayu ingest --source kev                # Import CISA KEV catalog")
 		fmt.Println("  mayu ingest --source kev --update       # Update KEV catalog if outdated")
 		fmt.Println("  mayu ingest --file vuln1.json vuln2.json # Import local OSV JSON files")
@@ -266,12 +271,25 @@ func runIngest(args []string) error {
 
 		// EPSS score import from FIRST bulk CSV
 		if strings.ToLower(*source) == "epss" {
-			fmt.Println("\n=== Importing EPSS scores (FIRST bulk CSV) ===")
 			var stats *ingest.Stats
 			var err error
-			if *update {
+			if *backfill {
+				// Backfill historical EPSS data for LEV computation
+				from := *fromDate
+				to := *toDate
+				if from == "" {
+					from = ingest.EPSSv3StartDate
+				}
+				if to == "" {
+					to = time.Now().UTC().Format("2006-01-02")
+				}
+				fmt.Printf("\n=== Backfilling EPSS scores (%s to %s) ===\n", from, to)
+				stats, err = ing.BackfillEPSSRange(ctx, from, to)
+			} else if *update {
+				fmt.Println("\n=== Updating EPSS scores ===")
 				stats, err = ing.UpdateEPSS(ctx)
 			} else {
+				fmt.Println("\n=== Importing EPSS scores (FIRST bulk CSV) ===")
 				stats, err = ing.ImportEPSS(ctx)
 			}
 			if err != nil {
@@ -1225,6 +1243,41 @@ func outputDetailEnriched(ctx context.Context, s *store.PostgresStore, results [
 					fmt.Printf("    - %s%s\n", r.URL, tags)
 				}
 			}
+		}
+
+		// EPSS Enrichment
+		if detail.EPSS != nil {
+			fmt.Printf("EPSS:\n")
+			fmt.Printf("  Score:      %.5f (%.1f%%)\n", detail.EPSS.EPSS, detail.EPSS.EPSS*100)
+			fmt.Printf("  Percentile: %.5f (%.1f%%)\n", detail.EPSS.Percentile, detail.EPSS.Percentile*100)
+			fmt.Printf("  Score Date: %s\n", detail.EPSS.ScoreDate)
+		}
+
+		// KEV Enrichment
+		if detail.KEV != nil {
+			fmt.Printf("KEV (CISA Known Exploited Vulnerabilities):\n")
+			fmt.Printf("  Vendor/Project: %s\n", detail.KEV.VendorProject)
+			fmt.Printf("  Product:        %s\n", detail.KEV.Product)
+			fmt.Printf("  Vuln Name:      %s\n", detail.KEV.VulnerabilityName)
+			fmt.Printf("  Date Added:     %s\n", detail.KEV.DateAdded)
+			fmt.Printf("  Due Date:       %s\n", detail.KEV.DueDate)
+			fmt.Printf("  Required Action: %s\n", detail.KEV.RequiredAction)
+			fmt.Printf("  Ransomware Use: %s\n", detail.KEV.KnownRansomwareCampaignUse)
+		}
+
+		// LEV (Likely Exploited Vulnerabilities) Score
+		if detail.LEV != nil {
+			fmt.Printf("LEV (Likely Exploited Vulnerabilities - NIST CSWP 41):\n")
+			fmt.Printf("  Score:       %.5f (%.1f%%)\n", detail.LEV.LEV, detail.LEV.LEV*100)
+			fmt.Printf("  In KEV:      %t\n", detail.LEV.InKEV)
+			fmt.Printf("  EPSS Days:   %d\n", detail.LEV.EPSSScoreCount)
+			if detail.LEV.FirstEPSSDate != "" {
+				fmt.Printf("  First EPSS:  %s\n", detail.LEV.FirstEPSSDate)
+			}
+			if detail.LEV.LastEPSSDate != "" {
+				fmt.Printf("  Last EPSS:   %s\n", detail.LEV.LastEPSSDate)
+			}
+			fmt.Printf("  Computed At: %s\n", detail.LEV.ComputedAt)
 		}
 
 		// Affected packages (from OSV)
