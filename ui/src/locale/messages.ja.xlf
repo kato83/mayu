@@ -234,6 +234,86 @@
         <source>Next</source>
         <target>次へ</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.epssTitle" datatype="html">
+        <source>EPSS (Exploit Prediction Scoring System)</source>
+        <target>EPSS（悪用予測スコアリングシステム）</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.epssScore" datatype="html">
+        <source>Exploitation Probability</source>
+        <target>悪用確率</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.epssPercentile" datatype="html">
+        <source>Percentile</source>
+        <target>パーセンタイル</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.epssDate" datatype="html">
+        <source>Score Date</source>
+        <target>スコア日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevTitle" datatype="html">
+        <source>CISA KEV (Known Exploited Vulnerabilities)</source>
+        <target>CISA KEV（既知の悪用された脆弱性）</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevVendor" datatype="html">
+        <source>Vendor / Project</source>
+        <target>ベンダー / プロジェクト</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevProduct" datatype="html">
+        <source>Product</source>
+        <target>製品</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevVulnName" datatype="html">
+        <source>Vulnerability Name</source>
+        <target>脆弱性名</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevDateAdded" datatype="html">
+        <source>Date Added</source>
+        <target>追加日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevDueDate" datatype="html">
+        <source>Due Date</source>
+        <target>対応期限</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevRequiredAction" datatype="html">
+        <source>Required Action</source>
+        <target>必要な対応</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevRansomware" datatype="html">
+        <source>Ransomware Campaign Use</source>
+        <target>ランサムウェアキャンペーンでの使用</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.levTitle" datatype="html">
+        <source>LEV (Likely Exploited Vulnerabilities)</source>
+        <target>LEV（悪用された可能性が高い脆弱性）</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.levScore" datatype="html">
+        <source>LEV Score</source>
+        <target>LEVスコア</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.levInKev" datatype="html">
+        <source>In KEV</source>
+        <target>KEV登録</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.levEpssDays" datatype="html">
+        <source>EPSS Days</source>
+        <target>EPSS日数</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.levFirstEpss" datatype="html">
+        <source>First EPSS</source>
+        <target>最初のEPSS</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.levLastEpss" datatype="html">
+        <source>Last EPSS</source>
+        <target>最後のEPSS</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.levComputedAt" datatype="html">
+        <source>Computed At</source>
+        <target>計算日時</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.levNote" datatype="html">
+        <source> Based on NIST CSWP 41. LEV estimates the probability of past exploitation using historical EPSS data and KEV status. </source>
+        <target>NIST CSWP 41に基づく。LEVは過去のEPSSデータとKEVステータスを使用して、過去に悪用された確率を推定します。</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>
