@@ -120,10 +120,10 @@ describe('VulnerabilitiesComponent', () => {
 
   // --- Default behavior ---
 
-  it('should send ecosystem=Go by default when no filters set', () => {
+  it('should load all vulnerabilities by default when no filters set', () => {
     fixture.detectChanges();
     const req = httpTesting.expectOne((r) => r.url === '/api/v1/vulnerabilities');
-    expect(req.request.params.get('ecosystem')).toBe('Go');
+    expect(req.request.params.has('ecosystem')).toBe(false);
     expect(req.request.params.get('limit')).toBe('20');
     req.flush(mockResponse);
   });
@@ -239,8 +239,8 @@ describe('VulnerabilitiesComponent', () => {
 
     // Should immediately fire (no debounce for clear)
     const req = httpTesting.expectOne((r) => r.url === '/api/v1/vulnerabilities');
-    // When no filters, it defaults to ecosystem=Go
-    expect(req.request.params.get('ecosystem')).toBe('Go');
+    // When no filters, no ecosystem param is sent
+    expect(req.request.params.has('ecosystem')).toBe(false);
     expect(req.request.params.has('severity')).toBe(false);
     expect(req.request.params.has('package')).toBe(false);
     req.flush(emptyResponse);

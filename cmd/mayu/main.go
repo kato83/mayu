@@ -637,9 +637,6 @@ func runSearch(args []string) error {
 			} else {
 				*alias = positional
 			}
-		} else if *severity == "" && *since == "" && *version == "" {
-			fs.Usage()
-			return fmt.Errorf("at least one search parameter is required")
 		}
 	}
 
