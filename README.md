@@ -75,6 +75,12 @@ go build -o bin/mayu ./cmd/mayu
 # Update EPSS scores (daily refresh if outdated)
 ./bin/mayu ingest --source epss --update
 
+# Backfill EPSS historical data (required for LEV computation)
+./bin/mayu ingest --source epss --backfill
+
+# Backfill EPSS for a specific date range
+./bin/mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
+
 # Import CISA KEV catalog (Known Exploited Vulnerabilities)
 ./bin/mayu ingest --source kev
 
@@ -155,6 +161,9 @@ Import vulnerability data from OSV into the local database.
 | `--all` | Import all ecosystems (dynamically fetched from GCS) | `false` |
 | `--bulk` | Use top-level all.zip for bulk import (with `--all`) | `false` |
 | `--update` | Perform delta update instead of full import | `false` |
+| `--backfill` | Backfill historical data (with `--source epss`) | `false` |
+| `--from` | Start date for backfill (YYYY-MM-DD) | `2023-03-07` (EPSS v3) |
+| `--to` | End date for backfill (YYYY-MM-DD) | today |
 | `--source` | Import from source (nvd, debian, mitre, epss, kev) | — |
 | `--native` | Use native data source feed (with `--source nvd`) | `false` |
 | `--file` | Import from local OSV JSON files (paths as positional args) | `false` |
@@ -248,7 +257,111 @@ Print version information.
 |--------|--------|--------|
 | KEV | ✅ Supported | `mayu ingest --source kev` |
 | EPSS | ✅ Supported | `mayu ingest --source epss` |
-| LEV | 🔜 Planned | — |
+| LEV | ✅ Supported | Computed from EPSS + KEV (see below) |
+
+## LEV (Likely Exploited Vulnerabilities)
+
+Mayu computes [LEV](https://doi.org/10.6028/NIST.CSWP.41) scores — a probabilistic metric proposed by NIST (CSWP 41) that estimates the chance a CVE has **already been exploited in the wild**.
+
+### How it works
+
+LEV combines two data sources already in mayu:
+
+| Data Source | Role | Time Perspective |
+|-------------|------|-----------------|
+| **EPSS** | Daily exploitation probability (P30) | Future (next 30 days) |
+| **CISA KEV** | Confirmed exploitation | Past (known exploited) |
+| **LEV** | Probability of past exploitation | Past (estimated) |
+
+**Algorithm** (rigorous approach from NIST CSWP 41):
+
+```
+P1  = 1 - (1 - P30)^(1/30)       # Convert EPSS 30-day prob → daily prob
+LEV = 1 - ∏(1 - P1_i)             # Compound across all historical days
+```
+
+If the CVE is in the CISA KEV catalog, LEV is automatically set to **1.0** (confirmed exploitation).
+
+> **Note:** This implementation uses the rigorous P30→P1 conversion, not the `P30/30` approximation from the paper which is inaccurate for high EPSS scores.
+
+### Setup for LEV
+
+LEV requires historical daily EPSS data. Use the backfill command to build up the time-series:
+
+```bash
+# 1. Import CISA KEV catalog
+./bin/mayu ingest --source kev
+
+# 2. Backfill EPSS daily scores from EPSS v3 release (2023-03-07) to today
+./bin/mayu ingest --source epss --backfill
+
+# Or specify a custom date range
+./bin/mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
+
+# 3. After initial backfill, keep EPSS up-to-date with daily updates
+./bin/mayu ingest --source epss --update
+```
+
+> **Tip:** The backfill downloads ~5-7 MB per day (~200,000 CVE scores). A full backfill from 2023-03-07 covers ~860 days. Already-imported dates are automatically skipped on re-run.
+
+### Viewing LEV scores
+
+LEV is displayed automatically in the `--detail` view and the API `?detail=true` response:
+
+```bash
+./bin/mayu search --id CVE-2023-38831 --detail
+```
+
+Output includes EPSS, KEV, and LEV sections:
+
+```
+EPSS:
+  Score:      0.94218 (94.2%)
+  Percentile: 0.99923 (99.9%)
+  Score Date: 2026-07-19
+KEV (CISA Known Exploited Vulnerabilities):
+  Vendor/Project: WinRAR
+  Product:        WinRAR
+  Vuln Name:      RARLAB WinRAR Code Execution Vulnerability
+  Date Added:     2023-08-24
+  Due Date:       2023-09-14
+  Ransomware Use: Known
+LEV (Likely Exploited Vulnerabilities - NIST CSWP 41):
+  Score:       1.00000 (100.0%)
+  In KEV:      true
+  EPSS Days:   730
+  First EPSS:  2023-03-07
+  Last EPSS:   2025-07-19
+```
+
+API example:
+
+```bash
+curl "http://localhost:8080/api/v1/vulnerabilities/CVE-2023-38831?detail=true" | jq '.lev'
+```
+
+```json
+{
+  "lev": 1.0,
+  "in_kev": true,
+  "epss_score_count": 730,
+  "first_epss_date": "2023-03-07",
+  "last_epss_date": "2025-07-19",
+  "computed_at": "2026-07-19T12:00:00Z"
+}
+```
+
+### Interpreting LEV scores
+
+| LEV Range | Interpretation |
+|-----------|---------------|
+| 0.95 – 1.0 | Almost certainly exploited (or confirmed via KEV) |
+| 0.70 – 0.95 | Very likely exploited |
+| 0.30 – 0.70 | Possibly exploited |
+| 0.05 – 0.30 | Low probability of past exploitation |
+| 0.00 – 0.05 | Unlikely to have been exploited |
+
+> **Important:** LEV is a probabilistic estimate, not a confirmed fact. It should be used alongside other signals (KEV, EPSS, CVSS) for vulnerability prioritization.
 
 ## Contributing
 
@@ -267,7 +380,7 @@ See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 - [x] Phase 3: CI/CD (GitHub Actions)
 - [x] Phase 4: API Server (REST)
 - [x] Phase 5: Web UI (Angular)
-- [ ] Phase 6: Additional Data Sources (LEV)
+- [x] Phase 6: Additional Data Sources (EPSS, KEV, LEV)
 
 ### Web UI
 

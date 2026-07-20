@@ -1,11 +1,13 @@
 // Package model defines the VulnerabilityDetail struct for enriched vulnerability display.
-// It aggregates information from OSV, NVD, and MITRE sources into a single response object.
+// It aggregates information from OSV, NVD, MITRE, EPSS, KEV, and LEV sources
+// into a single response object.
 package model
 
 import "time"
 
 // VulnerabilityDetail is an enriched view of a vulnerability that combines
-// data from OSV, NVD, and MITRE sources. Used by CLI --detail and API /{id} endpoints.
+// data from OSV, NVD, MITRE, EPSS, KEV, and LEV sources.
+// Used by CLI --detail and API /{id} endpoints.
 type VulnerabilityDetail struct {
 	// Base fields (from vulnerabilities table + OSV)
 	ID        string     `json:"id"`
@@ -34,6 +36,76 @@ type VulnerabilityDetail struct {
 
 	// MITRE enrichment
 	MITRE *MITREDetail `json:"mitre,omitempty"`
+
+	// EPSS enrichment (latest score from FIRST EPSS)
+	EPSS *EPSSDetail `json:"epss,omitempty"`
+
+	// KEV enrichment (CISA Known Exploited Vulnerabilities catalog)
+	KEV *KEVDetail `json:"kev,omitempty"`
+
+	// LEV (Likely Exploited Vulnerabilities) computed score
+	// Based on NIST CSWP 41: probability of past exploitation
+	LEV *LEVDetail `json:"lev,omitempty"`
+}
+
+// EPSSDetail contains EPSS enrichment data for a vulnerability.
+type EPSSDetail struct {
+	// EPSS is the probability of exploitation in the next 30 days [0.0, 1.0].
+	EPSS float64 `json:"epss"`
+
+	// Percentile is the relative ranking among all scored CVEs [0.0, 1.0].
+	Percentile float64 `json:"percentile"`
+
+	// ScoreDate is the date the score was calculated.
+	ScoreDate string `json:"score_date"`
+}
+
+// KEVDetail contains CISA KEV enrichment data for a vulnerability.
+type KEVDetail struct {
+	// VendorProject is the vendor or project name (e.g., "Microsoft").
+	VendorProject string `json:"vendor_project"`
+
+	// Product is the affected product name (e.g., "Windows").
+	Product string `json:"product"`
+
+	// VulnerabilityName is the descriptive vulnerability name.
+	VulnerabilityName string `json:"vulnerability_name"`
+
+	// DateAdded is when the CVE was added to the KEV catalog.
+	DateAdded string `json:"date_added"`
+
+	// DueDate is the remediation due date set by CISA.
+	DueDate string `json:"due_date"`
+
+	// RequiredAction describes the required remediation action.
+	RequiredAction string `json:"required_action"`
+
+	// KnownRansomwareCampaignUse indicates if used in ransomware ("Known", "Unknown").
+	KnownRansomwareCampaignUse string `json:"known_ransomware_campaign_use"`
+}
+
+// LEVDetail contains LEV (Likely Exploited Vulnerabilities) enrichment data.
+// Based on NIST CSWP 41: https://doi.org/10.6028/NIST.CSWP.41
+type LEVDetail struct {
+	// LEV is the probability that this vulnerability has been exploited
+	// in the wild at some point in the past [0.0, 1.0].
+	LEV float64 `json:"lev"`
+
+	// InKEV indicates whether the CVE is confirmed exploited (in CISA KEV).
+	// If true, LEV is 1.0.
+	InKEV bool `json:"in_kev"`
+
+	// EPSSScoreCount is the number of historical EPSS scores used in computation.
+	EPSSScoreCount int `json:"epss_score_count"`
+
+	// FirstEPSSDate is the earliest EPSS score date used.
+	FirstEPSSDate string `json:"first_epss_date,omitempty"`
+
+	// LastEPSSDate is the most recent EPSS score date used.
+	LastEPSSDate string `json:"last_epss_date,omitempty"`
+
+	// ComputedAt is when this LEV score was computed.
+	ComputedAt string `json:"computed_at"`
 }
 
 // NVDDetail contains NVD-specific enrichment data for a vulnerability.
