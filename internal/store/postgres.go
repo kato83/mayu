@@ -589,6 +589,11 @@ func severityToScoreRange(level string) (float64, float64) {
 
 // Search finds vulnerabilities matching the given query parameters.
 func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model.Vulnerability, error) {
+	// Use lightweight query path when fields are specified (avoids raw_json fetch)
+	if len(query.Fields) > 0 {
+		return s.searchLight(ctx, query)
+	}
+
 	limit := query.Limit
 	if limit <= 0 {
 		limit = 100
@@ -677,6 +682,11 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 
 // Count returns the number of vulnerabilities matching the given query parameters.
 func (s *PostgresStore) Count(ctx context.Context, query SearchQuery) (int64, error) {
+	// Use lightweight count when fields are specified (avoids heavy JOINs)
+	if len(query.Fields) > 0 {
+		return s.countLight(ctx, query)
+	}
+
 	baseQuery, args, _ := s.buildSearchConditions(query)
 
 	// Wrap the base query as a subquery to count results universally
@@ -686,6 +696,99 @@ func (s *PostgresStore) Count(ctx context.Context, query SearchQuery) (int64, er
 	var count int64
 	if err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count vulnerabilities: %w", err)
+	}
+	return count, nil
+}
+
+// countLight performs a lightweight count that avoids the heavy buildSearchConditions path.
+// It counts directly from the vulnerabilities table without joining osv_entries or computing scores.
+func (s *PostgresStore) countLight(ctx context.Context, query SearchQuery) (int64, error) {
+	var countQuery string
+	var args []interface{}
+	var argIdx int
+
+	switch {
+	case query.ID != "":
+		argIdx++
+		countQuery = fmt.Sprintf(`SELECT COUNT(*) FROM (
+			SELECT v.id FROM vulnerabilities v WHERE v.id = $%d
+			UNION
+			SELECT v.id FROM vulnerabilities v
+			JOIN osv_entries oe ON oe.vulnerability_id = v.id
+			WHERE oe.osv_id = $%d AND v.id != $%d
+		) sub`, argIdx, argIdx, argIdx)
+		args = append(args, query.ID)
+
+	case query.Alias != "":
+		argIdx++
+		countQuery = fmt.Sprintf(`SELECT COUNT(*) FROM (
+			SELECT v.id FROM vulnerabilities v WHERE v.id = $%d
+			UNION
+			SELECT v.id FROM vulnerabilities v
+			WHERE v.id IN (
+				SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $%d
+			) AND v.id != $%d
+		) sub`, argIdx, argIdx, argIdx)
+		args = append(args, query.Alias)
+
+	case query.PackageName != "" || query.Ecosystem != "":
+		countQuery = `SELECT COUNT(*) FROM vulnerabilities v WHERE v.id IN (
+			SELECT DISTINCT oe.vulnerability_id FROM osv_entries oe
+			JOIN osv_affected_packages ap ON ap.osv_entry_id = oe.osv_id
+			WHERE 1=1`
+		if query.Ecosystem != "" {
+			argIdx++
+			countQuery += fmt.Sprintf(` AND ap.ecosystem = $%d`, argIdx)
+			args = append(args, query.Ecosystem)
+		}
+		if query.PackageName != "" {
+			argIdx++
+			countQuery += fmt.Sprintf(` AND ap.name = $%d`, argIdx)
+			args = append(args, query.PackageName)
+		}
+		countQuery += `)`
+
+	default:
+		countQuery = `SELECT COUNT(*) FROM vulnerabilities v WHERE 1=1`
+	}
+
+	// Additional filter: --severity
+	if query.Severity != "" && (query.ID == "" && query.Alias == "") {
+		minScore, maxScore := severityToScoreRange(query.Severity)
+		if minScore >= 0 {
+			argIdx++
+			countQuery += fmt.Sprintf(` AND v.id IN (
+				SELECT oe2.vulnerability_id FROM osv_entries oe2
+				JOIN osv_severity s ON s.osv_entry_id = oe2.osv_id
+				WHERE s.severity_type IN ('CVSS_V3', 'CVSS_V4', 'CVSS_V2')
+				AND cvss_base_score(s.score) >= $%d`, argIdx)
+			args = append(args, minScore)
+			argIdx++
+			countQuery += fmt.Sprintf(` AND cvss_base_score(s.score) < $%d)`, argIdx)
+			args = append(args, maxScore)
+		}
+	}
+
+	// Additional filter: --since
+	if query.Since != "" && (query.ID == "" && query.Alias == "") {
+		argIdx++
+		countQuery += fmt.Sprintf(` AND v.modified >= $%d`, argIdx)
+		args = append(args, query.Since)
+	}
+
+	// Additional filter: --version
+	if query.Version != "" && (query.ID == "" && query.Alias == "") {
+		argIdx++
+		countQuery += fmt.Sprintf(` AND v.id IN (
+			SELECT oe3.vulnerability_id FROM osv_entries oe3
+			JOIN osv_affected_packages ap2 ON ap2.osv_entry_id = oe3.osv_id
+			WHERE $%d = ANY(ap2.versions))`, argIdx)
+		args = append(args, query.Version)
+	}
+
+	var count int64
+	if err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&count); err != nil {
+		return 0, fmt.Errorf("countLight: %w", err)
 	}
 	return count, nil
 }
@@ -780,4 +883,338 @@ func replaceJSONField(data json.RawMessage, field, newValue string) json.RawMess
 		return data
 	}
 	return result
+}
+
+// searchLight performs a lightweight search that avoids fetching raw_json from osv_entries.
+// It builds minimal Vulnerability structs from the vulnerabilities table and related tables
+// (osv_severity, osv_affected_packages) based on the requested fields.
+// This is significantly faster for list views where only a subset of fields is needed.
+func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*model.Vulnerability, error) {
+	limit := query.Limit
+	if limit <= 0 {
+		limit = 100
+	}
+	offset := query.Offset
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Determine which fields are requested
+	fieldSet := make(map[string]bool, len(query.Fields))
+	for _, f := range query.Fields {
+		fieldSet[strings.ToLower(f)] = true
+	}
+
+	needSeverity := fieldSet["severity"]
+	needEcosystem := fieldSet["ecosystem"]
+
+	// Build a lightweight query that never touches raw_json
+	var baseQuery string
+	var args []interface{}
+	var argIdx int
+
+	// All branches produce a query with columns: id, summary, modified, published.
+	// For ID/Alias (UNION) cases, we wrap in a subquery for uniform filter application.
+	// For default/package cases, we query vulnerabilities directly to leverage indexes.
+	var useSubAlias bool // true when the query is already wrapped in "sub"
+
+	switch {
+	case query.ID != "":
+		useSubAlias = true
+		argIdx++
+		baseQuery = fmt.Sprintf(`SELECT id, summary, modified, published FROM (
+			SELECT v.id, v.summary, v.modified, v.published
+			FROM vulnerabilities v WHERE v.id = $%d
+			UNION
+			SELECT v.id, v.summary, v.modified, v.published
+			FROM vulnerabilities v
+			JOIN osv_entries oe ON oe.vulnerability_id = v.id
+			WHERE oe.osv_id = $%d AND v.id != $%d
+		) sub WHERE 1=1`, argIdx, argIdx, argIdx)
+		args = append(args, query.ID)
+
+	case query.Alias != "":
+		useSubAlias = true
+		argIdx++
+		baseQuery = fmt.Sprintf(`SELECT id, summary, modified, published FROM (
+			SELECT v.id, v.summary, v.modified, v.published
+			FROM vulnerabilities v WHERE v.id = $%d
+			UNION
+			SELECT v.id, v.summary, v.modified, v.published
+			FROM vulnerabilities v
+			WHERE v.id IN (
+				SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $%d
+			) AND v.id != $%d
+		) sub WHERE 1=1`, argIdx, argIdx, argIdx)
+		args = append(args, query.Alias)
+
+	case query.PackageName != "" || query.Ecosystem != "":
+		innerWhere := `1=1`
+		if query.Ecosystem != "" {
+			argIdx++
+			innerWhere += fmt.Sprintf(` AND ap.ecosystem = $%d`, argIdx)
+			args = append(args, query.Ecosystem)
+		}
+		if query.PackageName != "" {
+			argIdx++
+			innerWhere += fmt.Sprintf(` AND ap.name = $%d`, argIdx)
+			args = append(args, query.PackageName)
+		}
+		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published
+			FROM vulnerabilities v
+			WHERE v.id IN (
+				SELECT DISTINCT oe.vulnerability_id FROM osv_entries oe
+				JOIN osv_affected_packages ap ON ap.osv_entry_id = oe.osv_id
+				WHERE %s
+			)`, innerWhere)
+
+	default:
+		baseQuery = `SELECT v.id, v.summary, v.modified, v.published
+			FROM vulnerabilities v WHERE 1=1`
+	}
+
+	// Column prefix for additional filters
+	colPrefix := "v."
+	if useSubAlias {
+		colPrefix = ""
+	}
+
+	// Additional filter: --severity
+	if query.Severity != "" {
+		minScore, maxScore := severityToScoreRange(query.Severity)
+		if minScore >= 0 {
+			argIdx++
+			baseQuery += fmt.Sprintf(` AND %sid IN (
+				SELECT oe2.vulnerability_id FROM osv_entries oe2
+				JOIN osv_severity s ON s.osv_entry_id = oe2.osv_id
+				WHERE s.severity_type IN ('CVSS_V3', 'CVSS_V4', 'CVSS_V2')
+				AND cvss_base_score(s.score) >= $%d`, colPrefix, argIdx)
+			args = append(args, minScore)
+			argIdx++
+			baseQuery += fmt.Sprintf(` AND cvss_base_score(s.score) < $%d)`, argIdx)
+			args = append(args, maxScore)
+		}
+	}
+
+	// Additional filter: --since
+	if query.Since != "" {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND %smodified >= $%d`, colPrefix, argIdx)
+		args = append(args, query.Since)
+	}
+
+	// Additional filter: --version
+	if query.Version != "" {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND %sid IN (
+			SELECT oe3.vulnerability_id FROM osv_entries oe3
+			JOIN osv_affected_packages ap2 ON ap2.osv_entry_id = oe3.osv_id
+			WHERE $%d = ANY(ap2.versions))`, colPrefix, argIdx)
+		args = append(args, query.Version)
+	}
+
+	// ORDER BY and pagination
+	argIdx++
+	baseQuery += fmt.Sprintf(` ORDER BY %spublished DESC NULLS LAST LIMIT $%d`, colPrefix, argIdx)
+	args = append(args, limit)
+	argIdx++
+	baseQuery += fmt.Sprintf(` OFFSET $%d`, argIdx)
+	args = append(args, offset)
+
+	rows, err := s.db.QueryContext(ctx, baseQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("searchLight query: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	type lightRow struct {
+		id        string
+		summary   sql.NullString
+		modified  sql.NullTime
+		published sql.NullTime
+	}
+	var lightRows []lightRow
+
+	for rows.Next() {
+		var r lightRow
+		if err := rows.Scan(&r.id, &r.summary, &r.modified, &r.published); err != nil {
+			return nil, fmt.Errorf("searchLight scan: %w", err)
+		}
+		lightRows = append(lightRows, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("searchLight rows: %w", err)
+	}
+
+	if len(lightRows) == 0 {
+		return []*model.Vulnerability{}, nil
+	}
+
+	// Collect vulnerability IDs for batch lookups
+	ids := make([]string, len(lightRows))
+	for i, r := range lightRows {
+		ids[i] = r.id
+	}
+
+	// Batch fetch severity if requested
+	severityMap := make(map[string][]model.Severity)
+	if needSeverity {
+		severityMap, err = s.batchFetchSeverity(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Batch fetch ecosystem if requested
+	ecosystemMap := make(map[string]string)
+	if needEcosystem {
+		ecosystemMap, err = s.batchFetchEcosystem(ctx, ids)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Build results
+	results := make([]*model.Vulnerability, 0, len(lightRows))
+	for _, r := range lightRows {
+		vuln := &model.Vulnerability{
+			ID:      r.id,
+			Summary: r.summary.String,
+		}
+		if r.modified.Valid {
+			vuln.Modified = r.modified.Time
+		}
+		if r.published.Valid {
+			t := r.published.Time
+			vuln.Published = &t
+		}
+
+		if needSeverity {
+			if sev, ok := severityMap[r.id]; ok {
+				vuln.Severity = sev
+			}
+		}
+
+		if needEcosystem {
+			if eco, ok := ecosystemMap[r.id]; ok && eco != "" {
+				vuln.Affected = []model.Affected{{
+					Package: model.Package{
+						Ecosystem: eco,
+					},
+				}}
+			}
+		}
+
+		results = append(results, vuln)
+	}
+
+	return results, nil
+}
+
+// batchFetchSeverity fetches the top severity score for each vulnerability ID.
+// Uses a single query with ANY($1) to avoid N+1 queries.
+func (s *PostgresStore) batchFetchSeverity(ctx context.Context, ids []string) (map[string][]model.Severity, error) {
+	// First try OSV severity, then fall back to NVD/MITRE metrics
+	query := `
+		SELECT oe.vulnerability_id, s.severity_type, s.score
+		FROM osv_severity s
+		JOIN osv_entries oe ON oe.osv_id = s.osv_entry_id
+		WHERE oe.vulnerability_id = ANY($1)
+		AND s.severity_type IN ('CVSS_V3', 'CVSS_V4', 'CVSS_V2')
+		ORDER BY oe.vulnerability_id, s.severity_type DESC`
+
+	rows, err := s.db.QueryContext(ctx, query, ids)
+	if err != nil {
+		return nil, fmt.Errorf("batchFetchSeverity osv: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	result := make(map[string][]model.Severity, len(ids))
+	for rows.Next() {
+		var vulnID, sevType, score string
+		if err := rows.Scan(&vulnID, &sevType, &score); err != nil {
+			return nil, fmt.Errorf("batchFetchSeverity scan: %w", err)
+		}
+		// Only keep the first (highest priority) severity per vulnerability
+		if _, exists := result[vulnID]; !exists {
+			result[vulnID] = []model.Severity{{
+				Type:  model.SeverityType(sevType),
+				Score: score,
+			}}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("batchFetchSeverity rows: %w", err)
+	}
+
+	// For IDs without OSV severity, try NVD metrics
+	var missingIDs []string
+	for _, id := range ids {
+		if _, ok := result[id]; !ok {
+			missingIDs = append(missingIDs, id)
+		}
+	}
+
+	if len(missingIDs) > 0 {
+		nvdQuery := `
+			SELECT ne.vulnerability_id, nm.base_score
+			FROM nvd_metrics nm
+			JOIN nvd_entries ne ON ne.id = nm.nvd_entry_id
+			WHERE ne.vulnerability_id = ANY($1)
+			ORDER BY ne.vulnerability_id, nm.base_score DESC`
+		nvdRows, err := s.db.QueryContext(ctx, nvdQuery, missingIDs)
+		if err != nil {
+			return nil, fmt.Errorf("batchFetchSeverity nvd: %w", err)
+		}
+		defer func() { _ = nvdRows.Close() }()
+
+		for nvdRows.Next() {
+			var vulnID string
+			var baseScore float64
+			if err := nvdRows.Scan(&vulnID, &baseScore); err != nil {
+				return nil, fmt.Errorf("batchFetchSeverity nvd scan: %w", err)
+			}
+			if _, exists := result[vulnID]; !exists {
+				result[vulnID] = []model.Severity{{
+					Type:  model.SeverityTypeCVSSV3,
+					Score: fmt.Sprintf("%.1f", baseScore),
+				}}
+			}
+		}
+		if err := nvdRows.Err(); err != nil {
+			return nil, fmt.Errorf("batchFetchSeverity nvd rows: %w", err)
+		}
+	}
+
+	return result, nil
+}
+
+// batchFetchEcosystem fetches the first ecosystem for each vulnerability ID.
+func (s *PostgresStore) batchFetchEcosystem(ctx context.Context, ids []string) (map[string]string, error) {
+	query := `
+		SELECT DISTINCT ON (oe.vulnerability_id) oe.vulnerability_id, ap.ecosystem
+		FROM osv_affected_packages ap
+		JOIN osv_entries oe ON oe.osv_id = ap.osv_entry_id
+		WHERE oe.vulnerability_id = ANY($1)
+		ORDER BY oe.vulnerability_id, ap.id`
+
+	rows, err := s.db.QueryContext(ctx, query, ids)
+	if err != nil {
+		return nil, fmt.Errorf("batchFetchEcosystem: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	result := make(map[string]string, len(ids))
+	for rows.Next() {
+		var vulnID, ecosystem string
+		if err := rows.Scan(&vulnID, &ecosystem); err != nil {
+			return nil, fmt.Errorf("batchFetchEcosystem scan: %w", err)
+		}
+		result[vulnID] = ecosystem
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("batchFetchEcosystem rows: %w", err)
+	}
+
+	return result, nil
 }

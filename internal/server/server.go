@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -37,6 +39,10 @@ type Config struct {
 
 	// Version is the application version string.
 	Version string
+
+	// UIDir is the path to the SPA static files directory.
+	// If empty, no static file serving is configured.
+	UIDir string
 }
 
 // Server is the HTTP API server.
@@ -44,6 +50,7 @@ type Server struct {
 	httpServer *http.Server
 	store      store.Store
 	version    string
+	uiDir      string
 }
 
 // New creates a new Server with the given configuration.
@@ -51,6 +58,7 @@ func New(cfg Config) *Server {
 	s := &Server{
 		store:   cfg.Store,
 		version: cfg.Version,
+		uiDir:   cfg.UIDir,
 	}
 
 	router := s.routes()
@@ -105,6 +113,11 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 	})
+
+	// SPA static file serving with fallback to index.html
+	if s.uiDir != "" {
+		r.Get("/*", s.handleSPA)
+	}
 
 	return r
 }
@@ -211,6 +224,27 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
+	// Parse fields parameter (comma-separated list of field names)
+	var fields []string
+	if f := q.Get("fields"); f != "" {
+		validFields := map[string]bool{
+			"id": true, "summary": true, "modified": true,
+			"severity": true, "ecosystem": true,
+		}
+		for _, field := range strings.Split(f, ",") {
+			field = strings.TrimSpace(strings.ToLower(field))
+			if field == "" {
+				continue
+			}
+			if !validFields[field] {
+				writeError(w, http.StatusBadRequest,
+					fmt.Sprintf("invalid field %q (valid: id, summary, modified, severity, ecosystem)", field))
+				return
+			}
+			fields = append(fields, field)
+		}
+	}
+
 	query := store.SearchQuery{
 		ID:          id,
 		Ecosystem:   ecosystem,
@@ -221,6 +255,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		Version:     version,
 		Limit:       limit,
 		Offset:      offset,
+		Fields:      fields,
 	}
 
 	ctx := r.Context()
@@ -346,4 +381,119 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 // writeError writes a JSON error response.
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
+}
+
+// handleSPA serves static files from the UI directory with SPA fallback.
+// Structure: ui-dir/{locale}/index.html, ui-dir/{locale}/*.js, etc.
+// - GET / → redirect to /{locale}/ based on Accept-Language
+// - GET /{locale}/assets/foo.js → serve file directly
+// - GET /{locale}/any/spa/route → serve /{locale}/index.html
+func (s *Server) handleSPA(w http.ResponseWriter, r *http.Request) {
+	reqPath := strings.TrimPrefix(filepath.Clean(r.URL.Path), "/")
+
+	// Root: redirect to locale
+	if reqPath == "" || reqPath == "." {
+		locale := s.detectLocale(r)
+		http.Redirect(w, r, "/"+locale+"/", http.StatusFound)
+		return
+	}
+
+	// Try serving the file directly from ui-dir
+	fullPath := filepath.Join(s.uiDir, reqPath)
+	if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+		http.ServeFile(w, r, fullPath)
+		return
+	}
+
+	// SPA fallback: serve {first-segment}/index.html
+	locale := reqPath
+	if idx := strings.IndexByte(reqPath, '/'); idx >= 0 {
+		locale = reqPath[:idx]
+	}
+	indexFile := filepath.Join(s.uiDir, locale, "index.html")
+	if _, err := os.Stat(indexFile); err == nil {
+		http.ServeFile(w, r, indexFile)
+		return
+	}
+
+	http.NotFound(w, r)
+}
+
+// detectLocale determines the preferred locale from the Accept-Language header.
+// Returns the best matching locale directory that exists under uiDir.
+// Falls back to "en" if no match is found.
+func (s *Server) detectLocale(r *http.Request) string {
+	acceptLang := r.Header.Get("Accept-Language")
+	if acceptLang == "" {
+		return "en"
+	}
+
+	// Parse Accept-Language and find the best match among available locale dirs
+	locales := parseAcceptLanguage(acceptLang)
+	for _, lang := range locales {
+		// Check exact match (e.g., "ja", "en")
+		dir := filepath.Join(s.uiDir, lang)
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return lang
+		}
+		// Check base language (e.g., "ja-JP" → "ja")
+		if idx := strings.IndexAny(lang, "-_"); idx > 0 {
+			base := lang[:idx]
+			dir = filepath.Join(s.uiDir, base)
+			if info, err := os.Stat(dir); err == nil && info.IsDir() {
+				return base
+			}
+		}
+	}
+
+	return "en"
+}
+
+// parseAcceptLanguage parses the Accept-Language header and returns languages
+// sorted by quality (highest first). Example: "ja,en-US;q=0.9,en;q=0.8"
+func parseAcceptLanguage(header string) []string {
+	type langQ struct {
+		lang string
+		q    float64
+	}
+
+	var langs []langQ
+	for _, part := range strings.Split(header, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		lang := part
+		q := 1.0
+
+		if idx := strings.Index(part, ";"); idx >= 0 {
+			lang = strings.TrimSpace(part[:idx])
+			qPart := strings.TrimSpace(part[idx+1:])
+			if strings.HasPrefix(qPart, "q=") {
+				if parsed, err := strconv.ParseFloat(qPart[2:], 64); err == nil {
+					q = parsed
+				}
+			}
+		}
+
+		if lang != "" && lang != "*" {
+			langs = append(langs, langQ{lang: strings.ToLower(lang), q: q})
+		}
+	}
+
+	// Sort by quality descending
+	for i := range langs {
+		for j := i + 1; j < len(langs); j++ {
+			if langs[j].q > langs[i].q {
+				langs[i], langs[j] = langs[j], langs[i]
+			}
+		}
+	}
+
+	result := make([]string, len(langs))
+	for i, l := range langs {
+		result[i] = l.lang
+	}
+	return result
 }

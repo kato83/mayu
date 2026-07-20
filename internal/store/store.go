@@ -78,6 +78,11 @@ type SearchQuery struct {
 
 	// Offset for pagination
 	Offset int
+
+	// Fields restricts the response to the specified fields only.
+	// When set, the search uses a lightweight query that avoids fetching raw_json.
+	// Supported fields: id, summary, modified, severity, ecosystem
+	Fields []string
 }
 
 // SyncState tracks the incremental import state for a data source.

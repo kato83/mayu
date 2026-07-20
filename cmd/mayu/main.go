@@ -1393,6 +1393,7 @@ func runServe(args []string) error {
 
 	addr := fs.String("addr", ":8080", "Address to listen on (host:port)")
 	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
+	uiDir := fs.String("ui-dir", "", "Path to SPA static files directory (e.g., ./ui/dist/mayu/browser)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu serve [options]")
@@ -1440,6 +1441,7 @@ func runServe(args []string) error {
 		Addr:    *addr,
 		Store:   s,
 		Version: version,
+		UIDir:   *uiDir,
 	})
 
 	// Start server in goroutine.
@@ -1452,6 +1454,10 @@ func runServe(args []string) error {
 		fmt.Printf("  API:     http://localhost%s/api/v1/vulnerabilities\n", *addr)
 		fmt.Printf("  OpenAPI: http://localhost%s/openapi.yaml\n", *addr)
 		fmt.Printf("  Health:  http://localhost%s/healthz\n", *addr)
+		if *uiDir != "" {
+			fmt.Printf("  UI:      http://localhost%s/\n", *addr)
+			fmt.Printf("  UI Dir:  %s\n", *uiDir)
+		}
 		fmt.Println()
 		fmt.Println("Press Ctrl+C to stop.")
 
