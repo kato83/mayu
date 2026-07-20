@@ -465,13 +465,17 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 	switch {
 	case query.ID != "":
 		// Use UNION ALL to avoid OR across joined tables which causes full table scans.
-		// Branch 1: match by vulnerabilities.id (PK lookup), join osv_entries via vulnerability_id FK
+		// Branch 1: match by vulnerabilities.id (PK lookup), pick one osv_entry (LIMIT 1)
 		// Branch 2: match by osv_entries.osv_id (PK lookup), resolve the parent vulnerability
 		// The NOT EXISTS clause prevents duplicates when query.ID matches both v.id and oe.osv_id.
+		// LEFT JOIN LATERAL ... LIMIT 1 ensures we return exactly one row per vulnerability,
+		// even when multiple osv_entries share the same vulnerability_id.
 		argIdx++
 		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, nvd_score FROM (
 			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
-			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
+			LEFT JOIN LATERAL (
+				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+			) oe ON true
 			WHERE v.id = $` + fmt.Sprint(argIdx) + `
 			UNION ALL
 			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM osv_entries oe
@@ -484,14 +488,19 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 	case query.Alias != "":
 		// Use UNION ALL: branch 1 matches by vulnerabilities.id directly (user passed a CVE as alias),
 		// branch 2 resolves via vulnerability_aliases table, excluding any already found in branch 1.
+		// LEFT JOIN LATERAL ... LIMIT 1 ensures one row per vulnerability.
 		argIdx++
 		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, nvd_score FROM (
 			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
-			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
+			LEFT JOIN LATERAL (
+				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+			) oe ON true
 			WHERE v.id = $` + fmt.Sprint(argIdx) + `
 			UNION ALL
 			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
-			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
+			LEFT JOIN LATERAL (
+				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+			) oe ON true
 			WHERE v.id IN (
 				SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $` + fmt.Sprint(argIdx) + `
 			) AND v.id != $` + fmt.Sprint(argIdx) + `
@@ -499,8 +508,9 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		args = append(args, query.Alias)
 
 	case query.PackageName != "" || query.Ecosystem != "":
-		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
-			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
+		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, nvd_score FROM (
+			SELECT DISTINCT ON (v.id) oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
+			JOIN osv_entries oe ON oe.vulnerability_id = v.id
 			WHERE oe.osv_id IN (
 				SELECT ap.osv_entry_id FROM osv_affected_packages ap WHERE 1=1`
 		if query.Ecosystem != "" {
@@ -513,11 +523,13 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 			baseQuery += fmt.Sprintf(` AND ap.name = $%d`, argIdx)
 			args = append(args, query.PackageName)
 		}
-		baseQuery += `)`
+		baseQuery += `) ORDER BY v.id) sub WHERE 1=1`
 
 	default:
 		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
-			LEFT JOIN osv_entries oe ON oe.vulnerability_id = v.id
+			LEFT JOIN LATERAL (
+				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+			) oe ON true
 			WHERE 1=1`
 	}
 
