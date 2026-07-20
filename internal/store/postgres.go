@@ -629,6 +629,15 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 			if err != nil {
 				return nil, fmt.Errorf("parse vulnerability: %w", err)
 			}
+			// Override ID with the canonical vulnerability ID (e.g., CVE-xxx)
+			// since raw_json contains the original OSV ID (e.g., GHSA-xxx).
+			if vulnID != "" && vuln.ID != vulnID {
+				vuln.ID = vulnID
+				// Also patch the "id" field in RawJSON so JSON output is consistent.
+				if vuln.RawJSON != nil {
+					vuln.RawJSON = replaceJSONField(vuln.RawJSON, "id", vulnID)
+				}
+			}
 			// If OSV entry has no severity but NVD/MITRE does, supplement it
 			if len(vuln.Severity) == 0 && nvdScore.Valid {
 				vuln.Severity = []model.Severity{{
@@ -752,4 +761,23 @@ func pgTextArray(ss []string) interface{} {
 		return nil
 	}
 	return ss
+}
+
+// replaceJSONField replaces a top-level string field in a JSON object.
+// If the field is not found or the JSON is malformed, returns the original data unchanged.
+func replaceJSONField(data json.RawMessage, field, newValue string) json.RawMessage {
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return data
+	}
+	quotedValue, err := json.Marshal(newValue)
+	if err != nil {
+		return data
+	}
+	obj[field] = quotedValue
+	result, err := json.Marshal(obj)
+	if err != nil {
+		return data
+	}
+	return result
 }
