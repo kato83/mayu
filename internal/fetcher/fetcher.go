@@ -65,6 +65,11 @@ func validatePathSegment(name, value string) error {
 	if strings.Contains(value, "..") {
 		return fmt.Errorf("%s contains path traversal sequence", name)
 	}
+	// The OSV GCS bucket uses "[EMPTY]" as an ecosystem name for entries
+	// with no ecosystem in the affected package. Allow it as a special case.
+	if value == "[EMPTY]" {
+		return nil
+	}
 	if !validPathSegment.MatchString(value) {
 		return fmt.Errorf("%s contains invalid characters: %q", name, value)
 	}

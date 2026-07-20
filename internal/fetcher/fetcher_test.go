@@ -318,6 +318,8 @@ func TestValidatePathSegment(t *testing.T) {
 		{"valid with space", "GitHub Actions", false},
 		{"valid vuln id", "GO-2024-0001", false},
 		{"valid cve", "CVE-2024-24790", false},
+		{"valid bracketed ecosystem", "[EMPTY]", false},
+		{"rejects other brackets", "[OTHER]", true},
 		{"empty", "", true},
 		{"path traversal", "../../other-bucket/x", true},
 		{"dotdot only", "..", true},
