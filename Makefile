@@ -1,4 +1,4 @@
-.PHONY: build build-release test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down
+.PHONY: build build-release test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down ui-dev ui-build ui-test ui-lint
 
 # Variables
 BINARY_NAME=mayu
@@ -55,3 +55,16 @@ migrate-down:
 migrate-create:
 	@read -p "Migration name: " name; \
 	migrate create -ext sql -dir migrations -seq $$name
+
+# UI (Angular)
+ui-dev:
+	pnpm --prefix ui run start
+
+ui-build:
+	pnpm --prefix ui run build
+
+ui-test:
+	pnpm --prefix ui run test --watch=false
+
+ui-lint:
+	pnpm --prefix ui run ng lint

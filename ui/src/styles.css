@@ -1,0 +1,9 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import 'tailwindcss';
+
+/*
+ * Dark mode: TailwindCSS v4 automatically supports dark: variant
+ * via @media (prefers-color-scheme: dark) by default.
+ * No additional configuration needed.
+ */

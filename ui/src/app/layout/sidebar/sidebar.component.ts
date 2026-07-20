@@ -1,0 +1,78 @@
+import { Component, input, output } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
+
+interface NavItem {
+  label: string;
+  route: string;
+  icon: string;
+}
+
+@Component({
+  selector: 'app-sidebar',
+  standalone: true,
+  imports: [RouterLink, RouterLinkActive],
+  template: `
+    <aside
+      [class]="sidebarClasses()"
+    >
+      <!-- Logo / App name -->
+      <div class="flex items-center justify-between h-16 px-6 border-b border-slate-700">
+        <span class="text-xl font-bold tracking-wide">Mayu</span>
+        <!-- Close button (mobile only) -->
+        <button
+          class="md:hidden text-slate-400 hover:text-white"
+          (click)="closed.emit()"
+          aria-label="Close menu"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 overflow-y-auto py-4">
+        <ul class="space-y-1 px-3">
+          @for (item of navItems; track item.route) {
+            <li>
+              <a
+                [routerLink]="item.route"
+                routerLinkActive="bg-slate-700 text-white"
+                (click)="closed.emit()"
+                class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+              >
+                <span class="text-lg">{{ item.icon }}</span>
+                <span>{{ item.label }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      </nav>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-slate-700 text-xs text-slate-400">
+        Vulnerability Intelligence
+      </div>
+    </aside>
+  `,
+})
+export class SidebarComponent {
+  /** Whether the sidebar is open (mobile) */
+  open = input(false);
+
+  /** Emitted when sidebar should close */
+  closed = output<void>();
+
+  readonly navItems: NavItem[] = [
+    { label: 'Vulnerabilities', route: '/vulnerabilities', icon: '🛡️' },
+  ];
+
+  sidebarClasses(): string {
+    const base = 'fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 text-slate-100 flex flex-col transition-transform duration-200 ease-in-out';
+    if (this.open()) {
+      return `${base} translate-x-0`;
+    }
+    // On desktop (md+), always visible. On mobile, hidden by default.
+    return `${base} -translate-x-full md:translate-x-0`;
+  }
+}
