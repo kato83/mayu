@@ -1,2 +1,8 @@
 overrides:
   esbuild: ">=0.28.1"
+
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
