@@ -211,12 +211,9 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 				return fmt.Errorf("delete orphaned vulnerability: %w", err)
 			}
 		}
-	} else if oldVulnID.Valid && oldVulnID.String == canID {
-		// Same canonical ID — delete old osv_entry data (will be re-created below)
-		if _, err := tx.ExecContext(ctx, `DELETE FROM osv_entries WHERE osv_id = $1`, osvID); err != nil {
-			return fmt.Errorf("delete existing osv_entry: %w", err)
-		}
 	}
+	// When oldVulnID.Valid && oldVulnID.String == canID (same canonical ID),
+	// no action is needed here — Step 5 handles it via ON CONFLICT DO UPDATE.
 
 	// --- Step 3: Upsert into unified vulnerabilities table ---
 	_, err = tx.ExecContext(ctx, `
@@ -296,16 +293,25 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 	}
 
-	// --- Step 5: Insert osv_entry ---
-	// Unconditionally delete any existing row to handle TOCTOU races where
-	// another transaction (e.g., parallel Chainguard/Wolfi import sharing the
-	// same CGA-* IDs) committed between Step 1's SELECT and this INSERT.
-	if _, err := tx.ExecContext(ctx, `DELETE FROM osv_entries WHERE osv_id = $1`, osvID); err != nil {
-		return fmt.Errorf("delete osv_entry before insert: %w", err)
+	// --- Step 5: Upsert osv_entry ---
+	// Delete child tables first (they will be re-created below).
+	// This handles both the normal re-import case and the TOCTOU race where
+	// another transaction (e.g., parallel Chainguard/Wolfi sharing the same
+	// CGA-* IDs) committed between Step 1's SELECT and this point.
+	// Deleting children is safe even if the osv_entry doesn't exist yet (0 rows affected).
+	for _, childTable := range []string{"osv_severity", "osv_affected_packages", "osv_references", "osv_credits"} {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM `+childTable+` WHERE osv_entry_id = $1`, osvID); err != nil {
+			return fmt.Errorf("delete %s before upsert: %w", childTable, err)
+		}
 	}
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO osv_entries (osv_id, vulnerability_id, schema_version, raw_json, database_specific)
-		VALUES ($1, $2, $3, $4, $5)`,
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (osv_id) DO UPDATE SET
+			vulnerability_id = EXCLUDED.vulnerability_id,
+			schema_version = EXCLUDED.schema_version,
+			raw_json = EXCLUDED.raw_json,
+			database_specific = EXCLUDED.database_specific`,
 		osvID,
 		canID,
 		nullIfEmpty(vuln.SchemaVersion),
@@ -313,7 +319,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		nullableRawJSON(vuln.DatabaseSpecific),
 	)
 	if err != nil {
-		return fmt.Errorf("insert osv_entry: %w", err)
+		return fmt.Errorf("upsert osv_entry: %w", err)
 	}
 
 	// --- Step 6: Insert top-level severity (bulk) ---
