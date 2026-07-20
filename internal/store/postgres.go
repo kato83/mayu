@@ -696,15 +696,19 @@ func (s *PostgresStore) GetSyncState(ctx context.Context, source string) (*SyncS
 		}
 		return nil, fmt.Errorf("query sync_state: %w", err)
 	}
-	state.LastModifiedAt = lastModified.Format(time.RFC3339)
+	state.LastModifiedAt = lastModified.Format(time.RFC3339Nano)
 	return &state, nil
 }
 
 // UpdateSyncState creates or updates the sync state for a source.
 func (s *PostgresStore) UpdateSyncState(ctx context.Context, state *SyncState) error {
-	lastModified, err := time.Parse(time.RFC3339, state.LastModifiedAt)
+	lastModified, err := time.Parse(time.RFC3339Nano, state.LastModifiedAt)
 	if err != nil {
-		return fmt.Errorf("parse last_modified_at: %w", err)
+		// Fall back to RFC3339 for backward compatibility with existing data
+		lastModified, err = time.Parse(time.RFC3339, state.LastModifiedAt)
+		if err != nil {
+			return fmt.Errorf("parse last_modified_at: %w", err)
+		}
 	}
 
 	_, err = s.db.ExecContext(ctx, `

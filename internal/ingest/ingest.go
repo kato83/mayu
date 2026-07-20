@@ -177,9 +177,12 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 		return ing.FullImport(ctx, ecosystem)
 	}
 
-	since, err := time.Parse(time.RFC3339, syncState.LastModifiedAt)
+	since, err := time.Parse(time.RFC3339Nano, syncState.LastModifiedAt)
 	if err != nil {
-		return nil, fmt.Errorf("parse last_modified_at: %w", err)
+		since, err = time.Parse(time.RFC3339, syncState.LastModifiedAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse last_modified_at: %w", err)
+		}
 	}
 
 	// Phase 1: Download and parse CSV
@@ -307,9 +310,16 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 
 	// Update sync state with the latest modified timestamp from the CSV
 	if len(updated) > 0 {
+		// PostgreSQL timestamptz has microsecond precision, but CSV timestamps
+		// may have nanosecond precision. Round up to the next microsecond to
+		// ensure the same entry is not re-fetched due to precision loss.
+		latest := updated[0].ModifiedAt
+		if nanos := latest.Nanosecond() % 1000; nanos > 0 {
+			latest = latest.Truncate(time.Microsecond).Add(time.Microsecond)
+		}
 		newSyncState := &store.SyncState{
 			Source:         ecosystem,
-			LastModifiedAt: updated[0].ModifiedAt.Format(time.RFC3339), // First entry is the newest
+			LastModifiedAt: latest.Format(time.RFC3339Nano),
 			RecordCount:    syncState.RecordCount + int64(stats.Inserted),
 		}
 		if err := ing.store.UpdateSyncState(ctx, newSyncState); err != nil {
