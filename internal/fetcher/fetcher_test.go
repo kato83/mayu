@@ -440,9 +440,14 @@ func TestStreamAllZip(t *testing.T) {
 
 	f := New(WithBaseURL(server.URL))
 
-	entries, errCh, err := f.StreamAllZip(context.Background(), "Go")
+	entries, errCh, totalCount, err := f.StreamAllZip(context.Background(), "Go")
 	if err != nil {
 		t.Fatalf("StreamAllZip failed: %v", err)
+	}
+
+	// Verify total count matches expected JSON files
+	if totalCount != 2 {
+		t.Errorf("expected totalCount=2, got %d", totalCount)
 	}
 
 	// Collect all entries
@@ -485,7 +490,7 @@ func TestStreamAllZip_TempFileCleanup(t *testing.T) {
 
 	f := New(WithBaseURL(server.URL))
 
-	entries, errCh, err := f.StreamAllZip(context.Background(), "Go")
+	entries, errCh, _, err := f.StreamAllZip(context.Background(), "Go")
 	if err != nil {
 		t.Fatalf("StreamAllZip failed: %v", err)
 	}
@@ -565,7 +570,7 @@ func TestStreamAllZip_ContextCancellation(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	entries, errCh, err := f.StreamAllZip(ctx, "Go")
+	entries, errCh, _, err := f.StreamAllZip(ctx, "Go")
 	if err != nil {
 		t.Fatalf("StreamAllZip failed: %v", err)
 	}
@@ -652,9 +657,14 @@ func TestStreamTopLevelAllZip(t *testing.T) {
 
 	f := New(WithBaseURL(server.URL))
 
-	entries, errCh, err := f.StreamTopLevelAllZip(context.Background())
+	entries, errCh, totalCount, err := f.StreamTopLevelAllZip(context.Background())
 	if err != nil {
 		t.Fatalf("StreamTopLevelAllZip failed: %v", err)
+	}
+
+	// Verify total count matches expected JSON files
+	if totalCount != 2 {
+		t.Errorf("expected totalCount=2, got %d", totalCount)
 	}
 
 	// Collect all entries
@@ -698,7 +708,7 @@ func TestStreamTopLevelAllZip_ContextCancellation(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	entries, errCh, err := f.StreamTopLevelAllZip(ctx)
+	entries, errCh, _, err := f.StreamTopLevelAllZip(ctx)
 	if err != nil {
 		t.Fatalf("StreamTopLevelAllZip failed: %v", err)
 	}
