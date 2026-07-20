@@ -244,6 +244,33 @@ curl "http://localhost:8080/api/v1/vulnerabilities?severity=critical"
 curl "http://localhost:8080/api/v1/vulnerabilities?purl=pkg:golang/golang.org/x/crypto"
 ```
 
+### `mayu migrate`
+
+データベースマイグレーションを実行します（バイナリに埋め込み済み）。
+
+| フラグ | 説明 | デフォルト |
+|--------|------|-----------|
+| `--steps` | 適用するマイグレーション数（0 = 全て、負数でロールバック） | `0` |
+| `--db-url` | PostgreSQL 接続URL | `$DATABASE_URL` または `localhost` |
+
+**サブコマンド:**
+
+| サブコマンド | 説明 |
+|------------|------|
+| `up` | 未適用のマイグレーションを全て適用（デフォルト） |
+| `down` | 1つロールバック（`--steps N` で複数） |
+| `status` | 現在のマイグレーションバージョンを表示 |
+
+**使用例:**
+
+```bash
+mayu migrate              # 未適用のマイグレーションを全て適用
+mayu migrate up
+mayu migrate down
+mayu migrate down --steps 3
+mayu migrate status
+```
+
 ### `mayu version`
 
 バージョン情報を表示します。
