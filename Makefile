@@ -15,6 +15,7 @@ build-release:
 build-embed: ui-build
 	rm -rf internal/uiassets/dist
 	cp -r ui/dist/mayu/browser internal/uiassets/dist
+	touch internal/uiassets/dist/.gitkeep
 	go build -tags uiembed -ldflags "-s -w -X main.version=$(VERSION)" -o bin/$(BINARY_NAME) ./cmd/mayu
 
 # Test
