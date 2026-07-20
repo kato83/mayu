@@ -243,6 +243,33 @@ curl "http://localhost:8080/api/v1/vulnerabilities?severity=critical"
 curl "http://localhost:8080/api/v1/vulnerabilities?purl=pkg:golang/golang.org/x/crypto"
 ```
 
+### `mayu migrate`
+
+Run database migrations (embedded in the binary).
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--steps` | Number of migrations to apply (0 = all, negative to roll back) | `0` |
+| `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `up` | Apply all pending migrations (default) |
+| `down` | Roll back one migration (or `--steps N`) |
+| `status` | Show current migration version |
+
+**Examples:**
+
+```bash
+mayu migrate              # Apply all pending migrations
+mayu migrate up
+mayu migrate down
+mayu migrate down --steps 3
+mayu migrate status
+```
+
 ### `mayu version`
 
 Print version information.

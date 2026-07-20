@@ -55,6 +55,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "migrate":
+		if err := runMigrate(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "help", "-h", "--help":
 		printUsage()
 	default:
@@ -71,6 +76,7 @@ func printUsage() {
 	fmt.Println("  ingest     Import vulnerability data from OSV, NVD, MITRE, EPSS, KEV")
 	fmt.Println("  search     Search for vulnerabilities")
 	fmt.Println("  serve      Start the API server")
+	fmt.Println("  migrate    Run database migrations")
 	fmt.Println("  version    Print version information")
 	fmt.Println("  help       Show this help message")
 	fmt.Println()
