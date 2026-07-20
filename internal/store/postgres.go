@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -111,6 +112,13 @@ func (s *PostgresStore) UpsertBatch(ctx context.Context, vulns []*model.Vulnerab
 
 // upsertBatchOnce performs a single attempt of UpsertBatch.
 func (s *PostgresStore) upsertBatchOnce(ctx context.Context, vulns []*model.Vulnerability) error {
+	// Sort entries by canonical vulnerability ID to ensure consistent lock
+	// ordering across parallel store workers. This prevents deadlocks where
+	// two workers lock the same vulnerabilities rows in different order.
+	sort.Slice(vulns, func(i, j int) bool {
+		return canonicalID(vulns[i].ID, vulns[i].Aliases) < canonicalID(vulns[j].ID, vulns[j].Aliases)
+	})
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
