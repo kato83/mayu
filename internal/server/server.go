@@ -116,6 +116,9 @@ func (s *Server) routes() http.Handler {
 	// OpenAPI spec
 	r.Get("/openapi.yaml", s.handleOpenAPISpec)
 
+	// Swagger UI (Scalar)
+	r.Get("/swagger", s.handleSwaggerUI)
+
 	// API v1 routes
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
@@ -150,6 +153,24 @@ func (s *Server) handleOpenAPISpec(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(data)
+}
+
+// handleSwaggerUI serves an interactive API documentation page using Scalar.
+func (s *Server) handleSwaggerUI(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Mayu API Reference</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <script id="api-reference" data-url="/openapi.yaml"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+</body>
+</html>`))
 }
 
 // handleSearchVulnerabilities handles GET /api/v1/vulnerabilities
