@@ -146,8 +146,18 @@ go build -o bin/mayu ./cmd/mayu
 # カスタムポートで起動
 ./bin/mayu serve --addr :3000
 
+# Web UI を配信（SPA ホスティング、i18n ロケール対応）
+./bin/mayu serve --ui-dir ./ui/dist/mayu/browser
+
 # OpenAPI 仕様書: http://localhost:8080/openapi.yaml
 ```
+
+> [!NOTE]
+> `--ui-dir` オプションは開発環境や小規模デプロイ向けの簡易機能です。
+> 本番環境では、Angular の静的アセットを専用 Web サーバー（Nginx、Apache）
+> または CDN 付きストレージサービス（S3 + CloudFront、GCS + Cloud CDN 等）
+> で配信することを推奨します。キャッシュ、圧縮、アクセス制御、水平スケーラビリティ
+> の面で優れています。
 
 ## CLI リファレンス
 
@@ -200,6 +210,7 @@ API サーバーを起動します。
 | フラグ | 説明 | デフォルト |
 |--------|------|-----------|
 | `--addr` | リッスンするアドレス（host:port） | `:8080` |
+| `--ui-dir` | SPA 静的ファイルディレクトリのパス（Web UI ホスティング用） | — |
 | `--db-url` | PostgreSQL 接続URL | `$DATABASE_URL` または `localhost` |
 
 **エンドポイント:**
