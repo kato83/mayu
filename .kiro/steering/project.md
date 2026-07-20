@@ -79,6 +79,10 @@ mayu/
 - Translation files: `ui/src/locale/messages.ja.xlf`
 - After adding/modifying text, run `make ui-i18n-extract` and update translations
 - Use `$localize` tagged template for strings in TypeScript code
+- SPA hosting: `mayu serve --ui-dir ./ui/dist/mayu/browser` (dev/small deployments only)
+- Production: serve Angular assets via Nginx/Apache or CDN (S3+CloudFront, GCS+Cloud CDN)
+- i18n build output: `ui/dist/mayu/browser/{locale}/` (e.g., `en/`, `ja/`)
+- The Go server handles locale routing via Accept-Language header with fallback to `en`
 
 ### Dependencies
 

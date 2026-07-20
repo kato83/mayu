@@ -146,8 +146,17 @@ go build -o bin/mayu ./cmd/mayu
 # Start on custom port
 ./bin/mayu serve --addr :3000
 
+# Serve with Web UI (SPA hosting with i18n locale support)
+./bin/mayu serve --ui-dir ./ui/dist/mayu/browser
+
 # OpenAPI spec available at http://localhost:8080/openapi.yaml
 ```
+
+> [!NOTE]
+> The `--ui-dir` option is provided for convenience in development and small deployments.
+> For production, we recommend serving the Angular static assets via a dedicated web server
+> (Nginx, Apache) or a CDN-backed storage service (S3 + CloudFront, GCS + Cloud CDN, etc.)
+> to benefit from proper caching, compression, access control, and horizontal scalability.
 
 ## CLI Reference
 
@@ -200,6 +209,7 @@ Start the API server for programmatic access to vulnerability data.
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--addr` | Address to listen on (host:port) | `:8080` |
+| `--ui-dir` | Path to SPA static files directory for Web UI hosting | — |
 | `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 
 **Endpoints:**
