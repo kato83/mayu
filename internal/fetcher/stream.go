@@ -27,9 +27,9 @@ type ZipEntry struct {
 //
 // The temporary file is automatically cleaned up when streaming completes or
 // an error occurs.
-func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan ZipEntry, <-chan error, error) {
+func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan ZipEntry, <-chan error, int, error) {
 	if err := validatePathSegment("ecosystem", ecosystem); err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 
 	u := fmt.Sprintf("%s/%s/all.zip", f.baseURL, url.PathEscape(ecosystem))
@@ -37,7 +37,7 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 	// Download the zip to a temporary file instead of memory.
 	tmpFile, fileSize, err := f.downloadToTempFile(ctx, u)
 	if err != nil {
-		return nil, nil, fmt.Errorf("download %s: %w", u, err)
+		return nil, nil, 0, fmt.Errorf("download %s: %w", u, err)
 	}
 
 	// Open zip reader from the temporary file (random access via *os.File).
@@ -45,7 +45,7 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 	if err != nil {
 		_ = tmpFile.Close()
 		_ = os.Remove(tmpFile.Name())
-		return nil, nil, fmt.Errorf("open zip: %w", err)
+		return nil, nil, 0, fmt.Errorf("open zip: %w", err)
 	}
 
 	// Check entry count limit.
@@ -58,7 +58,7 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 	if jsonCount > MaxZipEntries {
 		_ = tmpFile.Close()
 		_ = os.Remove(tmpFile.Name())
-		return nil, nil, fmt.Errorf("zip contains %d entries, exceeding maximum of %d", jsonCount, MaxZipEntries)
+		return nil, nil, 0, fmt.Errorf("zip contains %d entries, exceeding maximum of %d", jsonCount, MaxZipEntries)
 	}
 
 	entries := make(chan ZipEntry, 100) // Buffer to allow some read-ahead
@@ -112,7 +112,7 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 		}
 	}()
 
-	return entries, errCh, nil
+	return entries, errCh, jsonCount, nil
 }
 
 // StreamTopLevelAllZip downloads the top-level all.zip (which contains
@@ -122,7 +122,7 @@ func (f *Fetcher) StreamAllZip(ctx context.Context, ecosystem string) (<-chan Zi
 //
 // This uses a longer timeout appropriate for large file downloads.
 // The temporary file is automatically cleaned up when streaming completes.
-func (f *Fetcher) StreamTopLevelAllZip(ctx context.Context) (<-chan ZipEntry, <-chan error, error) {
+func (f *Fetcher) StreamTopLevelAllZip(ctx context.Context) (<-chan ZipEntry, <-chan error, int, error) {
 	u := fmt.Sprintf("%s/all.zip", f.baseURL)
 
 	// Use a longer timeout for the large download.
@@ -133,7 +133,7 @@ func (f *Fetcher) StreamTopLevelAllZip(ctx context.Context) (<-chan ZipEntry, <-
 	}
 	tmpFile, fileSize, err := f.downloadToTempFileWith(ctx, u, largeClient, MaxResponseSize)
 	if err != nil {
-		return nil, nil, fmt.Errorf("download top-level all.zip: %w", err)
+		return nil, nil, 0, fmt.Errorf("download top-level all.zip: %w", err)
 	}
 
 	// Open zip reader from the temporary file.
@@ -141,7 +141,7 @@ func (f *Fetcher) StreamTopLevelAllZip(ctx context.Context) (<-chan ZipEntry, <-
 	if err != nil {
 		_ = tmpFile.Close()
 		_ = os.Remove(tmpFile.Name())
-		return nil, nil, fmt.Errorf("open zip: %w", err)
+		return nil, nil, 0, fmt.Errorf("open zip: %w", err)
 	}
 
 	// Check entry count limit.
@@ -154,7 +154,7 @@ func (f *Fetcher) StreamTopLevelAllZip(ctx context.Context) (<-chan ZipEntry, <-
 	if jsonCount > MaxZipEntries {
 		_ = tmpFile.Close()
 		_ = os.Remove(tmpFile.Name())
-		return nil, nil, fmt.Errorf("zip contains %d entries, exceeding maximum of %d", jsonCount, MaxZipEntries)
+		return nil, nil, 0, fmt.Errorf("zip contains %d entries, exceeding maximum of %d", jsonCount, MaxZipEntries)
 	}
 
 	entries := make(chan ZipEntry, 100)
@@ -210,7 +210,7 @@ func (f *Fetcher) StreamTopLevelAllZip(ctx context.Context) (<-chan ZipEntry, <-
 		}
 	}()
 
-	return entries, errCh, nil
+	return entries, errCh, jsonCount, nil
 }
 
 // downloadToTempFile downloads the URL content directly to a temporary file,

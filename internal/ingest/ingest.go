@@ -122,15 +122,15 @@ func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, 
 	// Phase 1: Download and start streaming
 	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Downloading %s/all.zip...", ecosystem)})
 
-	entries, errCh, err := ing.fetcher.StreamAllZip(ctx, ecosystem)
+	entries, errCh, totalEntries, err := ing.fetcher.StreamAllZip(ctx, ecosystem)
 	if err != nil {
 		return nil, fmt.Errorf("fetch all.zip for %s: %w", ecosystem, err)
 	}
 
 	// Phase 2+3: Parallel parse and store with multiple workers.
-	ing.progress(Progress{Phase: "store", Message: "Processing entries..."})
+	ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Processing %d entries...", totalEntries)})
 
-	inserted, processed, parseErrors, err := ing.streamParseAndStore(ctx, entries, errCh)
+	inserted, processed, parseErrors, err := ing.streamParseAndStore(ctx, entries, errCh, totalEntries)
 	if err != nil {
 		return nil, err
 	}
@@ -347,15 +347,15 @@ func (ing *Ingester) BulkImportAll(ctx context.Context) (*Stats, error) {
 	// Phase 1: Download the top-level all.zip.
 	ing.progress(Progress{Phase: "download", Message: "Downloading top-level all.zip (~1.3GB)... this may take a while."})
 
-	entries, errCh, err := ing.fetcher.StreamTopLevelAllZip(ctx)
+	entries, errCh, totalEntries, err := ing.fetcher.StreamTopLevelAllZip(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fetch top-level all.zip: %w", err)
 	}
 
 	// Phase 2+3: Parallel parse and store with multiple workers.
-	ing.progress(Progress{Phase: "store", Message: "Processing entries..."})
+	ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Processing %d entries...", totalEntries)})
 
-	inserted, processed, parseErrors, err := ing.streamParseAndStore(ctx, entries, errCh)
+	inserted, processed, parseErrors, err := ing.streamParseAndStore(ctx, entries, errCh, totalEntries)
 	if err != nil {
 		return nil, err
 	}
@@ -433,7 +433,7 @@ func (ing *Ingester) storeBatches(ctx context.Context, vulns []*model.Vulnerabil
 // FullImport and BulkImportAll.
 //
 // It returns (inserted, processed, errors, err).
-func (ing *Ingester) streamParseAndStore(ctx context.Context, entries <-chan fetcher.ZipEntry, errCh <-chan error) (inserted int, processed int, parseErrors int, err error) {
+func (ing *Ingester) streamParseAndStore(ctx context.Context, entries <-chan fetcher.ZipEntry, errCh <-chan error, total int) (inserted int, processed int, parseErrors int, err error) {
 	batchCh := make(chan []*model.Vulnerability, ing.storeWorkers*2)
 
 	// Producer: read from entries channel, parse, and dispatch batches.
@@ -484,7 +484,7 @@ func (ing *Ingester) streamParseAndStore(ctx context.Context, entries <-chan fet
 	}()
 
 	// Consumers: parallel store workers.
-	totalInserted, storeErr := ing.consumeBatches(ctx, batchCh, 0)
+	totalInserted, storeErr := ing.consumeBatches(ctx, batchCh, total)
 
 	// Wait for producer to finish.
 	<-producerDone
