@@ -354,3 +354,20 @@ MITRE CVE-specific detail tables for CVE Records ingested from the CVEProject/cv
 2. If no CVE exists, the OSV ID is used as canonical ID.
 3. When a CVE is assigned later (OSV entry updated with new alias), the old `vulnerabilities` row is migrated to the CVE ID and orphaned rows are cleaned up.
 4. The OSV ID itself is stored as an alias when the canonical ID differs (enabling reverse lookups by OSV ID).
+
+### Known Limitations
+
+#### `osv_entries.osv_id` collision across ecosystems using CVE IDs directly
+
+Some OSV ecosystems (Ubuntu, Debian, AlmaLinux, etc.) use the CVE ID itself as the OSV entry ID (e.g., `id: "CVE-2024-XXXXX"`) rather than a prefixed ecosystem-specific ID (e.g., `GO-2024-XXXX`, `GHSA-xxxx`).
+
+Currently, `osv_entries` uses `osv_id` as the primary key. If **two or more ecosystems** publish OSV entries with the same CVE ID as their `id`, the later import will overwrite the earlier one via `ON CONFLICT (osv_id) DO UPDATE`.
+
+**Impact:** Only one ecosystem's OSV entry data (raw_json, affected packages, etc.) is retained when multiple ecosystems use the same CVE ID as their OSV entry ID. The `vulnerabilities` master row and aliases are unaffected (correctly merged).
+
+**Current status:** In practice, only one ecosystem per CVE typically uses the CVE ID directly (e.g., Ubuntu covers Ubuntu-specific packages). However, if a new ecosystem (e.g., Asahi Linux) begins publishing with bare CVE IDs, data loss will occur silently.
+
+**Potential fixes (not yet implemented):**
+1. Change PK to a composite key `(osv_id, ecosystem)` — requires migration + FK changes to all `osv_*` child tables.
+2. Prefix `osv_id` internally with ecosystem name (e.g., `"Ubuntu:CVE-2024-XXXXX"`) — simpler but deviates from the raw OSV ID.
+3. Use a surrogate PK (BIGINT GENERATED) with a UNIQUE constraint on `(osv_id, ecosystem)` — cleanest but largest refactor.
