@@ -6,7 +6,7 @@ import { Component, computed, input, output } from '@angular/core';
   template: `
     <nav class="flex items-center justify-between" aria-label="Pagination">
       <!-- Result count -->
-      <p class="text-sm text-slate-600 dark:text-slate-400">
+      <p class="text-sm text-slate-600 dark:text-slate-400" i18n="@@pagination.showing">
         Showing
         <span class="font-medium">{{ startItem() }}</span>
         to
@@ -23,10 +23,10 @@ import { Component, computed, input, output } from '@angular/core';
           [disabled]="currentPage() <= 1"
           class="px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          Previous
+          <span i18n="@@pagination.previous">Previous</span>
         </button>
 
-        <span class="text-sm text-slate-600 dark:text-slate-400">
+        <span class="text-sm text-slate-600 dark:text-slate-400" i18n="@@pagination.pageOf">
           Page {{ currentPage() }} of {{ totalPages() }}
         </span>
 
@@ -35,7 +35,7 @@ import { Component, computed, input, output } from '@angular/core';
           [disabled]="currentPage() >= totalPages()"
           class="px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          Next
+          <span i18n="@@pagination.next">Next</span>
         </button>
       </div>
     </nav>

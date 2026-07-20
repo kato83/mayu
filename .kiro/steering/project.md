@@ -67,6 +67,19 @@ mayu/
 - Index frequently queried columns
 - When the DB schema changes, always update `.kiro/steering/erd.md` to reflect the new structure
 
+### Web UI (Angular)
+
+- Framework: Angular v22 with standalone components
+- Styling: TailwindCSS v4
+- Testing: Vitest
+- Package manager: pnpm
+- All user-facing text must be internationalized using Angular's built-in i18n
+- Use custom IDs with `@@` syntax: `i18n="@@component.purpose"`
+- Source locale: English (`en`), translations: Japanese (`ja`)
+- Translation files: `ui/src/locale/messages.ja.xlf`
+- After adding/modifying text, run `make ui-i18n-extract` and update translations
+- Use `$localize` tagged template for strings in TypeScript code
+
 ### Dependencies
 
 - Database driver: `github.com/jackc/pgx/v5` (v5.10.0, stdlib mode)

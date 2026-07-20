@@ -17,12 +17,13 @@ interface NavItem {
     >
       <!-- Logo / App name -->
       <div class="flex items-center justify-between h-16 px-6 border-b border-slate-700">
-        <span class="text-xl font-bold tracking-wide">Mayu</span>
+        <span class="text-xl font-bold tracking-wide" i18n="@@sidebar.appName">Mayu</span>
         <!-- Close button (mobile only) -->
         <button
           class="md:hidden text-slate-400 hover:text-white"
           (click)="closed.emit()"
           aria-label="Close menu"
+          i18n-aria-label="@@sidebar.closeMenu"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -50,7 +51,7 @@ interface NavItem {
       </nav>
 
       <!-- Footer -->
-      <div class="px-6 py-4 border-t border-slate-700 text-xs text-slate-400">
+      <div class="px-6 py-4 border-t border-slate-700 text-xs text-slate-400" i18n="@@sidebar.footer">
         Vulnerability Intelligence
       </div>
     </aside>
@@ -64,7 +65,7 @@ export class SidebarComponent {
   closed = output<void>();
 
   readonly navItems: NavItem[] = [
-    { label: 'Vulnerabilities', route: '/vulnerabilities', icon: '🛡️' },
+    { label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`, route: '/vulnerabilities', icon: '🛡️' },
   ];
 
   sidebarClasses(): string {
