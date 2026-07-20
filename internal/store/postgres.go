@@ -589,7 +589,7 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	baseQuery, args, argIdx := s.buildSearchConditions(query)
 
 	argIdx++
-	baseQuery += fmt.Sprintf(` ORDER BY modified DESC LIMIT $%d`, argIdx)
+	baseQuery += fmt.Sprintf(` ORDER BY published DESC NULLS LAST LIMIT $%d`, argIdx)
 	args = append(args, limit)
 	argIdx++
 	baseQuery += fmt.Sprintf(` OFFSET $%d`, argIdx)
