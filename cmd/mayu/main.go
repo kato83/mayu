@@ -23,6 +23,7 @@ import (
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/server"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/uiassets"
 	"github.com/kato83/mayu/internal/validate"
 )
 
@@ -1442,6 +1443,7 @@ func runServe(args []string) error {
 		Store:   s,
 		Version: version,
 		UIDir:   *uiDir,
+		EmbedFS: uiassets.FS(),
 	})
 
 	// Start server in goroutine.
@@ -1457,6 +1459,8 @@ func runServe(args []string) error {
 		if *uiDir != "" {
 			fmt.Printf("  UI:      http://localhost%s/\n", *addr)
 			fmt.Printf("  UI Dir:  %s\n", *uiDir)
+		} else if uiassets.FS() != nil {
+			fmt.Printf("  UI:      http://localhost%s/ (embedded)\n", *addr)
 		}
 		fmt.Println()
 		fmt.Println("Press Ctrl+C to stop.")

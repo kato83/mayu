@@ -35,3 +35,5 @@ Thumbs.db
 # Build
 /bin/
 /dist/
+/internal/uiassets/dist/*
+!/internal/uiassets/dist/.gitkeep

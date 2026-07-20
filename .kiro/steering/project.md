@@ -122,6 +122,7 @@ make migrate-down     # Rollback migrations
 make migrate-create   # Create new migration (interactive)
 make build            # Build binary → bin/mayu
 make build-release    # Build release binary (stripped, ~30% smaller)
+make build-embed      # Build binary with embedded Web UI (pnpm install + build + go build -tags uiembed)
 make test             # Run unit tests
 make test-integration # Run integration tests (requires PostgreSQL)
 make lint             # Run golangci-lint
