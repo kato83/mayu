@@ -39,7 +39,8 @@ func main() {
 
 	switch os.Args[1] {
 	case "version":
-		fmt.Printf("mayu %s\n", version)
+		printBanner()
+		fmt.Printf("\nmayu %s\n", version)
 	case "ingest":
 		if err := runIngest(os.Args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -70,6 +71,8 @@ func main() {
 }
 
 func printUsage() {
+	printBanner()
+	fmt.Println()
 	fmt.Println("Usage: mayu <command> [options]")
 	fmt.Println()
 	fmt.Println("Commands:")
