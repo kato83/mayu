@@ -351,6 +351,7 @@ func TestSearch(t *testing.T) {
 	store.UpsertBatch(ctx, []*model.Vulnerability{vuln1, vuln2})
 
 	t.Run("by ID", func(t *testing.T) {
+		// GO-2024-2687 has alias CVE-2023-45288, so canonical ID becomes CVE-2023-45288
 		results, err := store.Search(ctx, SearchQuery{ID: "GO-2024-2687"})
 		if err != nil {
 			t.Fatalf("Search by ID failed: %v", err)
@@ -358,8 +359,8 @@ func TestSearch(t *testing.T) {
 		if len(results) != 1 {
 			t.Fatalf("expected 1 result, got %d", len(results))
 		}
-		if results[0].ID != "GO-2024-2687" {
-			t.Errorf("ID = %q, want GO-2024-2687", results[0].ID)
+		if results[0].ID != "CVE-2023-45288" {
+			t.Errorf("ID = %q, want CVE-2023-45288", results[0].ID)
 		}
 	})
 
@@ -392,8 +393,8 @@ func TestSearch(t *testing.T) {
 		if len(results) != 1 {
 			t.Fatalf("expected 1 result for CVE-2023-45288, got %d", len(results))
 		}
-		if results[0].ID != "GO-2024-2687" {
-			t.Errorf("ID = %q, want GO-2024-2687", results[0].ID)
+		if results[0].ID != "CVE-2023-45288" {
+			t.Errorf("ID = %q, want CVE-2023-45288", results[0].ID)
 		}
 	})
 
