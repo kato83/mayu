@@ -400,6 +400,7 @@ export class VulnerabilitiesComponent implements OnInit {
     const params: SearchParams = {
       limit: this.limit(),
       offset: this.offset(),
+      fields: 'id,summary,modified,severity,ecosystem',
     };
 
     // Apply filters

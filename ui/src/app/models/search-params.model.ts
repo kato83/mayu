@@ -32,4 +32,7 @@ export interface SearchParams {
 
   /** Offset for pagination (default: 0) */
   offset?: number;
+
+  /** Comma-separated list of fields to return (e.g., "id,summary,modified,severity,ecosystem") */
+  fields?: string;
 }
