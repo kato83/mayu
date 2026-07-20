@@ -4,6 +4,9 @@
 
 Mayu への貢献に興味を持っていただきありがとうございます！このガイドでは、開発環境のセットアップからテストの実行、変更の提出までを説明します。
 
+> **注意:** このガイドは mayu のソースコードに貢献する**開発者**向けです。
+> mayu を使用するだけであれば、[GitHub Releases](https://github.com/kato83/mayu/releases) からビルド済みバイナリをダウンロードしてください — Go のインストールは不要です。使い方は [README_ja.md](README_ja.md) を参照してください。
+
 ## 前提条件
 
 - [Go 1.26+](https://go.dev/)（[asdf](https://asdf-vm.com/) で管理 — `.tool-versions` 参照）
@@ -41,6 +44,7 @@ make build
 |----------|------|
 | `make build` | デバッグシンボル付きバイナリをビルド → `bin/mayu` |
 | `make build-release` | リリース用バイナリをビルド（シンボル削除、約30%軽量） |
+| `make build-embed` | Web UI 埋め込みバイナリをビルド |
 | `make test` | ユニットテスト実行 |
 | `make test-integration` | 統合テスト実行（PostgreSQL が必要） |
 | `make fmt` | コードフォーマット（`go fmt`） |
@@ -241,5 +245,5 @@ make ui-build
 - [x] Phase 2: CLI（ingest + search）
 - [x] Phase 3: CI/CD（GitHub Actions）
 - [x] Phase 4: API サーバー（REST）
-- [ ] Phase 5: Web UI（Angular）
-- [ ] Phase 6: 追加データソース（KEV, EPSS, MITRE CVE）
+- [x] Phase 5: Web UI（Angular）
+- [x] Phase 6: 追加データソース（KEV, EPSS, MITRE CVE）

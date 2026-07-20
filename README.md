@@ -1,8 +1,9 @@
 # Mayu
 
 [![CI](https://github.com/kato83/mayu/actions/workflows/ci.yml/badge.svg)](https://github.com/kato83/mayu/actions/workflows/ci.yml)
+[![GitHub Release](https://img.shields.io/github/release/kato83/mayu)](https://github.com/kato83/mayu/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/kato83/mayu)](https://github.com/kato83/mayu/blob/main/go.mod)
+[![Go Version](https://img.shields.io/github/go-mod-go-version/kato83/mayu)](https://github.com/kato83/mayu/blob/main/go.mod)
 
 [日本語版 (Japanese)](README_ja.md)
 
@@ -24,14 +25,34 @@ Mayu ingests vulnerability data from the [OSV](https://osv.dev/) ecosystem into 
 
 **Mayu** comes from the Japanese word *繭 (mayu)*, meaning "cocoon" — the protective casing a silkworm spins around itself. The name reflects the tool's purpose: using vulnerability intelligence to wrap your environment in a gentle yet resilient layer of protection.
 
-## Quick Start
+## Installation
 
-### Prerequisites
+### Pre-built Binaries (Recommended)
 
-- [Go 1.26+](https://go.dev/)
-- PostgreSQL 17+
+Download the latest release from [GitHub Releases](https://github.com/kato83/mayu/releases):
+
+| Platform | Architecture | Download |
+|----------|-------------|----------|
+| Linux | x86_64 | `mayu_*_linux_amd64.tar.gz` |
+| Linux | ARM64 | `mayu_*_linux_arm64.tar.gz` |
+| macOS | x86_64 (Intel) | `mayu_*_darwin_amd64.tar.gz` |
+| macOS | ARM64 (Apple Silicon) | `mayu_*_darwin_arm64.tar.gz` |
+| Windows | x86_64 | `mayu_*_windows_amd64.zip` |
+| Windows | ARM64 | `mayu_*_windows_arm64.zip` |
+
+```bash
+# Example: Linux x86_64
+curl -LO https://github.com/kato83/mayu/releases/latest/download/mayu_0.0.1-alpha.1_linux_amd64.tar.gz
+tar xzf mayu_0.0.1-alpha.1_linux_amd64.tar.gz
+sudo mv mayu /usr/local/bin/
+
+# Verify installation
+mayu version
+```
 
 ### Build from Source
+
+Requires [Go 1.26+](https://go.dev/).
 
 ```bash
 git clone https://github.com/kato83/mayu.git
@@ -51,115 +72,140 @@ make build-embed
 ./bin/mayu serve
 ```
 
+## Quick Start
+
+### Prerequisites
+
+- PostgreSQL 17+
+
+> [!TIP]
+> If you only want to try mayu quickly, use Docker to run PostgreSQL:
+> ```bash
+> docker run -d --name mayu-pg -e POSTGRES_USER=mayu -e POSTGRES_PASSWORD=mayu -e POSTGRES_DB=mayu -p 5432:5432 postgres:17
+> ```
+
+### Setup
+
+```bash
+# Run database migrations
+mayu migrate
+
+# Import vulnerability data (e.g., Go ecosystem)
+mayu ingest --ecosystem Go
+
+# Search vulnerabilities
+mayu search --package golang.org/x/crypto
+```
+
 ### Import Vulnerability Data
 
 ```bash
 # Import all Go ecosystem vulnerabilities (full sync)
-./bin/mayu ingest --ecosystem Go
+mayu ingest --ecosystem Go
 
 # Import with delta update (only new/modified since last sync)
-./bin/mayu ingest --ecosystem Go --update
+mayu ingest --ecosystem Go --update
 
 # Import all supported ecosystems
-./bin/mayu ingest --all
+mayu ingest --all
 
 # Import all ecosystems with custom parallelism
-./bin/mayu ingest --all --concurrency 5 --store-workers 8
+mayu ingest --all --concurrency 5 --store-workers 8
 
 # Bulk import from single top-level all.zip (~1.3GB, all ecosystems at once)
-./bin/mayu ingest --all --bulk
+mayu ingest --all --bulk
 
 # Import NVD CVE data directly from NVD JSON Feed 2.0
-./bin/mayu ingest --source nvd --native
+mayu ingest --source nvd --native
 
 # Delta update from NVD modified feed
-./bin/mayu ingest --source nvd --native --update
+mayu ingest --source nvd --native --update
 
 # Import MITRE CVE data from cvelistV5 GitHub Releases
-./bin/mayu ingest --source mitre
+mayu ingest --source mitre
 
 # Delta update from hourly MITRE releases
-./bin/mayu ingest --source mitre --update
+mayu ingest --source mitre --update
 
 # Import EPSS scores (Exploit Prediction Scoring System)
-./bin/mayu ingest --source epss
+mayu ingest --source epss
 
 # Update EPSS scores (daily refresh if outdated)
-./bin/mayu ingest --source epss --update
+mayu ingest --source epss --update
 
 # Backfill EPSS historical data (required for LEV computation)
-./bin/mayu ingest --source epss --backfill
+mayu ingest --source epss --backfill
 
 # Backfill EPSS for a specific date range
-./bin/mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
+mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
 
 # Import CISA KEV catalog (Known Exploited Vulnerabilities)
-./bin/mayu ingest --source kev
+mayu ingest --source kev
 
 # Update KEV catalog (refresh if outdated)
-./bin/mayu ingest --source kev --update
+mayu ingest --source kev --update
 
 # Import local OSV JSON files (e.g., manually constructed GHSA advisories)
-./bin/mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
+mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
 ```
 
 ### Search Vulnerabilities
 
 ```bash
 # Search by vulnerability ID
-./bin/mayu search --id GO-2024-2687
+mayu search --id GO-2024-2687
 
 # Search by package name
-./bin/mayu search --package golang.org/x/crypto
+mayu search --package golang.org/x/crypto
 
 # Search by ecosystem
-./bin/mayu search --ecosystem Go --limit 10
+mayu search --ecosystem Go --limit 10
 
 # Search by CVE alias
-./bin/mayu search --alias CVE-2024-24790
+mayu search --alias CVE-2024-24790
 
 # Search by Package URL (purl)
-./bin/mayu search --purl pkg:npm/%40angular/core
+mayu search --purl pkg:npm/%40angular/core
 
 # Positional argument (auto-detects ID vs alias)
-./bin/mayu search CVE-2024-24790
+mayu search CVE-2024-24790
 
 # Filter by severity level
-./bin/mayu search --severity critical --ecosystem Go
+mayu search --severity critical --ecosystem Go
 
 # Filter by date (modified since)
-./bin/mayu search --since 2024-01-01 --ecosystem npm
+mayu search --since 2024-01-01 --ecosystem npm
 
 # Filter by affected version
-./bin/mayu search --package golang.org/x/crypto --version 0.17.0
+mayu search --package golang.org/x/crypto --version 0.17.0
 
 # Pagination
-./bin/mayu search --ecosystem Go --limit 10 --offset 20
+mayu search --ecosystem Go --limit 10 --offset 20
 
 # Count results only
-./bin/mayu search --ecosystem Go --count
+mayu search --ecosystem Go --count
 
 # Detailed view (all fields)
-./bin/mayu search --id GO-2024-2687 --detail
+mayu search --id GO-2024-2687 --detail
 
 # JSON output for scripting
-./bin/mayu search --id GO-2024-2687 --format json
+mayu search --id GO-2024-2687 --format json
 
 # CSV export
-./bin/mayu search --ecosystem Go --format csv > vulns.csv
+mayu search --ecosystem Go --format csv > vulns.csv
 ```
 
 ### Start API Server
 
 ```bash
 # Start the API server (default port: 8080)
-./bin/mayu serve
+mayu serve
 
 # Start on custom port
-./bin/mayu serve --addr :3000
+mayu serve --addr :3000
 
 # Serve with Web UI (SPA hosting with i18n locale support)
-./bin/mayu serve --ui-dir ./ui/dist/mayu/browser
+mayu serve --ui-dir ./ui/dist/mayu/browser
 
 # OpenAPI spec available at http://localhost:8080/openapi.yaml
 ```
@@ -339,16 +385,16 @@ LEV requires historical daily EPSS data. Use the backfill command to build up th
 
 ```bash
 # 1. Import CISA KEV catalog
-./bin/mayu ingest --source kev
+mayu ingest --source kev
 
 # 2. Backfill EPSS daily scores from EPSS v3 release (2023-03-07) to today
-./bin/mayu ingest --source epss --backfill
+mayu ingest --source epss --backfill
 
 # Or specify a custom date range
-./bin/mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
+mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
 
 # 3. After initial backfill, keep EPSS up-to-date with daily updates
-./bin/mayu ingest --source epss --update
+mayu ingest --source epss --update
 ```
 
 > **Tip:** The backfill downloads ~5-7 MB per day (~200,000 CVE scores). A full backfill from 2023-03-07 covers ~860 days. Already-imported dates are automatically skipped on re-run.
@@ -358,7 +404,7 @@ LEV requires historical daily EPSS data. Use the backfill command to build up th
 LEV is displayed automatically in the `--detail` view and the API `?detail=true` response:
 
 ```bash
-./bin/mayu search --id CVE-2023-38831 --detail
+mayu search --id CVE-2023-38831 --detail
 ```
 
 Output includes EPSS, KEV, and LEV sections:
