@@ -265,5 +265,27 @@ curl "http://localhost:8080/api/v1/vulnerabilities?purl=pkg:golang/golang.org/x/
 - [x] Phase 2: CLI（ingest + search）
 - [x] Phase 3: CI/CD（GitHub Actions）
 - [x] Phase 4: API サーバー（REST）
-- [ ] Phase 5: Web UI（Angular）
+- [x] Phase 5: Web UI（Angular）
 - [ ] Phase 6: 追加データソース（LEV）
+
+### Web UI
+
+Web UI は Angular v22 + TailwindCSS v4 で構築されたアプリケーションで、`ui/` ディレクトリにあります。
+
+```bash
+# 開発サーバー（/api を mayu serve の :8080 にプロキシ）
+make ui-dev
+
+# プロダクションビルド
+make ui-build
+
+# テスト実行
+make ui-test
+```
+
+機能:
+- 左サイドバー式の管理画面レイアウト
+- 脆弱性一覧（フィルタ全対応: エコシステム、パッケージ、深刻度、日付等）
+- 脆弱性詳細ページ（OSV、NVD、MITRE のエンリッチメント情報表示）
+- ダークモード（`prefers-color-scheme` による自動切替）
+- URL同期フィルタとページネーション

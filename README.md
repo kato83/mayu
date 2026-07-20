@@ -266,5 +266,27 @@ See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 - [x] Phase 2: CLI (ingest + search)
 - [x] Phase 3: CI/CD (GitHub Actions)
 - [x] Phase 4: API Server (REST)
-- [ ] Phase 5: Web UI (Angular)
+- [x] Phase 5: Web UI (Angular)
 - [ ] Phase 6: Additional Data Sources (LEV)
+
+### Web UI
+
+The Web UI is an Angular v22 application with TailwindCSS v4, located in `ui/`.
+
+```bash
+# Development server (proxies /api to mayu serve on :8080)
+make ui-dev
+
+# Production build
+make ui-build
+
+# Run tests
+make ui-test
+```
+
+Features:
+- Left sidebar admin-style layout
+- Vulnerability list with full filter support (ecosystem, package, severity, date, etc.)
+- Vulnerability detail page with OSV, NVD, and MITRE enrichment
+- Dark mode (automatic via `prefers-color-scheme`)
+- URL-synced filters and pagination
