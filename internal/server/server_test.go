@@ -181,16 +181,16 @@ func TestSearchVulnerabilities_NoParams(t *testing.T) {
 	w := httptest.NewRecorder()
 	srv.httpServer.Handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", w.Code)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
 	}
 
-	var body map[string]string
+	var body map[string]interface{}
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if body["error"] != "at least one search parameter is required" {
-		t.Errorf("unexpected error message: %q", body["error"])
+	if _, ok := body["vulnerabilities"]; !ok {
+		t.Error("response should contain 'vulnerabilities' key")
 	}
 }
 

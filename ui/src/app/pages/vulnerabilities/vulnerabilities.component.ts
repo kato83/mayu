@@ -412,13 +412,6 @@ export class VulnerabilitiesComponent implements OnInit {
     if (this.filters.since) params.since = this.filters.since;
     if (this.filters.version) params.version = this.filters.version;
 
-    // API requires at least one search param; default to ecosystem=Go if nothing specified
-    const hasFilter = params.id || params.package || params.ecosystem || params.alias ||
-      params.purl || params.severity || params.since || params.version;
-    if (!hasFilter) {
-      params.ecosystem = 'Go';
-    }
-
     this.vulnService.search(params)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

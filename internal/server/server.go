@@ -211,12 +211,6 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	// Validate at least one search parameter
-	if id == "" && pkg == "" && ecosystem == "" && alias == "" && severity == "" && since == "" && version == "" {
-		writeError(w, http.StatusBadRequest, "at least one search parameter is required")
-		return
-	}
-
 	query := store.SearchQuery{
 		ID:          id,
 		Ecosystem:   ecosystem,
