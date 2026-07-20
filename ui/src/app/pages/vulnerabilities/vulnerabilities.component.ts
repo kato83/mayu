@@ -428,11 +428,70 @@ export class VulnerabilitiesComponent implements OnInit {
   }
 
   private extractBaseScore(vectorOrScore: string): number | null {
+    if (vectorOrScore.startsWith('CVSS:3')) {
+      return this.computeCvss3BaseScore(vectorOrScore);
+    }
     if (vectorOrScore.startsWith('CVSS:')) {
+      // CVSS v4 or unknown — not yet supported
       return null;
     }
     const num = parseFloat(vectorOrScore);
     return isNaN(num) ? null : num;
+  }
+
+  /**
+   * Compute CVSS v3.x base score from a vector string.
+   * Implements the CVSS 3.0/3.1 specification formula.
+   */
+  private computeCvss3BaseScore(vector: string): number | null {
+    const metrics = new Map<string, string>();
+    const parts = vector.split('/');
+    for (const part of parts) {
+      const [key, val] = part.split(':');
+      if (key && val) metrics.set(key, val);
+    }
+
+    const AV = metrics.get('AV');
+    const AC = metrics.get('AC');
+    const PR = metrics.get('PR');
+    const UI = metrics.get('UI');
+    const S = metrics.get('S');
+    const C = metrics.get('C');
+    const I = metrics.get('I');
+    const A = metrics.get('A');
+    if (!AV || !AC || !PR || !UI || !S || !C || !I || !A) return null;
+
+    const avMap: Record<string, number> = { N: 0.85, A: 0.62, L: 0.55, P: 0.20 };
+    const acMap: Record<string, number> = { L: 0.77, H: 0.44 };
+    const prMapU: Record<string, number> = { N: 0.85, L: 0.62, H: 0.27 };
+    const prMapC: Record<string, number> = { N: 0.85, L: 0.68, H: 0.50 };
+    const uiMap: Record<string, number> = { N: 0.85, R: 0.62 };
+    const ciaMap: Record<string, number> = { H: 0.56, L: 0.22, N: 0 };
+
+    const av = avMap[AV];
+    const ac = acMap[AC];
+    const scopeChanged = S === 'C';
+    const pr = scopeChanged ? prMapC[PR] : prMapU[PR];
+    const ui = uiMap[UI];
+    const c = ciaMap[C];
+    const i = ciaMap[I];
+    const a = ciaMap[A];
+
+    if (av == null || ac == null || pr == null || ui == null || c == null || i == null || a == null) return null;
+
+    const iss = 1 - (1 - c) * (1 - i) * (1 - a);
+    const impact = scopeChanged
+      ? 7.52 * (iss - 0.029) - 3.25 * Math.pow(iss - 0.02, 15)
+      : 6.42 * iss;
+
+    if (impact <= 0) return 0;
+
+    const exploitability = 8.22 * av * ac * pr * ui;
+    const raw = scopeChanged
+      ? 1.08 * (impact + exploitability)
+      : impact + exploitability;
+
+    return Math.min(Math.ceil(raw * 10) / 10, 10.0);
   }
 
   private scoreToLabel(score: number): string {
