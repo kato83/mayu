@@ -1,9 +1,8 @@
 # Mayu
 
 [![CI](https://github.com/kato83/mayu/actions/workflows/ci.yml/badge.svg)](https://github.com/kato83/mayu/actions/workflows/ci.yml)
-[![GitHub Release](https://img.shields.io/github/release/kato83/mayu)](https://github.com/kato83/mayu/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/github/go-mod-go-version/kato83/mayu)](https://github.com/kato83/mayu/blob/main/go.mod)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/kato83/mayu)](https://github.com/kato83/mayu/blob/main/go.mod)
 
 [日本語版 (Japanese)](README_ja.md)
 
@@ -21,9 +20,35 @@ Mayu ingests vulnerability data from the [OSV](https://osv.dev/) ecosystem into 
 - Supports all OSV ecosystems (Go, PyPI, npm, Maven, crates.io, etc.)
 - Raw OSV JSON preserved for full data reversibility
 
+![](./docs/readme_pic01.jpg)
+
 ## Naming
 
 **Mayu** comes from the Japanese word *繭 (mayu)*, meaning "cocoon" — the protective casing a silkworm spins around itself. The name reflects the tool's purpose: using vulnerability intelligence to wrap your environment in a gentle yet resilient layer of protection.
+
+## Why Mayu?
+
+There are several excellent vulnerability intelligence tools available. Mayu occupies a unique position by combining the following characteristics in a single, self-contained tool:
+
+| | Cloud-based CVE CLIs | CVE Monitoring Platforms | **Mayu** |
+|---|---|---|---|
+| Data ownership | Cloud API dependent | Self-hosted or SaaS | **Fully local (PostgreSQL)** |
+| Offline / air-gap | ❌ | Partial (self-hosted) | **✅ After initial sync** |
+| REST API built-in | ❌ (client only) | ✅ | **✅** |
+| Web UI built-in | ❌ | ✅ | **✅** |
+| CLI | ✅ | Limited | **✅** |
+| OSV ecosystem coverage | ❌ (CVE/CPE only) | ❌ (CVE/CPE only) | **✅ 46 ecosystems (package-level)** |
+| Package-name search | ❌ | ❌ | **✅** |
+| EPSS / KEV / LEV | EPSS + KEV | EPSS + KEV | **EPSS + KEV + LEV** |
+| Custom data import | ❌ | ❌ | **✅ (local JSON files)** |
+| Raw data preservation | ❌ | Partial | **✅ Full reversibility** |
+| Account / API key required | ✅ | ✅ (SaaS) | **❌** |
+
+**In short:**
+
+- Unlike cloud-based CLI tools, mayu **owns all data locally** and provides a built-in REST API and Web UI — no external service dependency or API key required.
+- Unlike CVE monitoring platforms focused on vendor/product (CPE) matching and alerting, mayu supports **package-level search across all OSV ecosystems** (Go, npm, PyPI, Maven, crates.io, etc.) and computes **LEV scores** for exploitation likelihood estimation.
+- Mayu is designed as a **vulnerability intelligence backend** — a single binary that can serve as both a personal lookup tool and an organization-wide vulnerability data API.
 
 ## Installation
 
