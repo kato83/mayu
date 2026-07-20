@@ -12,13 +12,13 @@ import { PaginationComponent } from '../../shared/pagination/pagination.componen
 
 /** Available ecosystems for the dropdown filter. */
 const ECOSYSTEMS = [
-  '', 'Go', 'npm', 'PyPI', 'Maven', 'crates.io', 'NuGet', 'Packagist',
+  'Go', 'npm', 'PyPI', 'Maven', 'crates.io', 'NuGet', 'Packagist',
   'RubyGems', 'Hex', 'Pub', 'SwiftURL', 'ConanCenter', 'Hackage',
   'CRAN', 'Bioconductor', 'AlmaLinux', 'Alpine', 'Chainguard',
   'Debian', 'Rocky Linux', 'Ubuntu', 'Wolfi', 'Android', 'Linux',
 ];
 
-const SEVERITIES = ['', 'critical', 'high', 'medium', 'low', 'none'] as const;
+const SEVERITIES = ['critical', 'high', 'medium', 'low', 'none'] as const;
 
 interface FilterState {
   id: string;
@@ -46,102 +46,109 @@ function emptyFilters(): FilterState {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <!-- ID filter -->
           <div>
-            <label for="filter-id" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">ID</label>
+            <label for="filter-id" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterId">ID</label>
             <input
               id="filter-id"
               type="text"
               [ngModel]="filters.id"
               (ngModelChange)="onFilterChange('id', $event)"
               placeholder="CVE-2024-..."
+              i18n-placeholder="@@vulnList.filterIdPlaceholder"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
           <!-- Package filter -->
           <div>
-            <label for="filter-package" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Package</label>
+            <label for="filter-package" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterPackage">Package</label>
             <input
               id="filter-package"
               type="text"
               [ngModel]="filters.package"
               (ngModelChange)="onFilterChange('package', $event)"
               placeholder="golang.org/x/crypto"
+              i18n-placeholder="@@vulnList.filterPackagePlaceholder"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
           <!-- Ecosystem filter -->
           <div>
-            <label for="filter-ecosystem" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Ecosystem</label>
+            <label for="filter-ecosystem" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterEcosystem">Ecosystem</label>
             <select
               id="filter-ecosystem"
               [ngModel]="filters.ecosystem"
               (ngModelChange)="onFilterChange('ecosystem', $event)"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             >
+              <option value="" i18n="@@vulnList.allEcosystems">All ecosystems</option>
               @for (eco of ecosystems; track eco) {
-                <option [value]="eco">{{ eco || 'All ecosystems' }}</option>
+                <option [value]="eco">{{ eco }}</option>
               }
             </select>
           </div>
 
           <!-- Severity filter -->
           <div>
-            <label for="filter-severity" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Severity</label>
+            <label for="filter-severity" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterSeverity">Severity</label>
             <select
               id="filter-severity"
               [ngModel]="filters.severity"
               (ngModelChange)="onFilterChange('severity', $event)"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             >
+              <option value="" i18n="@@vulnList.allSeverities">All severities</option>
               @for (sev of severities; track sev) {
-                <option [value]="sev">{{ sev || 'All severities' }}</option>
+                <option [value]="sev">{{ sev }}</option>
               }
             </select>
           </div>
 
           <!-- Alias filter -->
           <div>
-            <label for="filter-alias" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Alias</label>
+            <label for="filter-alias" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterAlias">Alias</label>
             <input
               id="filter-alias"
               type="text"
               [ngModel]="filters.alias"
               (ngModelChange)="onFilterChange('alias', $event)"
               placeholder="GHSA-xxxx..."
+              i18n-placeholder="@@vulnList.filterAliasPlaceholder"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
           <!-- Purl filter -->
           <div>
-            <label for="filter-purl" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Package URL</label>
+            <label for="filter-purl" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterPurl">Package URL</label>
             <input
               id="filter-purl"
               type="text"
               [ngModel]="filters.purl"
               (ngModelChange)="onFilterChange('purl', $event)"
               placeholder="pkg:golang/..."
+              i18n-placeholder="@@vulnList.filterPurlPlaceholder"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
           <!-- Version filter -->
           <div>
-            <label for="filter-version" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Version</label>
+            <label for="filter-version" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterVersion">Version</label>
             <input
               id="filter-version"
               type="text"
               [ngModel]="filters.version"
               (ngModelChange)="onFilterChange('version', $event)"
               placeholder="0.17.0"
+              i18n-placeholder="@@vulnList.filterVersionPlaceholder"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
           <!-- Since filter -->
           <div>
-            <label for="filter-since" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Modified since</label>
+            <label for="filter-since" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterSince">Modified since</label>
             <input
               id="filter-since"
               type="date"
@@ -156,7 +163,8 @@ function emptyFilters(): FilterState {
         <div class="mt-3 flex justify-end">
           <button
             (click)="clearFilters()"
-            class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors"
+            class="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+            i18n="@@vulnList.clearFilters"
           >
             Clear filters
           </button>
@@ -166,7 +174,7 @@ function emptyFilters(): FilterState {
       <!-- Loading state -->
       @if (loading()) {
         <div class="flex items-center justify-center py-12">
-          <div class="text-slate-500">Loading vulnerabilities...</div>
+          <div class="text-slate-500" i18n="@@vulnList.loading">Loading vulnerabilities...</div>
         </div>
       }
 
@@ -182,19 +190,19 @@ function emptyFilters(): FilterState {
         @if (vulnerabilities().length === 0) {
           <div class="text-center py-12">
             <div class="text-4xl mb-3">🔍</div>
-            <p class="text-slate-500 dark:text-slate-400">No vulnerabilities found.</p>
-            <p class="text-sm text-slate-400 dark:text-slate-500 mt-1">Try adjusting your filters.</p>
+            <p class="text-slate-500 dark:text-slate-400" i18n="@@vulnList.empty">No vulnerabilities found.</p>
+            <p class="text-sm text-slate-400 dark:text-slate-500 mt-1" i18n="@@vulnList.emptyHint">Try adjusting your filters.</p>
           </div>
         } @else {
           <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
             <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
               <thead class="bg-slate-50 dark:bg-slate-800/50">
                 <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">ID</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Summary</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ecosystem</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Severity</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Modified</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colId">ID</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colSummary">Summary</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colEcosystem">Ecosystem</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colSeverity">Severity</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colModified">Modified</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 dark:divide-slate-700">

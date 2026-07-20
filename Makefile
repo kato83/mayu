@@ -1,4 +1,4 @@
-.PHONY: build build-release test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down ui-dev ui-build ui-test ui-lint
+.PHONY: build build-release test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down ui-dev ui-dev-ja ui-build ui-test ui-lint ui-i18n-extract
 
 # Variables
 BINARY_NAME=mayu
@@ -60,6 +60,9 @@ migrate-create:
 ui-dev:
 	pnpm --prefix ui run start
 
+ui-dev-ja:
+	pnpm --prefix ui run start:ja
+
 ui-build:
 	pnpm --prefix ui run build
 
@@ -68,3 +71,6 @@ ui-test:
 
 ui-lint:
 	pnpm --prefix ui run ng lint
+
+ui-i18n-extract:
+	cd ui && npx ng extract-i18n

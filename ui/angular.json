@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "pnpm"
+    "packageManager": "pnpm",
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -12,12 +13,20 @@
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",
+      "i18n": {
+        "sourceLocale": "en",
+        "locales": {
+          "ja": "src/locale/messages.ja.xlf"
+        }
+      },
       "architect": {
         "build": {
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
+            "localize": true,
+            "polyfills": ["@angular/localize/init"],
             "assets": [
               {
                 "glob": "**/*",
@@ -45,6 +54,13 @@
               "outputHashing": "all"
             },
             "development": {
+              "localize": false,
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            },
+            "development-ja": {
+              "localize": ["ja"],
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
@@ -63,9 +79,20 @@
             },
             "development": {
               "buildTarget": "mayu:build:development"
+            },
+            "development-ja": {
+              "buildTarget": "mayu:build:development-ja"
             }
           },
           "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular/build:extract-i18n",
+          "options": {
+            "buildTarget": "mayu:build",
+            "outputPath": "src/locale",
+            "format": "xlf"
+          }
         },
         "test": {
           "builder": "@angular/build:unit-test"

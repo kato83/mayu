@@ -186,6 +186,52 @@ Ensure all checks pass locally before submitting a PR.
 > for local development against the bundled Docker PostgreSQL. For remote or
 > production databases, enforce TLS with `sslmode=require` or `verify-full`.
 
+## Web UI (Angular)
+
+### Prerequisites
+
+- [Node.js 24+](https://nodejs.org/) (managed via asdf — see `.tool-versions`)
+- [pnpm 11+](https://pnpm.io/)
+
+### Development Commands
+
+| Command | Description |
+|---------|-------------|
+| `make ui-dev` | Start dev server (proxies /api to :8080) |
+| `make ui-build` | Production build |
+| `make ui-test` | Run Vitest unit tests |
+| `make ui-lint` | Run linter |
+
+### Internationalization (i18n)
+
+The Web UI uses [Angular's built-in i18n](https://angular.dev/guide/i18n) for all user-facing text.
+
+**Rules:**
+
+1. **All fixed text in templates must be marked with `i18n`** — No hardcoded user-facing strings without i18n attributes.
+2. **Use custom IDs** — Always use `@@` syntax for stability: `i18n="@@component.purpose"`
+3. **ID naming convention** — `{component}.{purpose}` in camelCase (e.g., `@@sidebar.appName`, `@@vulnList.clearFilters`)
+4. **For attributes** — Use `i18n-{attr}` (e.g., `i18n-placeholder="@@vulnList.filterIdPlaceholder"`, `i18n-aria-label="@@header.openMenu"`)
+5. **For TypeScript strings** — Use `$localize` tagged template: `` $localize`:@@id:text` ``
+6. **After adding/changing text** — Run `make ui-i18n-extract` to regenerate the source XLF, then update `src/locale/messages.ja.xlf`
+7. **Source locale is English** — The template text itself serves as the English version
+8. **Proper nouns** — Brand names (Mayu, NVD, MITRE, CVSS) should still be marked with i18n but may remain untranslated
+
+**Workflow for adding new translatable text:**
+
+```bash
+# 1. Add i18n attribute to template (or $localize in TS)
+# 2. Extract messages
+make ui-i18n-extract
+
+# 3. Update Japanese translation file
+#    Copy new <trans-unit> entries from src/locale/messages.xlf to src/locale/messages.ja.xlf
+#    and add <target> elements with Japanese translations
+
+# 4. Verify build
+make ui-build
+```
+
 ## Roadmap
 
 See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.

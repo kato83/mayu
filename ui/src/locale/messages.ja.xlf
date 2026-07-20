@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="en" target-language="ja" datatype="plaintext" original="ng2.template">
+    <body>
+      <trans-unit id="header.openMenu" datatype="html">
+        <source>Open menu</source>
+        <target>メニューを開く</target>
+      </trans-unit>
+      <trans-unit id="sidebar.appName" datatype="html">
+        <source>Mayu</source>
+        <target>Mayu</target>
+      </trans-unit>
+      <trans-unit id="sidebar.closeMenu" datatype="html">
+        <source>Close menu</source>
+        <target>メニューを閉じる</target>
+      </trans-unit>
+      <trans-unit id="sidebar.footer" datatype="html">
+        <source> Vulnerability Intelligence </source>
+        <target>脆弱性インテリジェンス</target>
+      </trans-unit>
+      <trans-unit id="sidebar.nav.vulnerabilities" datatype="html">
+        <source>Vulnerabilities</source>
+        <target>脆弱性一覧</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterId" datatype="html">
+        <source>ID</source>
+        <target>ID</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterIdPlaceholder" datatype="html">
+        <source>CVE-2024-...</source>
+        <target>CVE-2024-...</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterPackage" datatype="html">
+        <source>Package</source>
+        <target>パッケージ</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterPackagePlaceholder" datatype="html">
+        <source>golang.org/x/crypto</source>
+        <target>golang.org/x/crypto</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterEcosystem" datatype="html">
+        <source>Ecosystem</source>
+        <target>エコシステム</target>
+      </trans-unit>
+      <trans-unit id="vulnList.allEcosystems" datatype="html">
+        <source>All ecosystems</source>
+        <target>全てのエコシステム</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterSeverity" datatype="html">
+        <source>Severity</source>
+        <target>深刻度</target>
+      </trans-unit>
+      <trans-unit id="vulnList.allSeverities" datatype="html">
+        <source>All severities</source>
+        <target>全ての深刻度</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterAlias" datatype="html">
+        <source>Alias</source>
+        <target>エイリアス</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterAliasPlaceholder" datatype="html">
+        <source>GHSA-xxxx...</source>
+        <target>GHSA-xxxx...</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterPurl" datatype="html">
+        <source>Package URL</source>
+        <target>パッケージ URL</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterPurlPlaceholder" datatype="html">
+        <source>pkg:golang/...</source>
+        <target>pkg:golang/...</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterVersion" datatype="html">
+        <source>Version</source>
+        <target>バージョン</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterVersionPlaceholder" datatype="html">
+        <source>0.17.0</source>
+        <target>0.17.0</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterSince" datatype="html">
+        <source>Modified since</source>
+        <target>更新日以降</target>
+      </trans-unit>
+      <trans-unit id="vulnList.clearFilters" datatype="html">
+        <source> Clear filters </source>
+        <target>フィルターをクリア</target>
+      </trans-unit>
+      <trans-unit id="vulnList.loading" datatype="html">
+        <source>Loading vulnerabilities...</source>
+        <target>脆弱性を読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="vulnList.empty" datatype="html">
+        <source>No vulnerabilities found.</source>
+        <target>脆弱性が見つかりません。</target>
+      </trans-unit>
+      <trans-unit id="vulnList.emptyHint" datatype="html">
+        <source>Try adjusting your filters.</source>
+        <target>フィルター条件を変更してみてください。</target>
+      </trans-unit>
+      <trans-unit id="vulnList.colId" datatype="html">
+        <source>ID</source>
+        <target>ID</target>
+      </trans-unit>
+      <trans-unit id="vulnList.colSummary" datatype="html">
+        <source>Summary</source>
+        <target>概要</target>
+      </trans-unit>
+      <trans-unit id="vulnList.colEcosystem" datatype="html">
+        <source>Ecosystem</source>
+        <target>エコシステム</target>
+      </trans-unit>
+      <trans-unit id="vulnList.colSeverity" datatype="html">
+        <source>Severity</source>
+        <target>深刻度</target>
+      </trans-unit>
+      <trans-unit id="vulnList.colModified" datatype="html">
+        <source>Modified</source>
+        <target>更新日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.backToList" datatype="html">
+        <source> ← Back to list </source>
+        <target>← 一覧に戻る</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.loading" datatype="html">
+        <source>Loading vulnerability details...</source>
+        <target>脆弱性の詳細を読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.published" datatype="html">
+        <source>Published</source>
+        <target>公開日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.modified" datatype="html">
+        <source>Modified</source>
+        <target>更新日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.withdrawn" datatype="html">
+        <source>Withdrawn</source>
+        <target>取り下げ日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.aliases" datatype="html">
+        <source>Aliases</source>
+        <target>エイリアス</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.details" datatype="html">
+        <source>Details</source>
+        <target>詳細</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.severity" datatype="html">
+        <source>Severity</source>
+        <target>深刻度</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.affectedPackages" datatype="html">
+        <source>Affected Packages</source>
+        <target>影響を受けるパッケージ</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.versions" datatype="html">
+        <source>Versions: </source>
+        <target>バージョン: </target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.references" datatype="html">
+        <source>References</source>
+        <target>参照</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.credits" datatype="html">
+        <source>Credits</source>
+        <target>クレジット</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdMetrics" datatype="html">
+        <source>CVSS Metrics</source>
+        <target>CVSS メトリクス</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdWeaknesses" datatype="html">
+        <source>Weaknesses (CWE)</source>
+        <target>脆弱性タイプ (CWE)</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdReferences" datatype="html">
+        <source>NVD References</source>
+        <target>NVD 参照</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mitreAssigner" datatype="html">
+        <source>Assigner</source>
+        <target>割当者</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mitrePublished" datatype="html">
+        <source>Published</source>
+        <target>公開日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mitreUpdated" datatype="html">
+        <source>Updated</source>
+        <target>更新日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mitreMetrics" datatype="html">
+        <source>Metrics</source>
+        <target>メトリクス</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mitreProblemTypes" datatype="html">
+        <source>Problem Types (CWE)</source>
+        <target>問題タイプ (CWE)</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mitreSsvc" datatype="html">
+        <source>SSVC Assessment</source>
+        <target>SSVC 評価</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mitreCredits" datatype="html">
+        <source>Credits</source>
+        <target>クレジット</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mitreReferences" datatype="html">
+        <source>MITRE References</source>
+        <target>MITRE 参照</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.notFound" datatype="html">
+        <source>Vulnerability &quot;<x id="PH" equiv-text="id"/>&quot; not found.</source>
+        <target>脆弱性「<x id="PH" equiv-text="id"/>」が見つかりません。</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.loadError" datatype="html">
+        <source>Failed to load vulnerability details.</source>
+        <target>脆弱性の詳細の読み込みに失敗しました。</target>
+      </trans-unit>
+      <trans-unit id="pagination.showing" datatype="html">
+        <source> Showing <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION" equiv-text="{{ startItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> to <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_1" equiv-text="{{ endItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> of <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_2" equiv-text="{{ total() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> results </source>
+        <target><x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_2" equiv-text="{{ total() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/>件中 <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION" equiv-text="{{ startItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/>～<x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_1" equiv-text="{{ endItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/>件を表示</target>
+      </trans-unit>
+      <trans-unit id="pagination.previous" datatype="html">
+        <source>Previous</source>
+        <target>前へ</target>
+      </trans-unit>
+      <trans-unit id="pagination.pageOf" datatype="html">
+        <source> Page <x id="INTERPOLATION" equiv-text="{{ currentPage() }}"/> of <x id="INTERPOLATION_1" equiv-text="{{ totalPages() }}"/> </source>
+        <target><x id="INTERPOLATION_1" equiv-text="{{ totalPages() }}"/>ページ中 <x id="INTERPOLATION" equiv-text="{{ currentPage() }}"/>ページ目</target>
+      </trans-unit>
+      <trans-unit id="pagination.next" datatype="html">
+        <source>Next</source>
+        <target>次へ</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
