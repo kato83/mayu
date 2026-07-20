@@ -4,6 +4,9 @@
 
 Thank you for your interest in contributing to Mayu! This guide covers everything you need to set up a development environment, run tests, and submit changes.
 
+> **Note:** This guide is for **developers** who want to contribute to mayu's source code.
+> If you just want to use mayu, download a pre-built binary from [GitHub Releases](https://github.com/kato83/mayu/releases) — no Go installation required. See [README.md](README.md) for usage instructions.
+
 ## Prerequisites
 
 - [Go 1.26+](https://go.dev/) (managed via [asdf](https://asdf-vm.com/) — see `.tool-versions`)
@@ -41,6 +44,7 @@ make build
 |---------|-------------|
 | `make build` | Build binary with debug symbols → `bin/mayu` |
 | `make build-release` | Build release binary (stripped, ~30% smaller) |
+| `make build-embed` | Build binary with embedded Web UI |
 | `make test` | Run unit tests |
 | `make test-integration` | Run integration tests (requires PostgreSQL) |
 | `make fmt` | Format code (`go fmt`) |
@@ -240,5 +244,5 @@ See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 - [x] Phase 2: CLI (ingest + search)
 - [x] Phase 3: CI/CD (GitHub Actions)
 - [x] Phase 4: API Server (REST)
-- [ ] Phase 5: Web UI (Angular)
-- [ ] Phase 6: Additional Data Sources (KEV, EPSS, MITRE CVE)
+- [x] Phase 5: Web UI (Angular)
+- [x] Phase 6: Additional Data Sources (KEV, EPSS, MITRE CVE)
