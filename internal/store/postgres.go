@@ -297,6 +297,12 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 	}
 
 	// --- Step 5: Insert osv_entry ---
+	// Unconditionally delete any existing row to handle TOCTOU races where
+	// another transaction (e.g., parallel Chainguard/Wolfi import sharing the
+	// same CGA-* IDs) committed between Step 1's SELECT and this INSERT.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM osv_entries WHERE osv_id = $1`, osvID); err != nil {
+		return fmt.Errorf("delete osv_entry before insert: %w", err)
+	}
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO osv_entries (osv_id, vulnerability_id, schema_version, raw_json, database_specific)
 		VALUES ($1, $2, $3, $4, $5)`,
