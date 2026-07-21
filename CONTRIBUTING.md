@@ -192,6 +192,15 @@ Ensure all checks pass locally before submitting a PR.
 
 ## Web UI (Angular)
 
+The Web UI is an Angular v22 application with TailwindCSS v4, located in `ui/`.
+
+Features:
+- Left sidebar admin-style layout
+- Vulnerability list with full filter support (ecosystem, package, severity, date, etc.)
+- Vulnerability detail page with OSV, NVD, and MITRE enrichment
+- Dark mode (automatic via `prefers-color-scheme`)
+- URL-synced filters and cursor-based pagination
+
 ### Prerequisites
 
 - [Node.js 24+](https://nodejs.org/) (managed via asdf — see `.tool-versions`)

@@ -78,6 +78,9 @@ mayu version
 
 ### Build from Source
 
+<details>
+<summary>Build from Source</summary>
+
 Requires:
 - [Go 1.26+](https://go.dev/)
 - [Node.js 24+](https://nodejs.org/) (for Web UI build)
@@ -101,6 +104,8 @@ make build-embed
 > ```
 > In this case, use `--ui-dir` to serve the Web UI from a separately built directory.
 
+</details>
+
 ## Quick Start
 
 ### Prerequisites
@@ -118,12 +123,6 @@ make build-embed
 ```bash
 # Run database migrations
 mayu migrate
-
-# Import vulnerability data (e.g., Go ecosystem)
-mayu ingest --ecosystem Go
-
-# Search vulnerabilities
-mayu search --package golang.org/x/crypto
 ```
 
 ### Import Vulnerability Data
@@ -131,52 +130,36 @@ mayu search --package golang.org/x/crypto
 ```bash
 # Import all Go ecosystem vulnerabilities (full sync)
 mayu ingest --ecosystem Go
-
 # Import with delta update (only new/modified since last sync)
 mayu ingest --ecosystem Go --update
-
 # Import all supported ecosystems
 mayu ingest --all
-
 # Import all ecosystems with custom parallelism
 mayu ingest --all --concurrency 5 --store-workers 8
-
 # Bulk import from single top-level all.zip (~1.3GB, all ecosystems at once)
 mayu ingest --all --bulk
-
 # Import NVD CVE data directly from NVD JSON Feed 2.0
 mayu ingest --source nvd --native
-
 # Import only a specific year's NVD data
 mayu ingest --source nvd --native --year 2024
-
 # Delta update from NVD modified feed
 mayu ingest --source nvd --native --update
-
 # Import MITRE CVE data from cvelistV5 GitHub Releases
 mayu ingest --source mitre
-
 # Delta update from hourly MITRE releases
 mayu ingest --source mitre --update
-
 # Import EPSS scores (Exploit Prediction Scoring System)
 mayu ingest --source epss
-
 # Update EPSS scores (daily refresh if outdated)
 mayu ingest --source epss --update
-
 # Backfill EPSS historical data (required for LEV computation)
 mayu ingest --source epss --backfill
-
 # Backfill EPSS for a specific date range
 mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
-
 # Import CISA KEV catalog (Known Exploited Vulnerabilities)
 mayu ingest --source kev
-
 # Update KEV catalog (refresh if outdated)
 mayu ingest --source kev --update
-
 # Import local OSV JSON files (e.g., manually constructed GHSA advisories)
 mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
 ```
@@ -186,46 +169,32 @@ mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
 ```bash
 # Search by vulnerability ID
 mayu search --id GO-2024-2687
-
 # Search by package name
 mayu search --package golang.org/x/crypto
-
 # Search by ecosystem
 mayu search --ecosystem Go --limit 10
-
 # Search by CVE alias
 mayu search --id CVE-2024-24790
-
 # Search by Package URL (purl)
 mayu search --purl pkg:npm/%40angular/core
-
 # Positional argument (shorthand for --id)
 mayu search CVE-2024-24790
-
 # Filter by severity level
 mayu search --severity critical --ecosystem Go
-
 # Filter by date (modified since)
 mayu search --since 2024-01-01 --ecosystem npm
-
 # Filter by affected version
 mayu search --package golang.org/x/crypto --version 0.17.0
-
 # Pagination
 mayu search --ecosystem Go --limit 10 --offset 20
-
 # Cursor-based pagination (use NextToken from previous output)
 mayu search --ecosystem Go --limit 10 --starting-token <token>
-
 # Count results only
 mayu search --ecosystem Go --count
-
 # Detailed view (all fields)
 mayu search --id GO-2024-2687 --detail
-
 # JSON output for scripting
 mayu search --id GO-2024-2687 --format json
-
 # CSV export
 mayu search --ecosystem Go --format csv > vulns.csv
 ```
@@ -235,46 +204,26 @@ mayu search --ecosystem Go --format csv > vulns.csv
 ```bash
 # Audit CycloneDX SBOM for vulnerabilities
 mayu audit --sbom ./sbom.cdx.json
-
 # Audit SPDX SBOM
 mayu audit --sbom ./sbom.spdx.json
-
 # Include dev dependencies
 mayu audit --sbom ./sbom.cdx.json --include-dev
-
 # Skip version matching (show all vulnerabilities for matched packages)
 mayu audit --sbom ./sbom.cdx.json --no-version-check
-
 # JSON output
 mayu audit --sbom ./sbom.cdx.json --format json
-
 # CSV output
 mayu audit --sbom ./sbom.cdx.json --format csv
 ```
 
-### Start API Server
+### Start Server
 
 ```bash
-# Start the API server (default port: 8080)
+# Start the server (API + Web UI, default port: 8080)
 mayu serve
-
 # Start on custom port
 mayu serve --addr :3000
-
-# Serve with Web UI from external directory (only needed for non-embed builds)
-mayu serve --ui-dir ./ui/dist/mayu/browser
-
-# OpenAPI spec available at http://localhost:8080/openapi.yaml
 ```
-
-> [!NOTE]
-> Release binaries and `make build-embed` builds already include the Web UI — `mayu serve`
-> serves the UI at `/` automatically without any extra options.
-> The `--ui-dir` option is only needed when building without embed (plain `go build`)
-> and is useful for development or serving a custom UI build.
-> For production, we recommend serving the Angular static assets via a dedicated web server
-> (Nginx, Apache) or a CDN-backed storage service (S3 + CloudFront, GCS + Cloud CDN, etc.)
-> to benefit from proper caching, compression, access control, and horizontal scalability.
 
 ## CLI Reference
 
@@ -298,6 +247,9 @@ Import vulnerability data from OSV into the local database.
 | `--concurrency` | Number of ecosystems to import in parallel (with `--all`) | `3` |
 | `--store-workers` | Number of parallel DB store workers per ecosystem | CPU cores - 1 |
 | `--batch-size` | Number of vulnerabilities per batch insert | `100` |
+
+> [!TIP]
+> The list of available ecosystems is published at [`ecosystems.txt`](https://www.googleapis.com/download/storage/v1/b/osv-vulnerabilities/o/ecosystems.txt).
 
 ### `mayu audit`
 
@@ -344,7 +296,7 @@ Search for vulnerabilities in the local database.
 
 ### `mayu serve`
 
-Start the API server for programmatic access to vulnerability data.
+Start the server (REST API + Web UI) for vulnerability data access.
 
 | Flag | Description | Default |
 |------|-------------|---------|
@@ -353,12 +305,7 @@ Start the API server for programmatic access to vulnerability data.
 
 **Endpoints:**
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/v1/vulnerabilities` | Search vulnerabilities (same params as CLI search) |
-| GET | `/api/v1/vulnerabilities/{id}` | Get a single vulnerability by OSV ID |
-| GET | `/healthz` | Health check |
-| GET | `/openapi.yaml` | OpenAPI 3.1 specification |
+For the full API specification, see [`internal/server/openapi.yaml`](internal/server/openapi.yaml) or access `http://localhost:8080/openapi.yaml` while the server is running.
 
 **Examples:**
 
@@ -450,7 +397,6 @@ database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 | Source | Status | Method |
 |--------|--------|--------|
 | [OSV](https://osv.dev/) | ✅ Supported | GCS bucket (`gs://osv-vulnerabilities/`) |
-| NVD (via OSV) | ✅ Supported | Included in OSV data |
 | [NVD CVE (converted)](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ Supported | `mayu ingest --source nvd` |
 | [NVD CVE (native)](https://nvd.nist.gov/vuln/data-feeds) | ✅ Supported | `mayu ingest --source nvd --native` |
 | [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
@@ -496,13 +442,10 @@ LEV requires historical daily EPSS data. Use the backfill command to build up th
 ```bash
 # 1. Import CISA KEV catalog
 mayu ingest --source kev
-
 # 2. Backfill EPSS daily scores from EPSS v3 release (2023-03-07) to today
 mayu ingest --source epss --backfill
-
 # Or specify a custom date range
 mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
-
 # 3. After initial backfill, keep EPSS up-to-date with daily updates
 mayu ingest --source epss --update
 ```
@@ -586,25 +529,9 @@ See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 - [x] Phase 4: API Server (REST)
 - [x] Phase 5: Web UI (Angular)
 - [x] Phase 6: Additional Data Sources (EPSS, KEV, LEV)
-
-### Web UI
-
-The Web UI is an Angular v22 application with TailwindCSS v4, located in `ui/`.
-
-```bash
-# Development server (proxies /api to mayu serve on :8080)
-make ui-dev
-
-# Production build
-make ui-build
-
-# Run tests
-make ui-test
-```
-
-Features:
-- Left sidebar admin-style layout
-- Vulnerability list with full filter support (ecosystem, package, severity, date, etc.)
-- Vulnerability detail page with OSV, NVD, and MITRE enrichment
-- Dark mode (automatic via `prefers-color-scheme`)
-- URL-synced filters and cursor-based pagination
+- [ ] EPSS trend graph & LEV visualization
+- [ ] Advanced triage workflows
+- [ ] Dashboard & reporting
+- [ ] Notifications (webhook, email)
+- [ ] [endoflife.date](https://endoflife.date/) integration
+- [ ] SBOM features (dependency graph, continuous monitoring)
