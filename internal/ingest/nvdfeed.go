@@ -16,13 +16,21 @@ const nvdNativeSource = "NVD-native"
 // It downloads yearly feed files (2002 to current year), parses them, and stores
 // each year's data in batches. Uses META file sha256 to skip unchanged feeds.
 func (ing *Ingester) ImportNVDNative(ctx context.Context) (*Stats, error) {
+	return ing.ImportNVDNativeYears(ctx, nil)
+}
+
+// ImportNVDNativeYears performs a full import of NVD CVE data for the specified years.
+// If years is nil or empty, all available years (2002 to current year) are imported.
+func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*Stats, error) {
 	start := time.Now()
 	stats := &Stats{
 		Ecosystem:  nvdNativeSource,
 		IsFullSync: true,
 	}
 
-	years := fetcher.NVDFeedYears()
+	if len(years) == 0 {
+		years = fetcher.NVDFeedYears()
+	}
 	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Starting NVD native import (%d yearly feeds)...", len(years))})
 
 	var totalInserted int
