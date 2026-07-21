@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kato83/mayu/internal/cvss"
 	"github.com/kato83/mayu/internal/model"
 )
 
@@ -186,6 +187,10 @@ func (s *PostgresStore) collectScores(ctx context.Context, tx *sql.Tx, vulnID st
 			Ver:    ver,
 			Score:  baseScore,
 		}
+		// Preserve vector string if scoreStr is a CVSS vector (not a plain number)
+		if len(scoreStr) > 0 && (scoreStr[0] < '0' || scoreStr[0] > '9') {
+			entry.Vector = scoreStr
+		}
 		if baseScore != nil {
 			entry.Sev = model.SeverityLevelName(model.NormalizeSeverity("cvss", baseScore, ""))
 			entry.Normalized = model.NormalizeSeverity("cvss", baseScore, "")
@@ -198,7 +203,8 @@ func (s *PostgresStore) collectScores(ctx context.Context, tx *sql.Tx, vulnID st
 
 	// --- NVD metrics ---
 	nvdRows, err := tx.QueryContext(ctx, `
-		SELECT nm.version, nm.source, nm.type, nm.base_score, nm.base_severity
+		SELECT nm.version, nm.source, nm.type, nm.base_score, nm.base_severity,
+		       nm.cvss_data->>'vectorString'
 		FROM nvd_metrics nm
 		JOIN nvd_entries ne ON ne.id = nm.nvd_entry_id
 		WHERE ne.vulnerability_id = $1`, vulnID)
@@ -210,14 +216,15 @@ func (s *PostgresStore) collectScores(ctx context.Context, tx *sql.Tx, vulnID st
 	for nvdRows.Next() {
 		var ver, source, metricType string
 		var baseScore sql.NullFloat64
-		var baseSeverity sql.NullString
-		if err := nvdRows.Scan(&ver, &source, &metricType, &baseScore, &baseSeverity); err != nil {
+		var baseSeverity, vectorString sql.NullString
+		if err := nvdRows.Scan(&ver, &source, &metricType, &baseScore, &baseSeverity, &vectorString); err != nil {
 			return nil, fmt.Errorf("scan nvd_metrics: %w", err)
 		}
 		entry := model.ScoreEntry{
 			Src:    "nvd",
 			System: "cvss",
 			Ver:    ver,
+			Vector: vectorString.String,
 		}
 		if baseScore.Valid {
 			s := baseScore.Float64
@@ -237,7 +244,7 @@ func (s *PostgresStore) collectScores(ctx context.Context, tx *sql.Tx, vulnID st
 	// --- MITRE metrics ---
 	mitreRows, err := tx.QueryContext(ctx, `
 		SELECT mm.format, mm.cvss_version, mm.base_score, mm.base_severity,
-		       mc.container_type, mc.provider_short_name
+		       mm.vector_string, mc.container_type, mc.provider_short_name
 		FROM mitre_metrics mm
 		JOIN mitre_containers mc ON mc.id = mm.container_id
 		JOIN mitre_entries me ON me.id = mc.mitre_entry_id
@@ -252,8 +259,9 @@ func (s *PostgresStore) collectScores(ctx context.Context, tx *sql.Tx, vulnID st
 		var cvssVersion sql.NullString
 		var baseScore sql.NullFloat64
 		var baseSeverity sql.NullString
+		var vectorString sql.NullString
 		var containerType, providerShortName sql.NullString
-		if err := mitreRows.Scan(&format, &cvssVersion, &baseScore, &baseSeverity, &containerType, &providerShortName); err != nil {
+		if err := mitreRows.Scan(&format, &cvssVersion, &baseScore, &baseSeverity, &vectorString, &containerType, &providerShortName); err != nil {
 			return nil, fmt.Errorf("scan mitre_metrics: %w", err)
 		}
 
@@ -273,6 +281,7 @@ func (s *PostgresStore) collectScores(ctx context.Context, tx *sql.Tx, vulnID st
 			Src:    src,
 			System: system,
 			Ver:    cvssVersion.String,
+			Vector: vectorString.String,
 		}
 		if baseScore.Valid {
 			s := baseScore.Float64
@@ -314,7 +323,7 @@ func (s *PostgresStore) aggregateEcosystems(ctx context.Context, tx *sql.Tx, vul
 	return ecosystems, rows.Err()
 }
 
-// aggregateCWEs collects unique CWE IDs from NVD and MITRE sources.
+// aggregateCWEs collects unique CWE IDs from NVD, MITRE, and OSV sources.
 func (s *PostgresStore) aggregateCWEs(ctx context.Context, tx *sql.Tx, vulnID string) ([]string, error) {
 	rows, err := tx.QueryContext(ctx, `
 		SELECT DISTINCT cwe_id FROM (
@@ -326,7 +335,14 @@ func (s *PostgresStore) aggregateCWEs(ctx context.Context, tx *sql.Tx, vulnID st
 			JOIN mitre_containers mc ON mc.id = mpt.container_id
 			JOIN mitre_entries me ON me.id = mc.mitre_entry_id
 			WHERE me.vulnerability_id = $1 AND mpt.cwe_id IS NOT NULL AND mpt.cwe_id != ''
-		) combined`, vulnID)
+			UNION
+			SELECT jsonb_array_elements_text(oe.database_specific->'cwe_ids') AS cwe_id
+			FROM osv_entries oe
+			WHERE oe.vulnerability_id = $1
+			AND oe.database_specific ? 'cwe_ids'
+			AND jsonb_typeof(oe.database_specific->'cwe_ids') = 'array'
+		) combined
+		WHERE cwe_id IS NOT NULL AND cwe_id != ''`, vulnID)
 	if err != nil {
 		return nil, fmt.Errorf("query CWEs: %w", err)
 	}
@@ -362,8 +378,8 @@ func mapOSVSeverityTypeToVersion(sevType string) string {
 // extractBaseScoreFromVector attempts to parse a base score from a CVSS vector string.
 // CVSS vectors contain the score as a separate element in some OSV entries.
 // If the score string looks like a plain number (e.g., "7.5"), it's returned directly.
-// If it's a CVSS vector string (e.g., "CVSS:3.1/AV:N/AC:L/..."), returns nil
-// (score must be computed from the vector, which we don't do here).
+// If it's a CVSS vector string (e.g., "CVSS:3.1/AV:N/AC:L/..."), the base score is
+// computed using the cvss package.
 func extractBaseScoreFromVector(scoreStr string) *float64 {
 	// Try to parse as a plain float (some OSV entries store just the score)
 	if len(scoreStr) > 0 && scoreStr[0] >= '0' && scoreStr[0] <= '9' {
@@ -373,8 +389,10 @@ func extractBaseScoreFromVector(scoreStr string) *float64 {
 			return &score
 		}
 	}
-	// It's a CVSS vector string — we'd need to compute the score.
-	// For now, use the cvss_base_score function at DB level or skip.
+	// Try to compute from CVSS vector string
+	if score, ok := cvss.BaseScore(scoreStr); ok {
+		return &score
+	}
 	return nil
 }
 

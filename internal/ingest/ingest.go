@@ -596,8 +596,21 @@ func (ing *Ingester) refreshSummary(ctx context.Context, vulnIDs []string) {
 			unique = append(unique, id)
 		}
 	}
-	if err := ing.store.RefreshSummary(ctx, unique); err != nil {
-		ing.logger.Printf("warning: failed to refresh summary for %d vulnerabilities: %v", len(unique), err)
+
+	total := len(unique)
+	ing.progress(Progress{Phase: "summary", Message: fmt.Sprintf("Refreshing summary for %d vulnerabilities...", total)})
+
+	// Process in batches with progress reporting
+	const batchSize = 500
+	for i := 0; i < total; i += batchSize {
+		end := i + batchSize
+		if end > total {
+			end = total
+		}
+		if err := ing.store.RefreshSummary(ctx, unique[i:end]); err != nil {
+			ing.logger.Printf("warning: failed to refresh summary for %d vulnerabilities: %v", end-i, err)
+		}
+		ing.progress(Progress{Phase: "summary", Current: end, Total: total})
 	}
 }
 
