@@ -62,6 +62,9 @@ func (m *mockStore) ListOSVEcosystems(ctx context.Context) ([]string, error) {
 	return []string{"Go", "npm", "PyPI"}, nil
 }
 func (m *mockStore) UpsertOSVEcosystems(ctx context.Context, names []string) error { return nil }
+func (m *mockStore) SearchByPackages(ctx context.Context, packages []store.PackageQuery) (map[string][]*model.Vulnerability, error) {
+	return nil, nil
+}
 
 // newTestServer creates a Server with the given mock store for testing.
 func newTestServer(ms *mockStore) *Server {

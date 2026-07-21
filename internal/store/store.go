@@ -70,6 +70,17 @@ type Store interface {
 
 	// UpsertOSVEcosystems inserts ecosystem names into osv_ecosystems (ignoring duplicates).
 	UpsertOSVEcosystems(ctx context.Context, names []string) error
+
+	// SearchByPackages queries vulnerabilities for multiple packages in a single batch.
+	// Returns a map keyed by "ecosystem/name" with matching vulnerabilities (including
+	// full affected data needed for version range checking).
+	SearchByPackages(ctx context.Context, packages []PackageQuery) (map[string][]*model.Vulnerability, error)
+}
+
+// PackageQuery identifies a package to search for in the vulnerability database.
+type PackageQuery struct {
+	Ecosystem string
+	Name      string
 }
 
 // SearchQuery defines parameters for searching vulnerabilities.
