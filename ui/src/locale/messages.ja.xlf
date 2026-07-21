@@ -102,9 +102,9 @@
         <source>Modified</source>
         <target>更新日</target>
       </trans-unit>
-      <trans-unit id="vulnDetail.backToList" datatype="html">
-        <source> ← Back to list </source>
-        <target>← 一覧に戻る</target>
+      <trans-unit id="vulnDetail.breadcrumbList" datatype="html">
+        <source>Vulnerabilities</source>
+        <target>脆弱性一覧</target>
       </trans-unit>
       <trans-unit id="vulnDetail.loading" datatype="html">
         <source>Loading vulnerability details...</source>
