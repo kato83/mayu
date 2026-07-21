@@ -222,7 +222,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 
 	// Validate severity
 	if severity != "" {
-		validSeverities := []string{"critical", "high", "medium", "low", "none"}
+		validSeverities := []string{"critical", "high", "medium", "low", "none", "unknown"}
 		valid := false
 		for _, s := range validSeverities {
 			if strings.ToLower(severity) == s {
@@ -232,7 +232,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		}
 		if !valid {
 			writeError(w, http.StatusBadRequest,
-				fmt.Sprintf("invalid severity %q (valid: critical, high, medium, low, none)", severity))
+				fmt.Sprintf("invalid severity %q (valid: critical, high, medium, low, none, unknown)", severity))
 			return
 		}
 	}
