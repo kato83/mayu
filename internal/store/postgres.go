@@ -775,16 +775,122 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 }
 
 // Count returns the number of vulnerabilities matching the given query parameters.
+// It uses buildCountConditions which avoids the expensive LATERAL JOIN on osv_entries
+// that is only needed for fetching display data (raw_json), not for counting rows.
 func (s *PostgresStore) Count(ctx context.Context, query SearchQuery) (int64, error) {
-	// Use the same buildSearchConditions, wrapping it as a count subquery.
-	baseQuery, args, _ := s.buildSearchConditions(query)
-	countQuery := `SELECT COUNT(*) FROM (` + baseQuery + `) count_sub`
+	countQuery, args := s.buildCountConditions(query)
 
 	var count int64
 	if err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count vulnerabilities: %w", err)
 	}
 	return count, nil
+}
+
+// buildCountConditions builds a COUNT query without the expensive LATERAL JOIN on osv_entries.
+// It mirrors the WHERE conditions from buildSearchConditions but uses a lightweight SELECT.
+func (s *PostgresStore) buildCountConditions(query SearchQuery) (string, []interface{}) {
+	var args []interface{}
+	var argIdx int
+
+	baseFrom := `FROM vulnerabilities v
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id`
+	where := `WHERE 1=1`
+
+	switch {
+	case query.ID != "":
+		argIdx++
+		where = fmt.Sprintf(`WHERE (v.id = $%d
+			OR v.id IN (SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $%d)
+		)`, argIdx, argIdx)
+		args = append(args, query.ID)
+
+	case query.Purl != "":
+		argIdx++
+		purlMatch := strings.TrimPrefix(query.Purl, "pkg:")
+		if idx := strings.IndexByte(purlMatch, '@'); idx >= 0 {
+			purlMatch = purlMatch[:idx]
+		}
+		if idx := strings.IndexByte(purlMatch, '?'); idx >= 0 {
+			purlMatch = purlMatch[:idx]
+		}
+		where = fmt.Sprintf(`WHERE v.id IN (
+			SELECT pi.vulnerability_id FROM product_identifiers pi
+			WHERE pi.purl_type || '/' || COALESCE(pi.purl_namespace || '/', '') || pi.purl_name = $%d
+		)`, argIdx)
+		args = append(args, purlMatch)
+
+	case query.CPE != "":
+		cpeFields := model.ParseCPE23(query.CPE)
+		if cpeFields != nil && cpeFields.Vendor != "*" && cpeFields.Product != "*" {
+			argIdx++
+			vendorArg := argIdx
+			argIdx++
+			productArg := argIdx
+			where = fmt.Sprintf(`WHERE v.id IN (
+				SELECT pi.vulnerability_id FROM product_identifiers pi
+				WHERE pi.cpe_vendor = $%d AND pi.cpe_product = $%d
+			)`, vendorArg, productArg)
+			args = append(args, cpeFields.Vendor, cpeFields.Product)
+		}
+
+	case query.PackageName != "" || query.Ecosystem != "":
+		innerWhere := `1=1`
+		if query.Ecosystem != "" {
+			argIdx++
+			innerWhere += fmt.Sprintf(` AND pi.ecosystem = $%d`, argIdx)
+			args = append(args, query.Ecosystem)
+		}
+		if query.PackageName != "" {
+			argIdx++
+			innerWhere += fmt.Sprintf(` AND pi.name = $%d`, argIdx)
+			args = append(args, query.PackageName)
+		}
+		where = fmt.Sprintf(`WHERE v.id IN (
+			SELECT DISTINCT pi.vulnerability_id FROM product_identifiers pi WHERE %s
+		)`, innerWhere)
+	}
+
+	// Severity filter
+	if query.Severity != "" {
+		if strings.EqualFold(query.Severity, "unknown") {
+			where += ` AND vs.severity_worst IS NULL`
+		} else {
+			sevLevel := severityToLevel(query.Severity)
+			if sevLevel > 0 {
+				argIdx++
+				where += fmt.Sprintf(` AND vs.severity_worst >= $%d`, argIdx)
+				args = append(args, sevLevel)
+				argIdx++
+				where += fmt.Sprintf(` AND COALESCE(vs.severity_best, vs.severity_worst) <= $%d`, argIdx)
+				args = append(args, sevLevel)
+			}
+		}
+	}
+
+	// KEV filter
+	if query.InKEV != nil && *query.InKEV {
+		where += ` AND vs.in_kev = true`
+	}
+
+	// Since filter
+	if query.Since != "" {
+		argIdx++
+		where += fmt.Sprintf(` AND v.modified >= $%d`, argIdx)
+		args = append(args, query.Since)
+	}
+
+	// Version filter
+	if query.Version != "" {
+		argIdx++
+		where += fmt.Sprintf(` AND v.id IN (
+			SELECT oe.vulnerability_id FROM osv_entries oe
+			JOIN osv_affected_packages ap ON ap.osv_entry_id = oe.osv_id
+			WHERE $%d = ANY(ap.versions))`, argIdx)
+		args = append(args, query.Version)
+	}
+
+	return fmt.Sprintf(`SELECT COUNT(*) %s %s`, baseFrom, where), args
 }
 
 // GetSyncState retrieves the sync state for a given source.
