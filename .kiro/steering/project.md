@@ -13,17 +13,19 @@ Mayu is a unified vulnerability intelligence tool that aggregates multiple sourc
 ```
 mayu/
 ├── cmd/
-│   └── mayu/              # CLI entrypoint (ingest, search, serve, migrate, version)
+│   └── mayu/              # CLI entrypoint (ingest, search, audit, serve, migrate, version)
 ├── internal/
+│   ├── audit/             # SBOM audit logic (version matching, finding generation)
 │   ├── config/            # YAML configuration file loading
-│   ├── fetcher/           # GCS data download (OSV zip, converted sources, streaming)
-│   ├── parser/            # OSV JSON parsing
-│   ├── store/             # PostgreSQL persistence (database/sql + pgx stdlib)
-│   ├── model/             # OSV schema Go structs
-│   ├── server/            # HTTP/REST API server (go-chi)
-│   ├── ingest/            # Pipeline orchestrator (OSV ecosystems + converted sources)
 │   ├── cvss/              # CVSS score parsing utilities
+│   ├── fetcher/           # GCS data download (OSV zip, converted sources, streaming)
+│   ├── ingest/            # Pipeline orchestrator (OSV ecosystems + converted sources)
+│   ├── model/             # OSV schema Go structs
+│   ├── parser/            # OSV JSON parsing
 │   ├── purl/              # Package URL parsing
+│   ├── sbom/              # SBOM parsers (CycloneDX 1.7, SPDX 2.3 JSON)
+│   ├── server/            # HTTP/REST API server (go-chi)
+│   ├── store/             # PostgreSQL persistence (database/sql + pgx stdlib)
 │   └── validate/          # Input validation helpers
 ├── ui/                    # Angular v22 Web UI (TailwindCSS v4, pnpm)
 ├── migrations/            # golang-migrate SQL files (000001–000014)
@@ -160,6 +162,8 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR to `main`:
 - Each vulnerability stores its complete original JSON in `raw_json` JSONB column
 - Sync state tracked per-ecosystem for efficient delta updates via `modified_id.csv`
 - Search interface: `store.Store.Search()` with `SearchQuery` struct (ID, Ecosystem, PackageName, Alias, Severity, Since, Version, Limit, Offset)
+- Audit interface: `store.Store.SearchByPackages()` for batch package lookup; `internal/audit.Auditor` performs version-range matching (semver via `github.com/Masterminds/semver/v3`) and generates `Finding` results
+- SBOM parsing: `internal/sbom.Parse()` auto-detects CycloneDX 1.7 / SPDX 2.3 JSON and extracts `Component` list (purl → ecosystem/name/version resolution via `internal/purl`)
 
 ## Data Sources
 
