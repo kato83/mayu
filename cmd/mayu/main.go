@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/model"
@@ -36,27 +37,36 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Parse global --config flag before subcommand dispatch.
+	// It can appear anywhere before or after the subcommand name, but for
+	// simplicity we scan os.Args for --config=<path> or --config <path>.
+	cfg, err := loadGlobalConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
 	switch os.Args[1] {
 	case "version":
 		printBanner()
 		fmt.Printf("\nmayu %s\n", version)
 	case "ingest":
-		if err := runIngest(os.Args[2:]); err != nil {
+		if err := runIngest(os.Args[2:], cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "search":
-		if err := runSearch(os.Args[2:]); err != nil {
+		if err := runSearch(os.Args[2:], cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "serve":
-		if err := runServe(os.Args[2:]); err != nil {
+		if err := runServe(os.Args[2:], cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "migrate":
-		if err := runMigrate(os.Args[2:]); err != nil {
+		if err := runMigrate(os.Args[2:], cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
@@ -69,10 +79,45 @@ func main() {
 	}
 }
 
+// loadGlobalConfig parses global flags (--config) from os.Args and loads the
+// configuration file. The --config flag can appear anywhere in the arguments.
+func loadGlobalConfig() (*config.Config, error) {
+	var configPath string
+	var explicit bool
+
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		if arg == "--config" && i+1 < len(os.Args) {
+			configPath = os.Args[i+1]
+			explicit = true
+			break
+		}
+		if strings.HasPrefix(arg, "--config=") {
+			configPath = strings.TrimPrefix(arg, "--config=")
+			explicit = true
+			break
+		}
+	}
+
+	if configPath == "" {
+		configPath = config.DefaultPath()
+	}
+
+	if configPath == "" {
+		// Cannot determine home directory — skip config loading.
+		return &config.Config{}, nil
+	}
+
+	return config.Load(configPath, explicit)
+}
+
 func printUsage() {
 	printBanner()
 	fmt.Println()
-	fmt.Println("Usage: mayu <command> [options]")
+	fmt.Println("Usage: mayu [global options] <command> [options]")
+	fmt.Println()
+	fmt.Println("Global Options:")
+	fmt.Println("  --config <path>  Path to config file (default: $HOME/.config/mayu/config.yaml)")
 	fmt.Println()
 	fmt.Println("Commands:")
 	fmt.Println("  ingest     Import vulnerability data from OSV, NVD, MITRE, EPSS, KEV")
@@ -85,7 +130,7 @@ func printUsage() {
 	fmt.Println("Run 'mayu <command> --help' for more information on a command.")
 }
 
-func runIngest(args []string) error {
+func runIngest(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("ingest", flag.ExitOnError)
 
 	ecosystem := fs.String("ecosystem", "", "Ecosystem to import (e.g., Go, PyPI, npm)")
@@ -101,6 +146,7 @@ func runIngest(args []string) error {
 	batchSize := fs.Int("batch-size", 100, "Number of vulnerabilities per batch insert")
 	storeWorkers := fs.Int("store-workers", ingest.DefaultStoreWorkers(), "Number of parallel DB store workers per ecosystem")
 	native := fs.Bool("native", false, "Use native data source feed instead of OSV conversion (with --source nvd)")
+	year := fs.Int("year", 0, "Import only a specific year's NVD feed (e.g., 2024; with --source nvd --native)")
 	fileMode := fs.Bool("file", false, "Import from local OSV JSON files (paths as positional arguments)")
 
 	fs.Usage = func() {
@@ -118,6 +164,7 @@ func runIngest(args []string) error {
 		fmt.Println("  mayu ingest --all --bulk    # Download single all.zip (~1.3GB) for all ecosystems")
 		fmt.Println("  mayu ingest --source nvd")
 		fmt.Println("  mayu ingest --source nvd --native        # Import directly from NVD JSON Feed 2.0")
+		fmt.Println("  mayu ingest --source nvd --native --year 2024  # Import only 2024 NVD data")
 		fmt.Println("  mayu ingest --source nvd --native --update  # Delta update from NVD modified feed")
 		fmt.Println("  mayu ingest --source debian")
 		fmt.Println("  mayu ingest --source mitre              # Import MITRE CVE from cvelistV5")
@@ -142,7 +189,7 @@ func runIngest(args []string) error {
 	}
 
 	// Resolve database URL
-	databaseURL := resolveDatabaseURL(*dbURL)
+	databaseURL := resolveDatabaseURL(*dbURL, cfg)
 
 	// Setup context with signal handling
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -242,9 +289,17 @@ func runIngest(args []string) error {
 			var stats *ingest.Stats
 			var err error
 			if *update {
+				if *year != 0 {
+					return fmt.Errorf("--year cannot be used with --update (delta update covers all modified CVEs)")
+				}
 				stats, err = ing.UpdateNVDNative(ctx)
 			} else {
-				stats, err = ing.ImportNVDNative(ctx)
+				var years []int
+				if *year != 0 {
+					years = []int{*year}
+					fmt.Printf("  Filtering to year: %d\n", *year)
+				}
+				stats, err = ing.ImportNVDNativeYears(ctx, years)
 			}
 			if err != nil {
 				if ctx.Err() != nil {
@@ -515,8 +570,9 @@ func printStats(stats *ingest.Stats) {
 	fmt.Printf("    Duration:   %s\n", stats.Duration.Round(1e6))
 }
 
-// resolveDatabaseURL determines the database URL from flags, env, or default.
-func resolveDatabaseURL(flagURL string) string {
+// resolveDatabaseURL determines the database URL from flags, env, config file, or default.
+// Priority: CLI flag > environment variable > config file > default.
+func resolveDatabaseURL(flagURL string, cfg *config.Config) string {
 	if flagURL != "" {
 		warnInsecureDatabaseURL(flagURL)
 		return flagURL
@@ -524,6 +580,10 @@ func resolveDatabaseURL(flagURL string) string {
 	if envURL := os.Getenv("DATABASE_URL"); envURL != "" {
 		warnInsecureDatabaseURL(envURL)
 		return envURL
+	}
+	if cfg != nil && cfg.DatabaseURL != "" {
+		warnInsecureDatabaseURL(cfg.DatabaseURL)
+		return cfg.DatabaseURL
 	}
 	return defaultDatabaseURL
 }
@@ -595,7 +655,7 @@ func resolveEcosystems(ctx context.Context, f *fetcher.Fetcher, all bool, ecosys
 	return []string{eco}, nil
 }
 
-func runSearch(args []string) error {
+func runSearch(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("search", flag.ExitOnError)
 
 	id := fs.String("id", "", "Search by vulnerability ID (e.g., CVE-2024-1234, GO-2024-2687)")
@@ -697,7 +757,7 @@ func runSearch(args []string) error {
 	}
 
 	// Resolve database URL
-	databaseURL := resolveDatabaseURL(*dbURL)
+	databaseURL := resolveDatabaseURL(*dbURL, cfg)
 
 	// Setup context
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -1352,7 +1412,7 @@ func truncateString(s string, maxRunes int) string {
 	return string(runes[:maxRunes-3]) + "..."
 }
 
-func runServe(args []string) error {
+func runServe(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 
 	addr := fs.String("addr", ":8080", "Address to listen on (host:port)")
@@ -1387,7 +1447,7 @@ func runServe(args []string) error {
 	}
 
 	// Resolve database URL
-	databaseURL := resolveDatabaseURL(*dbURL)
+	databaseURL := resolveDatabaseURL(*dbURL, cfg)
 
 	// Setup context with signal handling
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

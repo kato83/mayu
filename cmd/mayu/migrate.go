@@ -8,10 +8,11 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 
+	"github.com/kato83/mayu/internal/config"
 	migrations "github.com/kato83/mayu/migrations"
 )
 
-func runMigrate(args []string) error {
+func runMigrate(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("migrate", flag.ExitOnError)
 
 	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
@@ -49,7 +50,7 @@ func runMigrate(args []string) error {
 		return err
 	}
 
-	databaseURL := resolveDatabaseURL(*dbURL)
+	databaseURL := resolveDatabaseURL(*dbURL, cfg)
 
 	// Create migrate instance using embedded migrations
 	source, err := iofs.New(migrations.FS, ".")
