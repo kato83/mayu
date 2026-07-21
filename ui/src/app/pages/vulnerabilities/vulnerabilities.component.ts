@@ -24,14 +24,13 @@ interface FilterState {
   id: string;
   package: string;
   ecosystem: string;
-  purl: string;
   severity: string;
   since: string;
   version: string;
 }
 
 function emptyFilters(): FilterState {
-  return { id: '', package: '', ecosystem: '', purl: '', severity: '', since: '', version: '' };
+  return { id: '', package: '', ecosystem: '', severity: '', since: '', version: '' };
 }
 
 @Component({
@@ -65,7 +64,7 @@ function emptyFilters(): FilterState {
               type="text"
               [ngModel]="filters.package"
               (ngModelChange)="onFilterChange('package', $event)"
-              placeholder="golang.org/x/crypto"
+              placeholder="golang.org/x/crypto, pkg:golang/..."
               i18n-placeholder="@@vulnList.filterPackagePlaceholder"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
@@ -103,19 +102,6 @@ function emptyFilters(): FilterState {
             </select>
           </div>
 
-          <!-- Purl filter -->
-          <div>
-            <label for="filter-purl" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterPurl">Package URL</label>
-            <input
-              id="filter-purl"
-              type="text"
-              [ngModel]="filters.purl"
-              (ngModelChange)="onFilterChange('purl', $event)"
-              placeholder="pkg:golang/..."
-              i18n-placeholder="@@vulnList.filterPurlPlaceholder"
-              class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-            />
-          </div>
 
           <!-- Version filter -->
           <div>
@@ -276,13 +262,12 @@ export class VulnerabilitiesComponent implements OnInit {
           // Restore filters from URL
           this.filters = {
             id: params['id'] || '',
-            package: params['package'] || '',
+            package: params['purl'] || params['package'] || '',
             ecosystem: params['ecosystem'] || '',
-            purl: params['purl'] || '',
             severity: params['severity'] || '',
             since: params['since'] || '',
             version: params['version'] || '',
-          } as FilterState;
+          };
 
           const limit = params['limit'] ? parseInt(params['limit'], 10) : 20;
           const offset = params['offset'] ? parseInt(params['offset'], 10) : 0;
@@ -361,7 +346,7 @@ export class VulnerabilitiesComponent implements OnInit {
     const queryParams: Record<string, string | number | null> = {};
 
     // Add non-empty filters to URL
-    const filterKeys: (keyof FilterState)[] = ['id', 'package', 'ecosystem', 'purl', 'severity', 'since', 'version'];
+    const filterKeys: (keyof FilterState)[] = ['id', 'package', 'ecosystem', 'severity', 'since', 'version'];
     for (const key of filterKeys) {
       queryParams[key] = this.filters[key] || null;
     }
@@ -389,9 +374,14 @@ export class VulnerabilitiesComponent implements OnInit {
 
     // Apply filters
     if (this.filters.id) params.id = this.filters.id;
-    if (this.filters.package) params.package = this.filters.package;
+    if (this.filters.package) {
+      if (this.filters.package.startsWith('pkg:')) {
+        params.purl = this.filters.package;
+      } else {
+        params.package = this.filters.package;
+      }
+    }
     if (this.filters.ecosystem) params.ecosystem = this.filters.ecosystem;
-    if (this.filters.purl) params.purl = this.filters.purl;
     if (this.filters.severity) params.severity = this.filters.severity as SearchParams['severity'];
     if (this.filters.since) params.since = this.filters.since;
     if (this.filters.version) params.version = this.filters.version;

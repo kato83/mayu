@@ -35,8 +35,8 @@
         <target>パッケージ</target>
       </trans-unit>
       <trans-unit id="vulnList.filterPackagePlaceholder" datatype="html">
-        <source>golang.org/x/crypto</source>
-        <target>golang.org/x/crypto</target>
+        <source>golang.org/x/crypto, pkg:golang/...</source>
+        <target>golang.org/x/crypto, pkg:golang/...</target>
       </trans-unit>
       <trans-unit id="vulnList.filterEcosystem" datatype="html">
         <source>Ecosystem</source>
@@ -53,14 +53,6 @@
       <trans-unit id="vulnList.allSeverities" datatype="html">
         <source>All severities</source>
         <target>全ての深刻度</target>
-      </trans-unit>
-      <trans-unit id="vulnList.filterPurl" datatype="html">
-        <source>Package URL</source>
-        <target>パッケージ URL</target>
-      </trans-unit>
-      <trans-unit id="vulnList.filterPurlPlaceholder" datatype="html">
-        <source>pkg:golang/...</source>
-        <target>pkg:golang/...</target>
       </trans-unit>
       <trans-unit id="vulnList.filterVersion" datatype="html">
         <source>Version</source>
