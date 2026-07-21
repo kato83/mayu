@@ -48,7 +48,11 @@ func (s *PostgresStore) Close() error {
 func (s *PostgresStore) CleanAll(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `
 		DELETE FROM sync_state;
+		DELETE FROM alias_sources;
 		DELETE FROM vulnerability_aliases;
+		DELETE FROM vulnerability_summary;
+		DELETE FROM product_identifiers;
+		DELETE FROM purl_cpe_mapping;
 		DELETE FROM osv_credits;
 		DELETE FROM osv_references;
 		DELETE FROM osv_severity;
