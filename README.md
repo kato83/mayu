@@ -226,6 +226,28 @@ mayu search --id GO-2024-2687 --format json
 mayu search --ecosystem Go --format csv > vulns.csv
 ```
 
+### Audit SBOM
+
+```bash
+# Audit CycloneDX SBOM for vulnerabilities
+mayu audit --sbom ./sbom.cdx.json
+
+# Audit SPDX SBOM
+mayu audit --sbom ./sbom.spdx.json
+
+# Include dev dependencies
+mayu audit --sbom ./sbom.cdx.json --include-dev
+
+# Skip version matching (show all vulnerabilities for matched packages)
+mayu audit --sbom ./sbom.cdx.json --no-version-check
+
+# JSON output
+mayu audit --sbom ./sbom.cdx.json --format json
+
+# CSV output
+mayu audit --sbom ./sbom.cdx.json --format csv
+```
+
 ### Start API Server
 
 ```bash
@@ -270,6 +292,30 @@ Import vulnerability data from OSV into the local database.
 | `--store-workers` | Number of parallel DB store workers per ecosystem | CPU cores - 1 |
 | `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 | `--batch-size` | Number of vulnerabilities per batch insert | `100` |
+
+### `mayu audit`
+
+Audit an SBOM for known vulnerabilities.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--sbom` | Path to SBOM file (CycloneDX 1.7 or SPDX 2.3 JSON) | (required) |
+| `--format` | Output format: `table`, `json`, `csv` | `table` |
+| `--include-dev` | Include development dependencies in audit | `false` |
+| `--no-version-check` | Skip version matching, report all vulnerabilities for package name | `false` |
+| `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
+
+**Exit codes:**
+
+| Code | Meaning |
+|------|---------|
+| 0 | No vulnerabilities found |
+| 1 | One or more vulnerabilities found |
+| 2 | Error (invalid input, database connection failure, etc.) |
+
+**Supported SBOM formats:**
+- CycloneDX 1.7 (JSON) — dev dependencies detected via `scope` and `cdx:npm:package:development` property
+- SPDX 2.3 (JSON) — all packages treated as production (SPDX lacks dev/prod distinction)
 
 ### `mayu search`
 
