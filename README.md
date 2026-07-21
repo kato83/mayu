@@ -15,6 +15,7 @@ Mayu ingests vulnerability data from the [OSV](https://osv.dev/) ecosystem into 
 **Current capabilities:**
 - Full and delta import of OSV vulnerability data from the GCS bucket
 - Direct import of GitHub Security Advisories — even before they reach OSV, just `wget` the API response and feed it to mayu
+- SBOM vulnerability audit — feed a CycloneDX or SPDX SBOM and get a full vulnerability report against local data
 - CLI-based vulnerability search by ID, package name, ecosystem, or alias
 - REST API server with OpenAPI 3.1 specification
 - Supports all OSV ecosystems (Go, PyPI, npm, Maven, crates.io, etc.)
@@ -306,16 +307,6 @@ Start the server (REST API + Web UI) for vulnerability data access.
 **Endpoints:**
 
 For the full API specification, see [`internal/server/openapi.yaml`](internal/server/openapi.yaml) or access `http://localhost:8080/openapi.yaml` while the server is running.
-
-**Examples:**
-
-```bash
-curl "http://localhost:8080/api/v1/vulnerabilities?ecosystem=Go&limit=5"
-curl "http://localhost:8080/api/v1/vulnerabilities/GO-2024-2687"
-curl "http://localhost:8080/api/v1/vulnerabilities?package=golang.org/x/crypto"
-curl "http://localhost:8080/api/v1/vulnerabilities?severity=critical"
-curl "http://localhost:8080/api/v1/vulnerabilities?purl=pkg:golang/golang.org/x/crypto"
-```
 
 ### `mayu migrate`
 
