@@ -10,14 +10,6 @@ import { Vulnerability, SearchResponse } from '../../models/vulnerability.model'
 import { SearchParams } from '../../models/search-params.model';
 import { PaginationComponent, PageChangeEvent } from '../../shared/pagination/pagination.component';
 
-/** Available ecosystems for the dropdown filter. */
-const ECOSYSTEMS = [
-  'Go', 'npm', 'PyPI', 'Maven', 'crates.io', 'NuGet', 'Packagist',
-  'RubyGems', 'Hex', 'Pub', 'SwiftURL', 'ConanCenter', 'Hackage',
-  'CRAN', 'Bioconductor', 'AlmaLinux', 'Alpine', 'Chainguard',
-  'Debian', 'Rocky Linux', 'Ubuntu', 'Wolfi', 'Android', 'Linux',
-];
-
 const SEVERITIES = ['critical', 'high', 'medium', 'low', 'none', 'unknown'] as const;
 
 interface FilterState {
@@ -72,7 +64,10 @@ function emptyFilters(): FilterState {
 
           <!-- Ecosystem filter -->
           <div>
-            <label for="filter-ecosystem" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterEcosystem">Ecosystem</label>
+            <label for="filter-ecosystem" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <span i18n="@@vulnList.filterEcosystem">Ecosystem</span>
+              <span class="font-normal text-slate-400 dark:text-slate-500" i18n="@@vulnList.filterEcosystemNote"> (OSV only)</span>
+            </label>
             <select
               id="filter-ecosystem"
               [ngModel]="filters.ecosystem"
@@ -80,7 +75,7 @@ function emptyFilters(): FilterState {
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             >
               <option value="" i18n="@@vulnList.allEcosystems">All ecosystems</option>
-              @for (eco of ecosystems; track eco) {
+              @for (eco of ecosystems(); track eco) {
                 <option [value]="eco">{{ eco }}</option>
               }
             </select>
@@ -243,7 +238,7 @@ export class VulnerabilitiesComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly ecosystems = ECOSYSTEMS;
+  readonly ecosystems = signal<string[]>([]);
   readonly severities = SEVERITIES;
 
   readonly vulnerabilities = signal<Vulnerability[]>([]);
@@ -271,6 +266,13 @@ export class VulnerabilitiesComponent implements OnInit {
   private skipNextParamsChange = false;
 
   ngOnInit(): void {
+    // Load ecosystems from API
+    this.vulnService.getEcosystems()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((res) => {
+        this.ecosystems.set(res.ecosystems);
+      });
+
     // Debounced filter changes trigger search
     this.filterChange$
       .pipe(

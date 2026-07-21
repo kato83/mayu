@@ -123,6 +123,7 @@ func (s *Server) routes() http.Handler {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
+		r.Get("/ecosystems", s.handleListEcosystems)
 	})
 
 	// SPA static file serving with fallback to index.html
@@ -598,4 +599,18 @@ func parseAcceptLanguage(header string) []string {
 		result[i] = l.lang
 	}
 	return result
+}
+
+// handleListEcosystems returns all known OSV ecosystem names sorted alphabetically.
+func (s *Server) handleListEcosystems(w http.ResponseWriter, r *http.Request) {
+	ecosystems, err := s.store.ListOSVEcosystems(r.Context())
+	if err != nil {
+		slog.Error("failed to list ecosystems", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	if ecosystems == nil {
+		ecosystems = []string{}
+	}
+	writeJSON(w, http.StatusOK, map[string][]string{"ecosystems": ecosystems})
 }

@@ -150,6 +150,11 @@ func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, 
 		ing.logger.Printf("warning: failed to update sync state: %v", err)
 	}
 
+	// Register ecosystem in osv_ecosystems
+	if err := ing.store.UpsertOSVEcosystems(ctx, []string{ecosystem}); err != nil {
+		ing.logger.Printf("warning: failed to upsert ecosystem: %v", err)
+	}
+
 	stats.Duration = time.Since(start)
 	ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: stats.Total, Message: fmt.Sprintf("Done: %d inserted in %s", stats.Inserted, stats.Duration.Round(time.Millisecond))})
 
@@ -331,6 +336,11 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 		}
 		if err := ing.store.UpdateSyncState(ctx, newSyncState); err != nil {
 			ing.logger.Printf("warning: failed to update sync state: %v", err)
+		}
+
+		// Register ecosystem in osv_ecosystems
+		if err := ing.store.UpsertOSVEcosystems(ctx, []string{ecosystem}); err != nil {
+			ing.logger.Printf("warning: failed to upsert ecosystem: %v", err)
 		}
 	}
 

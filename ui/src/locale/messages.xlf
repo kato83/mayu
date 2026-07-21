@@ -62,140 +62,147 @@
         <source>ID / Alias</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">47,49</context>
+          <context context-type="linenumber">39,41</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterIdPlaceholder" datatype="html">
         <source>CVE-2024-..., GHSA-...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">53,54</context>
+          <context context-type="linenumber">45,46</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterPackage" datatype="html">
         <source>Package</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">61,63</context>
+          <context context-type="linenumber">53,55</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterPackagePlaceholder" datatype="html">
         <source>golang.org/x/crypto, pkg:golang/...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">67,68</context>
+          <context context-type="linenumber">59,60</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterEcosystem" datatype="html">
         <source>Ecosystem</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">75,77</context>
+          <context context-type="linenumber">68,69</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vulnList.filterEcosystemNote" datatype="html">
+        <source> (OSV only)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
+          <context context-type="linenumber">69,71</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.allEcosystems" datatype="html">
         <source>All ecosystems</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">82,83</context>
+          <context context-type="linenumber">77,78</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterSeverity" datatype="html">
         <source>Severity</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">91,93</context>
+          <context context-type="linenumber">86,88</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.allSeverities" datatype="html">
         <source>All severities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">98,99</context>
+          <context context-type="linenumber">93,94</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterVersion" datatype="html">
         <source>Version</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">108,110</context>
+          <context context-type="linenumber">103,105</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterVersionPlaceholder" datatype="html">
         <source>0.17.0</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">115</context>
+          <context context-type="linenumber">110</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterSince" datatype="html">
         <source>Modified since</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">122,124</context>
+          <context context-type="linenumber">117,119</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.clearFilters" datatype="html">
         <source> Clear filters </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">140,142</context>
+          <context context-type="linenumber">135,137</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.loading" datatype="html">
         <source>Loading vulnerabilities...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">148,152</context>
+          <context context-type="linenumber">143,147</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.empty" datatype="html">
         <source>No vulnerabilities found.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">164,165</context>
+          <context context-type="linenumber">159,160</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.emptyHint" datatype="html">
         <source>Try adjusting your filters.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">165,167</context>
+          <context context-type="linenumber">160,162</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colId" datatype="html">
         <source>ID</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">173</context>
+          <context context-type="linenumber">168</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colSummary" datatype="html">
         <source>Summary</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">173,174</context>
+          <context context-type="linenumber">168,169</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colEcosystem" datatype="html">
         <source>Ecosystem</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">174,175</context>
+          <context context-type="linenumber">169,170</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colSeverity" datatype="html">
         <source>Severity</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">175,176</context>
+          <context context-type="linenumber">170,171</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colModified" datatype="html">
         <source>Modified</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">176,178</context>
+          <context context-type="linenumber">171,173</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.breadcrumbList" datatype="html">

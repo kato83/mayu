@@ -38,6 +38,10 @@
         <source>Ecosystem</source>
         <target>エコシステム</target>
       </trans-unit>
+      <trans-unit id="vulnList.filterEcosystemNote" datatype="html">
+        <source> (OSV only)</source>
+        <target>（OSVのみ）</target>
+      </trans-unit>
       <trans-unit id="vulnList.allEcosystems" datatype="html">
         <source>All ecosystems</source>
         <target>全てのエコシステム</target>

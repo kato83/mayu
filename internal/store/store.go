@@ -64,6 +64,12 @@ type Store interface {
 
 	// Close releases any resources held by the store.
 	Close() error
+
+	// ListOSVEcosystems returns all known OSV ecosystem names, sorted alphabetically.
+	ListOSVEcosystems(ctx context.Context) ([]string, error)
+
+	// UpsertOSVEcosystems inserts ecosystem names into osv_ecosystems (ignoring duplicates).
+	UpsertOSVEcosystems(ctx context.Context, names []string) error
 }
 
 // SearchQuery defines parameters for searching vulnerabilities.
