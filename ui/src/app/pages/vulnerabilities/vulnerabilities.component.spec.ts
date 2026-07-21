@@ -177,12 +177,12 @@ describe('VulnerabilitiesComponent', () => {
     expect(component.currentPage()).toBe(1);
   });
 
-  it('should navigate to detail page on row click', () => {
+  it('should have link to detail page in ID column', () => {
     initAndFlush();
-    const navigateSpy = vi.spyOn(router, 'navigate');
-    const firstRow = fixture.nativeElement.querySelector('tbody tr') as HTMLElement;
-    firstRow.click();
-    expect(navigateSpy).toHaveBeenCalledWith(['/vulnerabilities', 'GO-2024-2687']);
+    const link = fixture.nativeElement.querySelector('tbody tr td a') as HTMLAnchorElement;
+    expect(link).toBeTruthy();
+    expect(link.textContent?.trim()).toBe('GO-2024-2687');
+    expect(link.getAttribute('href')).toBe('/vulnerabilities/GO-2024-2687');
   });
 
   // --- Filter panel rendering ---
