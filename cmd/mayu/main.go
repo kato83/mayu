@@ -488,6 +488,15 @@ func printProgress(p ingest.Progress) {
 		} else if p.Message != "" {
 			fmt.Printf("  %s\n", p.Message)
 		}
+	case "summary":
+		if p.Total > 0 && p.Current > 0 {
+			fmt.Printf("\r  [%s] %d/%d", p.Phase, p.Current, p.Total)
+			if p.Current == p.Total {
+				fmt.Println()
+			}
+		} else if p.Message != "" {
+			fmt.Printf("  %s\n", p.Message)
+		}
 	}
 }
 
@@ -593,7 +602,6 @@ func runSearch(args []string) error {
 	id := fs.String("id", "", "Search by vulnerability ID (e.g., CVE-2024-1234, GO-2024-2687)")
 	pkg := fs.String("package", "", "Search by package name (e.g., golang.org/x/crypto)")
 	ecosystem := fs.String("ecosystem", "", "Filter by ecosystem (e.g., Go, PyPI)")
-	alias := fs.String("alias", "", "Search by alias (e.g., CVE-2024-24790)")
 	purl := fs.String("purl", "", "Search by Package URL (e.g., pkg:golang/golang.org/x/crypto)")
 	severity := fs.String("severity", "", "Filter by severity level (critical, high, medium, low, none). Note: filters by CVSS score range; entries without scores are excluded")
 	since := fs.String("since", "", "Filter by modified date (YYYY-MM-DD or RFC3339)")
@@ -617,7 +625,6 @@ func runSearch(args []string) error {
 		fmt.Println("  mayu search --id GO-2024-2687")
 		fmt.Println("  mayu search --package golang.org/x/crypto")
 		fmt.Println("  mayu search --ecosystem Go --limit 10")
-		fmt.Println("  mayu search --alias CVE-2024-24790")
 		fmt.Println("  mayu search --purl pkg:golang/golang.org/x/crypto")
 		fmt.Println("  mayu search --severity critical --ecosystem Go")
 		fmt.Println("  mayu search --since 2024-01-01 --ecosystem npm")
@@ -655,16 +662,10 @@ func runSearch(args []string) error {
 		}
 	}
 
-	// If positional argument provided and no flags set, treat as alias/ID search
-	if *id == "" && *pkg == "" && *ecosystem == "" && *alias == "" && *purl == "" {
+	// If positional argument provided and no flags set, treat as ID search
+	if *id == "" && *pkg == "" && *ecosystem == "" && *purl == "" {
 		if fs.NArg() > 0 {
-			positional := strings.Join(fs.Args(), " ")
-			// Heuristic: if it looks like a vuln ID, search by ID; otherwise alias
-			if looksLikeVulnID(positional) {
-				*id = positional
-			} else {
-				*alias = positional
-			}
+			*id = strings.Join(fs.Args(), " ")
 		}
 	}
 
@@ -686,7 +687,6 @@ func runSearch(args []string) error {
 		ID:          *id,
 		Ecosystem:   searchEcosystem,
 		PackageName: searchPkg,
-		Alias:       *alias,
 		Severity:    *severity,
 		Since:       *since,
 		Version:     *version,
@@ -1382,20 +1382,6 @@ func truncateString(s string, maxRunes int) string {
 		return "..."
 	}
 	return string(runes[:maxRunes-3]) + "..."
-}
-
-// looksLikeVulnID returns true if the string looks like a vulnerability ID.
-func looksLikeVulnID(s string) bool {
-	// Common patterns: GO-2024-1234, CVE-2024-1234, GHSA-xxxx-xxxx-xxxx
-	s = strings.TrimSpace(s)
-	prefixes := []string{"GO-", "CVE-", "GHSA-", "PYSEC-", "RUSTSEC-", "DSA-", "DLA-", "USN-", "ALSA-", "RLSA-"}
-	upper := strings.ToUpper(s)
-	for _, p := range prefixes {
-		if strings.HasPrefix(upper, p) {
-			return true
-		}
-	}
-	return false
 }
 
 func runServe(args []string) error {

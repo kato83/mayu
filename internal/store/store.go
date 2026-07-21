@@ -83,9 +83,6 @@ type SearchQuery struct {
 	// CPE searches by CPE URI prefix (e.g., "cpe:2.3:a:apache:http_server")
 	CPE string
 
-	// Alias searches in the vulnerability_aliases table
-	Alias string
-
 	// Severity filters by normalized severity level (critical, high, medium, low, none).
 	// Uses range overlap on vulnerability_summary.severity_worst/severity_best.
 	Severity string

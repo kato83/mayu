@@ -38,14 +38,14 @@
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterId" datatype="html">
-        <source>ID</source>
+        <source>ID / Alias</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
           <context context-type="linenumber">49,51</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterIdPlaceholder" datatype="html">
-        <source>CVE-2024-...</source>
+        <source>CVE-2024-..., GHSA-...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
           <context context-type="linenumber">55,56</context>
@@ -91,20 +91,6 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
           <context context-type="linenumber">100,101</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="vulnList.filterAlias" datatype="html">
-        <source>Alias</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">109,111</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="vulnList.filterAliasPlaceholder" datatype="html">
-        <source>GHSA-xxxx...</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">115,116</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterPurl" datatype="html">

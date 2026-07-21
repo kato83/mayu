@@ -26,7 +26,7 @@ paths:
       parameters:
         - name: id
           in: query
-          description: Search by vulnerability ID (e.g., CVE-2024-1234, GO-2024-2687)
+          description: Search by vulnerability ID or alias (e.g., CVE-2024-1234, GO-2024-2687, GHSA-xxxx)
           schema:
             type: string
           example: GO-2024-2687
@@ -42,12 +42,6 @@ paths:
           schema:
             type: string
           example: Go
-        - name: alias
-          in: query
-          description: Search by alias (e.g., CVE-2024-24790)
-          schema:
-            type: string
-          example: CVE-2024-24790
         - name: purl
           in: query
           description: Search by Package URL (e.g., pkg:golang/golang.org/x/crypto)
