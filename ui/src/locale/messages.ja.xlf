@@ -310,6 +310,22 @@
         <source>Leaving this site</source>
         <target>外部サイトへ移動します</target>
       </trans-unit>
+      <trans-unit id="sidebar.theme" datatype="html">
+        <source>Theme</source>
+        <target>テーマ</target>
+      </trans-unit>
+      <trans-unit id="sidebar.themeLight" datatype="html">
+        <source>Light</source>
+        <target>ライト</target>
+      </trans-unit>
+      <trans-unit id="sidebar.themeDark" datatype="html">
+        <source>Dark</source>
+        <target>ダーク</target>
+      </trans-unit>
+      <trans-unit id="sidebar.themeSystem" datatype="html">
+        <source>System</source>
+        <target>システム</target>
+      </trans-unit>
       <trans-unit id="externalLink.description" datatype="html">
         <source>You are about to navigate to an external website. This link is not controlled by this application.</source>
         <target>外部のウェブサイトに移動しようとしています。このリンク先は本アプリケーションの管理外です。</target>

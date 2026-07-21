@@ -1,7 +1,8 @@
-import { Component, HostListener, viewChild } from '@angular/core';
+import { Component, HostListener, viewChild, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { ExternalLinkDialogComponent } from './shared/external-link-dialog/external-link-dialog.component';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -13,6 +14,8 @@ import { ExternalLinkDialogComponent } from './shared/external-link-dialog/exter
   `,
 })
 export class App {
+  // Ensure ThemeService is initialized at app startup
+  private readonly _theme = inject(ThemeService);
   private readonly dialog = viewChild.required(ExternalLinkDialogComponent);
 
   @HostListener('document:click', ['$event'])

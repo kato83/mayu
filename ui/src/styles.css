@@ -4,7 +4,7 @@
 @plugin '@tailwindcss/typography';
 
 /*
- * Dark mode: TailwindCSS v4 automatically supports dark: variant
- * via @media (prefers-color-scheme: dark) by default.
- * No additional configuration needed.
+ * Dark mode: Use class-based dark mode to allow user toggle.
+ * The ThemeService adds/removes the "dark" class on <html>.
  */
+@custom-variant dark (&:where(.dark, .dark *));
