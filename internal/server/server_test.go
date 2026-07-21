@@ -53,7 +53,11 @@ func (m *mockStore) GetSyncState(ctx context.Context, source string) (*store.Syn
 	return nil, nil
 }
 func (m *mockStore) UpdateSyncState(ctx context.Context, state *store.SyncState) error { return nil }
-func (m *mockStore) Close() error                                                      { return nil }
+func (m *mockStore) RefreshSummary(ctx context.Context, vulnIDs []string) error        { return nil }
+func (m *mockStore) UpsertProductIdentifiers(ctx context.Context, identifiers []*model.ProductIdentifier) error {
+	return nil
+}
+func (m *mockStore) Close() error { return nil }
 
 // newTestServer creates a Server with the given mock store for testing.
 func newTestServer(ms *mockStore) *Server {

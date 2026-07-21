@@ -163,12 +163,16 @@ func canonicalID(osvID string, aliases []string) string {
 //   - Multiple OSV entries pointing to the same CVE (shared vulnerabilities row)
 //   - Late CVE assignment (migrating from OSV ID to CVE)
 //   - Cleanup of orphaned vulnerabilities rows
+//   - osv_id normalization (Debian prefix for bare CVE-* IDs)
+//   - alias_sources junction table management
+//   - product_identifiers population
 //
 // This writes to:
-//   - vulnerabilities (unified master, keyed by CVE or OSV ID)
-//   - vulnerability_aliases (cross-references including OSV ID itself)
-//   - osv_entries (OSV-specific data, keyed by osv_id)
+//   - vulnerabilities (unified master, keyed by CVE or OSV ID, no source column)
+//   - vulnerability_aliases + alias_sources (cross-references with provenance)
+//   - osv_entries (OSV-specific data, keyed by normalized osv_id)
 //   - osv_affected_packages, osv_affected_ranges, osv_severity, osv_references, osv_credits
+//   - product_identifiers (unified package search, source="osv")
 func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vuln *model.Vulnerability) error {
 	// Determine raw_json: use RawJSON if available, otherwise marshal the struct
 	rawJSON := vuln.RawJSON
@@ -180,8 +184,10 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 	}
 
-	osvID := vuln.ID
-	canID := canonicalID(osvID, vuln.Aliases)
+	// --- osv_id normalization ---
+	ecosystem := model.ExtractEcosystemFromAffected(vuln)
+	osvID := model.NormalizeOSVID(vuln.ID, ecosystem)
+	canID := canonicalID(vuln.ID, vuln.Aliases)
 
 	// --- Step 1: Check if this OSV entry already exists and get its current vulnerability_id ---
 	var oldVulnID sql.NullString
@@ -192,8 +198,6 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 
 	// --- Step 2: Handle migration when canonical ID changes (e.g., late CVE assignment) ---
 	if oldVulnID.Valid && oldVulnID.String != canID {
-		// The osv_entry previously pointed to a different vulnerability.
-		// We need to re-point it and potentially clean up the old vulnerability row.
 		oldID := oldVulnID.String
 
 		// Delete the osv_entry and its children (will be re-created below)
@@ -201,9 +205,18 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 			return fmt.Errorf("delete old osv_entry for migration: %w", err)
 		}
 
-		// Remove all aliases that this OSV entry contributed under the old vulnerability
-		if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, oldID, osvID); err != nil {
-			return fmt.Errorf("delete old osv aliases: %w", err)
+		// Remove alias_sources entries for this osv_id
+		if _, err := tx.ExecContext(ctx, `DELETE FROM alias_sources WHERE osv_id = $1`, osvID); err != nil {
+			return fmt.Errorf("delete old alias_sources: %w", err)
+		}
+
+		// Garbage-collect vulnerability_aliases with no remaining alias_sources
+		if _, err := tx.ExecContext(ctx, `
+			DELETE FROM vulnerability_aliases va
+			WHERE va.vulnerability_id = $1
+			AND NOT EXISTS (SELECT 1 FROM alias_sources asrc WHERE asrc.alias_id = va.id)`,
+			oldID); err != nil {
+			return fmt.Errorf("gc orphaned aliases: %w", err)
 		}
 
 		// Check if the old vulnerability has any remaining osv_entries
@@ -213,8 +226,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 
 		if remainingCount == 0 {
-			// No other OSV entries reference the old vulnerability — safe to delete
-			// CASCADE will clean up vulnerability_aliases
+			// CASCADE will clean up vulnerability_aliases, vulnerability_summary, product_identifiers
 			if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerabilities WHERE id = $1`, oldID); err != nil {
 				return fmt.Errorf("delete orphaned vulnerability: %w", err)
 			}
@@ -223,10 +235,10 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 	// When oldVulnID.Valid && oldVulnID.String == canID (same canonical ID),
 	// no action is needed here — Step 5 handles it via ON CONFLICT DO UPDATE.
 
-	// --- Step 3: Upsert into unified vulnerabilities table ---
+	// --- Step 3: Upsert into unified vulnerabilities table (no source column) ---
 	_, err = tx.ExecContext(ctx, `
-		INSERT INTO vulnerabilities (id, source, summary, details, published, modified, withdrawn)
-		VALUES ($1, 'osv', $2, $3, $4, $5, $6)
+		INSERT INTO vulnerabilities (id, summary, details, published, modified, withdrawn)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (id) DO UPDATE SET
 			summary = COALESCE(NULLIF(EXCLUDED.summary, ''), vulnerabilities.summary),
 			details = COALESCE(NULLIF(EXCLUDED.details, ''), vulnerabilities.details),
@@ -244,61 +256,50 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		return fmt.Errorf("upsert vulnerability: %w", err)
 	}
 
-	// --- Step 4: Upsert aliases ---
-	// Build alias set: original aliases + OSV ID itself (if canonical is different)
-	allAliases := make([]string, 0, len(vuln.Aliases)+1)
+	// --- Step 4: Upsert aliases using alias_sources junction table ---
+	allAliases := make([]string, 0, len(vuln.Aliases)+2)
 	if canID != osvID {
 		allAliases = append(allAliases, osvID)
 	}
+	if vuln.ID != osvID && vuln.ID != canID {
+		allAliases = append(allAliases, vuln.ID)
+	}
 	allAliases = append(allAliases, vuln.Aliases...)
 
-	// Insert aliases with ON CONFLICT to handle multiple OSV entries contributing aliases.
-	// Each alias is tagged with source_osv_id to track which OSV entry contributed it.
-	if len(allAliases) > 0 {
-		aliasQuery := "INSERT INTO vulnerability_aliases (vulnerability_id, alias, ordering, source_osv_id) VALUES "
-		aliasArgs := make([]interface{}, 0, len(allAliases)*2+2)
-		aliasArgs = append(aliasArgs, canID, osvID)
-		for i, alias := range allAliases {
-			if i > 0 {
-				aliasQuery += ", "
-			}
-			base := i*2 + 3
-			aliasQuery += fmt.Sprintf("($1, $%d, $%d, $2)", base, base+1)
-			aliasArgs = append(aliasArgs, alias, i)
+	// Remove old alias_sources for this osv_id
+	if _, err := tx.ExecContext(ctx, `DELETE FROM alias_sources WHERE osv_id = $1`, osvID); err != nil {
+		return fmt.Errorf("delete alias_sources for osv_id: %w", err)
+	}
+
+	// Upsert each alias and link via alias_sources
+	for _, alias := range allAliases {
+		var aliasID int64
+		err := tx.QueryRowContext(ctx, `
+			INSERT INTO vulnerability_aliases (vulnerability_id, alias)
+			VALUES ($1, $2)
+			ON CONFLICT (vulnerability_id, alias) DO UPDATE SET alias = EXCLUDED.alias
+			RETURNING id`,
+			canID, alias).Scan(&aliasID)
+		if err != nil {
+			return fmt.Errorf("upsert alias %q: %w", alias, err)
 		}
-		aliasQuery += " ON CONFLICT (vulnerability_id, alias, source_osv_id) DO UPDATE SET ordering = EXCLUDED.ordering"
-		if _, err := tx.ExecContext(ctx, aliasQuery, aliasArgs...); err != nil {
-			return fmt.Errorf("insert aliases: %w", err)
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO alias_sources (alias_id, osv_id)
+			VALUES ($1, $2)
+			ON CONFLICT (alias_id, osv_id) DO NOTHING`,
+			aliasID, osvID)
+		if err != nil {
+			return fmt.Errorf("insert alias_source for %q: %w", alias, err)
 		}
 	}
 
-	// Delete aliases that this OSV entry previously contributed but are no longer in the list.
-	// This handles the case where an OSV entry's aliases field shrinks over time.
-	if len(allAliases) > 0 {
-		// Build placeholder list for NOT IN clause
-		placeholders := make([]string, len(allAliases))
-		args := make([]interface{}, 0, len(allAliases)+2)
-		args = append(args, canID, osvID)
-		for i, alias := range allAliases {
-			placeholders[i] = fmt.Sprintf("$%d", i+3)
-			args = append(args, alias)
-		}
-		query := fmt.Sprintf(`
-			DELETE FROM vulnerability_aliases
-			WHERE vulnerability_id = $1 AND source_osv_id = $2
-			AND alias NOT IN (%s)`, strings.Join(placeholders, ", "))
-		if _, err := tx.ExecContext(ctx, query, args...); err != nil {
-			return fmt.Errorf("delete stale aliases: %w", err)
-		}
-	} else {
-		// No aliases at all — delete all aliases contributed by this OSV entry
-		if _, err := tx.ExecContext(ctx, `
-			DELETE FROM vulnerability_aliases
-			WHERE vulnerability_id = $1 AND source_osv_id = $2`,
-			canID, osvID,
-		); err != nil {
-			return fmt.Errorf("delete all aliases for osv entry: %w", err)
-		}
+	// Garbage-collect vulnerability_aliases with no remaining alias_sources
+	if _, err := tx.ExecContext(ctx, `
+		DELETE FROM vulnerability_aliases va
+		WHERE va.vulnerability_id = $1
+		AND NOT EXISTS (SELECT 1 FROM alias_sources asrc WHERE asrc.alias_id = va.id)`,
+		canID); err != nil {
+		return fmt.Errorf("gc orphaned aliases for %s: %w", canID, err)
 	}
 
 	// --- Step 5: Upsert osv_entry ---
@@ -348,7 +349,12 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 	}
 
-	// --- Step 7: Insert affected packages ---
+	// --- Step 7: Insert affected packages + product_identifiers ---
+	// Delete existing product_identifiers for this vulnerability from OSV source
+	if _, err := tx.ExecContext(ctx, `DELETE FROM product_identifiers WHERE vulnerability_id = $1 AND source = 'osv'`, canID); err != nil {
+		return fmt.Errorf("delete product_identifiers: %w", err)
+	}
+
 	for _, affected := range vuln.Affected {
 		var affectedPkgID int64
 		err := tx.QueryRowContext(ctx, `
@@ -365,6 +371,11 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		).Scan(&affectedPkgID)
 		if err != nil {
 			return fmt.Errorf("insert osv_affected_package: %w", err)
+		}
+
+		// Insert into product_identifiers (purl decomposed)
+		if err := s.insertOSVProductIdentifier(ctx, tx, canID, &affected); err != nil {
+			return fmt.Errorf("insert product_identifier: %w", err)
 		}
 
 		// Insert ranges (bulk)
@@ -903,6 +914,89 @@ func replaceJSONField(data json.RawMessage, field, newValue string) json.RawMess
 		return data
 	}
 	return result
+}
+
+// insertOSVProductIdentifier inserts a product_identifiers row for an OSV affected package.
+// It decomposes the purl string into individual fields for efficient querying.
+func (s *PostgresStore) insertOSVProductIdentifier(ctx context.Context, tx *sql.Tx, vulnID string, affected *model.Affected) error {
+	pi := &model.ProductIdentifier{
+		VulnerabilityID: vulnID,
+		Source:          "osv",
+		Ecosystem:       affected.Package.Ecosystem,
+		Name:            affected.Package.Name,
+	}
+
+	// Decompose purl if available
+	if affected.Package.Purl != "" {
+		parsePurlIntoPI(affected.Package.Purl, pi)
+	}
+
+	// Build version_constraint from ranges
+	if len(affected.Ranges) > 0 {
+		vc, _ := json.Marshal(affected.Ranges)
+		pi.VersionConstraint = vc
+	}
+
+	_, err := tx.ExecContext(ctx, `
+		INSERT INTO product_identifiers (
+			vulnerability_id, source,
+			purl_type, purl_namespace, purl_name, purl_version, purl_qualifiers, purl_subpath,
+			cpe_part, cpe_vendor, cpe_product, cpe_version, cpe_update, cpe_edition,
+			cpe_language, cpe_sw_edition, cpe_target_sw, cpe_target_hw, cpe_other,
+			ecosystem, name, vendor, product, version_constraint
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
+		pi.VulnerabilityID, pi.Source,
+		nullIfEmpty(pi.PurlType), nullIfEmpty(pi.PurlNamespace), nullIfEmpty(pi.PurlName),
+		nullIfEmpty(pi.PurlVersion), nullIfEmpty(pi.PurlQualifiers), nullIfEmpty(pi.PurlSubpath),
+		nullIfEmpty(pi.CPEPart), nullIfEmpty(pi.CPEVendor), nullIfEmpty(pi.CPEProduct),
+		nullIfEmpty(pi.CPEVersion), nullIfEmpty(pi.CPEUpdate), nullIfEmpty(pi.CPEEdition),
+		nullIfEmpty(pi.CPELanguage), nullIfEmpty(pi.CPESWEdition), nullIfEmpty(pi.CPETargetSW),
+		nullIfEmpty(pi.CPETargetHW), nullIfEmpty(pi.CPEOther),
+		nullIfEmpty(pi.Ecosystem), nullIfEmpty(pi.Name),
+		nullIfEmpty(pi.Vendor), nullIfEmpty(pi.Product),
+		nullableRawJSON(pi.VersionConstraint),
+	)
+	return err
+}
+
+// parsePurlIntoPI parses a purl string and populates ProductIdentifier fields.
+// Lightweight parser: pkg:type/namespace/name@version?qualifiers#subpath
+func parsePurlIntoPI(purlStr string, pi *model.ProductIdentifier) {
+	if !strings.HasPrefix(purlStr, "pkg:") {
+		return
+	}
+	remainder := purlStr[4:]
+
+	// Extract subpath
+	if idx := strings.IndexByte(remainder, '#'); idx >= 0 {
+		pi.PurlSubpath = remainder[idx+1:]
+		remainder = remainder[:idx]
+	}
+	// Extract qualifiers
+	if idx := strings.IndexByte(remainder, '?'); idx >= 0 {
+		pi.PurlQualifiers = remainder[idx+1:]
+		remainder = remainder[:idx]
+	}
+	// Extract version
+	if idx := strings.IndexByte(remainder, '@'); idx >= 0 {
+		pi.PurlVersion = remainder[idx+1:]
+		remainder = remainder[:idx]
+	}
+	// Extract type
+	if idx := strings.IndexByte(remainder, '/'); idx >= 0 {
+		pi.PurlType = remainder[:idx]
+		remainder = remainder[idx+1:]
+	} else {
+		pi.PurlType = remainder
+		return
+	}
+	// Remaining is namespace/name or just name
+	if idx := strings.LastIndexByte(remainder, '/'); idx >= 0 {
+		pi.PurlNamespace = remainder[:idx]
+		pi.PurlName = remainder[idx+1:]
+	} else {
+		pi.PurlName = remainder
+	}
 }
 
 // searchLight performs a lightweight search that avoids fetching raw_json from osv_entries.

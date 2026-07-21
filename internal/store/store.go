@@ -2,10 +2,15 @@
 // vulnerability data in PostgreSQL.
 //
 // The schema separates concerns:
-//   - vulnerabilities: unified master table (source-agnostic)
-//   - vulnerability_aliases: CVE/GHSA/etc cross-references
+//   - vulnerabilities: unified master table (source-agnostic, no source column)
+//   - vulnerability_aliases + alias_sources: CVE/GHSA/etc cross-references with provenance
+//   - vulnerability_summary: pre-computed derived data for list/filter views
+//   - product_identifiers: unified package/product search table (purl/CPE decomposed)
 //   - osv_entries + osv_*: OSV-specific detail tables
-//   - Future: kev_entries, epss_scores, etc.
+//   - nvd_entries + nvd_*: NVD-specific detail tables
+//   - mitre_entries + mitre_*: MITRE-specific detail tables
+//   - epss_scores: EPSS scoring data
+//   - kev_entries: CISA KEV catalog data
 package store
 
 import (
@@ -39,6 +44,17 @@ type Store interface {
 	// Count returns the number of vulnerabilities matching the given query parameters.
 	Count(ctx context.Context, query SearchQuery) (int64, error)
 
+	// RefreshSummary recomputes vulnerability_summary rows for the given vulnerability IDs.
+	// It aggregates scores from all sources (OSV severity, NVD metrics, MITRE metrics),
+	// EPSS, KEV, LEV, ecosystems, and CWEs into the pre-computed summary table.
+	// Called synchronously at the end of each import pipeline.
+	RefreshSummary(ctx context.Context, vulnIDs []string) error
+
+	// UpsertProductIdentifiers stores product identifiers for vulnerabilities.
+	// It replaces all existing identifiers for the given (vulnerability_id, source)
+	// combination and inserts the new ones.
+	UpsertProductIdentifiers(ctx context.Context, identifiers []*model.ProductIdentifier) error
+
 	// GetSyncState retrieves the sync state for a given source.
 	// Returns nil, nil if no sync state exists for the source.
 	GetSyncState(ctx context.Context, source string) (*SyncState, error)
@@ -61,10 +77,17 @@ type SearchQuery struct {
 	// PackageName filters by package name (e.g., "golang.org/x/crypto")
 	PackageName string
 
+	// Purl searches by Package URL (e.g., "pkg:npm/express")
+	Purl string
+
+	// CPE searches by CPE URI prefix (e.g., "cpe:2.3:a:apache:http_server")
+	CPE string
+
 	// Alias searches in the vulnerability_aliases table
 	Alias string
 
-	// Severity filters by minimum CVSS severity level (critical, high, medium, low)
+	// Severity filters by normalized severity level (critical, high, medium, low, none).
+	// Uses range overlap on vulnerability_summary.severity_worst/severity_best.
 	Severity string
 
 	// Since filters vulnerabilities modified on or after this date (RFC3339 or YYYY-MM-DD)
@@ -72,6 +95,9 @@ type SearchQuery struct {
 
 	// Version filters by affected version (checks version ranges)
 	Version string
+
+	// InKEV filters to only vulnerabilities in the CISA KEV catalog
+	InKEV *bool
 
 	// Limit sets the maximum number of results (default: 100)
 	Limit int
