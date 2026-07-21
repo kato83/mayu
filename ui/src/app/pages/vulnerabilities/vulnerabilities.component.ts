@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, DestroyRef } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, UpperCasePipe } from '@angular/common';
@@ -36,7 +36,7 @@ function emptyFilters(): FilterState {
 @Component({
   selector: 'app-vulnerabilities',
   standalone: true,
-  imports: [PaginationComponent, FormsModule, DatePipe, UpperCasePipe],
+  imports: [PaginationComponent, FormsModule, DatePipe, UpperCasePipe, RouterLink],
   template: `
     <div class="space-y-4">
       <!-- Filter panel -->
@@ -179,11 +179,13 @@ function emptyFilters(): FilterState {
               <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                 @for (vuln of vulnerabilities(); track vuln.id) {
                   <tr
-                    class="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
-                    (click)="navigateToDetail(vuln.id)"
+                    class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                   >
-                    <td class="px-4 py-3 text-sm font-medium text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
-                      {{ vuln.id }}
+                    <td class="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                      <a [routerLink]="['/vulnerabilities', vuln.id]"
+                         class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline">
+                        {{ vuln.id }}
+                      </a>
                     </td>
                     <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 max-w-md truncate">
                       {{ vuln.summary || '—' }}
@@ -362,10 +364,6 @@ export class VulnerabilitiesComponent implements OnInit {
       this.resetPagination();
     }
     this.syncUrlAndLoad();
-  }
-
-  navigateToDetail(id: string): void {
-    this.router.navigate(['/vulnerabilities', id]);
   }
 
   getEcosystem(vuln: Vulnerability): string {
