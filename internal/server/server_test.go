@@ -58,6 +58,10 @@ func (m *mockStore) UpsertProductIdentifiers(ctx context.Context, identifiers []
 	return nil
 }
 func (m *mockStore) Close() error { return nil }
+func (m *mockStore) ListOSVEcosystems(ctx context.Context) ([]string, error) {
+	return []string{"Go", "npm", "PyPI"}, nil
+}
+func (m *mockStore) UpsertOSVEcosystems(ctx context.Context, names []string) error { return nil }
 
 // newTestServer creates a Server with the given mock store for testing.
 func newTestServer(ms *mockStore) *Server {

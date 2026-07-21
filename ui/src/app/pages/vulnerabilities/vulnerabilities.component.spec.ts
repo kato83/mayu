@@ -63,11 +63,16 @@ describe('VulnerabilitiesComponent', () => {
   });
 
   afterEach(() => {
+    // Flush any pending ecosystem requests before verify
+    httpTesting.match('/api/v1/ecosystems').forEach((r) => r.flush({ ecosystems: [] }));
     httpTesting.verify();
   });
 
   function initAndFlush(response: SearchResponse = mockResponse): void {
     fixture.detectChanges();
+    // Handle ecosystems API call
+    const ecosystemReq = httpTesting.expectOne('/api/v1/ecosystems');
+    ecosystemReq.flush({ ecosystems: ['Go', 'npm', 'PyPI'] });
     const req = httpTesting.expectOne((r) => r.url === '/api/v1/vulnerabilities');
     req.flush(response);
     fixture.detectChanges();
@@ -85,6 +90,8 @@ describe('VulnerabilitiesComponent', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Loading vulnerabilities...');
 
+    const ecosystemReq = httpTesting.expectOne('/api/v1/ecosystems');
+    ecosystemReq.flush({ ecosystems: ['Go', 'npm'] });
     const req = httpTesting.expectOne((r) => r.url === '/api/v1/vulnerabilities');
     req.flush(mockResponse);
   });
@@ -105,6 +112,8 @@ describe('VulnerabilitiesComponent', () => {
 
   it('should show error state on API failure', () => {
     fixture.detectChanges();
+    const ecosystemReq = httpTesting.expectOne('/api/v1/ecosystems');
+    ecosystemReq.flush({ ecosystems: [] });
     const req = httpTesting.expectOne((r) => r.url === '/api/v1/vulnerabilities');
     req.flush({ error: 'internal server error' }, { status: 500, statusText: 'Internal Server Error' });
     fixture.detectChanges();
@@ -202,7 +211,8 @@ describe('VulnerabilitiesComponent', () => {
   it('should have ecosystem dropdown with options', () => {
     initAndFlush();
     const select = fixture.nativeElement.querySelector('#filter-ecosystem') as HTMLSelectElement;
-    expect(select.options.length).toBeGreaterThan(5);
+    // 1 ("All ecosystems") + 3 from API mock (Go, npm, PyPI)
+    expect(select.options.length).toBe(4);
     expect(select.options[0].textContent).toContain('All ecosystems');
     expect(select.options[1].value).toBe('Go');
   });
