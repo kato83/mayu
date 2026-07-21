@@ -82,6 +82,12 @@ paths:
             type: integer
             minimum: 0
             default: 0
+        - name: fields
+          in: query
+          description: Comma-separated list of fields to include in lightweight responses (id, summary, modified, severity, ecosystem)
+          schema:
+            type: string
+          example: "id,summary,modified,severity,ecosystem"
       responses:
         "200":
           description: Successful search response
@@ -117,13 +123,21 @@ paths:
           schema:
             type: string
           example: GO-2024-2687
+        - name: detail
+          in: query
+          description: If "true", return enriched vulnerability data from all sources (NVD, MITRE, EPSS, KEV, LEV)
+          schema:
+            type: string
+            enum: ["true"]
       responses:
         "200":
           description: Vulnerability found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Vulnerability"
+                oneOf:
+                  - $ref: "#/components/schemas/Vulnerability"
+                  - $ref: "#/components/schemas/VulnerabilityDetail"
         "404":
           description: Vulnerability not found
           content:
@@ -250,6 +264,10 @@ components:
           enum: [CVSS_V2, CVSS_V3, CVSS_V4]
         score:
           type: string
+          description: |
+            CVSS vector string (e.g., "CVSS:3.1/AV:N/AC:L/...") in full detail responses,
+            or a severity level label (CRITICAL, HIGH, MEDIUM, LOW, NONE) in lightweight
+            list responses (when fields parameter is used).
           example: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
         source:
           type: string
@@ -362,6 +380,99 @@ components:
           type: string
           description: Human-readable error message
           example: "invalid severity parameter"
+
+    VulnerabilityDetail:
+      type: object
+      description: Enriched vulnerability detail combining OSV, NVD, MITRE, EPSS, KEV, and LEV data.
+      required:
+        - id
+        - modified
+      properties:
+        id:
+          type: string
+        modified:
+          type: string
+          format: date-time
+        published:
+          type: string
+          format: date-time
+        withdrawn:
+          type: string
+          format: date-time
+        aliases:
+          type: array
+          items:
+            type: string
+        summary:
+          type: string
+        details:
+          type: string
+        severity:
+          type: array
+          items:
+            $ref: "#/components/schemas/Severity"
+        severity_worst:
+          type: string
+          description: Normalized worst severity level from vulnerability_summary (CRITICAL, HIGH, MEDIUM, LOW, NONE)
+          enum: [CRITICAL, HIGH, MEDIUM, LOW, NONE]
+        severity_best:
+          type: string
+          description: Normalized best severity level from vulnerability_summary (CRITICAL, HIGH, MEDIUM, LOW, NONE)
+          enum: [CRITICAL, HIGH, MEDIUM, LOW, NONE]
+        affected:
+          type: array
+          items:
+            $ref: "#/components/schemas/Affected"
+        references:
+          type: array
+          items:
+            $ref: "#/components/schemas/Reference"
+        credits:
+          type: array
+          items:
+            $ref: "#/components/schemas/Credit"
+        nvd:
+          type: object
+          description: NVD enrichment data
+        mitre:
+          type: object
+          description: MITRE CVE Record enrichment data
+        epss:
+          type: object
+          description: EPSS score data
+          properties:
+            epss:
+              type: number
+              format: double
+            percentile:
+              type: number
+              format: double
+            score_date:
+              type: string
+              format: date
+        kev:
+          type: object
+          description: CISA KEV catalog data
+        lev:
+          type: object
+          description: LEV (Likely Exploited Vulnerabilities) computed score
+          properties:
+            lev:
+              type: number
+              format: double
+            in_kev:
+              type: boolean
+            epss_score_count:
+              type: integer
+            first_epss_date:
+              type: string
+              format: date
+            last_epss_date:
+              type: string
+              format: date
+            computed_at:
+              type: string
+              format: date-time
 
     HealthResponse:
       type: object

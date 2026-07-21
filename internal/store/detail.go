@@ -78,6 +78,23 @@ func (s *PostgresStore) GetVulnerabilityDetail(ctx context.Context, id string) (
 		detail.LEV = levDetail
 	}
 
+	// Step 8: Fetch severity levels from vulnerability_summary
+	var sevWorst, sevBest sql.NullInt32
+	err = s.db.QueryRowContext(ctx,
+		`SELECT severity_worst, severity_best FROM vulnerability_summary WHERE vulnerability_id = $1`,
+		vulnID).Scan(&sevWorst, &sevBest)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("fetch severity summary: %w", err)
+	}
+	if sevWorst.Valid && sevWorst.Int32 > 0 {
+		detail.SeverityWorst = model.SeverityLevelName(int(sevWorst.Int32))
+		if sevBest.Valid && sevBest.Int32 > 0 {
+			detail.SeverityBest = model.SeverityLevelName(int(sevBest.Int32))
+		} else {
+			detail.SeverityBest = detail.SeverityWorst
+		}
+	}
+
 	return detail, nil
 }
 
