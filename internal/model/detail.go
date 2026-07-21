@@ -22,6 +22,10 @@ type VulnerabilityDetail struct {
 	// OSV severity (from osv_severity / raw_json)
 	Severity []Severity `json:"severity,omitempty"`
 
+	// Normalized severity from vulnerability_summary (5-level scale label)
+	SeverityWorst string `json:"severity_worst,omitempty"`
+	SeverityBest  string `json:"severity_best,omitempty"`
+
 	// Affected packages (from OSV)
 	Affected []Affected `json:"affected,omitempty"`
 
