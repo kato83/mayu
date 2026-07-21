@@ -20,7 +20,7 @@ describe('VulnerabilitiesComponent', () => {
         modified: '2024-06-01T00:00:00Z',
         summary: 'Vulnerability in net/netip',
         affected: [{ package: { ecosystem: 'Go', name: 'net/netip' } }],
-        severity: [{ type: 'CVSS_V3', score: '9.8' }],
+        severity: [{ type: 'CVSS_V3', score: 'CRITICAL' }],
       },
       {
         id: 'GO-2024-2688',
@@ -99,7 +99,7 @@ describe('VulnerabilitiesComponent', () => {
   it('should display severity badges', () => {
     initAndFlush();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Critical');
+    expect(el.textContent).toContain('CRITICAL');
   });
 
   it('should show error state on API failure', () => {
