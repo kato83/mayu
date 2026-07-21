@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS idx_osv_severity_affected_package_id;
