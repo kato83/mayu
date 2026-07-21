@@ -40,6 +40,7 @@ erDiagram
     product_identifiers {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
+        TEXT osv_entry_id FK "→ osv_entries(osv_id) CASCADE (nullable, OSV source only)"
         TEXT source "osv, nvd, mitre"
         TEXT purl "pkg:type/namespace/name"
         TEXT cpe "cpe:2.3:..."

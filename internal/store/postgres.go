@@ -350,8 +350,9 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 	}
 
 	// --- Step 7: Insert affected packages + product_identifiers ---
-	// Delete existing product_identifiers for this vulnerability from OSV source
-	if _, err := tx.ExecContext(ctx, `DELETE FROM product_identifiers WHERE vulnerability_id = $1 AND source = 'osv'`, canID); err != nil {
+	// Delete existing product_identifiers for this specific OSV entry only (not all entries for the CVE).
+	// This prevents data loss when multiple OSV entries share the same canonical vulnerability ID.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM product_identifiers WHERE vulnerability_id = $1 AND source = 'osv' AND osv_entry_id = $2`, canID, osvID); err != nil {
 		return fmt.Errorf("delete product_identifiers: %w", err)
 	}
 
@@ -374,7 +375,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 
 		// Insert into product_identifiers (purl decomposed)
-		if err := s.insertOSVProductIdentifier(ctx, tx, canID, &affected); err != nil {
+		if err := s.insertOSVProductIdentifier(ctx, tx, canID, osvID, &affected); err != nil {
 			return fmt.Errorf("insert product_identifier: %w", err)
 		}
 
@@ -880,7 +881,7 @@ func replaceJSONField(data json.RawMessage, field, newValue string) json.RawMess
 
 // insertOSVProductIdentifier inserts a product_identifiers row for an OSV affected package.
 // It decomposes the purl string into individual fields for efficient querying.
-func (s *PostgresStore) insertOSVProductIdentifier(ctx context.Context, tx *sql.Tx, vulnID string, affected *model.Affected) error {
+func (s *PostgresStore) insertOSVProductIdentifier(ctx context.Context, tx *sql.Tx, vulnID string, osvEntryID string, affected *model.Affected) error {
 	pi := &model.ProductIdentifier{
 		VulnerabilityID: vulnID,
 		Source:          "osv",
@@ -901,13 +902,13 @@ func (s *PostgresStore) insertOSVProductIdentifier(ctx context.Context, tx *sql.
 
 	_, err := tx.ExecContext(ctx, `
 		INSERT INTO product_identifiers (
-			vulnerability_id, source,
+			vulnerability_id, source, osv_entry_id,
 			purl_type, purl_namespace, purl_name, purl_version, purl_qualifiers, purl_subpath,
 			cpe_part, cpe_vendor, cpe_product, cpe_version, cpe_update, cpe_edition,
 			cpe_language, cpe_sw_edition, cpe_target_sw, cpe_target_hw, cpe_other,
 			ecosystem, name, vendor, product, version_constraint
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
-		pi.VulnerabilityID, pi.Source,
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)`,
+		pi.VulnerabilityID, pi.Source, osvEntryID,
 		nullIfEmpty(pi.PurlType), nullIfEmpty(pi.PurlNamespace), nullIfEmpty(pi.PurlName),
 		nullIfEmpty(pi.PurlVersion), nullIfEmpty(pi.PurlQualifiers), nullIfEmpty(pi.PurlSubpath),
 		nullIfEmpty(pi.CPEPart), nullIfEmpty(pi.CPEVendor), nullIfEmpty(pi.CPEProduct),
