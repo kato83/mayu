@@ -48,7 +48,11 @@ func (s *PostgresStore) Close() error {
 func (s *PostgresStore) CleanAll(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `
 		DELETE FROM sync_state;
+		DELETE FROM alias_sources;
 		DELETE FROM vulnerability_aliases;
+		DELETE FROM vulnerability_summary;
+		DELETE FROM product_identifiers;
+		DELETE FROM purl_cpe_mapping;
 		DELETE FROM osv_credits;
 		DELETE FROM osv_references;
 		DELETE FROM osv_severity;
@@ -163,12 +167,16 @@ func canonicalID(osvID string, aliases []string) string {
 //   - Multiple OSV entries pointing to the same CVE (shared vulnerabilities row)
 //   - Late CVE assignment (migrating from OSV ID to CVE)
 //   - Cleanup of orphaned vulnerabilities rows
+//   - osv_id normalization (Debian prefix for bare CVE-* IDs)
+//   - alias_sources junction table management
+//   - product_identifiers population
 //
 // This writes to:
-//   - vulnerabilities (unified master, keyed by CVE or OSV ID)
-//   - vulnerability_aliases (cross-references including OSV ID itself)
-//   - osv_entries (OSV-specific data, keyed by osv_id)
+//   - vulnerabilities (unified master, keyed by CVE or OSV ID, no source column)
+//   - vulnerability_aliases + alias_sources (cross-references with provenance)
+//   - osv_entries (OSV-specific data, keyed by normalized osv_id)
 //   - osv_affected_packages, osv_affected_ranges, osv_severity, osv_references, osv_credits
+//   - product_identifiers (unified package search, source="osv")
 func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vuln *model.Vulnerability) error {
 	// Determine raw_json: use RawJSON if available, otherwise marshal the struct
 	rawJSON := vuln.RawJSON
@@ -180,8 +188,10 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 	}
 
-	osvID := vuln.ID
-	canID := canonicalID(osvID, vuln.Aliases)
+	// --- osv_id normalization ---
+	ecosystem := model.ExtractEcosystemFromAffected(vuln)
+	osvID := model.NormalizeOSVID(vuln.ID, ecosystem)
+	canID := canonicalID(vuln.ID, vuln.Aliases)
 
 	// --- Step 1: Check if this OSV entry already exists and get its current vulnerability_id ---
 	var oldVulnID sql.NullString
@@ -192,8 +202,6 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 
 	// --- Step 2: Handle migration when canonical ID changes (e.g., late CVE assignment) ---
 	if oldVulnID.Valid && oldVulnID.String != canID {
-		// The osv_entry previously pointed to a different vulnerability.
-		// We need to re-point it and potentially clean up the old vulnerability row.
 		oldID := oldVulnID.String
 
 		// Delete the osv_entry and its children (will be re-created below)
@@ -201,9 +209,18 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 			return fmt.Errorf("delete old osv_entry for migration: %w", err)
 		}
 
-		// Remove all aliases that this OSV entry contributed under the old vulnerability
-		if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, oldID, osvID); err != nil {
-			return fmt.Errorf("delete old osv aliases: %w", err)
+		// Remove alias_sources entries for this osv_id
+		if _, err := tx.ExecContext(ctx, `DELETE FROM alias_sources WHERE osv_id = $1`, osvID); err != nil {
+			return fmt.Errorf("delete old alias_sources: %w", err)
+		}
+
+		// Garbage-collect vulnerability_aliases with no remaining alias_sources
+		if _, err := tx.ExecContext(ctx, `
+			DELETE FROM vulnerability_aliases va
+			WHERE va.vulnerability_id = $1
+			AND NOT EXISTS (SELECT 1 FROM alias_sources asrc WHERE asrc.alias_id = va.id)`,
+			oldID); err != nil {
+			return fmt.Errorf("gc orphaned aliases: %w", err)
 		}
 
 		// Check if the old vulnerability has any remaining osv_entries
@@ -213,8 +230,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 
 		if remainingCount == 0 {
-			// No other OSV entries reference the old vulnerability — safe to delete
-			// CASCADE will clean up vulnerability_aliases
+			// CASCADE will clean up vulnerability_aliases, vulnerability_summary, product_identifiers
 			if _, err := tx.ExecContext(ctx, `DELETE FROM vulnerabilities WHERE id = $1`, oldID); err != nil {
 				return fmt.Errorf("delete orphaned vulnerability: %w", err)
 			}
@@ -223,10 +239,10 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 	// When oldVulnID.Valid && oldVulnID.String == canID (same canonical ID),
 	// no action is needed here — Step 5 handles it via ON CONFLICT DO UPDATE.
 
-	// --- Step 3: Upsert into unified vulnerabilities table ---
+	// --- Step 3: Upsert into unified vulnerabilities table (no source column) ---
 	_, err = tx.ExecContext(ctx, `
-		INSERT INTO vulnerabilities (id, source, summary, details, published, modified, withdrawn)
-		VALUES ($1, 'osv', $2, $3, $4, $5, $6)
+		INSERT INTO vulnerabilities (id, summary, details, published, modified, withdrawn)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (id) DO UPDATE SET
 			summary = COALESCE(NULLIF(EXCLUDED.summary, ''), vulnerabilities.summary),
 			details = COALESCE(NULLIF(EXCLUDED.details, ''), vulnerabilities.details),
@@ -244,69 +260,8 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		return fmt.Errorf("upsert vulnerability: %w", err)
 	}
 
-	// --- Step 4: Upsert aliases ---
-	// Build alias set: original aliases + OSV ID itself (if canonical is different)
-	allAliases := make([]string, 0, len(vuln.Aliases)+1)
-	if canID != osvID {
-		allAliases = append(allAliases, osvID)
-	}
-	allAliases = append(allAliases, vuln.Aliases...)
-
-	// Insert aliases with ON CONFLICT to handle multiple OSV entries contributing aliases.
-	// Each alias is tagged with source_osv_id to track which OSV entry contributed it.
-	if len(allAliases) > 0 {
-		aliasQuery := "INSERT INTO vulnerability_aliases (vulnerability_id, alias, ordering, source_osv_id) VALUES "
-		aliasArgs := make([]interface{}, 0, len(allAliases)*2+2)
-		aliasArgs = append(aliasArgs, canID, osvID)
-		for i, alias := range allAliases {
-			if i > 0 {
-				aliasQuery += ", "
-			}
-			base := i*2 + 3
-			aliasQuery += fmt.Sprintf("($1, $%d, $%d, $2)", base, base+1)
-			aliasArgs = append(aliasArgs, alias, i)
-		}
-		aliasQuery += " ON CONFLICT (vulnerability_id, alias, source_osv_id) DO UPDATE SET ordering = EXCLUDED.ordering"
-		if _, err := tx.ExecContext(ctx, aliasQuery, aliasArgs...); err != nil {
-			return fmt.Errorf("insert aliases: %w", err)
-		}
-	}
-
-	// Delete aliases that this OSV entry previously contributed but are no longer in the list.
-	// This handles the case where an OSV entry's aliases field shrinks over time.
-	if len(allAliases) > 0 {
-		// Build placeholder list for NOT IN clause
-		placeholders := make([]string, len(allAliases))
-		args := make([]interface{}, 0, len(allAliases)+2)
-		args = append(args, canID, osvID)
-		for i, alias := range allAliases {
-			placeholders[i] = fmt.Sprintf("$%d", i+3)
-			args = append(args, alias)
-		}
-		query := fmt.Sprintf(`
-			DELETE FROM vulnerability_aliases
-			WHERE vulnerability_id = $1 AND source_osv_id = $2
-			AND alias NOT IN (%s)`, strings.Join(placeholders, ", "))
-		if _, err := tx.ExecContext(ctx, query, args...); err != nil {
-			return fmt.Errorf("delete stale aliases: %w", err)
-		}
-	} else {
-		// No aliases at all — delete all aliases contributed by this OSV entry
-		if _, err := tx.ExecContext(ctx, `
-			DELETE FROM vulnerability_aliases
-			WHERE vulnerability_id = $1 AND source_osv_id = $2`,
-			canID, osvID,
-		); err != nil {
-			return fmt.Errorf("delete all aliases for osv entry: %w", err)
-		}
-	}
-
-	// --- Step 5: Upsert osv_entry ---
+	// --- Step 4: Upsert osv_entry (must be before alias_sources due to FK) ---
 	// Delete child tables first (they will be re-created below).
-	// This handles both the normal re-import case and the TOCTOU race where
-	// another transaction (e.g., parallel Chainguard/Wolfi sharing the same
-	// CGA-* IDs) committed between Step 1's SELECT and this point.
-	// Deleting children is safe even if the osv_entry doesn't exist yet (0 rows affected).
 	for _, childTable := range []string{"osv_severity", "osv_affected_packages", "osv_references", "osv_credits"} {
 		if _, err := tx.ExecContext(ctx, `DELETE FROM `+childTable+` WHERE osv_entry_id = $1`, osvID); err != nil {
 			return fmt.Errorf("delete %s before upsert: %w", childTable, err)
@@ -330,6 +285,52 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		return fmt.Errorf("upsert osv_entry: %w", err)
 	}
 
+	// --- Step 5: Upsert aliases using alias_sources junction table ---
+	allAliases := make([]string, 0, len(vuln.Aliases)+2)
+	if canID != osvID {
+		allAliases = append(allAliases, osvID)
+	}
+	if vuln.ID != osvID && vuln.ID != canID {
+		allAliases = append(allAliases, vuln.ID)
+	}
+	allAliases = append(allAliases, vuln.Aliases...)
+
+	// Remove old alias_sources for this osv_id
+	if _, err := tx.ExecContext(ctx, `DELETE FROM alias_sources WHERE osv_id = $1`, osvID); err != nil {
+		return fmt.Errorf("delete alias_sources for osv_id: %w", err)
+	}
+
+	// Upsert each alias and link via alias_sources
+	for _, alias := range allAliases {
+		var aliasID int64
+		err := tx.QueryRowContext(ctx, `
+			INSERT INTO vulnerability_aliases (vulnerability_id, alias)
+			VALUES ($1, $2)
+			ON CONFLICT (vulnerability_id, alias) DO UPDATE SET alias = EXCLUDED.alias
+			RETURNING id`,
+			canID, alias).Scan(&aliasID)
+		if err != nil {
+			return fmt.Errorf("upsert alias %q: %w", alias, err)
+		}
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO alias_sources (alias_id, osv_id)
+			VALUES ($1, $2)
+			ON CONFLICT (alias_id, osv_id) DO NOTHING`,
+			aliasID, osvID)
+		if err != nil {
+			return fmt.Errorf("insert alias_source for %q: %w", alias, err)
+		}
+	}
+
+	// Garbage-collect vulnerability_aliases with no remaining alias_sources
+	if _, err := tx.ExecContext(ctx, `
+		DELETE FROM vulnerability_aliases va
+		WHERE va.vulnerability_id = $1
+		AND NOT EXISTS (SELECT 1 FROM alias_sources asrc WHERE asrc.alias_id = va.id)`,
+		canID); err != nil {
+		return fmt.Errorf("gc orphaned aliases for %s: %w", canID, err)
+	}
+
 	// --- Step 6: Insert top-level severity (bulk) ---
 	if len(vuln.Severity) > 0 {
 		sevQuery := "INSERT INTO osv_severity (osv_entry_id, affected_package_id, severity_type, score, source) VALUES "
@@ -348,7 +349,12 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 	}
 
-	// --- Step 7: Insert affected packages ---
+	// --- Step 7: Insert affected packages + product_identifiers ---
+	// Delete existing product_identifiers for this vulnerability from OSV source
+	if _, err := tx.ExecContext(ctx, `DELETE FROM product_identifiers WHERE vulnerability_id = $1 AND source = 'osv'`, canID); err != nil {
+		return fmt.Errorf("delete product_identifiers: %w", err)
+	}
+
 	for _, affected := range vuln.Affected {
 		var affectedPkgID int64
 		err := tx.QueryRowContext(ctx, `
@@ -365,6 +371,11 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		).Scan(&affectedPkgID)
 		if err != nil {
 			return fmt.Errorf("insert osv_affected_package: %w", err)
+		}
+
+		// Insert into product_identifiers (purl decomposed)
+		if err := s.insertOSVProductIdentifier(ctx, tx, canID, &affected); err != nil {
+			return fmt.Errorf("insert product_identifier: %w", err)
 		}
 
 		// Insert ranges (bulk)
@@ -468,56 +479,49 @@ func (s *PostgresStore) GetByID(ctx context.Context, id string) (*model.Vulnerab
 }
 
 // buildSearchConditions constructs the WHERE clause and arguments for a SearchQuery.
-// It returns the base SELECT query with conditions, the arguments, and the current argIdx.
+// Uses vulnerability_summary for severity/KEV filtering and product_identifiers for
+// package/ecosystem/purl/cpe filtering. No more correlated subqueries.
 func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery string, args []interface{}, argIdx int) {
-	// nvdScoreSubquery retrieves the maximum CVSS base_score from NVD or MITRE metrics
-	// for vulnerabilities that have no OSV severity data.
-	const nvdScoreSubquery = `COALESCE(
-				(SELECT MAX(nm.base_score) FROM nvd_metrics nm
-				 JOIN nvd_entries ne ON ne.id = nm.nvd_entry_id
-				 WHERE ne.vulnerability_id = v.id),
-				(SELECT MAX(mm.base_score) FROM mitre_metrics mm
-				 JOIN mitre_containers mc ON mc.id = mm.container_id
-				 JOIN mitre_entries me ON me.id = mc.mitre_entry_id
-				 WHERE me.vulnerability_id = v.id)
-			)`
-
 	switch {
 	case query.ID != "":
-		// Use UNION ALL to avoid OR across joined tables which causes full table scans.
-		// Branch 1: match by vulnerabilities.id (PK lookup), pick one osv_entry (LIMIT 1)
-		// Branch 2: match by osv_entries.osv_id (PK lookup), resolve the parent vulnerability
-		// The NOT EXISTS clause prevents duplicates when query.ID matches both v.id and oe.osv_id.
-		// LEFT JOIN LATERAL ... LIMIT 1 ensures we return exactly one row per vulnerability,
-		// even when multiple osv_entries share the same vulnerability_id.
+		// UNION ALL: match by vulnerabilities.id OR osv_entries.osv_id
 		argIdx++
-		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, nvd_score FROM (
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
+		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, severity_worst FROM (
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+			       vs.severity_worst
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 			LEFT JOIN LATERAL (
 				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
 			) oe ON true
 			WHERE v.id = $` + fmt.Sprint(argIdx) + `
 			UNION ALL
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM osv_entries oe
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+			       vs.severity_worst
+			FROM osv_entries oe
 			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 			WHERE oe.osv_id = $` + fmt.Sprint(argIdx) + `
 			AND NOT EXISTS (SELECT 1 FROM vulnerabilities WHERE id = $` + fmt.Sprint(argIdx) + ` AND id = oe.osv_id)
 		) sub WHERE 1=1`
 		args = append(args, query.ID)
 
 	case query.Alias != "":
-		// Use UNION ALL: branch 1 matches by vulnerabilities.id directly (user passed a CVE as alias),
-		// branch 2 resolves via vulnerability_aliases table, excluding any already found in branch 1.
-		// LEFT JOIN LATERAL ... LIMIT 1 ensures one row per vulnerability.
 		argIdx++
-		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, nvd_score FROM (
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
+		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, severity_worst FROM (
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+			       vs.severity_worst
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 			LEFT JOIN LATERAL (
 				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
 			) oe ON true
 			WHERE v.id = $` + fmt.Sprint(argIdx) + `
 			UNION ALL
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
+			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+			       vs.severity_worst
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 			LEFT JOIN LATERAL (
 				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
 			) oe ON true
@@ -527,56 +531,135 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		) sub WHERE 1=1`
 		args = append(args, query.Alias)
 
+	case query.Purl != "":
+		// Search by purl (decompose and match on product_identifiers)
+		argIdx++
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+		       vs.severity_worst
+		FROM vulnerabilities v
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+		LEFT JOIN LATERAL (
+			SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+		) oe ON true
+		WHERE v.id IN (
+			SELECT pi.vulnerability_id FROM product_identifiers pi
+			WHERE pi.purl_type || '/' || COALESCE(pi.purl_namespace || '/', '') || pi.purl_name = $` + fmt.Sprint(argIdx) + `
+		) AND 1=1`
+		// Extract type/namespace/name from the purl for matching
+		// The caller provides just "pkg:type/ns/name" or "type/ns/name" - we match the reconstructed form
+		purlMatch := strings.TrimPrefix(query.Purl, "pkg:")
+		// Remove version/qualifiers/subpath if present
+		if idx := strings.IndexByte(purlMatch, '@'); idx >= 0 {
+			purlMatch = purlMatch[:idx]
+		}
+		if idx := strings.IndexByte(purlMatch, '?'); idx >= 0 {
+			purlMatch = purlMatch[:idx]
+		}
+		args = append(args, purlMatch)
+
+	case query.CPE != "":
+		// Search by CPE vendor+product (decompose from cpe:2.3:part:vendor:product:...)
+		cpeFields := model.ParseCPE23(query.CPE)
+		if cpeFields != nil && cpeFields.Vendor != "*" && cpeFields.Product != "*" {
+			argIdx++
+			vendorArg := argIdx
+			argIdx++
+			productArg := argIdx
+			baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+			       vs.severity_worst
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+			LEFT JOIN LATERAL (
+				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+			) oe ON true
+			WHERE v.id IN (
+				SELECT pi.vulnerability_id FROM product_identifiers pi
+				WHERE pi.cpe_vendor = $` + fmt.Sprint(vendorArg) + ` AND pi.cpe_product = $` + fmt.Sprint(productArg) + `
+			) AND 1=1`
+			args = append(args, cpeFields.Vendor, cpeFields.Product)
+		} else {
+			// Fallback: treat as text prefix match on reconstructed CPE
+			argIdx++
+			baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+			       vs.severity_worst
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+			LEFT JOIN LATERAL (
+				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+			) oe ON true
+			WHERE v.id IN (
+				SELECT pi.vulnerability_id FROM product_identifiers pi
+				WHERE pi.cpe_vendor IS NOT NULL
+			) AND 1=1`
+			args = append(args, query.CPE)
+		}
+
 	case query.PackageName != "" || query.Ecosystem != "":
-		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, nvd_score FROM (
-			SELECT DISTINCT ON (v.id) oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
-			JOIN osv_entries oe ON oe.vulnerability_id = v.id
-			WHERE oe.osv_id IN (
-				SELECT ap.osv_entry_id FROM osv_affected_packages ap WHERE 1=1`
+		// Use product_identifiers for cross-source package search
+		innerWhere := `1=1`
 		if query.Ecosystem != "" {
 			argIdx++
-			baseQuery += fmt.Sprintf(` AND ap.ecosystem = $%d`, argIdx)
+			innerWhere += fmt.Sprintf(` AND pi.ecosystem = $%d`, argIdx)
 			args = append(args, query.Ecosystem)
 		}
 		if query.PackageName != "" {
 			argIdx++
-			baseQuery += fmt.Sprintf(` AND ap.name = $%d`, argIdx)
+			innerWhere += fmt.Sprintf(` AND pi.name = $%d`, argIdx)
 			args = append(args, query.PackageName)
 		}
-		baseQuery += `) ORDER BY v.id) sub WHERE 1=1`
+		baseQuery = fmt.Sprintf(`SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+		       vs.severity_worst
+		FROM vulnerabilities v
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+		LEFT JOIN LATERAL (
+			SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+		) oe ON true
+		WHERE v.id IN (
+			SELECT DISTINCT pi.vulnerability_id FROM product_identifiers pi WHERE %s
+		) AND 1=1`, innerWhere)
 
 	default:
-		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id, ` + nvdScoreSubquery + ` AS nvd_score FROM vulnerabilities v
-			LEFT JOIN LATERAL (
-				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
-			) oe ON true
-			WHERE 1=1`
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+		       vs.severity_worst
+		FROM vulnerabilities v
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+		LEFT JOIN LATERAL (
+			SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+		) oe ON true
+		WHERE 1=1`
 	}
 
-	// Additional filter: --severity (filter by CVSS score range)
+	// --- Additional filters using vulnerability_summary ---
+
+	// Severity filter: uses normalized 5-level scale range overlap
+	// A vulnerability matches if its severity range [severity_best, severity_worst]
+	// includes the requested level. This means:
+	// severity_worst >= level AND severity_best <= level
 	if query.Severity != "" {
-		minScore, maxScore := severityToScoreRange(query.Severity)
-		if minScore >= 0 {
+		sevLevel := severityToLevel(query.Severity)
+		if sevLevel > 0 {
 			argIdx++
-			baseQuery += fmt.Sprintf(` AND osv_id IN (
-				SELECT s.osv_entry_id FROM osv_severity s
-				WHERE s.severity_type IN ('CVSS_V3', 'CVSS_V4', 'CVSS_V2')
-				AND cvss_base_score(s.score) >= $%d`, argIdx)
-			args = append(args, minScore)
+			baseQuery += fmt.Sprintf(` AND severity_worst >= $%d`, argIdx)
+			args = append(args, sevLevel)
 			argIdx++
-			baseQuery += fmt.Sprintf(` AND cvss_base_score(s.score) < $%d)`, argIdx)
-			args = append(args, maxScore)
+			baseQuery += fmt.Sprintf(` AND COALESCE(severity_best, severity_worst) <= $%d`, argIdx)
+			args = append(args, sevLevel)
 		}
 	}
 
-	// Additional filter: --since (modified date)
+	// KEV filter
+	if query.InKEV != nil && *query.InKEV {
+		baseQuery += ` AND vs.in_kev = true`
+	}
+
+	// Since filter (modified date)
 	if query.Since != "" {
 		argIdx++
 		baseQuery += fmt.Sprintf(` AND modified >= $%d`, argIdx)
 		args = append(args, query.Since)
 	}
 
-	// Additional filter: --version (check if version appears in affected versions list)
+	// Version filter (check if version appears in affected versions list)
 	if query.Version != "" {
 		argIdx++
 		baseQuery += fmt.Sprintf(` AND osv_id IN (
@@ -588,22 +671,21 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 	return baseQuery, args, argIdx
 }
 
-// severityToScoreRange maps a severity level string to CVSS v3 score ranges.
-// Returns (minScore, maxScore). Returns (-1, -1) for unknown levels.
-func severityToScoreRange(level string) (float64, float64) {
+// severityToLevel maps a severity label to the normalized 5-level value.
+func severityToLevel(level string) int {
 	switch strings.ToLower(level) {
 	case "critical":
-		return 9.0, 10.1
+		return 5
 	case "high":
-		return 7.0, 9.0
+		return 4
 	case "medium":
-		return 4.0, 7.0
+		return 3
 	case "low":
-		return 0.1, 4.0
+		return 2
 	case "none":
-		return 0.0, 0.1
+		return 1
 	default:
-		return -1, -1
+		return -1
 	}
 }
 
@@ -644,9 +726,9 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 		var vulnID string
 		var summary, details sql.NullString
 		var published, modified sql.NullTime
-		var osvID sql.NullString     // used for additional filters; not consumed here
-		var nvdScore sql.NullFloat64 // NVD/MITRE base_score fallback
-		if err := rows.Scan(&rawJSON, &vulnID, &summary, &details, &published, &modified, &osvID, &nvdScore); err != nil {
+		var osvID sql.NullString
+		var severityWorst sql.NullInt32
+		if err := rows.Scan(&rawJSON, &vulnID, &summary, &details, &published, &modified, &osvID, &severityWorst); err != nil {
 			return nil, fmt.Errorf("scan row: %w", err)
 		}
 		if rawJSON != nil {
@@ -655,20 +737,11 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 				return nil, fmt.Errorf("parse vulnerability: %w", err)
 			}
 			// Override ID with the canonical vulnerability ID (e.g., CVE-xxx)
-			// since raw_json contains the original OSV ID (e.g., GHSA-xxx).
 			if vulnID != "" && vuln.ID != vulnID {
 				vuln.ID = vulnID
-				// Also patch the "id" field in RawJSON so JSON output is consistent.
 				if vuln.RawJSON != nil {
 					vuln.RawJSON = replaceJSONField(vuln.RawJSON, "id", vulnID)
 				}
-			}
-			// If OSV entry has no severity but NVD/MITRE does, supplement it
-			if len(vuln.Severity) == 0 && nvdScore.Valid {
-				vuln.Severity = []model.Severity{{
-					Type:  model.SeverityTypeCVSSV3,
-					Score: fmt.Sprintf("%.1f", nvdScore.Float64),
-				}}
 			}
 			results = append(results, vuln)
 		} else {
@@ -684,12 +757,6 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 			if published.Valid {
 				vuln.Published = &published.Time
 			}
-			if nvdScore.Valid {
-				vuln.Severity = []model.Severity{{
-					Type:  model.SeverityTypeCVSSV3,
-					Score: fmt.Sprintf("%.1f", nvdScore.Float64),
-				}}
-			}
 			results = append(results, vuln)
 		}
 	}
@@ -702,113 +769,13 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 
 // Count returns the number of vulnerabilities matching the given query parameters.
 func (s *PostgresStore) Count(ctx context.Context, query SearchQuery) (int64, error) {
-	// Use lightweight count when fields are specified (avoids heavy JOINs)
-	if len(query.Fields) > 0 {
-		return s.countLight(ctx, query)
-	}
-
+	// Use the same buildSearchConditions, wrapping it as a count subquery.
 	baseQuery, args, _ := s.buildSearchConditions(query)
-
-	// Wrap the base query as a subquery to count results universally
-	// (works for both simple queries and UNION ALL queries).
 	countQuery := `SELECT COUNT(*) FROM (` + baseQuery + `) count_sub`
 
 	var count int64
 	if err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count vulnerabilities: %w", err)
-	}
-	return count, nil
-}
-
-// countLight performs a lightweight count that avoids the heavy buildSearchConditions path.
-// It counts directly from the vulnerabilities table without joining osv_entries or computing scores.
-func (s *PostgresStore) countLight(ctx context.Context, query SearchQuery) (int64, error) {
-	var countQuery string
-	var args []interface{}
-	var argIdx int
-
-	switch {
-	case query.ID != "":
-		argIdx++
-		countQuery = fmt.Sprintf(`SELECT COUNT(*) FROM (
-			SELECT v.id FROM vulnerabilities v WHERE v.id = $%d
-			UNION
-			SELECT v.id FROM vulnerabilities v
-			JOIN osv_entries oe ON oe.vulnerability_id = v.id
-			WHERE oe.osv_id = $%d AND v.id != $%d
-		) sub`, argIdx, argIdx, argIdx)
-		args = append(args, query.ID)
-
-	case query.Alias != "":
-		argIdx++
-		countQuery = fmt.Sprintf(`SELECT COUNT(*) FROM (
-			SELECT v.id FROM vulnerabilities v WHERE v.id = $%d
-			UNION
-			SELECT v.id FROM vulnerabilities v
-			WHERE v.id IN (
-				SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $%d
-			) AND v.id != $%d
-		) sub`, argIdx, argIdx, argIdx)
-		args = append(args, query.Alias)
-
-	case query.PackageName != "" || query.Ecosystem != "":
-		countQuery = `SELECT COUNT(*) FROM vulnerabilities v WHERE v.id IN (
-			SELECT DISTINCT oe.vulnerability_id FROM osv_entries oe
-			JOIN osv_affected_packages ap ON ap.osv_entry_id = oe.osv_id
-			WHERE 1=1`
-		if query.Ecosystem != "" {
-			argIdx++
-			countQuery += fmt.Sprintf(` AND ap.ecosystem = $%d`, argIdx)
-			args = append(args, query.Ecosystem)
-		}
-		if query.PackageName != "" {
-			argIdx++
-			countQuery += fmt.Sprintf(` AND ap.name = $%d`, argIdx)
-			args = append(args, query.PackageName)
-		}
-		countQuery += `)`
-
-	default:
-		countQuery = `SELECT COUNT(*) FROM vulnerabilities v WHERE 1=1`
-	}
-
-	// Additional filter: --severity
-	if query.Severity != "" && (query.ID == "" && query.Alias == "") {
-		minScore, maxScore := severityToScoreRange(query.Severity)
-		if minScore >= 0 {
-			argIdx++
-			countQuery += fmt.Sprintf(` AND v.id IN (
-				SELECT oe2.vulnerability_id FROM osv_entries oe2
-				JOIN osv_severity s ON s.osv_entry_id = oe2.osv_id
-				WHERE s.severity_type IN ('CVSS_V3', 'CVSS_V4', 'CVSS_V2')
-				AND cvss_base_score(s.score) >= $%d`, argIdx)
-			args = append(args, minScore)
-			argIdx++
-			countQuery += fmt.Sprintf(` AND cvss_base_score(s.score) < $%d)`, argIdx)
-			args = append(args, maxScore)
-		}
-	}
-
-	// Additional filter: --since
-	if query.Since != "" && (query.ID == "" && query.Alias == "") {
-		argIdx++
-		countQuery += fmt.Sprintf(` AND v.modified >= $%d`, argIdx)
-		args = append(args, query.Since)
-	}
-
-	// Additional filter: --version
-	if query.Version != "" && (query.ID == "" && query.Alias == "") {
-		argIdx++
-		countQuery += fmt.Sprintf(` AND v.id IN (
-			SELECT oe3.vulnerability_id FROM osv_entries oe3
-			JOIN osv_affected_packages ap2 ON ap2.osv_entry_id = oe3.osv_id
-			WHERE $%d = ANY(ap2.versions))`, argIdx)
-		args = append(args, query.Version)
-	}
-
-	var count int64
-	if err := s.db.QueryRowContext(ctx, countQuery, args...).Scan(&count); err != nil {
-		return 0, fmt.Errorf("countLight: %w", err)
 	}
 	return count, nil
 }
@@ -905,9 +872,91 @@ func replaceJSONField(data json.RawMessage, field, newValue string) json.RawMess
 	return result
 }
 
+// insertOSVProductIdentifier inserts a product_identifiers row for an OSV affected package.
+// It decomposes the purl string into individual fields for efficient querying.
+func (s *PostgresStore) insertOSVProductIdentifier(ctx context.Context, tx *sql.Tx, vulnID string, affected *model.Affected) error {
+	pi := &model.ProductIdentifier{
+		VulnerabilityID: vulnID,
+		Source:          "osv",
+		Ecosystem:       affected.Package.Ecosystem,
+		Name:            affected.Package.Name,
+	}
+
+	// Decompose purl if available
+	if affected.Package.Purl != "" {
+		parsePurlIntoPI(affected.Package.Purl, pi)
+	}
+
+	// Build version_constraint from ranges
+	if len(affected.Ranges) > 0 {
+		vc, _ := json.Marshal(affected.Ranges)
+		pi.VersionConstraint = vc
+	}
+
+	_, err := tx.ExecContext(ctx, `
+		INSERT INTO product_identifiers (
+			vulnerability_id, source,
+			purl_type, purl_namespace, purl_name, purl_version, purl_qualifiers, purl_subpath,
+			cpe_part, cpe_vendor, cpe_product, cpe_version, cpe_update, cpe_edition,
+			cpe_language, cpe_sw_edition, cpe_target_sw, cpe_target_hw, cpe_other,
+			ecosystem, name, vendor, product, version_constraint
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
+		pi.VulnerabilityID, pi.Source,
+		nullIfEmpty(pi.PurlType), nullIfEmpty(pi.PurlNamespace), nullIfEmpty(pi.PurlName),
+		nullIfEmpty(pi.PurlVersion), nullIfEmpty(pi.PurlQualifiers), nullIfEmpty(pi.PurlSubpath),
+		nullIfEmpty(pi.CPEPart), nullIfEmpty(pi.CPEVendor), nullIfEmpty(pi.CPEProduct),
+		nullIfEmpty(pi.CPEVersion), nullIfEmpty(pi.CPEUpdate), nullIfEmpty(pi.CPEEdition),
+		nullIfEmpty(pi.CPELanguage), nullIfEmpty(pi.CPESWEdition), nullIfEmpty(pi.CPETargetSW),
+		nullIfEmpty(pi.CPETargetHW), nullIfEmpty(pi.CPEOther),
+		nullIfEmpty(pi.Ecosystem), nullIfEmpty(pi.Name),
+		nullIfEmpty(pi.Vendor), nullIfEmpty(pi.Product),
+		nullableRawJSON(pi.VersionConstraint),
+	)
+	return err
+}
+
+// parsePurlIntoPI parses a purl string and populates ProductIdentifier fields.
+// Lightweight parser: pkg:type/namespace/name@version?qualifiers#subpath
+func parsePurlIntoPI(purlStr string, pi *model.ProductIdentifier) {
+	if !strings.HasPrefix(purlStr, "pkg:") {
+		return
+	}
+	remainder := purlStr[4:]
+
+	// Extract subpath
+	if idx := strings.IndexByte(remainder, '#'); idx >= 0 {
+		pi.PurlSubpath = remainder[idx+1:]
+		remainder = remainder[:idx]
+	}
+	// Extract qualifiers
+	if idx := strings.IndexByte(remainder, '?'); idx >= 0 {
+		pi.PurlQualifiers = remainder[idx+1:]
+		remainder = remainder[:idx]
+	}
+	// Extract version
+	if idx := strings.IndexByte(remainder, '@'); idx >= 0 {
+		pi.PurlVersion = remainder[idx+1:]
+		remainder = remainder[:idx]
+	}
+	// Extract type
+	if idx := strings.IndexByte(remainder, '/'); idx >= 0 {
+		pi.PurlType = remainder[:idx]
+		remainder = remainder[idx+1:]
+	} else {
+		pi.PurlType = remainder
+		return
+	}
+	// Remaining is namespace/name or just name
+	if idx := strings.LastIndexByte(remainder, '/'); idx >= 0 {
+		pi.PurlNamespace = remainder[:idx]
+		pi.PurlName = remainder[idx+1:]
+	} else {
+		pi.PurlName = remainder
+	}
+}
+
 // searchLight performs a lightweight search that avoids fetching raw_json from osv_entries.
-// It builds minimal Vulnerability structs from the vulnerabilities table and related tables
-// (osv_severity, osv_affected_packages) based on the requested fields.
+// It uses vulnerability_summary for severity/scores and product_identifiers for ecosystem.
 // This is significantly faster for list views where only a subset of fields is needed.
 func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*model.Vulnerability, error) {
 	limit := query.Limit
@@ -928,114 +977,140 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 	needSeverity := fieldSet["severity"]
 	needEcosystem := fieldSet["ecosystem"]
 
-	// Build a lightweight query that never touches raw_json
+	// Build query using vulnerability_summary
 	var baseQuery string
 	var args []interface{}
 	var argIdx int
 
-	// All branches produce a query with columns: id, summary, modified, published.
-	// For ID/Alias (UNION) cases, we wrap in a subquery for uniform filter application.
-	// For default/package cases, we query vulnerabilities directly to leverage indexes.
-	var useSubAlias bool // true when the query is already wrapped in "sub"
-
 	switch {
 	case query.ID != "":
-		useSubAlias = true
 		argIdx++
-		baseQuery = fmt.Sprintf(`SELECT id, summary, modified, published FROM (
-			SELECT v.id, v.summary, v.modified, v.published
-			FROM vulnerabilities v WHERE v.id = $%d
-			UNION
-			SELECT v.id, v.summary, v.modified, v.published
-			FROM vulnerabilities v
-			JOIN osv_entries oe ON oe.vulnerability_id = v.id
-			WHERE oe.osv_id = $%d AND v.id != $%d
-		) sub WHERE 1=1`, argIdx, argIdx, argIdx)
+		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
+			vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+		FROM vulnerabilities v
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+		WHERE (v.id = $%d OR v.id IN (
+			SELECT oe.vulnerability_id FROM osv_entries oe WHERE oe.osv_id = $%d
+		))`, argIdx, argIdx)
 		args = append(args, query.ID)
 
 	case query.Alias != "":
-		useSubAlias = true
 		argIdx++
-		baseQuery = fmt.Sprintf(`SELECT id, summary, modified, published FROM (
-			SELECT v.id, v.summary, v.modified, v.published
-			FROM vulnerabilities v WHERE v.id = $%d
-			UNION
-			SELECT v.id, v.summary, v.modified, v.published
-			FROM vulnerabilities v
-			WHERE v.id IN (
-				SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $%d
-			) AND v.id != $%d
-		) sub WHERE 1=1`, argIdx, argIdx, argIdx)
+		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
+			vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+		FROM vulnerabilities v
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+		WHERE (v.id = $%d OR v.id IN (
+			SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $%d
+		))`, argIdx, argIdx)
 		args = append(args, query.Alias)
+
+	case query.Purl != "":
+		argIdx++
+		purlMatch := strings.TrimPrefix(query.Purl, "pkg:")
+		if idx := strings.IndexByte(purlMatch, '@'); idx >= 0 {
+			purlMatch = purlMatch[:idx]
+		}
+		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
+			vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+		FROM vulnerabilities v
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+		WHERE v.id IN (
+			SELECT pi.vulnerability_id FROM product_identifiers pi
+			WHERE pi.purl_type || '/' || COALESCE(pi.purl_namespace || '/', '') || pi.purl_name = $%d
+		)`, argIdx)
+		args = append(args, purlMatch)
+
+	case query.CPE != "":
+		cpeFields := model.ParseCPE23(query.CPE)
+		if cpeFields != nil && cpeFields.Vendor != "*" && cpeFields.Product != "*" {
+			argIdx++
+			vendorArg := argIdx
+			argIdx++
+			productArg := argIdx
+			baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
+				vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+			WHERE v.id IN (
+				SELECT pi.vulnerability_id FROM product_identifiers pi
+				WHERE pi.cpe_vendor = $%d AND pi.cpe_product = $%d
+			)`, vendorArg, productArg)
+			args = append(args, cpeFields.Vendor, cpeFields.Product)
+		} else {
+			baseQuery = `SELECT v.id, v.summary, v.modified, v.published,
+				vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+			WHERE 1=1`
+		}
 
 	case query.PackageName != "" || query.Ecosystem != "":
 		innerWhere := `1=1`
 		if query.Ecosystem != "" {
 			argIdx++
-			innerWhere += fmt.Sprintf(` AND ap.ecosystem = $%d`, argIdx)
+			innerWhere += fmt.Sprintf(` AND pi.ecosystem = $%d`, argIdx)
 			args = append(args, query.Ecosystem)
 		}
 		if query.PackageName != "" {
 			argIdx++
-			innerWhere += fmt.Sprintf(` AND ap.name = $%d`, argIdx)
+			innerWhere += fmt.Sprintf(` AND pi.name = $%d`, argIdx)
 			args = append(args, query.PackageName)
 		}
-		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published
-			FROM vulnerabilities v
-			WHERE v.id IN (
-				SELECT DISTINCT oe.vulnerability_id FROM osv_entries oe
-				JOIN osv_affected_packages ap ON ap.osv_entry_id = oe.osv_id
-				WHERE %s
-			)`, innerWhere)
+		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
+			vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+		FROM vulnerabilities v
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+		WHERE v.id IN (
+			SELECT DISTINCT pi.vulnerability_id FROM product_identifiers pi WHERE %s
+		)`, innerWhere)
 
 	default:
-		baseQuery = `SELECT v.id, v.summary, v.modified, v.published
-			FROM vulnerabilities v WHERE 1=1`
+		baseQuery = `SELECT v.id, v.summary, v.modified, v.published,
+			vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+		FROM vulnerabilities v
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+		WHERE 1=1`
 	}
 
-	// Column prefix for additional filters
-	colPrefix := "v."
-	if useSubAlias {
-		colPrefix = ""
-	}
-
-	// Additional filter: --severity
+	// Severity filter
 	if query.Severity != "" {
-		minScore, maxScore := severityToScoreRange(query.Severity)
-		if minScore >= 0 {
+		sevLevel := severityToLevel(query.Severity)
+		if sevLevel > 0 {
 			argIdx++
-			baseQuery += fmt.Sprintf(` AND %sid IN (
-				SELECT oe2.vulnerability_id FROM osv_entries oe2
-				JOIN osv_severity s ON s.osv_entry_id = oe2.osv_id
-				WHERE s.severity_type IN ('CVSS_V3', 'CVSS_V4', 'CVSS_V2')
-				AND cvss_base_score(s.score) >= $%d`, colPrefix, argIdx)
-			args = append(args, minScore)
+			baseQuery += fmt.Sprintf(` AND vs.severity_worst >= $%d`, argIdx)
+			args = append(args, sevLevel)
 			argIdx++
-			baseQuery += fmt.Sprintf(` AND cvss_base_score(s.score) < $%d)`, argIdx)
-			args = append(args, maxScore)
+			baseQuery += fmt.Sprintf(` AND COALESCE(vs.severity_best, vs.severity_worst) <= $%d`, argIdx)
+			args = append(args, sevLevel)
 		}
 	}
 
-	// Additional filter: --since
+	// KEV filter
+	if query.InKEV != nil && *query.InKEV {
+		baseQuery += ` AND vs.in_kev = true`
+	}
+
+	// Since filter
 	if query.Since != "" {
 		argIdx++
-		baseQuery += fmt.Sprintf(` AND %smodified >= $%d`, colPrefix, argIdx)
+		baseQuery += fmt.Sprintf(` AND v.modified >= $%d`, argIdx)
 		args = append(args, query.Since)
 	}
 
-	// Additional filter: --version
+	// Version filter
 	if query.Version != "" {
 		argIdx++
-		baseQuery += fmt.Sprintf(` AND %sid IN (
-			SELECT oe3.vulnerability_id FROM osv_entries oe3
-			JOIN osv_affected_packages ap2 ON ap2.osv_entry_id = oe3.osv_id
-			WHERE $%d = ANY(ap2.versions))`, colPrefix, argIdx)
+		baseQuery += fmt.Sprintf(` AND v.id IN (
+			SELECT oe.vulnerability_id FROM osv_entries oe
+			JOIN osv_affected_packages ap ON ap.osv_entry_id = oe.osv_id
+			WHERE $%d = ANY(ap.versions))`, argIdx)
 		args = append(args, query.Version)
 	}
 
 	// ORDER BY and pagination
 	argIdx++
-	baseQuery += fmt.Sprintf(` ORDER BY %spublished DESC NULLS LAST LIMIT $%d`, colPrefix, argIdx)
+	baseQuery += fmt.Sprintf(` ORDER BY v.published DESC NULLS LAST LIMIT $%d`, argIdx)
 	args = append(args, limit)
 	argIdx++
 	baseQuery += fmt.Sprintf(` OFFSET $%d`, argIdx)
@@ -1047,79 +1122,45 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 	}
 	defer func() { _ = rows.Close() }()
 
-	type lightRow struct {
-		id        string
-		summary   sql.NullString
-		modified  sql.NullTime
-		published sql.NullTime
-	}
-	var lightRows []lightRow
-
+	var results []*model.Vulnerability
 	for rows.Next() {
-		var r lightRow
-		if err := rows.Scan(&r.id, &r.summary, &r.modified, &r.published); err != nil {
+		var id string
+		var summary sql.NullString
+		var modified, published sql.NullTime
+		var severityWorst sql.NullInt32
+		var scoresDetail []byte
+		var ecosystemList []byte
+		if err := rows.Scan(&id, &summary, &modified, &published, &severityWorst, &scoresDetail, &ecosystemList); err != nil {
 			return nil, fmt.Errorf("searchLight scan: %w", err)
 		}
-		lightRows = append(lightRows, r)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("searchLight rows: %w", err)
-	}
 
-	if len(lightRows) == 0 {
-		return []*model.Vulnerability{}, nil
-	}
-
-	// Collect vulnerability IDs for batch lookups
-	ids := make([]string, len(lightRows))
-	for i, r := range lightRows {
-		ids[i] = r.id
-	}
-
-	// Batch fetch severity if requested
-	severityMap := make(map[string][]model.Severity)
-	if needSeverity {
-		severityMap, err = s.batchFetchSeverity(ctx, ids)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Batch fetch ecosystem if requested
-	ecosystemMap := make(map[string]string)
-	if needEcosystem {
-		ecosystemMap, err = s.batchFetchEcosystem(ctx, ids)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Build results
-	results := make([]*model.Vulnerability, 0, len(lightRows))
-	for _, r := range lightRows {
 		vuln := &model.Vulnerability{
-			ID:      r.id,
-			Summary: r.summary.String,
+			ID:      id,
+			Summary: summary.String,
 		}
-		if r.modified.Valid {
-			vuln.Modified = r.modified.Time
+		if modified.Valid {
+			vuln.Modified = modified.Time
 		}
-		if r.published.Valid {
-			t := r.published.Time
+		if published.Valid {
+			t := published.Time
 			vuln.Published = &t
 		}
 
-		if needSeverity {
-			if sev, ok := severityMap[r.id]; ok {
-				vuln.Severity = sev
-			}
+		// Add severity from vulnerability_summary scores_detail
+		if needSeverity && severityWorst.Valid && severityWorst.Int32 > 0 {
+			vuln.Severity = []model.Severity{{
+				Type:  model.SeverityTypeCVSSV3,
+				Score: model.SeverityLevelName(int(severityWorst.Int32)),
+			}}
 		}
 
-		if needEcosystem {
-			if eco, ok := ecosystemMap[r.id]; ok && eco != "" {
+		// Add ecosystem from vulnerability_summary ecosystem_list
+		if needEcosystem && ecosystemList != nil {
+			ecos := parseTextArray(string(ecosystemList))
+			if len(ecos) > 0 {
 				vuln.Affected = []model.Affected{{
 					Package: model.Package{
-						Ecosystem: eco,
+						Ecosystem: ecos[0],
 					},
 				}}
 			}
@@ -1127,114 +1168,9 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 
 		results = append(results, vuln)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("searchLight rows: %w", err)
+	}
 
 	return results, nil
-}
-
-// batchFetchSeverity fetches the top severity score for each vulnerability ID.
-// Uses a single query with ANY($1) to avoid N+1 queries.
-func (s *PostgresStore) batchFetchSeverity(ctx context.Context, ids []string) (map[string][]model.Severity, error) {
-	// First try OSV severity, then fall back to NVD/MITRE metrics
-	query := `
-		SELECT oe.vulnerability_id, s.severity_type, s.score
-		FROM osv_severity s
-		JOIN osv_entries oe ON oe.osv_id = s.osv_entry_id
-		WHERE oe.vulnerability_id = ANY($1)
-		AND s.severity_type IN ('CVSS_V3', 'CVSS_V4', 'CVSS_V2')
-		ORDER BY oe.vulnerability_id, s.severity_type DESC`
-
-	rows, err := s.db.QueryContext(ctx, query, ids)
-	if err != nil {
-		return nil, fmt.Errorf("batchFetchSeverity osv: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
-
-	result := make(map[string][]model.Severity, len(ids))
-	for rows.Next() {
-		var vulnID, sevType, score string
-		if err := rows.Scan(&vulnID, &sevType, &score); err != nil {
-			return nil, fmt.Errorf("batchFetchSeverity scan: %w", err)
-		}
-		// Only keep the first (highest priority) severity per vulnerability
-		if _, exists := result[vulnID]; !exists {
-			result[vulnID] = []model.Severity{{
-				Type:  model.SeverityType(sevType),
-				Score: score,
-			}}
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("batchFetchSeverity rows: %w", err)
-	}
-
-	// For IDs without OSV severity, try NVD metrics
-	var missingIDs []string
-	for _, id := range ids {
-		if _, ok := result[id]; !ok {
-			missingIDs = append(missingIDs, id)
-		}
-	}
-
-	if len(missingIDs) > 0 {
-		nvdQuery := `
-			SELECT ne.vulnerability_id, nm.base_score
-			FROM nvd_metrics nm
-			JOIN nvd_entries ne ON ne.id = nm.nvd_entry_id
-			WHERE ne.vulnerability_id = ANY($1)
-			ORDER BY ne.vulnerability_id, nm.base_score DESC`
-		nvdRows, err := s.db.QueryContext(ctx, nvdQuery, missingIDs)
-		if err != nil {
-			return nil, fmt.Errorf("batchFetchSeverity nvd: %w", err)
-		}
-		defer func() { _ = nvdRows.Close() }()
-
-		for nvdRows.Next() {
-			var vulnID string
-			var baseScore float64
-			if err := nvdRows.Scan(&vulnID, &baseScore); err != nil {
-				return nil, fmt.Errorf("batchFetchSeverity nvd scan: %w", err)
-			}
-			if _, exists := result[vulnID]; !exists {
-				result[vulnID] = []model.Severity{{
-					Type:  model.SeverityTypeCVSSV3,
-					Score: fmt.Sprintf("%.1f", baseScore),
-				}}
-			}
-		}
-		if err := nvdRows.Err(); err != nil {
-			return nil, fmt.Errorf("batchFetchSeverity nvd rows: %w", err)
-		}
-	}
-
-	return result, nil
-}
-
-// batchFetchEcosystem fetches the first ecosystem for each vulnerability ID.
-func (s *PostgresStore) batchFetchEcosystem(ctx context.Context, ids []string) (map[string]string, error) {
-	query := `
-		SELECT DISTINCT ON (oe.vulnerability_id) oe.vulnerability_id, ap.ecosystem
-		FROM osv_affected_packages ap
-		JOIN osv_entries oe ON oe.osv_id = ap.osv_entry_id
-		WHERE oe.vulnerability_id = ANY($1)
-		ORDER BY oe.vulnerability_id, ap.id`
-
-	rows, err := s.db.QueryContext(ctx, query, ids)
-	if err != nil {
-		return nil, fmt.Errorf("batchFetchEcosystem: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
-
-	result := make(map[string]string, len(ids))
-	for rows.Next() {
-		var vulnID, ecosystem string
-		if err := rows.Scan(&vulnID, &ecosystem); err != nil {
-			return nil, fmt.Errorf("batchFetchEcosystem scan: %w", err)
-		}
-		result[vulnID] = ecosystem
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("batchFetchEcosystem rows: %w", err)
-	}
-
-	return result, nil
 }

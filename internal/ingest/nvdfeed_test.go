@@ -82,6 +82,10 @@ func (m *mockNVDStore) Insert(ctx context.Context, vuln *model.Vulnerability) er
 func (m *mockNVDStore) UpsertBatch(ctx context.Context, vulns []*model.Vulnerability) error {
 	return nil
 }
+func (m *mockNVDStore) RefreshSummary(ctx context.Context, vulnIDs []string) error { return nil }
+func (m *mockNVDStore) UpsertProductIdentifiers(ctx context.Context, identifiers []*model.ProductIdentifier) error {
+	return nil
+}
 func (m *mockNVDStore) GetByID(ctx context.Context, id string) (*model.Vulnerability, error) {
 	return nil, nil
 }

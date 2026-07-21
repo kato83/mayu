@@ -165,6 +165,7 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 
 	total := len(scores)
 	inserted := 0
+	var allCVEIDs []string
 
 	for i := 0; i < total; i += ing.batchSize {
 		select {
@@ -183,9 +184,17 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 			return inserted, fmt.Errorf("upsert EPSS batch at offset %d: %w", i, err)
 		}
 
+		// Collect CVE IDs for summary refresh
+		for _, s := range batch {
+			allCVEIDs = append(allCVEIDs, s.CVEID)
+		}
+
 		inserted += len(batch)
 		ing.progress(Progress{Phase: "store", Current: inserted, Total: total})
 	}
+
+	// Refresh vulnerability_summary for all imported CVEs
+	ing.refreshSummary(ctx, allCVEIDs)
 
 	return inserted, nil
 }

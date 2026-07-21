@@ -308,6 +308,13 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 	stats.Skipped = stats.Errors
 	stats.Inserted = inserted
 
+	// Refresh vulnerability_summary for delta-imported entries
+	deltaVulnIDs := make([]string, 0, len(updated))
+	for _, entry := range updated {
+		deltaVulnIDs = append(deltaVulnIDs, entry.ID)
+	}
+	ing.refreshSummary(ctx, deltaVulnIDs)
+
 	// Update sync state with the latest modified timestamp from the CSV
 	if len(updated) > 0 {
 		// PostgreSQL timestamptz has microsecond precision, but CSV timestamps
@@ -505,13 +512,16 @@ func (ing *Ingester) streamParseAndStore(ctx context.Context, entries <-chan fet
 
 // consumeBatches reads batches from a channel and writes them to the store
 // using parallel workers. total is used for progress reporting (0 = unknown).
-// Returns the total number of records inserted.
+// Returns the total number of records inserted and all affected vulnerability IDs.
 func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model.Vulnerability, total int) (int, error) {
 	var insertedTotal int64
+	var mu sync.Mutex
+	var collectedIDs []string
 
 	g, gCtx := errgroup.WithContext(ctx)
 	for i := 0; i < ing.storeWorkers; i++ {
 		g.Go(func() error {
+			var localIDs []string
 			for batch := range batchCh {
 				select {
 				case <-gCtx.Done():
@@ -523,6 +533,11 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 					return fmt.Errorf("upsert batch: %w", err)
 				}
 
+				// Collect canonical vulnerability IDs for summary refresh
+				for _, v := range batch {
+					localIDs = append(localIDs, canonicalVulnID(v))
+				}
+
 				cur := int(atomic.AddInt64(&insertedTotal, int64(len(batch))))
 				if total > 0 {
 					ing.progress(Progress{Phase: "store", Current: cur, Total: total})
@@ -530,6 +545,10 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 					ing.progress(Progress{Phase: "store", Current: cur, Total: 0, Message: fmt.Sprintf("Stored %d entries...", cur)})
 				}
 			}
+			// Merge local IDs into shared slice
+			mu.Lock()
+			collectedIDs = append(collectedIDs, localIDs...)
+			mu.Unlock()
 			return nil
 		})
 	}
@@ -537,6 +556,10 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 	if err := g.Wait(); err != nil {
 		return int(insertedTotal), err
 	}
+
+	// Refresh vulnerability_summary for all ingested vulnerabilities
+	ing.refreshSummary(ctx, collectedIDs)
+
 	return int(insertedTotal), nil
 }
 
@@ -556,4 +579,35 @@ func (ing *Ingester) progress(p Progress) {
 	if ing.progressFn != nil {
 		ing.progressFn(p)
 	}
+}
+
+// refreshSummary calls RefreshSummary on the store for the given vulnerability IDs.
+// It logs warnings on failure but does not fail the import.
+func (ing *Ingester) refreshSummary(ctx context.Context, vulnIDs []string) {
+	if len(vulnIDs) == 0 {
+		return
+	}
+	// Deduplicate
+	seen := make(map[string]struct{}, len(vulnIDs))
+	unique := make([]string, 0, len(vulnIDs))
+	for _, id := range vulnIDs {
+		if _, ok := seen[id]; !ok {
+			seen[id] = struct{}{}
+			unique = append(unique, id)
+		}
+	}
+	if err := ing.store.RefreshSummary(ctx, unique); err != nil {
+		ing.logger.Printf("warning: failed to refresh summary for %d vulnerabilities: %v", len(unique), err)
+	}
+}
+
+// canonicalVulnID determines the canonical vulnerability ID for display/tracking.
+// Uses the same logic as the store layer: first CVE alias wins, otherwise OSV ID.
+func canonicalVulnID(v *model.Vulnerability) string {
+	for _, alias := range v.Aliases {
+		if len(alias) > 4 && alias[:4] == "CVE-" {
+			return alias
+		}
+	}
+	return v.ID
 }

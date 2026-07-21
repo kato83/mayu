@@ -314,6 +314,11 @@ func TestSearchWithSeverity(t *testing.T) {
 		t.Fatalf("UpsertBatch failed: %v", err)
 	}
 
+	// Refresh vulnerability_summary so severity filter works
+	if err := store.RefreshSummary(ctx, []string{"GO-2024-SEV1", "GO-2024-SEV2", "GO-2024-SEV3"}); err != nil {
+		t.Fatalf("RefreshSummary failed: %v", err)
+	}
+
 	t.Run("critical filter", func(t *testing.T) {
 		results, err := store.Search(ctx, SearchQuery{
 			Ecosystem: "Go",

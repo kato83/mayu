@@ -555,12 +555,22 @@ func TestAliasRemovalOnReimport(t *testing.T) {
 
 	// Verify 4 aliases exist (3 original + OSV ID since canonical is CVE)
 	var count int
-	err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, "CVE-2024-8000", "GO-2024-8000").Scan(&count)
+	err := store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1`, "CVE-2024-8000").Scan(&count)
 	if err != nil {
 		t.Fatalf("query aliases: %v", err)
 	}
 	if count != 4 {
 		t.Errorf("expected 4 aliases after first import, got %d", count)
+	}
+
+	// Verify alias_sources links exist for this osv_id
+	var srcCount int
+	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM alias_sources WHERE osv_id = $1`, "GO-2024-8000").Scan(&srcCount)
+	if err != nil {
+		t.Fatalf("query alias_sources: %v", err)
+	}
+	if srcCount != 4 {
+		t.Errorf("expected 4 alias_sources after first import, got %d", srcCount)
 	}
 
 	// Second import: same OSV entry but GHSA alias was removed
@@ -578,7 +588,7 @@ func TestAliasRemovalOnReimport(t *testing.T) {
 	}
 
 	// Verify: now only 3 aliases (OSV ID + 2 remaining)
-	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, "CVE-2024-8000", "GO-2024-8000").Scan(&count)
+	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1`, "CVE-2024-8000").Scan(&count)
 	if err != nil {
 		t.Fatalf("query aliases after update: %v", err)
 	}
@@ -637,11 +647,10 @@ func TestAliasRemovalDoesNotAffectOtherSources(t *testing.T) {
 	if err != nil {
 		t.Fatalf("query total aliases: %v", err)
 	}
-	// USN-7000-1 contributes: USN-7000-1, CVE-2024-7000, GHSA-zzzz-yyyy-xxxx (3)
-	// RHSA-2024:7000 contributes: RHSA-2024:7000, CVE-2024-7000, RHSA-EXTRA-1 (3)
-	// Total unique rows = 6 (CVE-2024-7000 appears twice with different source_osv_id)
-	if totalBefore != 6 {
-		t.Errorf("expected 6 alias rows before update, got %d", totalBefore)
+	// With alias_sources junction table, each unique alias appears once:
+	// USN-7000-1, CVE-2024-7000, GHSA-zzzz-yyyy-xxxx, RHSA-2024:7000, RHSA-EXTRA-1 = 5
+	if totalBefore != 5 {
+		t.Errorf("expected 5 alias rows before update, got %d", totalBefore)
 	}
 
 	// Re-import Ubuntu entry with GHSA alias removed
@@ -658,23 +667,23 @@ func TestAliasRemovalDoesNotAffectOtherSources(t *testing.T) {
 		t.Fatalf("Insert vuln1 updated failed: %v", err)
 	}
 
-	// Verify Ubuntu's aliases reduced (now: USN-7000-1, CVE-2024-7000 = 2)
+	// Verify Ubuntu's alias_sources reduced (now: USN-7000-1, CVE-2024-7000 = 2)
 	var usnCount int
-	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, "CVE-2024-7000", "USN-7000-1").Scan(&usnCount)
+	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM alias_sources WHERE osv_id = $1`, "USN-7000-1").Scan(&usnCount)
 	if err != nil {
-		t.Fatalf("query USN aliases: %v", err)
+		t.Fatalf("query USN alias_sources: %v", err)
 	}
 	if usnCount != 2 {
-		t.Errorf("expected 2 USN aliases after update, got %d", usnCount)
+		t.Errorf("expected 2 USN alias_sources after update, got %d", usnCount)
 	}
 
-	// Verify Red Hat's aliases unchanged (still 3)
+	// Verify Red Hat's alias_sources unchanged (still 3: RHSA-2024:7000, CVE-2024-7000, RHSA-EXTRA-1)
 	var rhCount int
-	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM vulnerability_aliases WHERE vulnerability_id = $1 AND source_osv_id = $2`, "CVE-2024-7000", "RHSA-2024:7000").Scan(&rhCount)
+	err = store.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM alias_sources WHERE osv_id = $1`, "RHSA-2024:7000").Scan(&rhCount)
 	if err != nil {
-		t.Fatalf("query RHSA aliases: %v", err)
+		t.Fatalf("query RHSA alias_sources: %v", err)
 	}
 	if rhCount != 3 {
-		t.Errorf("expected 3 RHSA aliases unchanged, got %d", rhCount)
+		t.Errorf("expected 3 RHSA alias_sources unchanged, got %d", rhCount)
 	}
 }
