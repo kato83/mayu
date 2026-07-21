@@ -3,12 +3,12 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, UpperCasePipe } from '@angular/common';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, debounceTime } from 'rxjs';
 
 import { VulnerabilityService } from '../../services/vulnerability.service';
 import { Vulnerability, SearchResponse } from '../../models/vulnerability.model';
 import { SearchParams } from '../../models/search-params.model';
-import { PaginationComponent } from '../../shared/pagination/pagination.component';
+import { PaginationComponent, PageChangeEvent } from '../../shared/pagination/pagination.component';
 
 /** Available ecosystems for the dropdown filter. */
 const ECOSYSTEMS = [
@@ -223,8 +223,10 @@ function emptyFilters(): FilterState {
           <app-pagination
             [total]="total()"
             [limit]="limit()"
-            [offset]="offset()"
-            (offsetChange)="onOffsetChange($event)"
+            [page]="currentPage()"
+            [hasNext]="hasNextPage()"
+            [hasPrevious]="hasPreviousPage()"
+            (pageChange)="onPageChange($event)"
           />
         }
       }
@@ -243,11 +245,23 @@ export class VulnerabilitiesComponent implements OnInit {
   readonly vulnerabilities = signal<Vulnerability[]>([]);
   readonly total = signal(0);
   readonly limit = signal(20);
-  readonly offset = signal(0);
+  readonly currentPage = signal(1);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  /** Whether a next page is available (API returned next_cursor) */
+  readonly hasNextPage = signal(false);
+  /** Whether we can go back (cursor stack is non-empty) */
+  readonly hasPreviousPage = signal(false);
+
   filters: FilterState = emptyFilters();
+
+  /** Stack of cursors for previous pages. Index 0 = page 2's cursor, etc. */
+  private cursorStack: string[] = [];
+  /** The cursor for the current page (empty string = first page) */
+  private currentCursor = '';
+  /** The next_cursor returned by the last API response */
+  private nextCursor = '';
 
   private readonly filterChange$ = new Subject<void>();
   private initialLoad = true;
@@ -260,7 +274,7 @@ export class VulnerabilitiesComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => {
-        this.offset.set(0);
+        this.resetPagination();
         this.syncUrlAndLoad();
       });
 
@@ -280,9 +294,17 @@ export class VulnerabilitiesComponent implements OnInit {
           };
 
           const limit = params['limit'] ? parseInt(params['limit'], 10) : 20;
-          const offset = params['offset'] ? parseInt(params['offset'], 10) : 0;
           this.limit.set(limit);
-          this.offset.set(offset);
+
+          // Restore cursor from URL if present
+          const cursor = params['cursor'] || '';
+          this.currentCursor = cursor;
+
+          // If cursor is present, we don't know the exact page number,
+          // but we can infer it from the cursor stack (which is empty on initial load from URL).
+          // For simplicity, if cursor is present, show page as "?" until we load.
+          // After loading, we know current position from total/limit.
+
           this.initialLoad = false;
           this.loadData();
         }
@@ -296,12 +318,24 @@ export class VulnerabilitiesComponent implements OnInit {
 
   clearFilters(): void {
     this.filters = emptyFilters();
-    this.offset.set(0);
+    this.resetPagination();
     this.syncUrlAndLoad();
   }
 
-  onOffsetChange(newOffset: number): void {
-    this.offset.set(newOffset);
+  onPageChange(event: PageChangeEvent): void {
+    if (event.direction === 'next') {
+      // Push current cursor to stack before moving forward
+      this.cursorStack.push(this.currentCursor);
+      this.currentCursor = this.nextCursor;
+      this.currentPage.set(this.currentPage() + 1);
+    } else if (event.direction === 'previous') {
+      // Pop the previous cursor from stack
+      this.currentCursor = this.cursorStack.pop() || '';
+      this.currentPage.set(Math.max(1, this.currentPage() - 1));
+    } else {
+      // 'first'
+      this.resetPagination();
+    }
     this.syncUrlAndLoad();
   }
 
@@ -358,6 +392,15 @@ export class VulnerabilitiesComponent implements OnInit {
     }
   }
 
+  private resetPagination(): void {
+    this.cursorStack = [];
+    this.currentCursor = '';
+    this.nextCursor = '';
+    this.currentPage.set(1);
+    this.hasNextPage.set(false);
+    this.hasPreviousPage.set(false);
+  }
+
   private syncUrlAndLoad(): void {
     const queryParams: Record<string, string | number | null> = {};
 
@@ -367,7 +410,9 @@ export class VulnerabilitiesComponent implements OnInit {
       queryParams[key] = this.filters[key] || null;
     }
     queryParams['limit'] = this.limit();
-    queryParams['offset'] = this.offset() > 0 ? this.offset() : null;
+    queryParams['cursor'] = this.currentCursor || null;
+    // Remove legacy offset from URL
+    queryParams['offset'] = null;
 
     this.router.navigate([], {
       relativeTo: this.route,
@@ -384,9 +429,13 @@ export class VulnerabilitiesComponent implements OnInit {
 
     const params: SearchParams = {
       limit: this.limit(),
-      offset: this.offset(),
       fields: 'id,summary,modified,severity,ecosystem',
     };
+
+    // Use cursor if available, otherwise first page (no cursor needed)
+    if (this.currentCursor) {
+      params.cursor = this.currentCursor;
+    }
 
     // Apply filters
     if (this.filters.id) params.id = this.filters.id;
@@ -408,6 +457,9 @@ export class VulnerabilitiesComponent implements OnInit {
         next: (response: SearchResponse) => {
           this.vulnerabilities.set(response.vulnerabilities);
           this.total.set(response.total);
+          this.nextCursor = response.next_cursor || '';
+          this.hasNextPage.set(!!this.nextCursor);
+          this.hasPreviousPage.set(this.cursorStack.length > 0);
           this.loading.set(false);
         },
         error: (err) => {

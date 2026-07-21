@@ -1,5 +1,14 @@
 import { Component, computed, input, output } from '@angular/core';
 
+/**
+ * Pagination event emitted when the user navigates pages.
+ * In cursor-based mode, `cursor` indicates the target cursor (empty string for first page).
+ */
+export interface PageChangeEvent {
+  /** Direction of navigation */
+  direction: 'next' | 'previous' | 'first';
+}
+
 @Component({
   selector: 'app-pagination',
   standalone: true,
@@ -20,7 +29,7 @@ import { Component, computed, input, output } from '@angular/core';
       <div class="flex items-center gap-2">
         <button
           (click)="onPrevious()"
-          [disabled]="currentPage() <= 1"
+          [disabled]="!hasPrevious()"
           class="px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <span i18n="@@pagination.previous">Previous</span>
@@ -32,7 +41,7 @@ import { Component, computed, input, output } from '@angular/core';
 
         <button
           (click)="onNext()"
-          [disabled]="currentPage() >= totalPages()"
+          [disabled]="!hasNext()"
           class="px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <span i18n="@@pagination.next">Next</span>
@@ -48,29 +57,31 @@ export class PaginationComponent {
   /** Number of items per page */
   limit = input.required<number>();
 
-  /** Current offset (0-based) */
-  offset = input.required<number>();
+  /** Current page index (1-based) */
+  page = input.required<number>();
+
+  /** Whether there is a next page available */
+  hasNext = input.required<boolean>();
+
+  /** Whether there is a previous page available */
+  hasPrevious = input.required<boolean>();
 
   /** Emitted when the user navigates to a different page */
-  offsetChange = output<number>();
+  pageChange = output<PageChangeEvent>();
 
-  currentPage = computed(() => Math.floor(this.offset() / this.limit()) + 1);
+  currentPage = computed(() => this.page());
 
   totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit())));
 
-  startItem = computed(() => (this.total() === 0 ? 0 : this.offset() + 1));
+  startItem = computed(() => (this.total() === 0 ? 0 : (this.page() - 1) * this.limit() + 1));
 
-  endItem = computed(() => Math.min(this.offset() + this.limit(), this.total()));
+  endItem = computed(() => Math.min(this.page() * this.limit(), this.total()));
 
   onPrevious(): void {
-    const newOffset = Math.max(0, this.offset() - this.limit());
-    this.offsetChange.emit(newOffset);
+    this.pageChange.emit({ direction: 'previous' });
   }
 
   onNext(): void {
-    const newOffset = this.offset() + this.limit();
-    if (newOffset < this.total()) {
-      this.offsetChange.emit(newOffset);
-    }
+    this.pageChange.emit({ direction: 'next' });
   }
 }

@@ -514,3 +514,132 @@ func TestSearchVulnerabilities_DefaultLimitAndOffset(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", w.Code)
 	}
 }
+
+func TestSearchVulnerabilities_CursorParam(t *testing.T) {
+	now := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
+	validCursor := store.EncodeCursor(&now, "GO-2024-2687")
+
+	ms := &mockStore{
+		countFunc: func(ctx context.Context, query store.SearchQuery) (int64, error) {
+			return 10, nil
+		},
+		searchFunc: func(ctx context.Context, query store.SearchQuery) ([]*model.Vulnerability, error) {
+			if query.Cursor != validCursor {
+				t.Errorf("expected cursor %q, got %q", validCursor, query.Cursor)
+			}
+			return nil, nil
+		},
+	}
+	srv := newTestServer(ms)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/vulnerabilities?cursor="+validCursor, nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestSearchVulnerabilities_InvalidCursor(t *testing.T) {
+	srv := newTestServer(&mockStore{})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/vulnerabilities?cursor=invalid!!!", nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", w.Code)
+	}
+
+	var body map[string]string
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body["error"] == "" {
+		t.Error("expected non-empty error message")
+	}
+}
+
+func TestSearchVulnerabilities_NextCursorInResponse(t *testing.T) {
+	pub := time.Date(2024, 6, 2, 0, 0, 0, 0, time.UTC)
+	rawJSON := json.RawMessage(`{"id":"GO-2024-2688","modified":"2024-06-02T00:00:00Z"}`)
+
+	ms := &mockStore{
+		countFunc: func(ctx context.Context, query store.SearchQuery) (int64, error) {
+			return 50, nil
+		},
+		searchFunc: func(ctx context.Context, query store.SearchQuery) ([]*model.Vulnerability, error) {
+			// Return exactly limit items to trigger next_cursor generation
+			results := make([]*model.Vulnerability, query.Limit)
+			for i := range results {
+				results[i] = &model.Vulnerability{
+					ID:        "GO-2024-2688",
+					Modified:  pub,
+					Published: &pub,
+					RawJSON:   rawJSON,
+				}
+			}
+			return results, nil
+		},
+	}
+	srv := newTestServer(ms)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/vulnerabilities?ecosystem=Go&limit=5", nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var resp SearchResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.NextCursor == "" {
+		t.Error("expected non-empty next_cursor when results == limit")
+	}
+
+	// Verify the cursor can be decoded
+	cursor, err := store.DecodeCursor(resp.NextCursor)
+	if err != nil {
+		t.Fatalf("failed to decode next_cursor: %v", err)
+	}
+	if cursor.ID != "GO-2024-2688" {
+		t.Errorf("expected cursor ID GO-2024-2688, got %q", cursor.ID)
+	}
+}
+
+func TestSearchVulnerabilities_NoNextCursorWhenFewerResults(t *testing.T) {
+	pub := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
+	rawJSON := json.RawMessage(`{"id":"GO-2024-2687","modified":"2024-06-01T00:00:00Z"}`)
+
+	ms := &mockStore{
+		countFunc: func(ctx context.Context, query store.SearchQuery) (int64, error) {
+			return 1, nil
+		},
+		searchFunc: func(ctx context.Context, query store.SearchQuery) ([]*model.Vulnerability, error) {
+			return []*model.Vulnerability{
+				{ID: "GO-2024-2687", Modified: pub, Published: &pub, RawJSON: rawJSON},
+			}, nil
+		},
+	}
+	srv := newTestServer(ms)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/vulnerabilities?limit=20", nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var resp SearchResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.NextCursor != "" {
+		t.Errorf("expected empty next_cursor when results < limit, got %q", resp.NextCursor)
+	}
+}

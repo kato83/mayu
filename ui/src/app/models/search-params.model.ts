@@ -27,8 +27,11 @@ export interface SearchParams {
   /** Maximum number of results (1-1000, default: 20) */
   limit?: number;
 
-  /** Offset for pagination (default: 0) */
+  /** Offset for pagination (default: 0, used when cursor is not set) */
   offset?: number;
+
+  /** Cursor for keyset pagination (takes precedence over offset) */
+  cursor?: string;
 
   /** Comma-separated list of fields to return (e.g., "id,summary,modified,severity,ecosystem") */
   fields?: string;

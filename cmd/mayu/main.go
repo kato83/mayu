@@ -607,7 +607,8 @@ func runSearch(args []string) error {
 	version := fs.String("version", "", "Filter by affected version")
 	format := fs.String("format", "table", "Output format: table, json, csv")
 	limit := fs.Int("limit", 20, "Maximum number of results")
-	offset := fs.Int("offset", 0, "Offset for pagination")
+	offset := fs.Int("offset", 0, "Offset for pagination (deprecated: use --starting-token)")
+	startingToken := fs.String("starting-token", "", "Cursor token for pagination (from previous NextToken output)")
 	count := fs.Bool("count", false, "Show only the result count")
 	detail := fs.Bool("detail", false, "Show detailed information for each result")
 	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
@@ -633,6 +634,7 @@ func runSearch(args []string) error {
 		fmt.Println("  mayu search --ecosystem Go --count")
 		fmt.Println("  mayu search --id GO-2024-2687 --detail")
 		fmt.Println("  mayu search --ecosystem Go --offset 20 --limit 10")
+		fmt.Println("  mayu search --ecosystem Go --starting-token <token>  # cursor-based pagination")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -691,6 +693,7 @@ func runSearch(args []string) error {
 		Version:     *version,
 		Limit:       *limit,
 		Offset:      *offset,
+		Cursor:      *startingToken,
 	}
 
 	// Resolve database URL
@@ -728,31 +731,50 @@ func runSearch(args []string) error {
 		return nil
 	}
 
+	// Compute NextToken if there are more results
+	var nextToken string
+	if len(results) == *limit {
+		last := results[len(results)-1]
+		nextToken = store.EncodeCursor(last.Published, last.ID)
+	}
+
 	// Output results
 	switch *format {
 	case "json":
 		if *detail {
-			return outputDetailJSON(ctx, s, results)
+			if err := outputDetailJSON(ctx, s, results); err != nil {
+				return err
+			}
+		} else {
+			if err := outputJSON(results, nextToken); err != nil {
+				return err
+			}
 		}
-		return outputJSON(results)
 	case "csv":
 		outputCSV(results)
 	case "table":
 		if *detail {
-			return outputDetailEnriched(ctx, s, results)
+			if err := outputDetailEnriched(ctx, s, results); err != nil {
+				return err
+			}
+		} else {
+			outputTable(results)
 		}
-		outputTable(results)
 	default:
 		return fmt.Errorf("unknown format: %q (supported: table, json, csv)", *format)
+	}
+
+	// Print NextToken to stderr for scripting (except JSON which includes it inline)
+	if nextToken != "" && *format != "json" {
+		fmt.Fprintf(os.Stderr, "\nNextToken: %s\n", nextToken)
 	}
 
 	return nil
 }
 
-// outputJSON prints results as a JSON array.
-func outputJSON(vulns []*model.Vulnerability) error {
-	// Output raw JSON for maximum fidelity
-	fmt.Print("[")
+// outputJSON prints results as a JSON object with vulnerabilities array and optional next_token.
+func outputJSON(vulns []*model.Vulnerability, nextToken string) error {
+	fmt.Print("{\"vulnerabilities\":[")
 	for i, vuln := range vulns {
 		if i > 0 {
 			fmt.Print(",")
@@ -767,7 +789,11 @@ func outputJSON(vulns []*model.Vulnerability) error {
 			fmt.Print(string(data))
 		}
 	}
-	fmt.Println("]")
+	fmt.Print("]")
+	if nextToken != "" {
+		fmt.Printf(",\"next_token\":%q", nextToken)
+	}
+	fmt.Println("}")
 	return nil
 }
 

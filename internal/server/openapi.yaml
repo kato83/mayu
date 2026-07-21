@@ -77,11 +77,19 @@ paths:
             default: 20
         - name: offset
           in: query
-          description: Offset for pagination
+          description: Offset for pagination (legacy, used when cursor is not provided)
           schema:
             type: integer
             minimum: 0
             default: 0
+        - name: cursor
+          in: query
+          description: |
+            Opaque cursor for keyset-based pagination. When provided, takes precedence
+            over offset. Obtain this value from the `next_cursor` field of the previous response.
+          schema:
+            type: string
+          example: "djF8MjAyNC0wNi0wMlQwMDowMDowMFp8R08tMjAyNC0yNjg4"
         - name: fields
           in: query
           description: Comma-separated list of fields to include in lightweight responses (id, summary, modified, severity, ecosystem)
@@ -194,8 +202,15 @@ components:
           example: 20
         offset:
           type: integer
-          description: Offset used in the query
+          description: Offset used in the query (legacy)
           example: 0
+        next_cursor:
+          type: string
+          description: |
+            Opaque cursor for fetching the next page. Pass this value as the
+            `cursor` query parameter to retrieve subsequent results. Empty or
+            absent when there are no more results.
+          example: "djF8MjAyNC0wNi0wMlQwMDowMDowMFp8R08tMjAyNC0yNjg4"
 
     Vulnerability:
       type: object
