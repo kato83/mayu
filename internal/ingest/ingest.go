@@ -313,12 +313,8 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 	stats.Skipped = stats.Errors
 	stats.Inserted = inserted
 
-	// Refresh vulnerability_summary for delta-imported entries
-	deltaVulnIDs := make([]string, 0, len(updated))
-	for _, entry := range updated {
-		deltaVulnIDs = append(deltaVulnIDs, entry.ID)
-	}
-	ing.refreshSummary(ctx, deltaVulnIDs)
+	// Note: vulnerability_summary refresh is handled inside consumeBatches
+	// using the correct canonical IDs (CVE-* when available).
 
 	// Update sync state with the latest modified timestamp from the CSV
 	if len(updated) > 0 {
