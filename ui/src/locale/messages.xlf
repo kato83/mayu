@@ -506,6 +506,41 @@
           <context context-type="linenumber">671</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="externalLink.title" datatype="html">
+        <source> Leaving this site </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/external-link-dialog/external-link-dialog.component.ts</context>
+          <context context-type="linenumber">18,20</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="externalLink.description" datatype="html">
+        <source> You are about to navigate to an external website. This link is not controlled by this application. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/external-link-dialog/external-link-dialog.component.ts</context>
+          <context context-type="linenumber">21,23</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="externalLink.destination" datatype="html">
+        <source>Destination:</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/external-link-dialog/external-link-dialog.component.ts</context>
+          <context context-type="linenumber">24,25</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="externalLink.cancel" datatype="html">
+        <source> Cancel </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/external-link-dialog/external-link-dialog.component.ts</context>
+          <context context-type="linenumber">34,36</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="externalLink.proceed" datatype="html">
+        <source> Open in new tab </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/shared/external-link-dialog/external-link-dialog.component.ts</context>
+          <context context-type="linenumber">42,44</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="pagination.showing" datatype="html">
         <source> Showing <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION" equiv-text="{{ startItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> to <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_1" equiv-text="{{ endItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> of <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_2" equiv-text="{{ total() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> results </source>
         <context-group purpose="location">
