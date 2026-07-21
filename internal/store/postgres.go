@@ -547,10 +547,7 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		) AND 1=1`
 		// Extract type/namespace/name from the purl for matching
 		// The caller provides just "pkg:type/ns/name" or "type/ns/name" - we match the reconstructed form
-		purlMatch := query.Purl
-		if strings.HasPrefix(purlMatch, "pkg:") {
-			purlMatch = purlMatch[4:]
-		}
+		purlMatch := strings.TrimPrefix(query.Purl, "pkg:")
 		// Remove version/qualifiers/subpath if present
 		if idx := strings.IndexByte(purlMatch, '@'); idx >= 0 {
 			purlMatch = purlMatch[:idx]
@@ -1004,10 +1001,7 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 
 	case query.Purl != "":
 		argIdx++
-		purlMatch := query.Purl
-		if strings.HasPrefix(purlMatch, "pkg:") {
-			purlMatch = purlMatch[4:]
-		}
+		purlMatch := strings.TrimPrefix(query.Purl, "pkg:")
 		if idx := strings.IndexByte(purlMatch, '@'); idx >= 0 {
 			purlMatch = purlMatch[:idx]
 		}
