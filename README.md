@@ -297,7 +297,6 @@ Import vulnerability data from OSV into the local database.
 | `--file` | Import from local OSV JSON files (paths as positional args) | `false` |
 | `--concurrency` | Number of ecosystems to import in parallel (with `--all`) | `3` |
 | `--store-workers` | Number of parallel DB store workers per ecosystem | CPU cores - 1 |
-| `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 | `--batch-size` | Number of vulnerabilities per batch insert | `100` |
 
 ### `mayu audit`
@@ -310,7 +309,6 @@ Audit an SBOM for known vulnerabilities.
 | `--format` | Output format: `table`, `json`, `csv` | `table` |
 | `--include-dev` | Include development dependencies in audit | `false` |
 | `--no-version-check` | Skip version matching, report all vulnerabilities for package name | `false` |
-| `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 
 **Exit codes:**
 
@@ -343,7 +341,6 @@ Search for vulnerabilities in the local database.
 | `--starting-token` | Cursor token for pagination (from previous `NextToken` output) | — |
 | `--count` | Show only the result count | `false` |
 | `--detail` | Show detailed information for each result | `false` |
-| `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 
 ### `mayu serve`
 
@@ -353,7 +350,6 @@ Start the API server for programmatic access to vulnerability data.
 |------|-------------|---------|
 | `--addr` | Address to listen on (host:port) | `:8080` |
 | `--ui-dir` | Path to SPA static files directory for Web UI hosting | — |
-| `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 
 **Endpoints:**
 
@@ -381,7 +377,6 @@ Run database migrations (embedded in the binary).
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--steps` | Number of migrations to apply (0 = all, negative to roll back) | `0` |
-| `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 
 **Subcommands:**
 
@@ -431,10 +426,9 @@ database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 
 **Priority order** (highest to lowest):
 
-1. Command-line flags (`--db-url`)
-2. Environment variables (`DATABASE_URL`)
-3. Configuration file (`config.yaml`)
-4. Default values
+1. Environment variables (`DATABASE_URL`)
+2. Configuration file (`config.yaml` — specify path with `--config`)
+3. Default values
 
 ### Environment Variables
 

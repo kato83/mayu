@@ -128,8 +128,8 @@ Template:
 # Multiple files
 ./bin/mayu ingest --file vuln1.json vuln2.json vuln3.json
 
-# Custom DB URL
-./bin/mayu ingest --file vuln1.json --db-url postgres://user:pass@host/db
+# Custom DB URL (via config file)
+./bin/mayu --config /path/to/config.yaml ingest --file vuln1.json
 ```
 
 ## Worked Example: WordPress CVE-2026-60137 / CVE-2026-63030

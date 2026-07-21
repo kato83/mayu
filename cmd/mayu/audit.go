@@ -23,7 +23,6 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 	format := fs.String("format", "table", "Output format: table, json, csv")
 	includeDev := fs.Bool("include-dev", false, "Include development dependencies in audit")
 	noVersionCheck := fs.Bool("no-version-check", false, "Skip version matching, report all vulnerabilities for package name")
-	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu audit [options]")
@@ -66,7 +65,7 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 	}
 
 	// Resolve database URL
-	databaseURL := resolveDatabaseURL(*dbURL, cfg)
+	databaseURL := resolveDatabaseURL(cfg)
 
 	// Setup context with signal handling
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

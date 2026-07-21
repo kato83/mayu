@@ -32,7 +32,6 @@ func runIngest(args []string, cfg *config.Config) error {
 	fromDate := fs.String("from", "", "Start date for backfill (YYYY-MM-DD, default: 2023-03-07 for EPSS v3)")
 	toDate := fs.String("to", "", "End date for backfill (YYYY-MM-DD, default: today)")
 	concurrency := fs.Int("concurrency", 3, "Number of ecosystems to import in parallel (with --all)")
-	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
 	batchSize := fs.Int("batch-size", 100, "Number of vulnerabilities per batch insert")
 	storeWorkers := fs.Int("store-workers", ingest.DefaultStoreWorkers(), "Number of parallel DB store workers per ecosystem")
 	native := fs.Bool("native", false, "Use native data source feed instead of OSV conversion (with --source nvd)")
@@ -66,7 +65,6 @@ func runIngest(args []string, cfg *config.Config) error {
 		fmt.Println("  mayu ingest --source kev                # Import CISA KEV catalog")
 		fmt.Println("  mayu ingest --source kev --update       # Update KEV catalog if outdated")
 		fmt.Println("  mayu ingest --file vuln1.json vuln2.json # Import local OSV JSON files")
-		fmt.Println("  mayu ingest --ecosystem PyPI --db-url postgres://user:pass@host/db")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -79,7 +77,7 @@ func runIngest(args []string, cfg *config.Config) error {
 	}
 
 	// Resolve database URL
-	databaseURL := resolveDatabaseURL(*dbURL, cfg)
+	databaseURL := resolveDatabaseURL(cfg)
 
 	// Setup context with signal handling
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
