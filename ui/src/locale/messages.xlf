@@ -51,13 +51,6 @@
           <context context-type="linenumber">75</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="sidebar.footer" datatype="html">
-        <source> Vulnerability Intelligence </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">82,84</context>
-        </context-group>
-      </trans-unit>
       <trans-unit id="sidebar.nav.vulnerabilities" datatype="html">
         <source>Vulnerabilities</source>
         <context-group purpose="location">

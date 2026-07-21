@@ -14,10 +14,6 @@
         <source>Close menu</source>
         <target>メニューを閉じる</target>
       </trans-unit>
-      <trans-unit id="sidebar.footer" datatype="html">
-        <source> Vulnerability Intelligence </source>
-        <target>脆弱性インテリジェンス</target>
-      </trans-unit>
       <trans-unit id="sidebar.nav.vulnerabilities" datatype="html">
         <source>Vulnerabilities</source>
         <target>脆弱性一覧</target>
