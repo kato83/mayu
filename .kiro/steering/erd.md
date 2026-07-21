@@ -24,7 +24,7 @@ erDiagram
     }
 
     vulnerability_summary {
-        TEXT vulnerability_id PK_FK "→ vulnerabilities(id) CASCADE"
+        TEXT vulnerability_id PK, FK "→ vulnerabilities(id) CASCADE"
         SMALLINT severity_worst "5=CRITICAL,4=HIGH,3=MED,2=LOW,1=NONE"
         SMALLINT severity_best "same scale"
         JSONB scores_detail "per-source scores array"
