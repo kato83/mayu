@@ -24,7 +24,6 @@ interface FilterState {
   id: string;
   package: string;
   ecosystem: string;
-  alias: string;
   purl: string;
   severity: string;
   since: string;
@@ -32,7 +31,7 @@ interface FilterState {
 }
 
 function emptyFilters(): FilterState {
-  return { id: '', package: '', ecosystem: '', alias: '', purl: '', severity: '', since: '', version: '' };
+  return { id: '', package: '', ecosystem: '', purl: '', severity: '', since: '', version: '' };
 }
 
 @Component({
@@ -46,13 +45,13 @@ function emptyFilters(): FilterState {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <!-- ID filter -->
           <div>
-            <label for="filter-id" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterId">ID</label>
+            <label for="filter-id" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterId">ID / Alias</label>
             <input
               id="filter-id"
               type="text"
               [ngModel]="filters.id"
               (ngModelChange)="onFilterChange('id', $event)"
-              placeholder="CVE-2024-..."
+              placeholder="CVE-2024-..., GHSA-..."
               i18n-placeholder="@@vulnList.filterIdPlaceholder"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
@@ -102,20 +101,6 @@ function emptyFilters(): FilterState {
                 <option [value]="sev">{{ sev }}</option>
               }
             </select>
-          </div>
-
-          <!-- Alias filter -->
-          <div>
-            <label for="filter-alias" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterAlias">Alias</label>
-            <input
-              id="filter-alias"
-              type="text"
-              [ngModel]="filters.alias"
-              (ngModelChange)="onFilterChange('alias', $event)"
-              placeholder="GHSA-xxxx..."
-              i18n-placeholder="@@vulnList.filterAliasPlaceholder"
-              class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-            />
           </div>
 
           <!-- Purl filter -->
@@ -293,7 +278,6 @@ export class VulnerabilitiesComponent implements OnInit {
             id: params['id'] || '',
             package: params['package'] || '',
             ecosystem: params['ecosystem'] || '',
-            alias: params['alias'] || '',
             purl: params['purl'] || '',
             severity: params['severity'] || '',
             since: params['since'] || '',
@@ -377,7 +361,7 @@ export class VulnerabilitiesComponent implements OnInit {
     const queryParams: Record<string, string | number | null> = {};
 
     // Add non-empty filters to URL
-    const filterKeys: (keyof FilterState)[] = ['id', 'package', 'ecosystem', 'alias', 'purl', 'severity', 'since', 'version'];
+    const filterKeys: (keyof FilterState)[] = ['id', 'package', 'ecosystem', 'purl', 'severity', 'since', 'version'];
     for (const key of filterKeys) {
       queryParams[key] = this.filters[key] || null;
     }
@@ -407,7 +391,6 @@ export class VulnerabilitiesComponent implements OnInit {
     if (this.filters.id) params.id = this.filters.id;
     if (this.filters.package) params.package = this.filters.package;
     if (this.filters.ecosystem) params.ecosystem = this.filters.ecosystem;
-    if (this.filters.alias) params.alias = this.filters.alias;
     if (this.filters.purl) params.purl = this.filters.purl;
     if (this.filters.severity) params.severity = this.filters.severity as SearchParams['severity'];
     if (this.filters.since) params.since = this.filters.since;

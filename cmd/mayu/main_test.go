@@ -255,34 +255,6 @@ func TestCsvEscape(t *testing.T) {
 	}
 }
 
-func TestLooksLikeVulnID(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  bool
-	}{
-		{"CVE", "CVE-2024-1234", true},
-		{"GO prefix", "GO-2024-2687", true},
-		{"GHSA", "GHSA-xxxx-yyyy-zzzz", true},
-		{"PYSEC", "PYSEC-2024-1", true},
-		{"RUSTSEC", "RUSTSEC-2024-0001", true},
-		{"DSA", "DSA-5000", true},
-		{"lowercase cve", "cve-2024-1234", true},
-		{"package name", "golang.org/x/crypto", false},
-		{"random text", "some query", false},
-		{"empty", "", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := looksLikeVulnID(tt.input)
-			if got != tt.want {
-				t.Errorf("looksLikeVulnID(%q) = %v, want %v", tt.input, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestValidateDateInput(t *testing.T) {
 	tests := []struct {
 		name    string

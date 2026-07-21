@@ -187,12 +187,12 @@ mayu search --package golang.org/x/crypto
 mayu search --ecosystem Go --limit 10
 
 # Search by CVE alias
-mayu search --alias CVE-2024-24790
+mayu search --id CVE-2024-24790
 
 # Search by Package URL (purl)
 mayu search --purl pkg:npm/%40angular/core
 
-# Positional argument (auto-detects ID vs alias)
+# Positional argument (shorthand for --id)
 mayu search CVE-2024-24790
 
 # Filter by severity level
@@ -270,10 +270,9 @@ Search for vulnerabilities in the local database.
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--id` | Search by vulnerability ID | — |
+| `--id` | Search by vulnerability ID or alias (e.g., CVE-2024-1234, GO-2024-2687, GHSA-xxxx) | — |
 | `--package` | Search by package name | — |
 | `--ecosystem` | Filter by ecosystem | — |
-| `--alias` | Search by alias (e.g., CVE ID) | — |
 | `--purl` | Search by Package URL (e.g., `pkg:npm/%40angular/core`) | — |
 | `--severity` | Filter by CVSS severity level (critical, high, medium, low, none) | — |
 | `--since` | Filter by modified date (YYYY-MM-DD or RFC3339) | — |

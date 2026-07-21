@@ -386,7 +386,7 @@ func TestSearch(t *testing.T) {
 
 	t.Run("by alias", func(t *testing.T) {
 		// GO-2024-2687 has alias CVE-2023-45288, which is now the canonical ID
-		results, err := store.Search(ctx, SearchQuery{Alias: "CVE-2023-45288"})
+		results, err := store.Search(ctx, SearchQuery{ID: "CVE-2023-45288"})
 		if err != nil {
 			t.Fatalf("Search by alias failed: %v", err)
 		}
@@ -399,8 +399,8 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("by alias using OSV ID", func(t *testing.T) {
-		// OSV ID should be searchable as an alias too
-		results, err := store.Search(ctx, SearchQuery{Alias: "GO-2024-2687"})
+		// OSV ID should be searchable as an alias too (via vulnerability_aliases)
+		results, err := store.Search(ctx, SearchQuery{ID: "GO-2024-2687"})
 		if err != nil {
 			t.Fatalf("Search by OSV ID alias failed: %v", err)
 		}

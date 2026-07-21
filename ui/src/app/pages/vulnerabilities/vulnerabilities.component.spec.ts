@@ -155,7 +155,6 @@ describe('VulnerabilitiesComponent', () => {
     expect(el.querySelector('#filter-package')).toBeTruthy();
     expect(el.querySelector('#filter-ecosystem')).toBeTruthy();
     expect(el.querySelector('#filter-severity')).toBeTruthy();
-    expect(el.querySelector('#filter-alias')).toBeTruthy();
     expect(el.querySelector('#filter-purl')).toBeTruthy();
     expect(el.querySelector('#filter-version')).toBeTruthy();
     expect(el.querySelector('#filter-since')).toBeTruthy();

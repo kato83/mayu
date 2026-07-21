@@ -3,7 +3,7 @@
  * Mirrors the query parameters of GET /api/v1/vulnerabilities.
  */
 export interface SearchParams {
-  /** Search by vulnerability ID (e.g., CVE-2024-1234, GO-2024-2687) */
+  /** Search by vulnerability ID or alias (e.g., CVE-2024-1234, GO-2024-2687, GHSA-xxxx) */
   id?: string;
 
   /** Search by package name (e.g., golang.org/x/crypto) */
@@ -11,9 +11,6 @@ export interface SearchParams {
 
   /** Filter by ecosystem (e.g., Go, PyPI, npm) */
   ecosystem?: string;
-
-  /** Search by alias (e.g., CVE-2024-24790) */
-  alias?: string;
 
   /** Search by Package URL (e.g., pkg:golang/golang.org/x/crypto) */
   purl?: string;

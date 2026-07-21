@@ -181,7 +181,6 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 	id := q.Get("id")
 	pkg := q.Get("package")
 	ecosystem := strings.TrimSpace(q.Get("ecosystem"))
-	alias := q.Get("alias")
 	purlStr := q.Get("purl")
 	severity := q.Get("severity")
 	since := q.Get("since")
@@ -278,7 +277,6 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		ID:          id,
 		Ecosystem:   ecosystem,
 		PackageName: pkg,
-		Alias:       alias,
 		Severity:    severity,
 		Since:       since,
 		Version:     version,

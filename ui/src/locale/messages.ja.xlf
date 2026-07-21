@@ -23,12 +23,12 @@
         <target>脆弱性一覧</target>
       </trans-unit>
       <trans-unit id="vulnList.filterId" datatype="html">
-        <source>ID</source>
-        <target>ID</target>
+        <source>ID / Alias</source>
+        <target>ID / エイリアス</target>
       </trans-unit>
       <trans-unit id="vulnList.filterIdPlaceholder" datatype="html">
-        <source>CVE-2024-...</source>
-        <target>CVE-2024-...</target>
+        <source>CVE-2024-..., GHSA-...</source>
+        <target>CVE-2024-..., GHSA-...</target>
       </trans-unit>
       <trans-unit id="vulnList.filterPackage" datatype="html">
         <source>Package</source>
@@ -53,14 +53,6 @@
       <trans-unit id="vulnList.allSeverities" datatype="html">
         <source>All severities</source>
         <target>全ての深刻度</target>
-      </trans-unit>
-      <trans-unit id="vulnList.filterAlias" datatype="html">
-        <source>Alias</source>
-        <target>エイリアス</target>
-      </trans-unit>
-      <trans-unit id="vulnList.filterAliasPlaceholder" datatype="html">
-        <source>GHSA-xxxx...</source>
-        <target>GHSA-xxxx...</target>
       </trans-unit>
       <trans-unit id="vulnList.filterPurl" datatype="html">
         <source>Package URL</source>

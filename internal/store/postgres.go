@@ -484,52 +484,19 @@ func (s *PostgresStore) GetByID(ctx context.Context, id string) (*model.Vulnerab
 func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery string, args []interface{}, argIdx int) {
 	switch {
 	case query.ID != "":
-		// UNION ALL: match by vulnerabilities.id OR osv_entries.osv_id
+		// Match by vulnerabilities.id OR vulnerability_aliases.alias
 		argIdx++
-		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, severity_worst FROM (
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
-			       vs.severity_worst
-			FROM vulnerabilities v
-			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
-			LEFT JOIN LATERAL (
-				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
-			) oe ON true
-			WHERE v.id = $` + fmt.Sprint(argIdx) + `
-			UNION ALL
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
-			       vs.severity_worst
-			FROM osv_entries oe
-			JOIN vulnerabilities v ON v.id = oe.vulnerability_id
-			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
-			WHERE oe.osv_id = $` + fmt.Sprint(argIdx) + `
-			AND NOT EXISTS (SELECT 1 FROM vulnerabilities WHERE id = $` + fmt.Sprint(argIdx) + ` AND id = oe.osv_id)
-		) sub WHERE 1=1`
+		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+		       vs.severity_worst
+		FROM vulnerabilities v
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+		LEFT JOIN LATERAL (
+			SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+		) oe ON true
+		WHERE (v.id = $` + fmt.Sprint(argIdx) + `
+			OR v.id IN (SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $` + fmt.Sprint(argIdx) + `)
+		) AND 1=1`
 		args = append(args, query.ID)
-
-	case query.Alias != "":
-		argIdx++
-		baseQuery = `SELECT raw_json, id, summary, details, published, modified, osv_id, severity_worst FROM (
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
-			       vs.severity_worst
-			FROM vulnerabilities v
-			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
-			LEFT JOIN LATERAL (
-				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
-			) oe ON true
-			WHERE v.id = $` + fmt.Sprint(argIdx) + `
-			UNION ALL
-			SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
-			       vs.severity_worst
-			FROM vulnerabilities v
-			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
-			LEFT JOIN LATERAL (
-				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
-			) oe ON true
-			WHERE v.id IN (
-				SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $` + fmt.Sprint(argIdx) + `
-			) AND v.id != $` + fmt.Sprint(argIdx) + `
-		) sub WHERE 1=1`
-		args = append(args, query.Alias)
 
 	case query.Purl != "":
 		// Search by purl (decompose and match on product_identifiers)
@@ -990,20 +957,9 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 		FROM vulnerabilities v
 		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 		WHERE (v.id = $%d OR v.id IN (
-			SELECT oe.vulnerability_id FROM osv_entries oe WHERE oe.osv_id = $%d
-		))`, argIdx, argIdx)
-		args = append(args, query.ID)
-
-	case query.Alias != "":
-		argIdx++
-		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
-			vs.severity_worst, vs.scores_detail, vs.ecosystem_list
-		FROM vulnerabilities v
-		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
-		WHERE (v.id = $%d OR v.id IN (
 			SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $%d
 		))`, argIdx, argIdx)
-		args = append(args, query.Alias)
+		args = append(args, query.ID)
 
 	case query.Purl != "":
 		argIdx++
