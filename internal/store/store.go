@@ -99,8 +99,13 @@ type SearchQuery struct {
 	// Limit sets the maximum number of results (default: 100)
 	Limit int
 
-	// Offset for pagination
+	// Offset for pagination (legacy, used when Cursor is empty)
 	Offset int
+
+	// Cursor is an opaque cursor string for keyset pagination.
+	// When set, it takes precedence over Offset.
+	// The cursor encodes (published, id) for stable ordering.
+	Cursor string
 
 	// Fields restricts the response to the specified fields only.
 	// When set, the search uses a lightweight query that avoids fetching raw_json.

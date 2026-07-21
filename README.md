@@ -207,6 +207,9 @@ mayu search --package golang.org/x/crypto --version 0.17.0
 # Pagination
 mayu search --ecosystem Go --limit 10 --offset 20
 
+# Cursor-based pagination (use NextToken from previous output)
+mayu search --ecosystem Go --limit 10 --starting-token <token>
+
 # Count results only
 mayu search --ecosystem Go --count
 
@@ -279,7 +282,8 @@ Search for vulnerabilities in the local database.
 | `--version` | Filter by affected version | — |
 | `--format` | Output format: `table`, `json`, `csv` | `table` |
 | `--limit` | Maximum number of results | `20` |
-| `--offset` | Offset for pagination | `0` |
+| `--offset` | Offset for pagination (deprecated: use `--starting-token`) | `0` |
+| `--starting-token` | Cursor token for pagination (from previous `NextToken` output) | — |
 | `--count` | Show only the result count | `false` |
 | `--detail` | Show detailed information for each result | `false` |
 | `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
@@ -521,4 +525,4 @@ Features:
 - Vulnerability list with full filter support (ecosystem, package, severity, date, etc.)
 - Vulnerability detail page with OSV, NVD, and MITRE enrichment
 - Dark mode (automatic via `prefers-color-scheme`)
-- URL-synced filters and pagination
+- URL-synced filters and cursor-based pagination

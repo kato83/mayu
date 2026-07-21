@@ -32,6 +32,7 @@ describe('VulnerabilitiesComponent', () => {
     total: 42,
     limit: 20,
     offset: 0,
+    next_cursor: 'djF8MjAyNC0wNi0wMlQwMDowMDowMFp8R08tMjAyNC0yNjg4',
   };
 
   const emptyResponse: SearchResponse = {
@@ -125,6 +126,8 @@ describe('VulnerabilitiesComponent', () => {
     const req = httpTesting.expectOne((r) => r.url === '/api/v1/vulnerabilities');
     expect(req.request.params.has('ecosystem')).toBe(false);
     expect(req.request.params.get('limit')).toBe('20');
+    // No cursor on first page
+    expect(req.request.params.has('cursor')).toBe(false);
     req.flush(mockResponse);
   });
 
@@ -135,6 +138,43 @@ describe('VulnerabilitiesComponent', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Page 1 of 3');
     expect(el.textContent).toContain('42');
+  });
+
+  it('should use cursor for next page navigation', () => {
+    initAndFlush();
+
+    // Simulate clicking Next
+    component.onPageChange({ direction: 'next' });
+
+    const req = httpTesting.expectOne((r) =>
+      r.url === '/api/v1/vulnerabilities' && r.params.has('cursor'),
+    );
+    expect(req.request.params.get('cursor')).toBe('djF8MjAyNC0wNi0wMlQwMDowMDowMFp8R08tMjAyNC0yNjg4');
+    req.flush({ ...mockResponse, next_cursor: 'nextCursor2' });
+    fixture.detectChanges();
+
+    expect(component.currentPage()).toBe(2);
+  });
+
+  it('should go back to previous page using cursor stack', () => {
+    initAndFlush();
+
+    // Navigate to page 2
+    component.onPageChange({ direction: 'next' });
+    const req2 = httpTesting.expectOne((r) => r.url === '/api/v1/vulnerabilities');
+    req2.flush({ ...mockResponse, next_cursor: 'nextCursor2' });
+    fixture.detectChanges();
+    expect(component.currentPage()).toBe(2);
+
+    // Navigate back to page 1
+    component.onPageChange({ direction: 'previous' });
+    const req1 = httpTesting.expectOne((r) => r.url === '/api/v1/vulnerabilities');
+    // First page has no cursor
+    expect(req1.request.params.has('cursor')).toBe(false);
+    req1.flush(mockResponse);
+    fixture.detectChanges();
+
+    expect(component.currentPage()).toBe(1);
   });
 
   it('should navigate to detail page on row click', () => {
@@ -210,19 +250,27 @@ describe('VulnerabilitiesComponent', () => {
     vi.useRealTimers();
   });
 
-  it('should reset offset to 0 when filter changes', async () => {
+  it('should reset pagination when filter changes', async () => {
     vi.useFakeTimers();
     initAndFlush();
-    component.offset.set(40);
 
+    // First navigate to page 2
+    component.onPageChange({ direction: 'next' });
+    const req2 = httpTesting.expectOne((r) => r.url === '/api/v1/vulnerabilities');
+    req2.flush(mockResponse);
+    expect(component.currentPage()).toBe(2);
+
+    // Now change a filter - should reset to page 1
     component.onFilterChange('severity', 'high');
     vi.advanceTimersByTime(300);
 
     const req = httpTesting.expectOne((r) =>
       r.url === '/api/v1/vulnerabilities' && r.params.get('severity') === 'high',
     );
-    expect(req.request.params.get('offset')).toBe('0');
+    // No cursor should be sent (first page)
+    expect(req.request.params.has('cursor')).toBe(false);
     req.flush(emptyResponse);
+    expect(component.currentPage()).toBe(1);
     vi.useRealTimers();
   });
 
@@ -266,7 +314,6 @@ describe('VulnerabilitiesComponent', () => {
   it('should have a clear filters button', () => {
     initAndFlush();
     const el = fixture.nativeElement as HTMLElement;
-    const clearBtn = el.querySelector('button');
     const buttons = Array.from(el.querySelectorAll('button'));
     const clearButton = buttons.find((b) => b.textContent?.includes('Clear filters'));
     expect(clearButton).toBeTruthy();

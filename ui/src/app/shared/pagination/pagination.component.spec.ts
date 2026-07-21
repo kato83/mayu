@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
-import { PaginationComponent } from './pagination.component';
+import { PaginationComponent, PageChangeEvent } from './pagination.component';
 
 // Test host component to provide input signals
 @Component({
@@ -12,19 +12,23 @@ import { PaginationComponent } from './pagination.component';
     <app-pagination
       [total]="total()"
       [limit]="limit()"
-      [offset]="offset()"
-      (offsetChange)="onOffsetChange($event)"
+      [page]="page()"
+      [hasNext]="hasNext()"
+      [hasPrevious]="hasPrevious()"
+      (pageChange)="onPageChange($event)"
     />
   `,
 })
 class TestHostComponent {
   total = signal(100);
   limit = signal(20);
-  offset = signal(0);
-  lastOffset: number | null = null;
+  page = signal(1);
+  hasNext = signal(true);
+  hasPrevious = signal(false);
+  lastEvent: PageChangeEvent | null = null;
 
-  onOffsetChange(offset: number): void {
-    this.lastOffset = offset;
+  onPageChange(event: PageChangeEvent): void {
+    this.lastEvent = event;
   }
 }
 
@@ -56,28 +60,29 @@ describe('PaginationComponent', () => {
     expect(prevButton.disabled).toBe(true);
   });
 
-  it('should enable Next button when not on last page', () => {
+  it('should enable Next button when hasNext is true', () => {
     const nextButton = fixture.nativeElement.querySelector('button:last-of-type') as HTMLButtonElement;
     expect(nextButton.disabled).toBe(false);
   });
 
-  it('should emit offset on Next click', () => {
+  it('should emit pageChange with direction next on Next click', () => {
     const nextButton = fixture.nativeElement.querySelector('button:last-of-type') as HTMLButtonElement;
     nextButton.click();
-    expect(host.lastOffset).toBe(20);
+    expect(host.lastEvent).toEqual({ direction: 'next' });
   });
 
-  it('should emit offset on Previous click', () => {
-    host.offset.set(40);
+  it('should emit pageChange with direction previous on Previous click', () => {
+    host.page.set(3);
+    host.hasPrevious.set(true);
     fixture.detectChanges();
 
     const prevButton = fixture.nativeElement.querySelector('button:first-of-type') as HTMLButtonElement;
     prevButton.click();
-    expect(host.lastOffset).toBe(20);
+    expect(host.lastEvent).toEqual({ direction: 'previous' });
   });
 
-  it('should disable Next button on last page', () => {
-    host.offset.set(80);
+  it('should disable Next button when hasNext is false', () => {
+    host.hasNext.set(false);
     fixture.detectChanges();
 
     const nextButton = fixture.nativeElement.querySelector('button:last-of-type') as HTMLButtonElement;
@@ -86,6 +91,7 @@ describe('PaginationComponent', () => {
 
   it('should show correct info for zero results', () => {
     host.total.set(0);
+    host.hasNext.set(false);
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
@@ -95,7 +101,9 @@ describe('PaginationComponent', () => {
 
   it('should show correct info for partial last page', () => {
     host.total.set(45);
-    host.offset.set(40);
+    host.page.set(3);
+    host.hasNext.set(false);
+    host.hasPrevious.set(true);
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;

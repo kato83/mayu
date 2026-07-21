@@ -211,6 +211,15 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		offset = parsed
 	}
 
+	// Parse cursor (takes precedence over offset when set)
+	cursor := q.Get("cursor")
+	if cursor != "" {
+		if _, err := store.DecodeCursor(cursor); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid cursor parameter")
+			return
+		}
+	}
+
 	// Validate severity
 	if severity != "" {
 		validSeverities := []string{"critical", "high", "medium", "low", "none"}
@@ -282,6 +291,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		Version:     version,
 		Limit:       limit,
 		Offset:      offset,
+		Cursor:      cursor,
 		Fields:      fields,
 	}
 
@@ -326,12 +336,20 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
+	// Compute next_cursor from the last result item
+	var nextCursor string
+	if len(results) == limit {
+		last := results[len(results)-1]
+		nextCursor = store.EncodeCursor(last.Published, last.ID)
+	}
+
 	w.Header().Set("X-Total-Count", strconv.FormatInt(total, 10))
 	writeJSON(w, http.StatusOK, SearchResponse{
 		Vulnerabilities: vulns,
 		Total:           total,
 		Limit:           limit,
 		Offset:          offset,
+		NextCursor:      nextCursor,
 	})
 }
 
@@ -392,6 +410,7 @@ type SearchResponse struct {
 	Total           int64             `json:"total"`
 	Limit           int               `json:"limit"`
 	Offset          int               `json:"offset"`
+	NextCursor      string            `json:"next_cursor,omitempty"`
 }
 
 // --- Helpers ---

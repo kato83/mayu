@@ -674,12 +674,40 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 
 	baseQuery, args, argIdx := s.buildSearchConditions(query)
 
+	// Apply cursor-based or offset-based pagination
+	if query.Cursor != "" {
+		cursor, err := DecodeCursor(query.Cursor)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cursor: %w", err)
+		}
+		// Keyset condition: (published, id) < (cursor.published, cursor.id)
+		// For DESC order: find rows that sort AFTER the cursor position
+		if cursor.Published != nil {
+			argIdx++
+			pubArg := argIdx
+			argIdx++
+			idArg := argIdx
+			baseQuery += fmt.Sprintf(` AND (published < $%d OR (published = $%d AND v.id < $%d) OR (published IS NULL))`,
+				pubArg, pubArg, idArg)
+			args = append(args, cursor.Published.UTC(), cursor.ID)
+		} else {
+			// Cursor item had NULL published; only items with NULL published AND id < cursor.id come after
+			argIdx++
+			baseQuery += fmt.Sprintf(` AND (published IS NULL AND v.id < $%d)`, argIdx)
+			args = append(args, cursor.ID)
+		}
+	}
+
 	argIdx++
-	baseQuery += fmt.Sprintf(` ORDER BY published DESC NULLS LAST LIMIT $%d`, argIdx)
+	baseQuery += fmt.Sprintf(` ORDER BY published DESC NULLS LAST, v.id DESC LIMIT $%d`, argIdx)
 	args = append(args, limit)
-	argIdx++
-	baseQuery += fmt.Sprintf(` OFFSET $%d`, argIdx)
-	args = append(args, offset)
+
+	// Apply offset only when no cursor is set (backward compatibility)
+	if query.Cursor == "" && offset > 0 {
+		argIdx++
+		baseQuery += fmt.Sprintf(` OFFSET $%d`, argIdx)
+		args = append(args, offset)
+	}
 
 	rows, err := s.db.QueryContext(ctx, baseQuery, args...)
 	if err != nil {
@@ -1070,13 +1098,36 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 		args = append(args, query.Version)
 	}
 
-	// ORDER BY and pagination
+	// ORDER BY and pagination (cursor-based or offset-based)
+	if query.Cursor != "" {
+		cursor, err := DecodeCursor(query.Cursor)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cursor: %w", err)
+		}
+		if cursor.Published != nil {
+			argIdx++
+			pubArg := argIdx
+			argIdx++
+			idArg := argIdx
+			baseQuery += fmt.Sprintf(` AND (v.published < $%d OR (v.published = $%d AND v.id < $%d) OR (v.published IS NULL))`,
+				pubArg, pubArg, idArg)
+			args = append(args, cursor.Published.UTC(), cursor.ID)
+		} else {
+			argIdx++
+			baseQuery += fmt.Sprintf(` AND (v.published IS NULL AND v.id < $%d)`, argIdx)
+			args = append(args, cursor.ID)
+		}
+	}
+
 	argIdx++
-	baseQuery += fmt.Sprintf(` ORDER BY v.published DESC NULLS LAST LIMIT $%d`, argIdx)
+	baseQuery += fmt.Sprintf(` ORDER BY v.published DESC NULLS LAST, v.id DESC LIMIT $%d`, argIdx)
 	args = append(args, limit)
-	argIdx++
-	baseQuery += fmt.Sprintf(` OFFSET $%d`, argIdx)
-	args = append(args, offset)
+
+	if query.Cursor == "" && offset > 0 {
+		argIdx++
+		baseQuery += fmt.Sprintf(` OFFSET $%d`, argIdx)
+		args = append(args, offset)
+	}
 
 	rows, err := s.db.QueryContext(ctx, baseQuery, args...)
 	if err != nil {
