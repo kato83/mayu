@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal, DestroyRef } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { DatePipe } from '@angular/common';
+import { DatePipe, UpperCasePipe } from '@angular/common';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { VulnerabilityService } from '../../services/vulnerability.service';
@@ -36,7 +36,7 @@ function emptyFilters(): FilterState {
 @Component({
   selector: 'app-vulnerabilities',
   standalone: true,
-  imports: [PaginationComponent, FormsModule, DatePipe],
+  imports: [PaginationComponent, FormsModule, DatePipe, UpperCasePipe],
   template: `
     <div class="space-y-4">
       <!-- Filter panel -->
@@ -97,7 +97,7 @@ function emptyFilters(): FilterState {
             >
               <option value="" i18n="@@vulnList.allSeverities">All severities</option>
               @for (sev of severities; track sev) {
-                <option [value]="sev">{{ sev }}</option>
+                <option [value]="sev">{{ sev | uppercase }}</option>
               }
             </select>
           </div>
@@ -192,10 +192,20 @@ function emptyFilters(): FilterState {
                       {{ getEcosystem(vuln) }}
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
-                      @if (getSeverityLabel(vuln); as severity) {
-                        <span [class]="getSeverityClasses(severity)">
-                          {{ severity }}
-                        </span>
+                      @if (getSeverityLabels(vuln); as labels) {
+                        @if (labels.length === 1) {
+                          <span [class]="getSeverityClasses(labels[0])">
+                            {{ labels[0] | uppercase }}
+                          </span>
+                        } @else if (labels.length === 2) {
+                          <span [class]="getSeverityClasses(labels[0])">
+                            {{ labels[0] | uppercase }}
+                          </span>
+                          <span class="text-xs text-slate-400 dark:text-slate-500 mx-0.5">～</span>
+                          <span [class]="getSeverityClasses(labels[1])">
+                            {{ labels[1] | uppercase }}
+                          </span>
+                        }
                       } @else {
                         <span class="text-sm text-slate-400">—</span>
                       }
@@ -306,19 +316,25 @@ export class VulnerabilitiesComponent implements OnInit {
     return '—';
   }
 
-  getSeverityLabel(vuln: Vulnerability): string | null {
+  getSeverityLabels(vuln: Vulnerability): string[] | null {
     if (vuln.severity && vuln.severity.length > 0) {
-      const score = this.extractBaseScore(vuln.severity[0].score);
-      if (score !== null) {
-        return this.scoreToLabel(score);
+      const worst = this.toLabel(vuln.severity[0].score);
+      if (worst) {
+        if (vuln.severity.length >= 2) {
+          const best = this.toLabel(vuln.severity[1].score);
+          if (best && best !== worst) {
+            return [worst, best];
+          }
+        }
+        return [worst];
       }
     }
     if (vuln.affected) {
       for (const affected of vuln.affected) {
         if (affected.severity && affected.severity.length > 0) {
-          const score = this.extractBaseScore(affected.severity[0].score);
-          if (score !== null) {
-            return this.scoreToLabel(score);
+          const label = this.toLabel(affected.severity[0].score);
+          if (label) {
+            return [label];
           }
         }
       }
@@ -474,5 +490,28 @@ export class VulnerabilitiesComponent implements OnInit {
     if (score >= 4.0) return 'Medium';
     if (score > 0.0) return 'Low';
     return 'None';
+  }
+
+  /**
+   * Convert a severity score string to a display label.
+   * Handles both label strings (CRITICAL, HIGH, etc.) and numeric/CVSS vectors.
+   */
+  private toLabel(scoreStr: string): string | null {
+    const knownLabels: Record<string, string> = {
+      critical: 'Critical',
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+      none: 'None',
+    };
+    const lower = scoreStr.toLowerCase();
+    if (knownLabels[lower]) {
+      return knownLabels[lower];
+    }
+    const numeric = this.extractBaseScore(scoreStr);
+    if (numeric !== null) {
+      return this.scoreToLabel(numeric);
+    }
+    return null;
   }
 }

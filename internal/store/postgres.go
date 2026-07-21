@@ -959,7 +959,7 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 	case query.ID != "":
 		argIdx++
 		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
-			vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+			vs.severity_worst, vs.severity_best, vs.scores_detail, vs.ecosystem_list
 		FROM vulnerabilities v
 		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 		WHERE (v.id = $%d OR v.id IN (
@@ -974,7 +974,7 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 			purlMatch = purlMatch[:idx]
 		}
 		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
-			vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+			vs.severity_worst, vs.severity_best, vs.scores_detail, vs.ecosystem_list
 		FROM vulnerabilities v
 		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 		WHERE v.id IN (
@@ -991,7 +991,7 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 			argIdx++
 			productArg := argIdx
 			baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
-				vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+				vs.severity_worst, vs.severity_best, vs.scores_detail, vs.ecosystem_list
 			FROM vulnerabilities v
 			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 			WHERE v.id IN (
@@ -1001,7 +1001,7 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 			args = append(args, cpeFields.Vendor, cpeFields.Product)
 		} else {
 			baseQuery = `SELECT v.id, v.summary, v.modified, v.published,
-				vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+				vs.severity_worst, vs.severity_best, vs.scores_detail, vs.ecosystem_list
 			FROM vulnerabilities v
 			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 			WHERE 1=1`
@@ -1020,7 +1020,7 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 			args = append(args, query.PackageName)
 		}
 		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
-			vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+			vs.severity_worst, vs.severity_best, vs.scores_detail, vs.ecosystem_list
 		FROM vulnerabilities v
 		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 		WHERE v.id IN (
@@ -1029,7 +1029,7 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 
 	default:
 		baseQuery = `SELECT v.id, v.summary, v.modified, v.published,
-			vs.severity_worst, vs.scores_detail, vs.ecosystem_list
+			vs.severity_worst, vs.severity_best, vs.scores_detail, vs.ecosystem_list
 		FROM vulnerabilities v
 		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
 		WHERE 1=1`
@@ -1089,10 +1089,10 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 		var id string
 		var summary sql.NullString
 		var modified, published sql.NullTime
-		var severityWorst sql.NullInt32
+		var severityWorst, severityBest sql.NullInt32
 		var scoresDetail []byte
 		var ecosystemList []byte
-		if err := rows.Scan(&id, &summary, &modified, &published, &severityWorst, &scoresDetail, &ecosystemList); err != nil {
+		if err := rows.Scan(&id, &summary, &modified, &published, &severityWorst, &severityBest, &scoresDetail, &ecosystemList); err != nil {
 			return nil, fmt.Errorf("searchLight scan: %w", err)
 		}
 
@@ -1108,12 +1108,24 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 			vuln.Published = &t
 		}
 
-		// Add severity from vulnerability_summary scores_detail
+		// Add severity from vulnerability_summary severity_worst / severity_best
 		if needSeverity && severityWorst.Valid && severityWorst.Int32 > 0 {
-			vuln.Severity = []model.Severity{{
-				Type:  model.SeverityTypeCVSSV3,
-				Score: model.SeverityLevelName(int(severityWorst.Int32)),
-			}}
+			worst := model.SeverityLevelName(int(severityWorst.Int32))
+			best := worst
+			if severityBest.Valid && severityBest.Int32 > 0 {
+				best = model.SeverityLevelName(int(severityBest.Int32))
+			}
+			if worst == best {
+				vuln.Severity = []model.Severity{{
+					Type:  model.SeverityTypeCVSSV3,
+					Score: worst,
+				}}
+			} else {
+				vuln.Severity = []model.Severity{
+					{Type: model.SeverityTypeCVSSV3, Score: worst},
+					{Type: model.SeverityTypeCVSSV3, Score: best},
+				}
+			}
 		}
 
 		// Add ecosystem from vulnerability_summary ecosystem_list
