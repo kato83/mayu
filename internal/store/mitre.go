@@ -96,11 +96,11 @@ func (s *PostgresStore) upsertMITREEntry(ctx context.Context, tx *sql.Tx, entry 
 		modifiedPtr = modified
 	}
 
-	// Step 5: Upsert into unified vulnerabilities table
+	// Step 5: Upsert into unified vulnerabilities table (no source column)
 	// COALESCE preserves existing NVD/OSV data; MITRE only fills gaps
 	_, err := tx.ExecContext(ctx, `
-		INSERT INTO vulnerabilities (id, source, summary, details, published, modified, withdrawn)
-		VALUES ($1, 'mitre', $2, NULL, $3, $4, NULL)
+		INSERT INTO vulnerabilities (id, summary, details, published, modified, withdrawn)
+		VALUES ($1, $2, NULL, $3, $4, NULL)
 		ON CONFLICT (id) DO UPDATE SET
 			summary = COALESCE(NULLIF(vulnerabilities.summary, ''), EXCLUDED.summary),
 			published = COALESCE(vulnerabilities.published, EXCLUDED.published),
@@ -218,6 +218,56 @@ func (s *PostgresStore) upsertMITREEntry(ctx context.Context, tx *sql.Tx, entry 
 		}
 		if err := insertMITRECredits(ctx, tx, adpContainerID, adp.Credits); err != nil {
 			return fmt.Errorf("insert ADP credits [%d]: %w", i, err)
+		}
+	}
+
+	// Step 10: Insert product_identifiers from MITRE affected products
+	if _, err := tx.ExecContext(ctx, `DELETE FROM product_identifiers WHERE vulnerability_id = $1 AND source = 'mitre'`, cveID); err != nil {
+		return fmt.Errorf("delete mitre product_identifiers: %w", err)
+	}
+	// Collect affected from all containers (CNA + ADP)
+	var allAffected []model.MITREAffected
+	if entry.Containers.CNA != nil {
+		allAffected = append(allAffected, entry.Containers.CNA.Affected...)
+	}
+	for _, adp := range entry.Containers.ADP {
+		allAffected = append(allAffected, adp.Affected...)
+	}
+	for _, aff := range allAffected {
+		pi := &model.ProductIdentifier{
+			VulnerabilityID: cveID,
+			Source:          "mitre",
+			Vendor:          aff.Vendor,
+			Product:         aff.Product,
+		}
+		// Decompose purl if available
+		if aff.PackageURL != "" {
+			parsePurlIntoPI(aff.PackageURL, pi)
+		}
+		// Decompose CPEs if available
+		if len(aff.Cpes) > 0 {
+			// Use first CPE for the main product_identifiers row
+			if cpeFields := model.ParseCPE23(aff.Cpes[0]); cpeFields != nil {
+				pi.CPEPart = cpeFields.Part
+				pi.CPEVendor = cpeFields.Vendor
+				pi.CPEProduct = cpeFields.Product
+				pi.CPEVersion = cpeFields.Version
+				pi.CPEUpdate = cpeFields.Update
+				pi.CPEEdition = cpeFields.Edition
+				pi.CPELanguage = cpeFields.Language
+				pi.CPESWEdition = cpeFields.SWEdition
+				pi.CPETargetSW = cpeFields.TargetSW
+				pi.CPETargetHW = cpeFields.TargetHW
+				pi.CPEOther = cpeFields.Other
+			}
+		}
+		// Build version_constraint from version ranges
+		if len(aff.Versions) > 0 {
+			vc, _ := json.Marshal(aff.Versions)
+			pi.VersionConstraint = vc
+		}
+		if err := insertSingleProductIdentifierNVD(ctx, tx, pi); err != nil {
+			return fmt.Errorf("insert mitre product_identifier: %w", err)
 		}
 	}
 

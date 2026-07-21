@@ -1,8 +1,9 @@
+# Entity-Relationship Diagram (Proposed)
+
 ```mermaid
 erDiagram
     vulnerabilities {
         TEXT id PK "Canonical ID (CVE-xxx or source-specific ID)"
-        TEXT source "osv / nvd / kev / epss / lev"
         TEXT summary
         TEXT details
         TIMESTAMPTZ published
@@ -11,35 +12,76 @@ erDiagram
     }
 
     vulnerability_aliases {
-        BIGINT id PK
-        TEXT vulnerability_id FK
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
         TEXT alias "e.g. GHSA-xxxx, GO-2024-0001"
-        INT ordering "0-indexed position"
-        TEXT source_osv_id "OSV entry that contributed this alias"
+    }
+
+    alias_sources {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT alias_id FK "→ vulnerability_aliases(id) CASCADE"
+        TEXT osv_id FK "→ osv_entries(osv_id) CASCADE"
+    }
+
+    vulnerability_summary {
+        TEXT vulnerability_id PK_FK "→ vulnerabilities(id) CASCADE"
+        SMALLINT severity_worst "5=CRITICAL,4=HIGH,3=MED,2=LOW,1=NONE"
+        SMALLINT severity_best "same scale"
+        JSONB scores_detail "per-source scores array"
+        FLOAT8 epss_score "latest EPSS probability"
+        FLOAT8 epss_percentile "latest EPSS percentile"
+        BOOLEAN in_kev "in CISA KEV catalog"
+        FLOAT8 lev_score "LEV probability"
+        TEXT_ARRAY ecosystem_list "GIN indexed"
+        TEXT_ARRAY cwe_list "GIN indexed"
+        TIMESTAMPTZ computed_at
+    }
+
+    product_identifiers {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
+        TEXT source "osv, nvd, mitre"
+        TEXT purl "pkg:type/namespace/name"
+        TEXT cpe "cpe:2.3:..."
+        TEXT ecosystem "Go, npm, PyPI..."
+        TEXT name "package name"
+        TEXT vendor "CPE/MITRE vendor"
+        TEXT product "CPE/MITRE product"
+        JSONB version_constraint "normalized version ranges"
+    }
+
+    purl_cpe_mapping {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT purl_type "golang, npm, maven..."
+        TEXT purl_name "package name in purl"
+        TEXT cpe_vendor "CPE vendor"
+        TEXT cpe_product "CPE product"
+        FLOAT8 confidence "mapping confidence 0.0-1.0"
+        TEXT source "nvd-cpe-dict, heuristic, manual"
     }
 
     osv_entries {
-        TEXT osv_id PK "Original OSV ID"
-        TEXT vulnerability_id FK
+        TEXT osv_id PK "Normalized (DEBIAN-CVE-* etc.)"
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
         TEXT schema_version
-        JSONB raw_json
+        JSONB raw_json "Original OSV JSON (reversibility)"
         JSONB database_specific
     }
 
     osv_affected_packages {
-        BIGINT id PK
-        TEXT osv_entry_id FK "References osv_entries.osv_id"
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT osv_entry_id FK "→ osv_entries(osv_id) CASCADE"
         TEXT ecosystem
         TEXT name
         TEXT purl
-        TEXT[] versions
+        TEXT_ARRAY versions
         JSONB ecosystem_specific
         JSONB database_specific
     }
 
     osv_affected_ranges {
-        BIGINT id PK
-        BIGINT affected_package_id FK
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT affected_package_id FK "→ osv_affected_packages(id) CASCADE"
         TEXT range_type
         TEXT repo
         JSONB events
@@ -47,54 +89,54 @@ erDiagram
     }
 
     osv_severity {
-        BIGINT id PK
-        TEXT osv_entry_id FK "References osv_entries.osv_id"
-        BIGINT affected_package_id FK "nullable"
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT osv_entry_id FK "→ osv_entries(osv_id) CASCADE"
+        BIGINT affected_package_id FK "nullable → osv_affected_packages(id) CASCADE"
         TEXT severity_type
         TEXT score
         TEXT source
     }
 
     osv_references {
-        BIGINT id PK
-        TEXT osv_entry_id FK "References osv_entries.osv_id"
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT osv_entry_id FK "→ osv_entries(osv_id) CASCADE"
         TEXT reference_type
         TEXT url
     }
 
     osv_credits {
-        BIGINT id PK
-        TEXT osv_entry_id FK "References osv_entries.osv_id"
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT osv_entry_id FK "→ osv_entries(osv_id) CASCADE"
         TEXT name
-        TEXT[] contact
+        TEXT_ARRAY contact
         TEXT credit_type
     }
 
     nvd_entries {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
-        TEXT cve_id UK "CVE-YYYY-NNNNN"
-        TEXT vulnerability_id FK "→ vulnerabilities(id)"
-        TEXT source_identifier "e.g. cve@mitre.org"
-        TEXT vuln_status "Analyzed, Modified, Rejected, etc."
+        TEXT cve_id UK
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
+        TEXT source_identifier
+        TEXT vuln_status
         TIMESTAMPTZ published
         TIMESTAMPTZ last_modified
-        JSONB raw_json "Full cve object (reversibility)"
+        JSONB raw_json "Full NVD cve object (reversibility)"
     }
 
     nvd_descriptions {
-        BIGINT id PK
-        BIGINT nvd_entry_id FK "→ nvd_entries(id)"
-        TEXT lang "en, es, etc."
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT nvd_entry_id FK "→ nvd_entries(id) CASCADE"
+        TEXT lang
         TEXT value
     }
 
     nvd_metrics {
-        BIGINT id PK
-        BIGINT nvd_entry_id FK "→ nvd_entries(id)"
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT nvd_entry_id FK "→ nvd_entries(id) CASCADE"
         TEXT version "v2, v31, v40"
-        TEXT source "nvd@nist.gov, etc."
+        TEXT source
         TEXT type "Primary / Secondary"
-        JSONB cvss_data "CVSS vector details"
+        JSONB cvss_data
         FLOAT8 base_score
         TEXT base_severity
         FLOAT8 exploitability_score
@@ -102,27 +144,27 @@ erDiagram
     }
 
     nvd_weaknesses {
-        BIGINT id PK
-        BIGINT nvd_entry_id FK "→ nvd_entries(id)"
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT nvd_entry_id FK "→ nvd_entries(id) CASCADE"
         TEXT source
-        TEXT type "Primary / Secondary"
-        TEXT cwe_id "CWE-79, etc."
+        TEXT type
+        TEXT cwe_id
     }
 
     nvd_configurations {
-        BIGINT id PK
-        BIGINT nvd_entry_id FK "→ nvd_entries(id)"
-        TEXT operator "AND / OR"
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT nvd_entry_id FK "→ nvd_entries(id) CASCADE"
+        TEXT operator
         BOOLEAN negate
-        JSONB raw_nodes "Full node tree (reversibility)"
+        JSONB raw_nodes
     }
 
     nvd_cpe_matches {
-        BIGINT id PK
-        BIGINT configuration_id FK "→ nvd_configurations(id)"
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT configuration_id FK "→ nvd_configurations(id) CASCADE"
         BOOLEAN vulnerable
-        TEXT criteria "CPE 2.3 URI"
-        TEXT match_criteria_id "UUID"
+        TEXT criteria
+        TEXT match_criteria_id
         TEXT version_start_including
         TEXT version_start_excluding
         TEXT version_end_including
@@ -130,19 +172,19 @@ erDiagram
     }
 
     nvd_references {
-        BIGINT id PK
-        BIGINT nvd_entry_id FK "→ nvd_entries(id)"
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT nvd_entry_id FK "→ nvd_entries(id) CASCADE"
         TEXT url
         TEXT source
-        TEXT[] tags
+        TEXT_ARRAY tags
     }
 
     mitre_entries {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
-        TEXT cve_id UK "CVE-YYYY-NNNNN"
-        TEXT vulnerability_id FK "→ vulnerabilities(id)"
-        TEXT data_version "5.0, 5.1, 5.2"
-        TEXT state "PUBLISHED, REJECTED"
+        TEXT cve_id UK
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
+        TEXT data_version
+        TEXT state
         TEXT assigner_org_id
         TEXT assigner_short_name
         TIMESTAMPTZ date_reserved
@@ -154,8 +196,8 @@ erDiagram
     mitre_containers {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         BIGINT mitre_entry_id FK "→ mitre_entries(id) CASCADE"
-        TEXT container_type "cna or adp"
-        TEXT title "nullable"
+        TEXT container_type "cna / adp"
+        TEXT title
         TEXT provider_org_id
         TEXT provider_short_name
         TIMESTAMPTZ date_updated
@@ -167,8 +209,8 @@ erDiagram
         TEXT vendor
         TEXT product
         TEXT default_status
-        TEXT[] platforms
-        TEXT[] modules
+        TEXT_ARRAY platforms
+        TEXT_ARRAY modules
         TEXT package_url
     }
 
@@ -186,8 +228,8 @@ erDiagram
     mitre_metrics {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         BIGINT container_id FK "→ mitre_containers(id) CASCADE"
-        TEXT format "CVSS, SSVC, etc."
-        TEXT cvss_version "3.1, 4.0, etc."
+        TEXT format
+        TEXT cvss_version
         FLOAT8 base_score
         TEXT base_severity
         TEXT vector_string
@@ -208,7 +250,7 @@ erDiagram
         BIGINT container_id FK "→ mitre_containers(id) CASCADE"
         TEXT url
         TEXT name
-        TEXT[] tags
+        TEXT_ARRAY tags
     }
 
     mitre_credits {
@@ -219,46 +261,49 @@ erDiagram
         TEXT lang
     }
 
+    epss_scores {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT cve_id
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
+        FLOAT8 epss
+        FLOAT8 percentile
+        DATE score_date
+        JSONB raw_json
+    }
+
+    kev_entries {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT cve_id UK
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
+        TEXT vendor_project
+        TEXT product
+        TEXT vulnerability_name
+        DATE date_added
+        TEXT short_description
+        TEXT required_action
+        DATE due_date
+        TEXT known_ransomware_campaign_use
+        TEXT notes
+        TEXT_ARRAY cwes
+        JSONB raw_json
+    }
+
     sync_state {
-        TEXT source PK "e.g. Go, npm, NVD, NVD-native, Debian, MITRE, EPSS"
+        TEXT source PK
         TIMESTAMPTZ last_modified_at
         TIMESTAMPTZ last_synced_at
         BIGINT record_count
     }
 
-    epss_scores {
-        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
-        TEXT cve_id "CVE-YYYY-NNNNN"
-        TEXT vulnerability_id FK "→ vulnerabilities(id)"
-        FLOAT8 epss "Exploitation probability (0.0-1.0)"
-        FLOAT8 percentile "Relative ranking (0.0-1.0)"
-        DATE score_date "Date the score was calculated"
-        JSONB raw_json "Original API entry (reversibility)"
-    }
-
-    kev_entries {
-        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
-        TEXT cve_id UK "CVE-YYYY-NNNNN"
-        TEXT vulnerability_id FK "→ vulnerabilities(id)"
-        TEXT vendor_project "e.g. Microsoft, Fortinet"
-        TEXT product "e.g. SharePoint, FortiSandbox"
-        TEXT vulnerability_name "Human-readable vulnerability title"
-        DATE date_added "Date added to KEV catalog"
-        TEXT short_description "Brief vulnerability description"
-        TEXT required_action "Remediation action required"
-        DATE due_date "Remediation due date"
-        TEXT known_ransomware_campaign_use "Known or Unknown"
-        TEXT notes "Additional notes and URLs"
-        TEXT_ARRAY cwes "CWE IDs (e.g. CWE-502, CWE-78)"
-        JSONB raw_json "Original catalog entry (reversibility)"
-    }
-
     vulnerabilities ||--o{ vulnerability_aliases : "has"
+    vulnerabilities ||--|| vulnerability_summary : "has"
+    vulnerabilities ||--o{ product_identifiers : "has"
     vulnerabilities ||--o{ osv_entries : "has"
     vulnerabilities ||--o{ nvd_entries : "has"
     vulnerabilities ||--o{ mitre_entries : "has"
     vulnerabilities ||--o{ epss_scores : "has"
     vulnerabilities ||--o{ kev_entries : "has"
+    vulnerability_aliases ||--o{ alias_sources : "sourced by"
     osv_entries ||--o{ osv_affected_packages : "has"
     osv_entries ||--o{ osv_severity : "top-level severity"
     osv_entries ||--o{ osv_references : "has"
@@ -286,88 +331,114 @@ erDiagram
 Source-agnostic normalized vulnerability records at the granularity displayed in Mayu's vulnerability listing.
 
 - `id`: Uses CVE ID when available (extracted from aliases); otherwise uses the source-specific ID (e.g., GO-2024-XXXX) as-is. Multiple OSV entries sharing the same CVE are grouped under a single row.
-- `source`: Identifies the data origin. Future sources (`kev`, `lev`) will be added at this level.
-- `modified`: Uses `GREATEST` on upsert so the most recent modification time across all contributing OSV entries is retained.
+- `modified`: Uses `GREATEST` on upsert so the most recent modification time across all contributing entries is retained.
+- **No `source` column**: Source existence is determined by JOINing/EXISTS against source-specific tables (osv_entries, nvd_entries, mitre_entries, etc.).
 
 ### `vulnerability_aliases`
 Cross-reference table for vulnerability identifiers (CVE ↔ GHSA ↔ OSV ID mappings).
-Externalized from an array column into a proper relation to enable fast reverse lookups (e.g., CVE → related OSV entries) via indexed FK joins.
 
-- `source_osv_id`: Tracks which OSV entry contributed each alias. This enables safe per-entry alias cleanup on reimport without affecting aliases contributed by other OSV entries (e.g., Ubuntu reimport does not remove Red Hat's aliases).
-- UNIQUE constraint: `(vulnerability_id, alias, source_osv_id)` — the same alias can appear multiple times if contributed by different OSV entries.
-- When an OSV entry is reimported, stale aliases (previously contributed by that entry but no longer in its aliases list) are automatically deleted.
+- UNIQUE constraint: `(vulnerability_id, alias)` — each alias appears once per vulnerability regardless of how many sources contributed it.
+- No `ordering` column: insertion order is tracked by the auto-generated `id`.
 
-### `osv_*` Tables
-OSV-specific detail tables. Other data sources (`nvd_*`, `mitre_*`, `epss_scores`) are added as sibling table groups. Future: `kev_entries`, `lev_scores`.
+### `alias_sources` (Junction Table)
+Tracks which OSV entry contributed each alias. Enables safe per-entry alias cleanup on reimport.
+
+- When an OSV entry is reimported, its `alias_sources` rows are deleted. Any `vulnerability_aliases` rows with no remaining `alias_sources` are garbage-collected.
+- UNIQUE constraint: `(alias_id, osv_id)` — an OSV entry contributes an alias at most once.
+
+### `vulnerability_summary` (Computed Aggregation)
+Pre-computed derived data for list views and filtering. Updated synchronously at the end of each import pipeline.
+
+- **`severity_worst` / `severity_best`**: Normalized to a 5-level scale (5=CRITICAL, 4=HIGH, 3=MEDIUM, 2=LOW, 1=NONE). All scoring systems are converted to this scale.
+- **`scores_detail`**: JSONB array preserving per-source raw scores. Each entry contains: `src` (source), `system` (scoring system name), `ver` (version), `score` (raw numeric score or null), `sev` (severity label), `normalized` (5-level value).
+- **Severity filtering**: Uses range overlap on normalized levels. E.g., "MEDIUM or above" = `severity_worst >= 3`.
+- **No `has_osv`/`has_nvd`/`has_mitre` flags**: Source existence is checked via EXISTS subqueries against source tables (adequate performance with indexed FKs).
+
+#### Severity Normalization Rules
+
+| System | Score Range | → Level |
+|--------|------------|---------|
+| CVSS (v2/v3/v4) | 9.0–10.0 | 5 (CRITICAL) |
+| CVSS | 7.0–8.9 | 4 (HIGH) |
+| CVSS | 4.0–6.9 | 3 (MEDIUM) |
+| CVSS | 0.1–3.9 | 2 (LOW) |
+| CVSS | 0.0 | 1 (NONE) |
+| NISTIR 7864 (Drupal) | 20–25 | 5 (Highly Critical) |
+| NISTIR 7864 | 15–19 | 4 (Critical) |
+| NISTIR 7864 | 10–14 | 3 (Moderately Critical) |
+| NISTIR 7864 | 5–9 | 2 (Less Critical) |
+| NISTIR 7864 | 0–4 | 1 (Not Critical) |
+| SSVC | Act | 5 |
+| SSVC | Attend | 4 |
+| SSVC | Track* | 3 |
+| SSVC | Track | 2 |
+| Label-only (GHSA etc.) | critical | 5 |
+| Label-only | high | 4 |
+| Label-only | medium/moderate | 3 |
+| Label-only | low | 2 |
+| Label-only | none/informational | 1 |
+
+### `product_identifiers` (Unified Package/Product Search)
+Aggregates package and product identification from all sources into a single searchable table.
+
+- Populated during each source's import (OSV → purl/ecosystem/name, NVD → cpe/vendor/product, MITRE → vendor/product/package_url).
+- Enables cross-source package search: query by purl, CPE, ecosystem+name, or vendor+product.
+- `version_constraint`: Normalized version range info as JSONB for future version matching.
+- CPE index uses `text_pattern_ops` for prefix-match (LIKE 'cpe:2.3:a:vendor:product:%').
+
+### `purl_cpe_mapping` (Conversion Dictionary)
+Bidirectional mapping between purl identifiers and CPE naming. Used to expand searches across naming conventions.
+
+- Populated from: NVD CPE Dictionary (bulk), heuristic matching (OSV+NVD co-occurrence on same CVE), manual curation.
+- `confidence`: 1.0 for exact matches from authoritative sources, lower for heuristic/fuzzy matches.
+
+### `osv_entries` + `osv_*` Tables
+OSV-specific detail tables.
+
+- **osv_id normalization**: If the raw OSV `id` field is a bare `CVE-*` and the ecosystem has a defined OSV prefix (e.g., Debian → `DEBIAN`), mayu stores it as `{PREFIX}-{id}` (e.g., `DEBIAN-CVE-2024-1234`). The `raw_json` retains the original value for reversibility.
+- Guard: if the id already has a non-CVE prefix, it is stored as-is (prevents double-prefixing if upstream fixes their data).
 
 ### `nvd_*` Tables
-NVD-specific detail tables for CVE data ingested directly from the NVD JSON Feed 2.0. Mirrors the NVD CVE 2.0 schema structure.
+NVD-specific detail tables. Column details (CPE decomposition, CVSS vector parsing) to be refined separately.
 
-- `nvd_entries`: One row per CVE. The `raw_json` column stores the complete `cve` object for reversibility (same pattern as `osv_entries.raw_json`). Linked to `vulnerabilities` via `vulnerability_id` (CVE ID).
-- `nvd_descriptions`: Multi-language CVE descriptions (en, es, etc.).
-- `nvd_metrics`: CVSS scores from multiple sources (NVD, CNA) and versions (v2, v31, v40). `cvss_data` stores the full CVSS vector as JSONB since the structure varies by version.
-- `nvd_weaknesses`: CWE classification with source distinction (Primary/Secondary).
-- `nvd_configurations`: CPE applicability statements. `raw_nodes` preserves the full node tree for reversibility; `nvd_cpe_matches` provides a flattened view for efficient CPE-based search.
-- `nvd_cpe_matches`: Flattened CPE match criteria extracted from configuration nodes. Enables direct CPE URI search without JSONB traversal.
-- `nvd_references`: External references with source attribution and tags (Patch, Third Party Advisory, etc.).
-- Upsert strategy: On reimport, existing `nvd_entries` row is deleted (CASCADE removes children) and re-inserted. `vulnerabilities` row uses COALESCE to preserve OSV-contributed data when available.
-
-### `sync_state`
-Standalone table (no FK relationships) that tracks per-source delta synchronization state.
-
-### `epss_scores` Table
-EPSS (Exploit Prediction Scoring System) scores from the FIRST API. Stores the daily probability that a CVE will be exploited in the next 30 days, along with its relative percentile ranking.
-
-- `epss_scores`: One row per CVE per score_date. The `raw_json` column stores the original API response entry for reversibility (same pattern as `osv_entries.raw_json`, `nvd_entries.raw_json`, and `mitre_entries.raw_json`). Linked to `vulnerabilities` via `vulnerability_id` (CVE ID).
-- UNIQUE constraint: `(cve_id, score_date)` — allows storing historical scores if needed, but typical usage stores only the latest day's score.
-- Upsert strategy: On reimport for the same date, existing scores are updated in-place (ON CONFLICT DO UPDATE). The `vulnerabilities` row is created with DO NOTHING to avoid overwriting richer data from OSV/NVD/MITRE.
-- Delta strategy: EPSS scores are recalculated daily for ALL CVEs. There is no true delta — each day is a complete snapshot. The `--update` flag skips import if already synced today.
-- Future extensibility: This table pattern (CVE-linked scoring with raw_json reversibility) is designed to be reusable for future scoring systems such as LEV (Likely Exploited Vulnerabilities, NIST CSWP 41).
-
-### `kev_entries` Table
-CISA KEV (Known Exploited Vulnerabilities) catalog entries. Stores CVEs that have been confirmed to be actively exploited in the wild, along with remediation requirements and due dates.
-
-- `kev_entries`: One row per CVE. The `raw_json` column stores the original catalog entry for reversibility (same pattern as `osv_entries.raw_json`, `nvd_entries.raw_json`, `mitre_entries.raw_json`, and `epss_scores.raw_json`). Linked to `vulnerabilities` via `vulnerability_id` (CVE ID).
-- UNIQUE constraint: `(cve_id)` — one entry per CVE in the KEV catalog.
-- Upsert strategy: On reimport, existing entries are updated in-place (ON CONFLICT DO UPDATE on cve_id). The `vulnerabilities` row is created with DO NOTHING to avoid overwriting richer data from OSV/NVD/MITRE.
-- Delta strategy: The KEV catalog is cumulative (entries are never removed, only added). The catalog is small (~1-2 MB, ~1,600 entries) and updates a few times per week. The `--update` flag skips import if already synced within the last hour.
-- `known_ransomware_campaign_use`: Indicates whether the vulnerability is known to be used in ransomware campaigns ("Known" or "Unknown").
-- `cwes`: CWE classifications as a TEXT[] array (e.g., CWE-502, CWE-78).
-- `notes`: Contains URLs and additional context (CISA BOD references, vendor advisories, NVD links).
+- Upsert strategy: DELETE existing entry (CASCADE) + re-INSERT on reimport.
+- `raw_json` stores the complete NVD `cve` object for reversibility.
 
 ### `mitre_*` Tables
-MITRE CVE-specific detail tables for CVE Records ingested from the CVEProject/cvelistV5 GitHub Releases in CVE JSON 5.x format (5.0, 5.1, 5.2).
+MITRE CVE Record detail tables. Column details (CVSS vector decomposition) to be refined separately.
 
-- `mitre_entries`: One row per CVE Record. The `raw_json` column stores the complete CVE Record JSON for reversibility (same pattern as `osv_entries.raw_json` and `nvd_entries.raw_json`). Linked to `vulnerabilities` via `vulnerability_id` (CVE ID). Only PUBLISHED records are stored (REJECTED/RESERVED are skipped during ingestion).
-- `mitre_containers`: Separates CNA (CVE Numbering Authority) and ADP (Authorized Data Publisher) containers. Each CVE has exactly one CNA container and zero or more ADP containers (e.g., CISA Vulnrichment, CVE Program Container).
-- `mitre_affected`: Products/packages affected by the vulnerability. References a container (CNA or ADP can both declare affected products).
-- `mitre_affected_versions`: Version ranges for affected products. Uses `less_than`/`less_than_or_equal` for range semantics; `changes` JSONB stores version-level status transitions.
-- `mitre_metrics`: CVSS and SSVC scoring. Supports multiple CVSS versions (2.0, 3.0, 3.1, 4.0) via `cvss_version`; SSVC assessments stored with `format="SSVC"` and data in `cvss_data` JSONB.
-- `mitre_problem_types`: CWE classifications expanded from nested `problemTypes[].descriptions[]` arrays.
-- `mitre_references`: External references with optional name and tags.
-- `mitre_credits`: Vulnerability discovery/coordination credits with type classification.
-- Upsert strategy: On reimport, existing `mitre_entries` row is deleted (CASCADE removes children) and re-inserted. `vulnerabilities` row uses COALESCE to preserve existing NVD/OSV-contributed data, only filling gaps from MITRE.
-- Delta strategy: Uses GitHub Releases hourly delta zips. Fallback to full baseline import if last sync > 24 hours ago.
+- Upsert strategy: DELETE existing entry (CASCADE) + re-INSERT on reimport.
+- `raw_json` stores the complete CVE Record for reversibility.
+
+### `epss_scores` Table
+EPSS scores from the FIRST API.
+
+- UNIQUE: `(cve_id, score_date)`.
+- Upsert strategy: ON CONFLICT DO UPDATE for same-date re-import.
+
+### `kev_entries` Table
+CISA KEV catalog entries.
+
+- UNIQUE: `(cve_id)`.
+- Upsert strategy: ON CONFLICT DO UPDATE.
+
+### `sync_state`
+Per-source delta synchronization tracking. No FK relationships.
 
 ### CVE Canonicalization Logic
 1. On ingest, the first `CVE-*` alias is extracted as the canonical ID.
-2. If no CVE exists, the OSV ID is used as canonical ID.
-3. When a CVE is assigned later (OSV entry updated with new alias), the old `vulnerabilities` row is migrated to the CVE ID and orphaned rows are cleaned up.
-4. The OSV ID itself is stored as an alias when the canonical ID differs (enabling reverse lookups by OSV ID).
+2. If no CVE exists, the OSV ID (or source-specific ID) is used as canonical ID.
+3. When a CVE is assigned later (entry updated with new alias), the old `vulnerabilities` row is migrated to the CVE ID and orphaned rows are cleaned up.
+4. The source-specific ID is stored as an alias when the canonical ID differs (enabling reverse lookups).
 
-### Known Limitations
+### Migration Phases
 
-#### `osv_entries.osv_id` collision across ecosystems using CVE IDs directly
-
-Some OSV ecosystems (Ubuntu, Debian, AlmaLinux, etc.) use the CVE ID itself as the OSV entry ID (e.g., `id: "CVE-2024-XXXXX"`) rather than a prefixed ecosystem-specific ID (e.g., `GO-2024-XXXX`, `GHSA-xxxx`).
-
-Currently, `osv_entries` uses `osv_id` as the primary key. If **two or more ecosystems** publish OSV entries with the same CVE ID as their `id`, the later import will overwrite the earlier one via `ON CONFLICT (osv_id) DO UPDATE`.
-
-**Impact:** Only one ecosystem's OSV entry data (raw_json, affected packages, etc.) is retained when multiple ecosystems use the same CVE ID as their OSV entry ID. The `vulnerabilities` master row and aliases are unaffected (correctly merged).
-
-**Current status:** In practice, only one ecosystem per CVE typically uses the CVE ID directly (e.g., Ubuntu covers Ubuntu-specific packages). However, if a new ecosystem (e.g., Asahi Linux) begins publishing with bare CVE IDs, data loss will occur silently.
-
-**Potential fixes (not yet implemented):**
-1. Change PK to a composite key `(osv_id, ecosystem)` — requires migration + FK changes to all `osv_*` child tables.
-2. Prefix `osv_id` internally with ecosystem name (e.g., `"Ubuntu:CVE-2024-XXXXX"`) — simpler but deviates from the raw OSV ID.
-3. Use a surrogate PK (BIGINT GENERATED) with a UNIQUE constraint on `(osv_id, ecosystem)` — cleanest but largest refactor.
+| Phase | Content | Impact |
+|-------|---------|--------|
+| 1 | Drop `vulnerabilities.source`; add `vulnerability_summary` table + batch population | Additive (new table), minor column drop |
+| 2 | Add `product_identifiers` table; populate from each importer | Additive + importer changes |
+| 3 | Switch Search/Count queries to use `vulnerability_summary` + `product_identifiers` | Store layer refactor |
+| 4 | Add `purl_cpe_mapping`; bulk-load from NVD CPE Dictionary | Additive + batch job |
+| 5 | Add `alias_sources` junction table; refactor alias management | Schema change + importer refactor |
+| 6 | osv_id normalization (Debian prefix etc.) | Importer change + data migration |
+| 7 | Source-specific table column refinement (CPE decomposition, CVSS vector parsing) | Schema evolution |

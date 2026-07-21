@@ -71,8 +71,8 @@ func (s *PostgresStore) upsertKEVEntry(ctx context.Context, tx *sql.Tx, record *
 	// Use DO NOTHING to preserve data from richer sources (OSV, NVD, MITRE).
 	// modified uses NOW() because the column has a NOT NULL constraint.
 	_, err := tx.ExecContext(ctx, `
-		INSERT INTO vulnerabilities (id, source, summary, details, published, modified, withdrawn)
-		VALUES ($1, 'kev', $2, NULL, NULL, NOW(), NULL)
+		INSERT INTO vulnerabilities (id, summary, details, published, modified, withdrawn)
+		VALUES ($1, $2, NULL, NULL, NOW(), NULL)
 		ON CONFLICT (id) DO NOTHING`,
 		cveID,
 		record.ShortDescription,

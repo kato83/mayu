@@ -68,11 +68,11 @@ func (s *PostgresStore) upsertNVDEntry(ctx context.Context, tx *sql.Tx, entry *m
 		}
 	}
 
-	// --- Step 1: Upsert into unified vulnerabilities table ---
+	// --- Step 1: Upsert into unified vulnerabilities table (no source column) ---
 	// ON CONFLICT: preserve existing summary (OSV priority) via COALESCE, use GREATEST for modified
 	_, err := tx.ExecContext(ctx, `
-		INSERT INTO vulnerabilities (id, source, summary, details, published, modified, withdrawn)
-		VALUES ($1, 'nvd', $2, NULL, $3, $4, NULL)
+		INSERT INTO vulnerabilities (id, summary, details, published, modified, withdrawn)
+		VALUES ($1, $2, NULL, $3, $4, NULL)
 		ON CONFLICT (id) DO UPDATE SET
 			summary = COALESCE(NULLIF(vulnerabilities.summary, ''), EXCLUDED.summary),
 			published = COALESCE(EXCLUDED.published, vulnerabilities.published),
@@ -141,6 +141,62 @@ func (s *PostgresStore) upsertNVDEntry(ctx context.Context, tx *sql.Tx, entry *m
 	// --- Step 7: Insert configurations and CPE matches ---
 	if err := s.insertNVDConfigurations(ctx, tx, nvdEntryID, entry.Configurations); err != nil {
 		return err
+	}
+
+	// --- Step 7b: Insert product_identifiers from CPE matches (decomposed) ---
+	if _, err := tx.ExecContext(ctx, `DELETE FROM product_identifiers WHERE vulnerability_id = $1 AND source = 'nvd'`, cveID); err != nil {
+		return fmt.Errorf("delete nvd product_identifiers: %w", err)
+	}
+	for _, cfg := range entry.Configurations {
+		matches := flattenCPEMatches(cfg.Nodes)
+		for _, m := range matches {
+			if !m.Vulnerable {
+				continue
+			}
+			cpeFields := model.ParseCPE23(m.Criteria)
+			if cpeFields == nil {
+				continue
+			}
+			pi := &model.ProductIdentifier{
+				VulnerabilityID: cveID,
+				Source:          "nvd",
+				CPEPart:         cpeFields.Part,
+				CPEVendor:       cpeFields.Vendor,
+				CPEProduct:      cpeFields.Product,
+				CPEVersion:      cpeFields.Version,
+				CPEUpdate:       cpeFields.Update,
+				CPEEdition:      cpeFields.Edition,
+				CPELanguage:     cpeFields.Language,
+				CPESWEdition:    cpeFields.SWEdition,
+				CPETargetSW:     cpeFields.TargetSW,
+				CPETargetHW:     cpeFields.TargetHW,
+				CPEOther:        cpeFields.Other,
+				Vendor:          cpeFields.Vendor,
+				Product:         cpeFields.Product,
+			}
+			// Build version_constraint from CPE version range fields
+			if m.VersionStartIncluding != "" || m.VersionStartExcluding != "" ||
+				m.VersionEndIncluding != "" || m.VersionEndExcluding != "" {
+				vc := map[string]string{}
+				if m.VersionStartIncluding != "" {
+					vc["vsi"] = m.VersionStartIncluding
+				}
+				if m.VersionStartExcluding != "" {
+					vc["vse"] = m.VersionStartExcluding
+				}
+				if m.VersionEndIncluding != "" {
+					vc["vei"] = m.VersionEndIncluding
+				}
+				if m.VersionEndExcluding != "" {
+					vc["vee"] = m.VersionEndExcluding
+				}
+				vcJSON, _ := json.Marshal(vc)
+				pi.VersionConstraint = vcJSON
+			}
+			if err := insertSingleProductIdentifierNVD(ctx, tx, pi); err != nil {
+				return fmt.Errorf("insert nvd product_identifier: %w", err)
+			}
+		}
 	}
 
 	// --- Step 8: Insert references (bulk) ---
@@ -419,4 +475,28 @@ func nullableFloat64(f *float64) interface{} {
 		return nil
 	}
 	return *f
+}
+
+// insertSingleProductIdentifierNVD inserts a single NVD product_identifiers row.
+func insertSingleProductIdentifierNVD(ctx context.Context, tx *sql.Tx, pi *model.ProductIdentifier) error {
+	_, err := tx.ExecContext(ctx, `
+		INSERT INTO product_identifiers (
+			vulnerability_id, source,
+			purl_type, purl_namespace, purl_name, purl_version, purl_qualifiers, purl_subpath,
+			cpe_part, cpe_vendor, cpe_product, cpe_version, cpe_update, cpe_edition,
+			cpe_language, cpe_sw_edition, cpe_target_sw, cpe_target_hw, cpe_other,
+			ecosystem, name, vendor, product, version_constraint
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
+		pi.VulnerabilityID, pi.Source,
+		nullIfEmpty(pi.PurlType), nullIfEmpty(pi.PurlNamespace), nullIfEmpty(pi.PurlName),
+		nullIfEmpty(pi.PurlVersion), nullIfEmpty(pi.PurlQualifiers), nullIfEmpty(pi.PurlSubpath),
+		nullIfEmpty(pi.CPEPart), nullIfEmpty(pi.CPEVendor), nullIfEmpty(pi.CPEProduct),
+		nullIfEmpty(pi.CPEVersion), nullIfEmpty(pi.CPEUpdate), nullIfEmpty(pi.CPEEdition),
+		nullIfEmpty(pi.CPELanguage), nullIfEmpty(pi.CPESWEdition), nullIfEmpty(pi.CPETargetSW),
+		nullIfEmpty(pi.CPETargetHW), nullIfEmpty(pi.CPEOther),
+		nullIfEmpty(pi.Ecosystem), nullIfEmpty(pi.Name),
+		nullIfEmpty(pi.Vendor), nullIfEmpty(pi.Product),
+		nullableRawJSON(pi.VersionConstraint),
+	)
+	return err
 }

@@ -200,6 +200,7 @@ func (ing *Ingester) storeNVDBatches(ctx context.Context, entries []*model.NVDCV
 
 	total := len(entries)
 	inserted := 0
+	var allCVEIDs []string
 
 	for i := 0; i < total; i += ing.batchSize {
 		select {
@@ -218,9 +219,17 @@ func (ing *Ingester) storeNVDBatches(ctx context.Context, entries []*model.NVDCV
 			return inserted, fmt.Errorf("upsert batch at offset %d: %w", i, err)
 		}
 
+		// Collect CVE IDs for summary refresh
+		for _, e := range batch {
+			allCVEIDs = append(allCVEIDs, e.ID)
+		}
+
 		inserted += len(batch)
 		ing.progress(Progress{Phase: "store", Current: inserted, Total: total})
 	}
+
+	// Refresh vulnerability_summary for all imported CVEs
+	ing.refreshSummary(ctx, allCVEIDs)
 
 	return inserted, nil
 }

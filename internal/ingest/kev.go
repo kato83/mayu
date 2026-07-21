@@ -145,6 +145,7 @@ func (ing *Ingester) storeKEVBatches(ctx context.Context, records []*model.KEVRe
 
 	total := len(records)
 	inserted := 0
+	var allCVEIDs []string
 
 	for i := 0; i < total; i += ing.batchSize {
 		select {
@@ -163,9 +164,17 @@ func (ing *Ingester) storeKEVBatches(ctx context.Context, records []*model.KEVRe
 			return inserted, fmt.Errorf("upsert KEV batch at offset %d: %w", i, err)
 		}
 
+		// Collect CVE IDs for summary refresh
+		for _, r := range batch {
+			allCVEIDs = append(allCVEIDs, r.CVEID)
+		}
+
 		inserted += len(batch)
 		ing.progress(Progress{Phase: "store", Current: inserted, Total: total})
 	}
+
+	// Refresh vulnerability_summary for all imported CVEs
+	ing.refreshSummary(ctx, allCVEIDs)
 
 	return inserted, nil
 }
