@@ -58,7 +58,12 @@ type ScoreEntry struct {
 	// Ver is the scoring system version (e.g., "v31", "v40", "v2").
 	Ver string `json:"ver,omitempty"`
 
+	// Vector is the raw CVSS vector string (e.g., "CVSS:3.1/AV:N/AC:L/...").
+	// Preserved separately from the computed Score for traceability.
+	Vector string `json:"vector,omitempty"`
+
 	// Score is the raw numeric score (nil if only severity label is available).
+	// When the source provides a vector string, this is computed from the vector.
 	Score *float64 `json:"score"`
 
 	// Sev is the severity label (e.g., "CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE").
