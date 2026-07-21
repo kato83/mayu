@@ -143,6 +143,9 @@ mayu ingest --all --bulk
 # Import NVD CVE data directly from NVD JSON Feed 2.0
 mayu ingest --source nvd --native
 
+# Import only a specific year's NVD data
+mayu ingest --source nvd --native --year 2024
+
 # Delta update from NVD modified feed
 mayu ingest --source nvd --native --update
 
@@ -261,6 +264,7 @@ Import vulnerability data from OSV into the local database.
 | `--to` | End date for backfill (YYYY-MM-DD) | today |
 | `--source` | Import from source (nvd, debian, mitre, epss, kev) | — |
 | `--native` | Use native data source feed (with `--source nvd`) | `false` |
+| `--year` | Import only a specific year's NVD feed (with `--source nvd --native`) | — |
 | `--file` | Import from local OSV JSON files (paths as positional args) | `false` |
 | `--concurrency` | Number of ecosystems to import in parallel (with `--all`) | `3` |
 | `--store-workers` | Number of parallel DB store workers per ecosystem | CPU cores - 1 |
@@ -349,6 +353,37 @@ mayu migrate status
 Print version information.
 
 ## Configuration
+
+### Configuration File
+
+Mayu supports a YAML configuration file. The default path is:
+
+```
+$HOME/.config/mayu/config.yaml
+```
+
+You can specify a custom path with the `--config` global option:
+
+```bash
+mayu --config /path/to/config.yaml search --id CVE-2024-1234
+```
+
+If the default config file does not exist, mayu silently falls back to environment variables and defaults. If `--config` is explicitly specified and the file does not exist, mayu reports an error.
+
+**Example `config.yaml`:**
+
+```yaml
+database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
+```
+
+**Priority order** (highest to lowest):
+
+1. Command-line flags (`--db-url`)
+2. Environment variables (`DATABASE_URL`)
+3. Configuration file (`config.yaml`)
+4. Default values
+
+### Environment Variables
 
 | Environment Variable | Description | Default |
 |---------------------|-------------|---------|
