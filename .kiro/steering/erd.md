@@ -295,6 +295,11 @@ erDiagram
         BIGINT record_count
     }
 
+    osv_ecosystems {
+        TEXT name PK
+        TIMESTAMPTZ created_at
+    }
+
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--|| vulnerability_summary : "has"
     vulnerabilities ||--o{ product_identifiers : "has"

@@ -5,7 +5,7 @@
 Mayu is a unified vulnerability intelligence tool that aggregates multiple sources (OSV, NVD, Debian, etc.) for cross-platform lookup via CLI, API, and Web UI.
 
 - Repository: github.com/kato83/mayu
-- Language: Go (backend), Angular (future frontend)
+- Language: Go (backend), Angular v22 (frontend)
 - Database: PostgreSQL 17
 
 ## Directory Structure
@@ -13,8 +13,9 @@ Mayu is a unified vulnerability intelligence tool that aggregates multiple sourc
 ```
 mayu/
 ├── cmd/
-│   └── mayu/              # CLI entrypoint (ingest, search, version)
+│   └── mayu/              # CLI entrypoint (ingest, search, serve, migrate, version)
 ├── internal/
+│   ├── config/            # YAML configuration file loading
 │   ├── fetcher/           # GCS data download (OSV zip, converted sources, streaming)
 │   ├── parser/            # OSV JSON parsing
 │   ├── store/             # PostgreSQL persistence (database/sql + pgx stdlib)
@@ -24,7 +25,8 @@ mayu/
 │   ├── cvss/              # CVSS score parsing utilities
 │   ├── purl/              # Package URL parsing
 │   └── validate/          # Input validation helpers
-├── migrations/            # golang-migrate SQL files (000001–000002)
+├── ui/                    # Angular v22 Web UI (TailwindCSS v4, pnpm)
+├── migrations/            # golang-migrate SQL files (000001–000014)
 ├── testdata/              # Test fixtures (OSV JSON samples)
 ├── docs/                  # Documentation (PLAN.md, import-ghsa-json.md)
 ├── .github/workflows/     # CI (lint, test, build)
@@ -89,6 +91,7 @@ mayu/
 - Database driver: `github.com/jackc/pgx/v5` (v5.10.0, stdlib mode)
 - Migration: `github.com/golang-migrate/migrate/v4`
 - Concurrency: `golang.org/x/sync` (errgroup)
+- Config: `gopkg.in/yaml.v3` (YAML config file parsing)
 - Keep `go.mod` lean; justify new dependencies
 - No CLI framework — uses Go standard `flag` package
 
@@ -169,11 +172,11 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR to `main`:
 | MITRE CVE (cvelistV5) | ✅ Supported | GitHub Releases zip via `internal/fetcher/mitre` |
 | EPSS | ✅ Supported | FIRST bulk CSV via `internal/fetcher/epss` |
 | KEV | ✅ Supported | CISA JSON catalog via `internal/fetcher/kev` |
-| LEV | 🔜 Planned | — |
+| LEV | ✅ Supported | Computed from EPSS + KEV (NIST CSWP 41) |
 
 ## Current Phase
 
-Phases 1–4 complete (Data Pipeline, CLI, CI/CD, API Server). Next up: Phase 5 (Web UI).
+Phases 1–6 complete (Data Pipeline, CLI, CI/CD, API Server, Web UI, Additional Data Sources).
 
 See [docs/PLAN.md](../docs/PLAN.md) for the full roadmap.
 
@@ -181,5 +184,5 @@ See [docs/PLAN.md](../docs/PLAN.md) for the full roadmap.
 - [x] Phase 2: CLI (ingest + search)
 - [x] Phase 3: CI/CD (GitHub Actions)
 - [x] Phase 4: API Server (REST)
-- [ ] Phase 5: Web UI (Angular)
-- [ ] Phase 6: Additional Data Sources (LEV)
+- [x] Phase 5: Web UI (Angular)
+- [x] Phase 6: Additional Data Sources (EPSS, KEV, LEV)
