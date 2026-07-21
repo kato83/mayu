@@ -59,6 +59,10 @@ func (m *mockKEVStore) UpsertBatch(ctx context.Context, vulns []*model.Vulnerabi
 func (m *mockKEVStore) GetByID(ctx context.Context, id string) (*model.Vulnerability, error) {
 	return nil, nil
 }
+func (m *mockKEVStore) RefreshSummary(ctx context.Context, vulnIDs []string) error { return nil }
+func (m *mockKEVStore) UpsertProductIdentifiers(ctx context.Context, identifiers []*model.ProductIdentifier) error {
+	return nil
+}
 func (m *mockKEVStore) GetVulnerabilityDetail(ctx context.Context, id string) (*model.VulnerabilityDetail, error) {
 	return nil, nil
 }

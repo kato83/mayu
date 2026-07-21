@@ -238,6 +238,7 @@ func (ing *Ingester) storeMITREBatches(ctx context.Context, entries []*model.MIT
 
 	total := len(entries)
 	inserted := 0
+	var allCVEIDs []string
 
 	for i := 0; i < total; i += ing.batchSize {
 		select {
@@ -256,8 +257,16 @@ func (ing *Ingester) storeMITREBatches(ctx context.Context, entries []*model.MIT
 			return inserted, fmt.Errorf("upsert MITRE batch at offset %d: %w", i, err)
 		}
 
+		// Collect CVE IDs for summary refresh
+		for _, e := range batch {
+			allCVEIDs = append(allCVEIDs, e.CVEMetadata.CVEID)
+		}
+
 		inserted += len(batch)
 	}
+
+	// Refresh vulnerability_summary for all imported CVEs
+	ing.refreshSummary(ctx, allCVEIDs)
 
 	return inserted, nil
 }

@@ -135,21 +135,18 @@ func TestUpsertNVDBatch_Basic(t *testing.T) {
 	}
 
 	// Verify vulnerabilities table
-	var vulnID, source string
+	var vulnID string
 	var published, modified time.Time
 	var summary *string
 	err := store.db.QueryRowContext(ctx, `
-		SELECT id, source, summary, published, modified FROM vulnerabilities WHERE id = $1`,
+		SELECT id, summary, published, modified FROM vulnerabilities WHERE id = $1`,
 		"CVE-2024-12345",
-	).Scan(&vulnID, &source, &summary, &published, &modified)
+	).Scan(&vulnID, &summary, &published, &modified)
 	if err != nil {
 		t.Fatalf("query vulnerabilities: %v", err)
 	}
 	if vulnID != "CVE-2024-12345" {
 		t.Errorf("vulnerability id = %q, want CVE-2024-12345", vulnID)
-	}
-	if source != "nvd" {
-		t.Errorf("vulnerability source = %q, want nvd", source)
 	}
 	if summary == nil || *summary == "" {
 		t.Error("vulnerability summary should not be empty")
