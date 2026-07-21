@@ -78,8 +78,8 @@ interface NavItem {
       </div>
 
       <!-- Footer -->
-      <div class="px-6 py-4 border-t border-slate-700 text-xs text-slate-400" i18n="@@sidebar.footer">
-        Vulnerability Intelligence
+      <div class="px-6 py-4 border-t border-slate-700 text-xs text-slate-400">
+        © 2026 Mayu Project
       </div>
     </aside>
   `,
