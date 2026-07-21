@@ -602,15 +602,20 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 	// A vulnerability matches if its severity range [severity_best, severity_worst]
 	// includes the requested level. This means:
 	// severity_worst >= level AND severity_best <= level
+	// Special case: "unknown" matches vulnerabilities with no severity data (NULL).
 	if query.Severity != "" {
-		sevLevel := severityToLevel(query.Severity)
-		if sevLevel > 0 {
-			argIdx++
-			baseQuery += fmt.Sprintf(` AND severity_worst >= $%d`, argIdx)
-			args = append(args, sevLevel)
-			argIdx++
-			baseQuery += fmt.Sprintf(` AND COALESCE(severity_best, severity_worst) <= $%d`, argIdx)
-			args = append(args, sevLevel)
+		if strings.EqualFold(query.Severity, "unknown") {
+			baseQuery += ` AND vs.severity_worst IS NULL`
+		} else {
+			sevLevel := severityToLevel(query.Severity)
+			if sevLevel > 0 {
+				argIdx++
+				baseQuery += fmt.Sprintf(` AND severity_worst >= $%d`, argIdx)
+				args = append(args, sevLevel)
+				argIdx++
+				baseQuery += fmt.Sprintf(` AND COALESCE(severity_best, severity_worst) <= $%d`, argIdx)
+				args = append(args, sevLevel)
+			}
 		}
 	}
 
@@ -1065,14 +1070,18 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 
 	// Severity filter
 	if query.Severity != "" {
-		sevLevel := severityToLevel(query.Severity)
-		if sevLevel > 0 {
-			argIdx++
-			baseQuery += fmt.Sprintf(` AND vs.severity_worst >= $%d`, argIdx)
-			args = append(args, sevLevel)
-			argIdx++
-			baseQuery += fmt.Sprintf(` AND COALESCE(vs.severity_best, vs.severity_worst) <= $%d`, argIdx)
-			args = append(args, sevLevel)
+		if strings.EqualFold(query.Severity, "unknown") {
+			baseQuery += ` AND vs.severity_worst IS NULL`
+		} else {
+			sevLevel := severityToLevel(query.Severity)
+			if sevLevel > 0 {
+				argIdx++
+				baseQuery += fmt.Sprintf(` AND vs.severity_worst >= $%d`, argIdx)
+				args = append(args, sevLevel)
+				argIdx++
+				baseQuery += fmt.Sprintf(` AND COALESCE(vs.severity_best, vs.severity_worst) <= $%d`, argIdx)
+				args = append(args, sevLevel)
+			}
 		}
 	}
 

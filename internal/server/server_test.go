@@ -429,7 +429,7 @@ func TestGetVulnerability_FallbackMarshal(t *testing.T) {
 }
 
 func TestSearchVulnerabilities_ValidSeverities(t *testing.T) {
-	validSeverities := []string{"critical", "high", "medium", "low", "none"}
+	validSeverities := []string{"critical", "high", "medium", "low", "none", "unknown"}
 
 	for _, sev := range validSeverities {
 		t.Run(sev, func(t *testing.T) {

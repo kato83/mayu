@@ -18,7 +18,7 @@ const ECOSYSTEMS = [
   'Debian', 'Rocky Linux', 'Ubuntu', 'Wolfi', 'Android', 'Linux',
 ];
 
-const SEVERITIES = ['critical', 'high', 'medium', 'low', 'none'] as const;
+const SEVERITIES = ['critical', 'high', 'medium', 'low', 'none', 'unknown'] as const;
 
 interface FilterState {
   id: string;

@@ -210,7 +210,7 @@ describe('VulnerabilitiesComponent', () => {
   it('should have severity dropdown with options', () => {
     initAndFlush();
     const select = fixture.nativeElement.querySelector('#filter-severity') as HTMLSelectElement;
-    expect(select.options.length).toBe(6); // '' + critical + high + medium + low + none
+    expect(select.options.length).toBe(7); // '' + critical + high + medium + low + none + unknown
     expect(select.options[0].textContent).toContain('All severities');
   });
 

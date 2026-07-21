@@ -643,7 +643,7 @@ func runSearch(args []string) error {
 
 	// Validate severity flag
 	if *severity != "" {
-		validSeverities := []string{"critical", "high", "medium", "low", "none"}
+		validSeverities := []string{"critical", "high", "medium", "low", "none", "unknown"}
 		valid := false
 		for _, s := range validSeverities {
 			if strings.ToLower(*severity) == s {
@@ -652,7 +652,7 @@ func runSearch(args []string) error {
 			}
 		}
 		if !valid {
-			return fmt.Errorf("invalid severity %q (valid: critical, high, medium, low, none)", *severity)
+			return fmt.Errorf("invalid severity %q (valid: critical, high, medium, low, none, unknown)", *severity)
 		}
 	}
 
