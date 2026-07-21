@@ -260,7 +260,32 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		return fmt.Errorf("upsert vulnerability: %w", err)
 	}
 
-	// --- Step 4: Upsert aliases using alias_sources junction table ---
+	// --- Step 4: Upsert osv_entry (must be before alias_sources due to FK) ---
+	// Delete child tables first (they will be re-created below).
+	for _, childTable := range []string{"osv_severity", "osv_affected_packages", "osv_references", "osv_credits"} {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM `+childTable+` WHERE osv_entry_id = $1`, osvID); err != nil {
+			return fmt.Errorf("delete %s before upsert: %w", childTable, err)
+		}
+	}
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO osv_entries (osv_id, vulnerability_id, schema_version, raw_json, database_specific)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (osv_id) DO UPDATE SET
+			vulnerability_id = EXCLUDED.vulnerability_id,
+			schema_version = EXCLUDED.schema_version,
+			raw_json = EXCLUDED.raw_json,
+			database_specific = EXCLUDED.database_specific`,
+		osvID,
+		canID,
+		nullIfEmpty(vuln.SchemaVersion),
+		rawJSON,
+		nullableRawJSON(vuln.DatabaseSpecific),
+	)
+	if err != nil {
+		return fmt.Errorf("upsert osv_entry: %w", err)
+	}
+
+	// --- Step 5: Upsert aliases using alias_sources junction table ---
 	allAliases := make([]string, 0, len(vuln.Aliases)+2)
 	if canID != osvID {
 		allAliases = append(allAliases, osvID)
@@ -304,35 +329,6 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		AND NOT EXISTS (SELECT 1 FROM alias_sources asrc WHERE asrc.alias_id = va.id)`,
 		canID); err != nil {
 		return fmt.Errorf("gc orphaned aliases for %s: %w", canID, err)
-	}
-
-	// --- Step 5: Upsert osv_entry ---
-	// Delete child tables first (they will be re-created below).
-	// This handles both the normal re-import case and the TOCTOU race where
-	// another transaction (e.g., parallel Chainguard/Wolfi sharing the same
-	// CGA-* IDs) committed between Step 1's SELECT and this point.
-	// Deleting children is safe even if the osv_entry doesn't exist yet (0 rows affected).
-	for _, childTable := range []string{"osv_severity", "osv_affected_packages", "osv_references", "osv_credits"} {
-		if _, err := tx.ExecContext(ctx, `DELETE FROM `+childTable+` WHERE osv_entry_id = $1`, osvID); err != nil {
-			return fmt.Errorf("delete %s before upsert: %w", childTable, err)
-		}
-	}
-	_, err = tx.ExecContext(ctx, `
-		INSERT INTO osv_entries (osv_id, vulnerability_id, schema_version, raw_json, database_specific)
-		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (osv_id) DO UPDATE SET
-			vulnerability_id = EXCLUDED.vulnerability_id,
-			schema_version = EXCLUDED.schema_version,
-			raw_json = EXCLUDED.raw_json,
-			database_specific = EXCLUDED.database_specific`,
-		osvID,
-		canID,
-		nullIfEmpty(vuln.SchemaVersion),
-		rawJSON,
-		nullableRawJSON(vuln.DatabaseSpecific),
-	)
-	if err != nil {
-		return fmt.Errorf("upsert osv_entry: %w", err)
 	}
 
 	// --- Step 6: Insert top-level severity (bulk) ---
