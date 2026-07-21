@@ -1,5 +1,7 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+
+import { ThemeService, ThemeMode } from '../../services/theme.service';
 
 interface NavItem {
   label: string;
@@ -50,6 +52,31 @@ interface NavItem {
         </ul>
       </nav>
 
+      <!-- Theme switcher -->
+      <div class="px-4 py-4 border-t border-slate-700">
+        <p class="text-xs text-slate-400 mb-2" i18n="@@sidebar.theme">Theme</p>
+        <div class="flex gap-1">
+          <button
+            (click)="setTheme('light')"
+            [class]="themeButtonClasses('light')"
+            title="Light"
+            i18n-title="@@sidebar.themeLight"
+          >☀️</button>
+          <button
+            (click)="setTheme('dark')"
+            [class]="themeButtonClasses('dark')"
+            title="Dark"
+            i18n-title="@@sidebar.themeDark"
+          >🌙</button>
+          <button
+            (click)="setTheme('system')"
+            [class]="themeButtonClasses('system')"
+            title="System"
+            i18n-title="@@sidebar.themeSystem"
+          >💻</button>
+        </div>
+      </div>
+
       <!-- Footer -->
       <div class="px-6 py-4 border-t border-slate-700 text-xs text-slate-400" i18n="@@sidebar.footer">
         Vulnerability Intelligence
@@ -58,6 +85,8 @@ interface NavItem {
   `,
 })
 export class SidebarComponent {
+  private readonly themeService = inject(ThemeService);
+
   /** Whether the sidebar is open (mobile) */
   open = input(false);
 
@@ -67,6 +96,18 @@ export class SidebarComponent {
   readonly navItems: NavItem[] = [
     { label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`, route: '/vulnerabilities', icon: '🛡️' },
   ];
+
+  setTheme(mode: ThemeMode): void {
+    this.themeService.setMode(mode);
+  }
+
+  themeButtonClasses(mode: ThemeMode): string {
+    const base = 'flex-1 py-1.5 text-center text-sm rounded cursor-pointer transition-colors';
+    if (this.themeService.mode() === mode) {
+      return `${base} bg-slate-700 text-white`;
+    }
+    return `${base} text-slate-400 hover:text-white hover:bg-slate-800`;
+  }
 
   sidebarClasses(): string {
     const base = 'fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 text-slate-100 flex flex-col transition-transform duration-200 ease-in-out';
