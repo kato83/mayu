@@ -54,7 +54,8 @@ There are several excellent vulnerability intelligence tools available. Mayu occ
 
 ### Pre-built Binaries (Recommended)
 
-Download the latest release from [GitHub Releases](https://github.com/kato83/mayu/releases):
+Download the latest release from [GitHub Releases](https://github.com/kato83/mayu/releases).
+Release binaries include the Web UI embedded — just run `mayu serve` and access the UI at `http://localhost:8080/`.
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
@@ -77,25 +78,28 @@ mayu version
 
 ### Build from Source
 
-Requires [Go 1.26+](https://go.dev/).
+Requires:
+- [Go 1.26+](https://go.dev/)
+- [Node.js 24+](https://nodejs.org/) (for Web UI build)
+- [pnpm 11+](https://pnpm.io/) (for Web UI dependency management)
 
 ```bash
 git clone https://github.com/kato83/mayu.git
 cd mayu
-go build -o bin/mayu ./cmd/mayu
-```
 
-### Build with Embedded Web UI
-
-Build a single binary that includes the Web UI (no `--ui-dir` needed at runtime):
-
-```bash
-# Build UI and embed into Go binary
+# Build with embedded Web UI (recommended — same as release binaries)
 make build-embed
 
 # Run — UI is served automatically at /
 ./bin/mayu serve
 ```
+
+> [!TIP]
+> If you only need the CLI/API without the Web UI, you can build with Go alone:
+> ```bash
+> go build -o bin/mayu ./cmd/mayu
+> ```
+> In this case, use `--ui-dir` to serve the Web UI from a separately built directory.
 
 ## Quick Start
 
@@ -257,14 +261,17 @@ mayu serve
 # Start on custom port
 mayu serve --addr :3000
 
-# Serve with Web UI (SPA hosting with i18n locale support)
+# Serve with Web UI from external directory (only needed for non-embed builds)
 mayu serve --ui-dir ./ui/dist/mayu/browser
 
 # OpenAPI spec available at http://localhost:8080/openapi.yaml
 ```
 
 > [!NOTE]
-> The `--ui-dir` option is provided for convenience in development and small deployments.
+> Release binaries and `make build-embed` builds already include the Web UI — `mayu serve`
+> serves the UI at `/` automatically without any extra options.
+> The `--ui-dir` option is only needed when building without embed (plain `go build`)
+> and is useful for development or serving a custom UI build.
 > For production, we recommend serving the Angular static assets via a dedicated web server
 > (Nginx, Apache) or a CDN-backed storage service (S3 + CloudFront, GCS + Cloud CDN, etc.)
 > to benefit from proper caching, compression, access control, and horizontal scalability.
