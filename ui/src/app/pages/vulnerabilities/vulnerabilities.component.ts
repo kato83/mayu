@@ -201,7 +201,7 @@ function emptyFilters(): FilterState {
                           <span [class]="getSeverityClasses(labels[0])">
                             {{ labels[0] | uppercase }}
                           </span>
-                          <span class="text-xs text-slate-400 dark:text-slate-500 mx-0.5">～</span>
+                          <span class="text-xs text-slate-500 dark:text-slate-400 mx-0.5">–</span>
                           <span [class]="getSeverityClasses(labels[1])">
                             {{ labels[1] | uppercase }}
                           </span>

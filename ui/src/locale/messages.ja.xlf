@@ -198,6 +198,14 @@
         <source>Vulnerability &quot;<x id="PH" equiv-text="id"/>&quot; not found.</source>
         <target>脆弱性「<x id="PH" equiv-text="id"/>」が見つかりません。</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.notFoundReason1" datatype="html">
+        <source>The vulnerability data for this ID may not have been ingested yet.</source>
+        <target>このIDの脆弱性データはまだ取り込まれていない可能性があります。</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.notFoundReason2" datatype="html">
+        <source>The ID may be incorrect or does not exist in any known data source.</source>
+        <target>IDが正しくないか、既知のデータソースに存在しない可能性があります。</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.loadError" datatype="html">
         <source>Failed to load vulnerability details.</source>
         <target>脆弱性の詳細の読み込みに失敗しました。</target>
