@@ -83,33 +83,6 @@ func TestIsInsecureRemoteURL(t *testing.T) {
 	}
 }
 
-func TestParseCVSSScore(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  float64
-	}{
-		{"plain numeric", "9.8", 9.8},
-		{"integer", "7", 7.0},
-		{"zero", "0.0", 0.0},
-		{"low score", "3.1", 3.1},
-		{"empty string", "", 0},
-		{"non-numeric", "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", 9.8},
-		{"whitespace padded", "  9.8  ", 9.8},
-		{"vector with scope changed", "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N", 6.1},
-		{"cvss v4 unsupported", "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", 0},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := parseCVSSScore(tt.input)
-			if got != tt.want {
-				t.Errorf("parseCVSSScore(%q) = %v, want %v", tt.input, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestFormatAliases(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -144,79 +117,34 @@ func TestFormatSeverity(t *testing.T) {
 		want string
 	}{
 		{
-			name: "no severity",
+			name: "no severity level",
 			vuln: &model.Vulnerability{},
 			want: "-",
 		},
 		{
-			name: "top-level severity",
-			vuln: &model.Vulnerability{
-				Severity: []model.Severity{
-					{Type: model.SeverityTypeCVSSV3, Score: "9.8"},
-				},
-			},
-			want: "9.8 CRITICAL",
+			name: "critical",
+			vuln: &model.Vulnerability{SeverityLevel: 5},
+			want: "CRITICAL",
 		},
 		{
-			name: "per-affected severity",
-			vuln: &model.Vulnerability{
-				Affected: []model.Affected{
-					{
-						Severity: []model.Severity{
-							{Type: model.SeverityTypeCVSSV3, Score: "7.5"},
-						},
-					},
-				},
-			},
-			want: "7.5 HIGH",
+			name: "high",
+			vuln: &model.Vulnerability{SeverityLevel: 4},
+			want: "HIGH",
 		},
 		{
-			name: "highest score wins",
-			vuln: &model.Vulnerability{
-				Severity: []model.Severity{
-					{Type: model.SeverityTypeCVSSV3, Score: "5.0"},
-				},
-				Affected: []model.Affected{
-					{
-						Severity: []model.Severity{
-							{Type: model.SeverityTypeCVSSV3, Score: "8.1"},
-						},
-					},
-					{
-						Severity: []model.Severity{
-							{Type: model.SeverityTypeCVSSV3, Score: "3.2"},
-						},
-					},
-				},
-			},
-			want: "8.1 HIGH",
+			name: "medium",
+			vuln: &model.Vulnerability{SeverityLevel: 3},
+			want: "MEDIUM",
 		},
 		{
-			name: "CVSS vector string produces score",
-			vuln: &model.Vulnerability{
-				Severity: []model.Severity{
-					{Type: model.SeverityTypeCVSSV3, Score: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"},
-				},
-			},
-			want: "9.8 CRITICAL",
+			name: "low",
+			vuln: &model.Vulnerability{SeverityLevel: 2},
+			want: "LOW",
 		},
 		{
-			name: "incomplete CVSS vector ignored",
-			vuln: &model.Vulnerability{
-				Severity: []model.Severity{
-					{Type: model.SeverityTypeCVSSV3, Score: "CVSS:3.1/AV:N/AC:L"},
-				},
-			},
-			want: "-",
-		},
-		{
-			name: "max score 10.0",
-			vuln: &model.Vulnerability{
-				Severity: []model.Severity{
-					{Type: model.SeverityTypeCVSSV3, Score: "10.0"},
-				},
-			},
-			want: "10.0 CRITICAL",
+			name: "none",
+			vuln: &model.Vulnerability{SeverityLevel: 1},
+			want: "NONE",
 		},
 	}
 

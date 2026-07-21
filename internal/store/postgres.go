@@ -710,6 +710,9 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 					vuln.RawJSON = replaceJSONField(vuln.RawJSON, "id", vulnID)
 				}
 			}
+			if severityWorst.Valid {
+				vuln.SeverityLevel = int(severityWorst.Int32)
+			}
 			results = append(results, vuln)
 		} else {
 			// Fallback: build minimal Vulnerability from vulnerabilities table
@@ -723,6 +726,9 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 			}
 			if published.Valid {
 				vuln.Published = &published.Time
+			}
+			if severityWorst.Valid {
+				vuln.SeverityLevel = int(severityWorst.Int32)
 			}
 			results = append(results, vuln)
 		}

@@ -42,6 +42,10 @@ type Vulnerability struct {
 	// It is excluded from JSON marshaling to avoid circular encoding.
 	// Populated during ingestion; used when writing to the database.
 	RawJSON json.RawMessage `json:"-"`
+
+	// SeverityLevel is the normalized severity level from vulnerability_summary.
+	// Set during Search (not from OSV JSON). 5=CRITICAL, 4=HIGH, 3=MEDIUM, 2=LOW, 1=NONE, 0=unknown.
+	SeverityLevel int `json:"-"`
 }
 
 // Severity represents a severity score entry.
