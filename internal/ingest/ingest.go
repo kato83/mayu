@@ -140,12 +140,6 @@ func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, 
 	stats.Errors = parseErrors
 	stats.Skipped = parseErrors
 
-	// Refresh vulnerability_summary for affected entries.
-	// For full imports, we refresh all entries that were inserted.
-	// Note: vulnIDs are not tracked in streaming mode; summary refresh
-	// is deferred to a post-import batch job for full imports.
-	// For delta imports, IDs are tracked and refreshed inline.
-
 	// Update sync state
 	syncState := &store.SyncState{
 		Source:         ecosystem,
@@ -518,13 +512,16 @@ func (ing *Ingester) streamParseAndStore(ctx context.Context, entries <-chan fet
 
 // consumeBatches reads batches from a channel and writes them to the store
 // using parallel workers. total is used for progress reporting (0 = unknown).
-// Returns the total number of records inserted.
+// Returns the total number of records inserted and all affected vulnerability IDs.
 func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model.Vulnerability, total int) (int, error) {
 	var insertedTotal int64
+	var mu sync.Mutex
+	var collectedIDs []string
 
 	g, gCtx := errgroup.WithContext(ctx)
 	for i := 0; i < ing.storeWorkers; i++ {
 		g.Go(func() error {
+			var localIDs []string
 			for batch := range batchCh {
 				select {
 				case <-gCtx.Done():
@@ -536,6 +533,11 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 					return fmt.Errorf("upsert batch: %w", err)
 				}
 
+				// Collect canonical vulnerability IDs for summary refresh
+				for _, v := range batch {
+					localIDs = append(localIDs, canonicalVulnID(v))
+				}
+
 				cur := int(atomic.AddInt64(&insertedTotal, int64(len(batch))))
 				if total > 0 {
 					ing.progress(Progress{Phase: "store", Current: cur, Total: total})
@@ -543,6 +545,10 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 					ing.progress(Progress{Phase: "store", Current: cur, Total: 0, Message: fmt.Sprintf("Stored %d entries...", cur)})
 				}
 			}
+			// Merge local IDs into shared slice
+			mu.Lock()
+			collectedIDs = append(collectedIDs, localIDs...)
+			mu.Unlock()
 			return nil
 		})
 	}
@@ -550,6 +556,10 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 	if err := g.Wait(); err != nil {
 		return int(insertedTotal), err
 	}
+
+	// Refresh vulnerability_summary for all ingested vulnerabilities
+	ing.refreshSummary(ctx, collectedIDs)
+
 	return int(insertedTotal), nil
 }
 
