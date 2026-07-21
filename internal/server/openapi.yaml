@@ -53,7 +53,7 @@ paths:
           description: Filter by CVSS severity level
           schema:
             type: string
-            enum: [critical, high, medium, low, none]
+            enum: [critical, high, medium, low, none, unknown]
         - name: since
           in: query
           description: Filter by modified date (YYYY-MM-DD or RFC3339)
@@ -152,6 +152,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/ecosystems:
+    get:
+      operationId: listEcosystems
+      summary: List known ecosystems
+      description: |
+        Returns all known OSV ecosystem names sorted alphabetically.
+        This list is populated from ingested OSV data.
+      tags:
+        - ecosystems
+      responses:
+        "200":
+          description: List of ecosystem names
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EcosystemsResponse"
         "500":
           description: Internal server error
           content:
@@ -500,3 +523,15 @@ components:
         version:
           type: string
           example: dev
+
+    EcosystemsResponse:
+      type: object
+      required:
+        - ecosystems
+      properties:
+        ecosystems:
+          type: array
+          description: Sorted list of all known OSV ecosystem names
+          items:
+            type: string
+          example: ["Go", "Maven", "PyPI", "crates.io", "npm"]
