@@ -61,8 +61,8 @@ mayu audit --sbom ./sbom.cdx.json --no-version-check
 mayu audit --sbom ./sbom.cdx.json --format json
 mayu audit --sbom ./sbom.cdx.json --format csv
 
-# Custom database
-mayu audit --sbom ./sbom.cdx.json --db-url postgres://user:pass@host/db
+# Custom database (via config file)
+mayu --config /path/to/config.yaml audit --sbom ./sbom.cdx.json
 ```
 
 ### Flags
@@ -73,7 +73,6 @@ mayu audit --sbom ./sbom.cdx.json --db-url postgres://user:pass@host/db
 | `--format` | Output format: `table`, `json`, `csv` | `table` |
 | `--include-dev` | Include development dependencies in audit | `false` |
 | `--no-version-check` | Skip version matching, report all vulnerabilities for package name | `false` |
-| `--db-url` | PostgreSQL connection URL | `$DATABASE_URL` or `localhost` |
 
 ### Output (table format)
 
@@ -185,7 +184,7 @@ golang.org/x/net               0.19.0    CVE-2023-45288   MEDIUM     HTTP/2 CONT
 
 **Implementation:**
 - `runAudit(args []string, cfg *config.Config) error`
-- フラグ: `--sbom` (必須), `--format table|json|csv`, `--include-dev`, `--no-version-check`, `--db-url`
+- フラグ: `--sbom` (必須), `--format table|json|csv`, `--include-dev`, `--no-version-check`
 - フロー: ファイル読み込み → sbom.Parse → audit.Audit → 結果出力
 - table出力: `PACKAGE | VERSION | VULN ID | SEVERITY | SUMMARY`
 - json出力: `{"findings": [...], "summary": {"total_packages": N, "vulnerable_packages": N, "total_findings": N}}`

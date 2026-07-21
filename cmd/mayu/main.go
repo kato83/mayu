@@ -120,13 +120,9 @@ func printUsage() {
 	fmt.Println("Run 'mayu <command> --help' for more information on a command.")
 }
 
-// resolveDatabaseURL determines the database URL from flags, env, config file, or default.
-// Priority: CLI flag > environment variable > config file > default.
-func resolveDatabaseURL(flagURL string, cfg *config.Config) string {
-	if flagURL != "" {
-		warnInsecureDatabaseURL(flagURL)
-		return flagURL
-	}
+// resolveDatabaseURL determines the database URL from env, config file, or default.
+// Priority: environment variable > config file > default.
+func resolveDatabaseURL(cfg *config.Config) string {
 	if envURL := os.Getenv("DATABASE_URL"); envURL != "" {
 		warnInsecureDatabaseURL(envURL)
 		return envURL

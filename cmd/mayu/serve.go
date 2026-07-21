@@ -19,7 +19,6 @@ func runServe(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
 
 	addr := fs.String("addr", ":8080", "Address to listen on (host:port)")
-	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
 	uiDir := fs.String("ui-dir", "", "Path to SPA static files directory (e.g., ./ui/dist/mayu/browser)")
 
 	fs.Usage = func() {
@@ -42,7 +41,6 @@ func runServe(args []string, cfg *config.Config) error {
 		fmt.Println("Examples:")
 		fmt.Println("  mayu serve")
 		fmt.Println("  mayu serve --addr :3000")
-		fmt.Println("  mayu serve --db-url postgres://user:pass@host/db")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -50,7 +48,7 @@ func runServe(args []string, cfg *config.Config) error {
 	}
 
 	// Resolve database URL
-	databaseURL := resolveDatabaseURL(*dbURL, cfg)
+	databaseURL := resolveDatabaseURL(cfg)
 
 	// Setup context with signal handling
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

@@ -15,7 +15,6 @@ import (
 func runMigrate(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("migrate", flag.ExitOnError)
 
-	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
 	steps := fs.Int("steps", 0, "Number of migrations to apply (0 = all). Negative to roll back.")
 
 	fs.Usage = func() {
@@ -50,7 +49,7 @@ func runMigrate(args []string, cfg *config.Config) error {
 		return err
 	}
 
-	databaseURL := resolveDatabaseURL(*dbURL, cfg)
+	databaseURL := resolveDatabaseURL(cfg)
 
 	// Create migrate instance using embedded migrations
 	source, err := iofs.New(migrations.FS, ".")

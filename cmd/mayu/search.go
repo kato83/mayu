@@ -34,7 +34,6 @@ func runSearch(args []string, cfg *config.Config) error {
 	startingToken := fs.String("starting-token", "", "Cursor token for pagination (from previous NextToken output)")
 	count := fs.Bool("count", false, "Show only the result count")
 	detail := fs.Bool("detail", false, "Show detailed information for each result")
-	dbURL := fs.String("db-url", "", "PostgreSQL connection URL (default: $DATABASE_URL or localhost)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu search [options] [query]")
@@ -120,7 +119,7 @@ func runSearch(args []string, cfg *config.Config) error {
 	}
 
 	// Resolve database URL
-	databaseURL := resolveDatabaseURL(*dbURL, cfg)
+	databaseURL := resolveDatabaseURL(cfg)
 
 	// Setup context
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
