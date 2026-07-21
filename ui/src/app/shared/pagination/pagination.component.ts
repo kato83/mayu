@@ -1,4 +1,5 @@
 import { Component, computed, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 /**
  * Pagination event emitted when the user navigates pages.
@@ -12,6 +13,7 @@ export interface PageChangeEvent {
 @Component({
   selector: 'app-pagination',
   standalone: true,
+  imports: [RouterLink],
   template: `
     <nav class="flex items-center justify-between" aria-label="Pagination">
       <!-- Result count -->
@@ -27,25 +29,45 @@ export interface PageChangeEvent {
 
       <!-- Page buttons -->
       <div class="flex items-center gap-2">
-        <button
-          (click)="onPrevious()"
-          [disabled]="!hasPrevious()"
-          class="px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <span i18n="@@pagination.previous">Previous</span>
-        </button>
+        @if (hasPrevious()) {
+          <a
+            [routerLink]="[]"
+            [queryParams]="previousQueryParams()"
+            queryParamsHandling="merge"
+            (click)="onPrevious($event)"
+            class="px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors cursor-pointer no-underline"
+          >
+            <span i18n="@@pagination.previous">Previous</span>
+          </a>
+        } @else {
+          <span
+            class="px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-700 opacity-50 cursor-not-allowed"
+          >
+            <span i18n="@@pagination.previous">Previous</span>
+          </span>
+        }
 
         <span class="text-sm text-slate-600 dark:text-slate-400" i18n="@@pagination.pageOf">
           Page {{ currentPage() }} of {{ totalPages() }}
         </span>
 
-        <button
-          (click)="onNext()"
-          [disabled]="!hasNext()"
-          class="px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <span i18n="@@pagination.next">Next</span>
-        </button>
+        @if (hasNext()) {
+          <a
+            [routerLink]="[]"
+            [queryParams]="nextQueryParams()"
+            queryParamsHandling="merge"
+            (click)="onNext($event)"
+            class="px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors cursor-pointer no-underline"
+          >
+            <span i18n="@@pagination.next">Next</span>
+          </a>
+        } @else {
+          <span
+            class="px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-700 opacity-50 cursor-not-allowed"
+          >
+            <span i18n="@@pagination.next">Next</span>
+          </span>
+        }
       </div>
     </nav>
   `,
@@ -66,6 +88,12 @@ export class PaginationComponent {
   /** Whether there is a previous page available */
   hasPrevious = input.required<boolean>();
 
+  /** Query params for the next page link */
+  nextQueryParams = input<Record<string, string | null>>({});
+
+  /** Query params for the previous page link */
+  previousQueryParams = input<Record<string, string | null>>({});
+
   /** Emitted when the user navigates to a different page */
   pageChange = output<PageChangeEvent>();
 
@@ -77,11 +105,13 @@ export class PaginationComponent {
 
   endItem = computed(() => Math.min(this.page() * this.limit(), this.total()));
 
-  onPrevious(): void {
+  onPrevious(event: Event): void {
+    event.preventDefault();
     this.pageChange.emit({ direction: 'previous' });
   }
 
-  onNext(): void {
+  onNext(event: Event): void {
+    event.preventDefault();
     this.pageChange.emit({ direction: 'next' });
   }
 }
