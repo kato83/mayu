@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { PaginationComponent, PageChangeEvent } from './pagination.component';
@@ -15,6 +16,8 @@ import { PaginationComponent, PageChangeEvent } from './pagination.component';
       [page]="page()"
       [hasNext]="hasNext()"
       [hasPrevious]="hasPrevious()"
+      [nextQueryParams]="{cursor: 'next-token'}"
+      [previousQueryParams]="{cursor: null}"
       (pageChange)="onPageChange($event)"
     />
   `,
@@ -39,6 +42,7 @@ describe('PaginationComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [TestHostComponent],
+      providers: [provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -55,19 +59,26 @@ describe('PaginationComponent', () => {
     expect(el.textContent).toContain('Page 1 of 5');
   });
 
-  it('should disable Previous button on first page', () => {
-    const prevButton = fixture.nativeElement.querySelector('button:first-of-type') as HTMLButtonElement;
-    expect(prevButton.disabled).toBe(true);
+  it('should show disabled Previous on first page', () => {
+    const el = fixture.nativeElement as HTMLElement;
+    // Previous should be a span (disabled) since hasPrevious is false
+    const prevSpan = el.querySelector('span.cursor-not-allowed');
+    expect(prevSpan).toBeTruthy();
+    expect(prevSpan?.textContent).toContain('Previous');
   });
 
-  it('should enable Next button when hasNext is true', () => {
-    const nextButton = fixture.nativeElement.querySelector('button:last-of-type') as HTMLButtonElement;
-    expect(nextButton.disabled).toBe(false);
+  it('should show Next as a link when hasNext is true', () => {
+    const el = fixture.nativeElement as HTMLElement;
+    const links = el.querySelectorAll('a');
+    const nextLink = Array.from(links).find(a => a.textContent?.includes('Next'));
+    expect(nextLink).toBeTruthy();
   });
 
   it('should emit pageChange with direction next on Next click', () => {
-    const nextButton = fixture.nativeElement.querySelector('button:last-of-type') as HTMLButtonElement;
-    nextButton.click();
+    const el = fixture.nativeElement as HTMLElement;
+    const links = el.querySelectorAll('a');
+    const nextLink = Array.from(links).find(a => a.textContent?.includes('Next'));
+    nextLink?.click();
     expect(host.lastEvent).toEqual({ direction: 'next' });
   });
 
@@ -76,17 +87,21 @@ describe('PaginationComponent', () => {
     host.hasPrevious.set(true);
     fixture.detectChanges();
 
-    const prevButton = fixture.nativeElement.querySelector('button:first-of-type') as HTMLButtonElement;
-    prevButton.click();
+    const el = fixture.nativeElement as HTMLElement;
+    const links = el.querySelectorAll('a');
+    const prevLink = Array.from(links).find(a => a.textContent?.includes('Previous'));
+    prevLink?.click();
     expect(host.lastEvent).toEqual({ direction: 'previous' });
   });
 
-  it('should disable Next button when hasNext is false', () => {
+  it('should show disabled Next when hasNext is false', () => {
     host.hasNext.set(false);
     fixture.detectChanges();
 
-    const nextButton = fixture.nativeElement.querySelector('button:last-of-type') as HTMLButtonElement;
-    expect(nextButton.disabled).toBe(true);
+    const el = fixture.nativeElement as HTMLElement;
+    const spans = el.querySelectorAll('span.cursor-not-allowed');
+    const nextSpan = Array.from(spans).find(s => s.textContent?.includes('Next'));
+    expect(nextSpan).toBeTruthy();
   });
 
   it('should show correct info for zero results', () => {

@@ -226,6 +226,8 @@ function emptyFilters(): FilterState {
             [page]="currentPage()"
             [hasNext]="hasNextPage()"
             [hasPrevious]="hasPreviousPage()"
+            [nextQueryParams]="nextPageQueryParams()"
+            [previousQueryParams]="previousPageQueryParams()"
             (pageChange)="onPageChange($event)"
           />
         }
@@ -264,7 +266,7 @@ export class VulnerabilitiesComponent implements OnInit {
   private nextCursor = '';
 
   private readonly filterChange$ = new Subject<void>();
-  private initialLoad = true;
+  private skipNextParamsChange = false;
 
   ngOnInit(): void {
     // Debounced filter changes trigger search
@@ -282,32 +284,42 @@ export class VulnerabilitiesComponent implements OnInit {
     this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
-        if (this.initialLoad) {
-          // Restore filters from URL
-          this.filters = {
-            id: params['id'] || '',
-            package: params['purl'] || params['package'] || '',
-            ecosystem: params['ecosystem'] || '',
-            severity: params['severity'] || '',
-            since: params['since'] || '',
-            version: params['version'] || '',
-          };
-
-          const limit = params['limit'] ? parseInt(params['limit'], 10) : 20;
-          this.limit.set(limit);
-
-          // Restore cursor from URL if present
-          const cursor = params['cursor'] || '';
-          this.currentCursor = cursor;
-
-          // If cursor is present, we don't know the exact page number,
-          // but we can infer it from the cursor stack (which is empty on initial load from URL).
-          // For simplicity, if cursor is present, show page as "?" until we load.
-          // After loading, we know current position from total/limit.
-
-          this.initialLoad = false;
-          this.loadData();
+        // Skip if this change was triggered programmatically by syncUrlAndLoad
+        if (this.skipNextParamsChange) {
+          this.skipNextParamsChange = false;
+          return;
         }
+
+        // Restore filters from URL
+        this.filters = {
+          id: params['id'] || '',
+          package: params['purl'] || params['package'] || '',
+          ecosystem: params['ecosystem'] || '',
+          severity: params['severity'] || '',
+          since: params['since'] || '',
+          version: params['version'] || '',
+        };
+
+        const limit = params['limit'] ? parseInt(params['limit'], 10) : 20;
+        this.limit.set(limit);
+
+        // Restore cursor from URL if present
+        const cursor = params['cursor'] || '';
+        this.currentCursor = cursor;
+
+        // Restore page number from URL
+        const page = params['page'] ? parseInt(params['page'], 10) : 1;
+        this.currentPage.set(page);
+
+        // If cursor is present, there's at least a first page to go back to
+        if (cursor) {
+          this.hasPreviousPage.set(true);
+        } else {
+          this.hasPreviousPage.set(false);
+          this.cursorStack = [];
+        }
+
+        this.loadData();
       });
   }
 
@@ -320,6 +332,19 @@ export class VulnerabilitiesComponent implements OnInit {
     this.filters = emptyFilters();
     this.resetPagination();
     this.syncUrlAndLoad();
+  }
+
+  nextPageQueryParams(): Record<string, string | null> {
+    const nextPage = this.currentPage() + 1;
+    return { cursor: this.nextCursor || null, page: String(nextPage) };
+  }
+
+  previousPageQueryParams(): Record<string, string | null> {
+    const prevCursor = this.cursorStack.length > 0
+      ? this.cursorStack[this.cursorStack.length - 1]
+      : null;
+    const prevPage = Math.max(1, this.currentPage() - 1);
+    return { cursor: prevCursor || null, page: prevPage > 1 ? String(prevPage) : null };
   }
 
   onPageChange(event: PageChangeEvent): void {
@@ -411,13 +436,17 @@ export class VulnerabilitiesComponent implements OnInit {
     }
     queryParams['limit'] = this.limit();
     queryParams['cursor'] = this.currentCursor || null;
+    queryParams['page'] = this.currentPage() > 1 ? this.currentPage() : null;
     // Remove legacy offset from URL
     queryParams['offset'] = null;
+
+    // Flag to skip the next queryParams emission (since we're navigating programmatically)
+    this.skipNextParamsChange = true;
 
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams,
-      replaceUrl: true,
+      replaceUrl: false,
     });
 
     this.loadData();
