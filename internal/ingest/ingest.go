@@ -601,15 +601,6 @@ func (ing *Ingester) refreshSummary(ctx context.Context, vulnIDs []string) {
 	}
 }
 
-// collectVulnIDsFromBatch extracts canonical vulnerability IDs from a batch of OSV entries.
-func collectVulnIDsFromBatch(vulns []*model.Vulnerability) []string {
-	ids := make([]string, 0, len(vulns))
-	for _, v := range vulns {
-		ids = append(ids, canonicalVulnID(v))
-	}
-	return ids
-}
-
 // canonicalVulnID determines the canonical vulnerability ID for display/tracking.
 // Uses the same logic as the store layer: first CVE alias wins, otherwise OSV ID.
 func canonicalVulnID(v *model.Vulnerability) string {
