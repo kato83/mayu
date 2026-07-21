@@ -402,7 +402,8 @@ database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 | [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
 | [MITRE CVE (cvelistV5)](https://github.com/CVEProject/cvelistV5) | ✅ Supported | `mayu ingest --source mitre` |
 
-> **Note:** Converted sources (NVD, Debian) contain 50,000+ entries and are downloaded individually since no bulk archive is available. This may take significant time.
+> [!NOTE]
+> Converted sources (NVD, Debian) contain 50,000+ entries and are downloaded individually since no bulk archive is available. This may take significant time.
 
 | Source | Status | Method |
 |--------|--------|--------|
@@ -433,7 +434,8 @@ LEV = 1 - ∏(1 - P1_i)             # Compound across all historical days
 
 If the CVE is in the CISA KEV catalog, LEV is automatically set to **1.0** (confirmed exploitation).
 
-> **Note:** This implementation uses the rigorous P30→P1 conversion, not the `P30/30` approximation from the paper which is inaccurate for high EPSS scores.
+> [!NOTE]
+> This implementation uses the rigorous P30→P1 conversion, not the `P30/30` approximation from the paper which is inaccurate for high EPSS scores.
 
 ### Setup for LEV
 
@@ -450,7 +452,8 @@ mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
 mayu ingest --source epss --update
 ```
 
-> **Tip:** The backfill downloads ~5-7 MB per day (~200,000 CVE scores). A full backfill from 2023-03-07 covers ~860 days. Already-imported dates are automatically skipped on re-run.
+> [!TIP]
+> The backfill downloads ~5-7 MB per day (~200,000 CVE scores). A full backfill from 2023-03-07 covers ~860 days. Already-imported dates are automatically skipped on re-run.
 
 ### Viewing LEV scores
 
@@ -509,7 +512,8 @@ curl "http://localhost:8080/api/v1/vulnerabilities/CVE-2023-38831?detail=true" |
 | 0.05 – 0.30 | Low probability of past exploitation |
 | 0.00 – 0.05 | Unlikely to have been exploited |
 
-> **Important:** LEV is a probabilistic estimate, not a confirmed fact. It should be used alongside other signals (KEV, EPSS, CVSS) for vulnerability prioritization.
+> [!IMPORTANT]
+> LEV is a probabilistic estimate, not a confirmed fact. It should be used alongside other signals (KEV, EPSS, CVSS) for vulnerability prioritization.
 
 ## Contributing
 
