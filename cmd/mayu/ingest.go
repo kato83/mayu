@@ -24,7 +24,7 @@ func runIngest(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("ingest", flag.ExitOnError)
 
 	ecosystem := fs.String("ecosystem", "", "Ecosystem to import (e.g., Go, PyPI, npm)")
-	source := fs.String("source", "", "Import from source (nvd, debian, mitre, epss, kev)")
+	source := fs.String("source", "", "Import from source (nvd, debian, mitre, epss, kev, ghsa)")
 	all := fs.Bool("all", false, "Import all ecosystems")
 	bulk := fs.Bool("bulk", false, "Use top-level all.zip for bulk import (with --all)")
 	update := fs.Bool("update", false, "Perform delta update instead of full import")
@@ -37,6 +37,7 @@ func runIngest(args []string, cfg *config.Config) error {
 	native := fs.Bool("native", false, "Use native data source feed instead of OSV conversion (with --source nvd)")
 	year := fs.Int("year", 0, "Import only a specific year's NVD feed (e.g., 2024; with --source nvd --native)")
 	fileMode := fs.Bool("file", false, "Import from local OSV JSON files (paths as positional arguments)")
+	ghsaRepo := fs.String("repo", "", "GitHub repository (owner/repo) for --source ghsa")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu ingest [options]")
@@ -64,6 +65,7 @@ func runIngest(args []string, cfg *config.Config) error {
 		fmt.Println("  mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19")
 		fmt.Println("  mayu ingest --source kev                # Import CISA KEV catalog")
 		fmt.Println("  mayu ingest --source kev --update       # Update KEV catalog if outdated")
+		fmt.Println("  mayu ingest --source ghsa --repo WordPress/wordpress-develop  # Import GitHub repo advisories")
 		fmt.Println("  mayu ingest --file vuln1.json vuln2.json # Import local OSV JSON files")
 	}
 
@@ -276,10 +278,69 @@ func runIngest(args []string, cfg *config.Config) error {
 			return nil
 		}
 
+		// GitHub repository security advisories import
+		if strings.ToLower(*source) == "ghsa" {
+			if *ghsaRepo == "" {
+				return fmt.Errorf("--repo is required with --source ghsa (format: owner/repo)")
+			}
+			parts := strings.SplitN(*ghsaRepo, "/", 2)
+			if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+				return fmt.Errorf("--repo must be in owner/repo format (e.g., WordPress/wordpress-develop)")
+			}
+			owner, repo := parts[0], parts[1]
+
+			// Use GITHUB_TOKEN environment variable if available
+			token := os.Getenv("GITHUB_TOKEN")
+
+			fmt.Printf("\n=== Importing GitHub Security Advisories (%s/%s) ===\n", owner, repo)
+
+			// Fetch advisories from GitHub API
+			advisoryData, err := f.FetchGitHubAdvisories(ctx, owner, repo, token)
+			if err != nil {
+				if ctx.Err() != nil {
+					fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+					return nil
+				}
+				return fmt.Errorf("fetch GitHub advisories: %w", err)
+			}
+
+			if len(advisoryData) == 0 {
+				fmt.Println("  No published advisories found.")
+				return nil
+			}
+
+			fmt.Printf("  Found %d published advisory(ies)\n", len(advisoryData))
+
+			var imported, failed int
+			for _, data := range advisoryData {
+				vuln, err := parser.ConvertGitHubToOSV(data)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "  ✗ conversion error: %v\n", err)
+					failed++
+					continue
+				}
+
+				if err := s.Insert(ctx, vuln); err != nil {
+					fmt.Fprintf(os.Stderr, "  ✗ %s: insert error: %v\n", vuln.ID, err)
+					failed++
+					continue
+				}
+
+				fmt.Printf("  ✓ %s (aliases=%v)\n", vuln.ID, vuln.Aliases)
+				imported++
+			}
+
+			fmt.Printf("\nDone: %d imported, %d failed\n", imported, failed)
+			if failed > 0 {
+				return fmt.Errorf("%d advisory(ies) failed to import", failed)
+			}
+			return nil
+		}
+
 		// Existing converted source logic
 		src := ingest.GetConvertedSource(*source)
 		if src == nil {
-			return fmt.Errorf("unknown source: %q (supported: nvd, debian, mitre, epss, kev)", *source)
+			return fmt.Errorf("unknown source: %q (supported: nvd, debian, mitre, epss, kev, ghsa)", *source)
 		}
 		fmt.Printf("\n=== Importing %s (converted source: gs://%s/%s) ===\n", src.Name, src.Bucket, src.Prefix)
 		stats, err := ing.ImportConvertedSource(ctx, *src)
