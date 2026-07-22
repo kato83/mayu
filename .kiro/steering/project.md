@@ -18,7 +18,7 @@ mayu/
 │   ├── audit/             # SBOM audit logic (version matching, finding generation)
 │   ├── config/            # YAML configuration file loading
 │   ├── cvss/              # CVSS score parsing utilities
-│   ├── fetcher/           # GCS data download (OSV zip, converted sources, streaming)
+│   ├── fetcher/           # GCS data download (OSV zip, converted sources, streaming, GitHub API)
 │   ├── ingest/            # Pipeline orchestrator (OSV ecosystems + converted sources)
 │   ├── model/             # OSV schema Go structs
 │   ├── parser/            # OSV JSON parsing
@@ -177,6 +177,7 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR to `main`:
 | EPSS | ✅ Supported | FIRST bulk CSV via `internal/fetcher/epss` |
 | KEV | ✅ Supported | CISA JSON catalog via `internal/fetcher/kev` |
 | LEV | ✅ Supported | Computed from EPSS + KEV (NIST CSWP 41) |
+| GitHub Security Advisories | ✅ Supported | GitHub REST API via `internal/fetcher/ghsa.go` |
 
 ## Current Phase
 
