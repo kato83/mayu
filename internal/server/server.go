@@ -15,11 +15,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
@@ -49,15 +51,21 @@ type Config struct {
 	// Used when the binary is built with UI assets embedded.
 	// UIDir takes precedence over EmbedFS when both are set.
 	EmbedFS fs.FS
+
+	// Fetcher is the data fetcher for ingest operations.
+	// If nil, the ingest endpoint is not registered.
+	Fetcher *fetcher.Fetcher
 }
 
 // Server is the HTTP API server.
 type Server struct {
-	httpServer *http.Server
-	store      store.Store
-	version    string
-	uiDir      string
-	embedFS    fs.FS
+	httpServer    *http.Server
+	store         store.Store
+	version       string
+	uiDir         string
+	embedFS       fs.FS
+	fetcher       *fetcher.Fetcher
+	ingestRunning atomic.Bool
 }
 
 // New creates a new Server with the given configuration.
@@ -67,6 +75,7 @@ func New(cfg Config) *Server {
 		version: cfg.Version,
 		uiDir:   cfg.UIDir,
 		embedFS: cfg.EmbedFS,
+		fetcher: cfg.Fetcher,
 	}
 
 	router := s.routes()
@@ -75,7 +84,7 @@ func New(cfg Config) *Server {
 		Addr:         cfg.Addr,
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		WriteTimeout: 0, // Disabled for SSE streaming (ingest progress)
 		IdleTimeout:  60 * time.Second,
 	}
 
@@ -103,7 +112,7 @@ func (s *Server) routes() http.Handler {
 	r.Use(middleware.Timeout(30 * time.Second))
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type"},
 		ExposedHeaders:   []string{"X-Total-Count"},
 		AllowCredentials: false,
@@ -124,6 +133,9 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
+		if s.fetcher != nil {
+			r.Post("/ingest", s.handleIngest)
+		}
 	})
 
 	// SPA static file serving with fallback to index.html

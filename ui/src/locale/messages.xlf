@@ -58,6 +58,244 @@
           <context context-type="linenumber">97</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="sidebar.nav.ingest" datatype="html">
+        <source>Ingest</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
+          <context context-type="linenumber">98</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.title" datatype="html">
+        <source>Data Ingest</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">27,28</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.description" datatype="html">
+        <source> Import vulnerability data from various sources into the local database. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">29,31</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.typeLabel" datatype="html">
+        <source> Ingest Type </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">39,40</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.ecosystemLabel" datatype="html">
+        <source> Ecosystem </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">57,58</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.ecosystemLoading" datatype="html">
+        <source>Loading ecosystems...</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">60,62</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.ecosystemPlaceholder" datatype="html">
+        <source>-- Select Ecosystem --</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">68,69</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.repoLabel" datatype="html">
+        <source> Repository (owner/repo) </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">81,82</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.repoPlaceholder" datatype="html">
+        <source>e.g. WordPress/wordpress-develop</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">88,89</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.fromLabel" datatype="html">
+        <source> From (YYYY-MM-DD) </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">100,101</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.toLabel" datatype="html">
+        <source> To (YYYY-MM-DD) </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">112,113</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.datesHint" datatype="html">
+        <source> Leave empty to use defaults (2023-03-07 to today). </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">124,126</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.running" datatype="html">
+        <source>Running...</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">140,141</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.startButton" datatype="html">
+        <source>Start Ingest</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">142,144</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.progressTitle" datatype="html">
+        <source>Progress</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">152,154</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.statusDone" datatype="html">
+        <source>Ingest completed successfully.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">175,177</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.statusError" datatype="html">
+        <source>Ingest failed.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">183,185</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.logTitle" datatype="html">
+        <source>Event Log</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">189,190</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.ecosystem" datatype="html">
+        <source>Ecosystem (Full)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">217</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.ecosystemUpdate" datatype="html">
+        <source>Ecosystem (Delta Update)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">218</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.all" datatype="html">
+        <source>All Ecosystems</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">219</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.allBulk" datatype="html">
+        <source>All Ecosystems (Bulk)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">220</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.nvd" datatype="html">
+        <source>NVD</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">221</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.nvdUpdate" datatype="html">
+        <source>NVD (Delta Update)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">222</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.nvdConverted" datatype="html">
+        <source>NVD (Converted)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">223</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.mitre" datatype="html">
+        <source>MITRE</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">224</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.mitreUpdate" datatype="html">
+        <source>MITRE (Delta Update)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">225</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.epss" datatype="html">
+        <source>EPSS</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">226</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.epssUpdate" datatype="html">
+        <source>EPSS (Delta Update)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">227</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.epssBackfill" datatype="html">
+        <source>EPSS (Backfill)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">228</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.kev" datatype="html">
+        <source>KEV</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">229</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.kevUpdate" datatype="html">
+        <source>KEV (Delta Update)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">230</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.debian" datatype="html">
+        <source>Debian</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">231</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.option.ghsa" datatype="html">
+        <source>GitHub Security Advisories</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">232</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="vulnList.filterId" datatype="html">
         <source>ID / Alias</source>
         <context-group purpose="location">

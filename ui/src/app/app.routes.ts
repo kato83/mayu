@@ -21,6 +21,13 @@ export const routes: Routes = [
             (m) => m.VulnerabilityDetailComponent,
           ),
       },
+      {
+        path: 'ingest',
+        loadComponent: () =>
+          import('./pages/ingest/ingest.component').then(
+            (m) => m.IngestComponent,
+          ),
+      },
     ],
   },
 ];

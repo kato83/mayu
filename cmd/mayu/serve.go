@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kato83/mayu/internal/config"
+	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/server"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/uiassets"
@@ -68,6 +69,7 @@ func runServe(args []string, cfg *config.Config) error {
 		Version: version,
 		UIDir:   *uiDir,
 		EmbedFS: uiassets.FS(),
+		Fetcher: fetcher.New(),
 	})
 
 	// Start server in goroutine.
