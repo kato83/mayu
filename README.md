@@ -14,7 +14,7 @@ Mayu ingests vulnerability data from the [OSV](https://osv.dev/) ecosystem into 
 
 **Current capabilities:**
 - Full and delta import of OSV vulnerability data from the GCS bucket
-- Direct import of GitHub Security Advisories — even before they reach OSV, just `wget` the API response and feed it to mayu
+- Direct import of GitHub Security Advisories — fetch directly from the GitHub API with `--source ghsa --repo`, or manually download and import via `--file`
 - SBOM vulnerability audit — feed a CycloneDX or SPDX SBOM and get a full vulnerability report against local data
 - CLI-based vulnerability search by ID, package name, ecosystem, or alias
 - REST API server with OpenAPI 3.1 specification
@@ -163,6 +163,10 @@ mayu ingest --source kev
 mayu ingest --source kev --update
 # Import local OSV JSON files (e.g., manually constructed GHSA advisories)
 mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
+# Import GitHub repository security advisories via API
+mayu ingest --source ghsa --repo WordPress/wordpress-develop
+# With authentication (for rate limits or private repos)
+GITHUB_TOKEN=ghp_xxx mayu ingest --source ghsa --repo owner/repo
 ```
 
 ### Search Vulnerabilities
@@ -241,7 +245,8 @@ Import vulnerability data from OSV into the local database.
 | `--backfill` | Backfill historical data (with `--source epss`) | `false` |
 | `--from` | Start date for backfill (YYYY-MM-DD) | `2023-03-07` (EPSS v3) |
 | `--to` | End date for backfill (YYYY-MM-DD) | today |
-| `--source` | Import from source (nvd, debian, mitre, epss, kev) | — |
+| `--source` | Import from source (nvd, debian, mitre, epss, kev, ghsa) | — |
+| `--repo` | GitHub repository (owner/repo) for `--source ghsa` | — |
 | `--native` | Use native data source feed (with `--source nvd`) | `false` |
 | `--year` | Import only a specific year's NVD feed (with `--source nvd --native`) | — |
 | `--file` | Import from local OSV JSON files (paths as positional args) | `false` |
@@ -392,6 +397,7 @@ database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 | [NVD CVE (native)](https://nvd.nist.gov/vuln/data-feeds) | ✅ Supported | `mayu ingest --source nvd --native` |
 | [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
 | [MITRE CVE (cvelistV5)](https://github.com/CVEProject/cvelistV5) | ✅ Supported | `mayu ingest --source mitre` |
+| [GitHub Security Advisories](https://docs.github.com/en/rest/security-advisories/repository-advisories) | ✅ Supported | `mayu ingest --source ghsa --repo owner/repo` |
 
 > [!NOTE]
 > Converted sources (NVD, Debian) contain 50,000+ entries and are downloaded individually since no bulk archive is available. This may take significant time.

@@ -2,6 +2,25 @@
 
 How to import vulnerabilities into mayu when they exist only as repository-level GitHub Security Advisories and have not yet reached OSV.
 
+## Recommended: Direct API Import
+
+The easiest way to import GitHub Security Advisories is using the built-in API fetcher:
+
+```bash
+# Import all published advisories from a repository
+mayu ingest --source ghsa --repo WordPress/wordpress-develop
+
+# With authentication (recommended for rate limits)
+export GITHUB_TOKEN=ghp_xxx
+mayu ingest --source ghsa --repo owner/repo
+```
+
+This automatically fetches all published advisories via the GitHub REST API, converts them from GitHub format to OSV, and stores them in the database.
+
+For public repositories, no authentication is required. Set `GITHUB_TOKEN` for higher rate limits or access to private repository advisories.
+
+The rest of this document covers manual import methods for cases where API access is not available.
+
 ## Background
 
 GitHub Security Advisories (GHSAs) are published in two stages:
