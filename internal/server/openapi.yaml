@@ -182,6 +182,57 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/ingest:
+    post:
+      operationId: startIngest
+      summary: Start a data ingest job
+      description: |
+        Triggers a vulnerability data ingestion operation and streams progress
+        via Server-Sent Events (SSE). Only one ingest job can run at a time.
+
+        The response uses `text/event-stream` content type. Each SSE event contains
+        a JSON object with progress information. The stream ends with a `done` or
+        `error` phase event.
+
+        **Security:** This endpoint does not execute shell commands. All operations
+        call Go functions directly with strict input validation (allowlist-based type,
+        regex-validated parameters).
+      tags:
+        - ingest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestRequest"
+      responses:
+        "202":
+          description: |
+            Ingest job started. Response is a Server-Sent Events stream.
+            Each event is a JSON-encoded IngestEvent object prefixed with `data: `.
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/IngestEvent"
+        "400":
+          description: Invalid request parameters (bad type, missing ecosystem, invalid repo format, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: An ingest job is already running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Ingest not available (fetcher not configured)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /healthz:
     get:
       operationId: healthCheck
@@ -535,3 +586,82 @@ components:
           items:
             type: string
           example: ["Go", "Maven", "PyPI", "crates.io", "npm"]
+
+    IngestRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: |
+            The type of ingest operation to perform. Must be one of the allowed values.
+          enum:
+            - ecosystem
+            - ecosystem_update
+            - all
+            - all_bulk
+            - nvd
+            - nvd_update
+            - nvd_converted
+            - mitre
+            - mitre_update
+            - epss
+            - epss_update
+            - epss_backfill
+            - kev
+            - kev_update
+            - debian
+            - ghsa
+          example: ecosystem
+        ecosystem:
+          type: string
+          description: |
+            Ecosystem name (required when type is `ecosystem` or `ecosystem_update`).
+            Must match `^[A-Za-z0-9.:\-]+$` and be a known ecosystem.
+          example: Go
+        repo:
+          type: string
+          description: |
+            GitHub repository in `owner/repo` format (required when type is `ghsa`).
+            Must match `^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`.
+          example: WordPress/wordpress-develop
+        from:
+          type: string
+          format: date
+          description: |
+            Start date for EPSS backfill (YYYY-MM-DD). Optional for type `epss_backfill`.
+            Defaults to 2023-03-07 (EPSS v3 start date).
+          example: "2024-01-01"
+        to:
+          type: string
+          format: date
+          description: |
+            End date for EPSS backfill (YYYY-MM-DD). Optional for type `epss_backfill`.
+            Defaults to today.
+          example: "2025-07-19"
+
+    IngestEvent:
+      type: object
+      description: |
+        A single SSE progress event emitted during an ingest operation.
+        The stream ends when phase is `done` (success) or `error` (failure).
+      required:
+        - phase
+      properties:
+        phase:
+          type: string
+          description: Current phase of the ingest operation
+          enum: [download, parse, store, summary, done, error]
+        current:
+          type: integer
+          description: Number of items processed so far in the current phase
+          example: 150
+        total:
+          type: integer
+          description: Total number of items expected in the current phase (0 if unknown)
+          example: 500
+        message:
+          type: string
+          description: Human-readable status message
+          example: "Downloading Go/all.zip..."
