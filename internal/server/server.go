@@ -109,7 +109,6 @@ func (s *Server) routes() http.Handler {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(30 * time.Second))
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
@@ -128,15 +127,19 @@ func (s *Server) routes() http.Handler {
 	// Swagger UI (Scalar)
 	r.Get("/swagger", s.handleSwaggerUI)
 
-	// API v1 routes
+	// API v1 routes (with 30s timeout)
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(middleware.Timeout(30 * time.Second))
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
-		if s.fetcher != nil {
-			r.Post("/ingest", s.handleIngest)
-		}
 	})
+
+	// Ingest endpoint — no timeout middleware because ingest operations
+	// can run for hours (large ecosystem imports, EPSS backfill, etc.).
+	if s.fetcher != nil {
+		r.Post("/api/v1/ingest", s.handleIngest)
+	}
 
 	// SPA static file serving with fallback to index.html
 	if s.uiDir != "" || s.embedFS != nil {
