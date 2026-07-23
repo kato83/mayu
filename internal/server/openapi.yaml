@@ -182,6 +182,89 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/ingest/jobs:
+    get:
+      operationId: listIngestJobs
+      summary: List recent ingest jobs
+      description: |
+        Returns a list of recent ingest job executions ordered by start time (newest first).
+        Each job includes status, counts, and timing information but not individual failure details.
+      tags:
+        - ingest
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of jobs to return (1-100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: List of ingest jobs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestJobsListResponse"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/ingest/jobs/{id}:
+    get:
+      operationId: getIngestJob
+      summary: Get ingest job detail
+      description: |
+        Retrieves a single ingest job by ID, including the full list of individual
+        failure records (if any). Use this to inspect why specific vulnerabilities
+        failed during import.
+      tags:
+        - ingest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Ingest job ID
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        "200":
+          description: Ingest job detail with failures
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestJobDetailResponse"
+        "400":
+          description: Invalid job ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Ingest job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/ingest:
     post:
       operationId: startIngest
@@ -640,6 +723,164 @@ components:
             End date for EPSS backfill (YYYY-MM-DD). Optional for type `epss_backfill`.
             Defaults to today.
           example: "2025-07-19"
+
+    IngestJobsListResponse:
+      type: object
+      required:
+        - jobs
+      properties:
+        jobs:
+          type: array
+          description: List of ingest jobs ordered by start time (newest first)
+          items:
+            $ref: "#/components/schemas/IngestJob"
+
+    IngestJob:
+      type: object
+      required:
+        - id
+        - source
+        - command_args
+        - started_at
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        source:
+          type: string
+          description: The data source for this ingest job (e.g., osv, nvd, mitre, epss, kev, ghsa)
+          example: osv
+        command_args:
+          type: object
+          additionalProperties: true
+          description: The arguments used to initiate this job
+          example: {"ecosystem": "Go"}
+        started_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-01T00:01:00Z"
+        status:
+          type: string
+          description: Current status of the job
+          enum: [running, success, failed, partial]
+          example: success
+        total_count:
+          type: integer
+          nullable: true
+          description: Total number of items processed
+          example: 1000
+        success_count:
+          type: integer
+          nullable: true
+          description: Number of items successfully processed
+          example: 999
+        failure_count:
+          type: integer
+          nullable: true
+          description: Number of items that failed
+          example: 1
+
+    IngestJobDetailResponse:
+      type: object
+      required:
+        - id
+        - source
+        - command_args
+        - started_at
+        - status
+        - failures
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        source:
+          type: string
+          example: osv
+        command_args:
+          type: object
+          additionalProperties: true
+          example: {"ecosystem": "Go"}
+        started_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-01T00:01:00Z"
+        status:
+          type: string
+          enum: [running, success, failed, partial]
+          example: partial
+        total_count:
+          type: integer
+          nullable: true
+          example: 1000
+        success_count:
+          type: integer
+          nullable: true
+          example: 999
+        failure_count:
+          type: integer
+          nullable: true
+          example: 1
+        error_message:
+          type: string
+          nullable: true
+          description: Overall error message if the job failed
+        error_stack:
+          type: string
+          nullable: true
+          description: Stack trace if the job failed
+        failures:
+          type: array
+          description: List of individual item failures during the job
+          items:
+            $ref: "#/components/schemas/IngestFailure"
+
+    IngestFailure:
+      type: object
+      required:
+        - id
+        - vuln_id
+        - error_type
+        - failed_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        vuln_id:
+          type: string
+          description: The vulnerability ID that failed to process
+          example: CVE-2024-1234
+        error_type:
+          type: string
+          description: Category of the error
+          enum: [parse_error, store_error, fetch_error]
+          example: parse_error
+        error_message:
+          type: string
+          nullable: true
+          description: Human-readable error description
+          example: "invalid JSON"
+        error_stack:
+          type: string
+          nullable: true
+          description: Stack trace for debugging
+        failed_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:30Z"
 
     IngestEvent:
       type: object

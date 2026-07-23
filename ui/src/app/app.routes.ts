@@ -22,6 +22,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'ingest/jobs',
+        loadComponent: () =>
+          import('./pages/ingest-jobs/ingest-jobs.component').then(
+            (m) => m.IngestJobsComponent,
+          ),
+      },
+      {
         path: 'ingest',
         loadComponent: () =>
           import('./pages/ingest/ingest.component').then(

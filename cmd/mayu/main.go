@@ -33,9 +33,17 @@ func main() {
 		printBanner()
 		fmt.Printf("\nmayu %s\n", version)
 	case "ingest":
-		if err := runIngest(os.Args[2:], cfg); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
+		// Check for sub-subcommand 'history'
+		if len(os.Args) > 2 && os.Args[2] == "history" {
+			if err := runIngestHistory(os.Args[3:], cfg); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(1)
+			}
+		} else {
+			if err := runIngest(os.Args[2:], cfg); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(1)
+			}
 		}
 	case "search":
 		if err := runSearch(os.Args[2:], cfg); err != nil {
@@ -110,6 +118,7 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("Commands:")
 	fmt.Println("  ingest     Import vulnerability data from OSV, NVD, MITRE, EPSS, KEV")
+	fmt.Println("  ingest history  Show ingest job history")
 	fmt.Println("  search     Search for vulnerabilities")
 	fmt.Println("  audit      Audit SBOM for known vulnerabilities")
 	fmt.Println("  serve      Start the API server")

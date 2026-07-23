@@ -75,6 +75,25 @@ type Store interface {
 	// Returns a map keyed by "ecosystem/name" with matching vulnerabilities (including
 	// full affected data needed for version range checking).
 	SearchByPackages(ctx context.Context, packages []PackageQuery) (map[string][]*model.Vulnerability, error)
+
+	// CreateIngestJob records a new ingest job. Returns the auto-generated ID.
+	// Prunes old jobs to keep only the 100 most recent.
+	CreateIngestJob(ctx context.Context, job *IngestJob) (int64, error)
+
+	// UpdateIngestJob updates an existing ingest job (status, counts, finish time).
+	UpdateIngestJob(ctx context.Context, job *IngestJob) error
+
+	// RecordIngestFailure records a single failure for an ingest job.
+	RecordIngestFailure(ctx context.Context, failure *IngestFailure) error
+
+	// RecordIngestFailures records multiple failures for an ingest job in a batch.
+	RecordIngestFailures(ctx context.Context, failures []IngestFailure) error
+
+	// ListIngestJobs returns recent ingest jobs ordered by start time (newest first).
+	ListIngestJobs(ctx context.Context, limit int) ([]IngestJob, error)
+
+	// GetIngestJob retrieves an ingest job by ID, including its failures.
+	GetIngestJob(ctx context.Context, id int64) (*IngestJob, error)
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.

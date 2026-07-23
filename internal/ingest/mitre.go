@@ -31,6 +31,27 @@ func (ing *Ingester) ImportMITRE(ctx context.Context) (*Stats, error) {
 		IsFullSync: true,
 	}
 
+	// Start job recording
+	recorder := ing.startJob(ctx, "mitre", map[string]interface{}{
+		"update": false,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Inserted == 0 && stats.Errors > 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
+
 	ing.progress(Progress{Phase: "download", Message: "Starting MITRE CVE import (baseline zip)..."})
 
 	entries, errCh, err := ing.fetcher.StreamMITREBaselineZip(ctx)
@@ -92,6 +113,27 @@ func (ing *Ingester) UpdateMITRE(ctx context.Context) (*Stats, error) {
 		IsFullSync: false,
 	}
 
+	// Start job recording
+	recorder := ing.startJob(ctx, "mitre", map[string]interface{}{
+		"update": true,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Inserted == 0 && stats.Errors > 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
+
 	since, _ := time.Parse(time.RFC3339, syncState.LastModifiedAt)
 
 	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Fetching MITRE delta zips since %s...", since.Format(time.RFC3339))})
@@ -133,6 +175,9 @@ func (ing *Ingester) UpdateMITRE(ctx context.Context) (*Stats, error) {
 		entries, errCh, err := ing.fetcher.StreamMITREDeltaZip(ctx, data)
 		if err != nil {
 			ing.logger.Printf("error opening delta zip %d: %v (skipping)", i+1, err)
+			if recorder != nil {
+				recorder.RecordFailure(fmt.Sprintf("delta-zip-%d", i+1), "fetch_error", err)
+			}
 			totalErrors++
 			continue
 		}
