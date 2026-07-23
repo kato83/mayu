@@ -56,6 +56,7 @@ func (m *mockStore) GetSyncState(ctx context.Context, source string) (*store.Syn
 }
 func (m *mockStore) UpdateSyncState(ctx context.Context, state *store.SyncState) error { return nil }
 func (m *mockStore) RefreshSummary(ctx context.Context, vulnIDs []string) error        { return nil }
+func (m *mockStore) RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error    { return nil }
 func (m *mockStore) UpsertProductIdentifiers(ctx context.Context, identifiers []*model.ProductIdentifier) error {
 	return nil
 }
