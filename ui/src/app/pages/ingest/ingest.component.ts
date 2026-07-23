@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnDestroy, DestroyRef } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, DestroyRef, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -206,12 +206,12 @@ interface IngestOption {
     </div>
   `,
 })
-export class IngestComponent implements OnDestroy {
+export class IngestComponent implements OnInit, OnDestroy {
   private readonly ingestService = inject(IngestService);
   private readonly vulnerabilityService = inject(VulnerabilityService);
   private readonly destroyRef = inject(DestroyRef);
 
-  private subscription: Subscription | null = null;
+  private streamSub: Subscription | null = null;
 
   readonly ingestOptions: IngestOption[] = [
     { value: 'ecosystem', label: $localize`:@@ingest.option.ecosystem:Ecosystem (Full)`, needsEcosystem: true, needsRepo: false, needsDates: false },
@@ -243,13 +243,19 @@ export class IngestComponent implements OnDestroy {
   readonly events = signal<IngestEvent[]>([]);
   readonly ecosystems = signal<string[]>([]);
   readonly ecosystemsLoading = signal(false);
+  readonly activeJobId = signal<number | null>(null);
 
   constructor() {
     this.loadEcosystems();
   }
 
+  ngOnInit(): void {
+    // Check if there's a running job and reconnect to its progress stream.
+    this.checkRunningJob();
+  }
+
   ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
+    this.streamSub?.unsubscribe();
   }
 
   selectedOption(): IngestOption | undefined {
@@ -317,8 +323,31 @@ export class IngestComponent implements OnDestroy {
       ...(this.selectedOption()?.needsDates && this.toDate ? { to: this.toDate } : {}),
     };
 
-    this.subscription = this.ingestService
+    this.ingestService
       .startIngest(params)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (resp) => {
+          this.activeJobId.set(resp.job_id);
+          this.subscribeToStream(resp.job_id);
+        },
+        error: (err) => {
+          const msg = err?.error?.error ?? err?.message ?? 'Failed to start ingest';
+          this.events.update((prev) => [
+            ...prev,
+            { phase: 'error' as const, message: msg },
+          ]);
+          this.status.set('error');
+          this.running.set(false);
+        },
+      });
+  }
+
+  private subscribeToStream(jobId: number): void {
+    this.streamSub?.unsubscribe();
+
+    this.streamSub = this.ingestService
+      .streamProgress(jobId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (event) => {
@@ -326,23 +355,48 @@ export class IngestComponent implements OnDestroy {
           if (event.phase === 'done') {
             this.status.set('done');
             this.running.set(false);
+            this.activeJobId.set(null);
           } else if (event.phase === 'error') {
             this.status.set('error');
             this.running.set(false);
+            this.activeJobId.set(null);
           }
         },
         error: (err) => {
           this.events.update((prev) => [
             ...prev,
-            { phase: 'error' as const, message: err?.message ?? 'Unknown error' },
+            { phase: 'error' as const, message: err?.message ?? 'Stream connection lost' },
           ]);
           this.status.set('error');
           this.running.set(false);
+          this.activeJobId.set(null);
         },
         complete: () => {
           if (this.status() === 'running') {
             this.status.set('done');
             this.running.set(false);
+            this.activeJobId.set(null);
+          }
+        },
+      });
+  }
+
+  /**
+   * On init, check if there's a running ingest job.
+   * If so, reconnect to its progress stream.
+   */
+  private checkRunningJob(): void {
+    this.ingestService
+      .listJobs(1)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (resp) => {
+          const runningJob = resp.jobs.find((j) => j.status === 'running');
+          if (runningJob) {
+            this.running.set(true);
+            this.status.set('running');
+            this.activeJobId.set(runningJob.id);
+            this.subscribeToStream(runningJob.id);
           }
         },
       });
