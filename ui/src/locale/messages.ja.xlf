@@ -478,6 +478,98 @@
         <source> Leave empty to use defaults (2023-03-07 to today). </source>
         <target>空欄の場合はデフォルト（2023-03-07〜今日）が使用されます。</target>
       </trans-unit>
+      <trans-unit id="sidebar.nav.ingestJobs" datatype="html">
+        <source>Ingest Jobs</source>
+        <target>取込ジョブ</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.title" datatype="html">
+        <source>Ingest Jobs</source>
+        <target>取込ジョブ</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.refresh" datatype="html">
+        <source>Refresh</source>
+        <target>更新</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.loading" datatype="html">
+        <source>Loading...</source>
+        <target>読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.noJobs" datatype="html">
+        <source>No ingest jobs found.</source>
+        <target>取込ジョブが見つかりません。</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.id" datatype="html">
+        <source>ID</source>
+        <target>ID</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.source" datatype="html">
+        <source>Source</source>
+        <target>ソース</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.started" datatype="html">
+        <source>Started</source>
+        <target>開始日時</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.status" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.total" datatype="html">
+        <source>Total</source>
+        <target>合計</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.success" datatype="html">
+        <source>Success</source>
+        <target>成功</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.failed" datatype="html">
+        <source>Failed</source>
+        <target>失敗</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.duration" datatype="html">
+        <source>Duration</source>
+        <target>所要時間</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.title" datatype="html">
+        <source> Job Detail </source>
+        <target>ジョブ詳細</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.close" datatype="html">
+        <source>Close detail</source>
+        <target>詳細を閉じる</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.commandArgs" datatype="html">
+        <source>Command Arguments</source>
+        <target>コマンド引数</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.error" datatype="html">
+        <source>Error</source>
+        <target>エラー</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.failures" datatype="html">
+        <source> Failures (<x id="INTERPOLATION" equiv-text="{{ jobDetail()!.failures.length }}"/>) </source>
+        <target>失敗（<x id="INTERPOLATION" equiv-text="{{ jobDetail()!.failures.length }}"/>件）</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.col.vulnId" datatype="html">
+        <source>Vuln ID</source>
+        <target>脆弱性ID</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.col.errorType" datatype="html">
+        <source>Error Type</source>
+        <target>エラー種別</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.col.message" datatype="html">
+        <source>Message</source>
+        <target>メッセージ</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.col.time" datatype="html">
+        <source>Time</source>
+        <target>時刻</target>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.loading" datatype="html">
+        <source> Loading job details... </source>
+        <target>ジョブ詳細を読み込み中...</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

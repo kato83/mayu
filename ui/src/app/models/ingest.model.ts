@@ -23,6 +23,11 @@ export interface IngestEvent {
   message?: string;
 }
 
+export interface IngestStartResponse {
+  job_id: number;
+  status: string;
+}
+
 export interface IngestJob {
   id: number;
   source: string;

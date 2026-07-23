@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-import { IngestParams, IngestEvent, IngestJobsResponse, IngestJobDetail } from '../models/ingest.model';
+import { IngestParams, IngestEvent, IngestStartResponse, IngestJobsResponse, IngestJobDetail } from '../models/ingest.model';
 
 @Injectable({
   providedIn: 'root',
@@ -12,34 +12,43 @@ export class IngestService {
   private readonly baseUrl = '/api/v1/ingest';
 
   /**
-   * Start an ingest operation via POST and stream SSE progress events.
-   * Uses fetch API + ReadableStream since EventSource only supports GET.
+   * Start an ingest operation via POST. Returns the job ID immediately.
+   * The ingest runs in the background on the server — page navigation
+   * does not cancel it.
    */
-  startIngest(params: IngestParams): Observable<IngestEvent> {
+  startIngest(params: IngestParams): Observable<IngestStartResponse> {
+    const body: Record<string, string> = { type: params.type };
+    if (params.ecosystem) {
+      body['ecosystem'] = params.ecosystem;
+    }
+    if (params.repo) {
+      body['repo'] = params.repo;
+    }
+    if (params.from) {
+      body['from'] = params.from;
+    }
+    if (params.to) {
+      body['to'] = params.to;
+    }
+    return this.http.post<IngestStartResponse>(this.baseUrl, body);
+  }
+
+  /**
+   * Stream progress events for an ingest job via SSE.
+   * Supports late-joining: if the job is still running, events are sent from
+   * the beginning. If the job has already finished, a single final event is sent.
+   *
+   * The Observable completes when the job finishes (phase 'done' or 'error').
+   * Unsubscribing aborts the SSE connection but does NOT cancel the server-side job.
+   */
+  streamProgress(jobId: number): Observable<IngestEvent> {
     return new Observable<IngestEvent>((subscriber) => {
       const controller = new AbortController();
+      const url = `${this.baseUrl}/jobs/${jobId}/stream`;
 
-      const body: Record<string, string> = { type: params.type };
-      if (params.ecosystem) {
-        body['ecosystem'] = params.ecosystem;
-      }
-      if (params.repo) {
-        body['repo'] = params.repo;
-      }
-      if (params.from) {
-        body['from'] = params.from;
-      }
-      if (params.to) {
-        body['to'] = params.to;
-      }
-
-      fetch(this.baseUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
-        },
-        body: JSON.stringify(body),
+      fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'text/event-stream' },
         signal: controller.signal,
       })
         .then((response) => {
@@ -57,7 +66,7 @@ export class IngestService {
           }
         });
 
-      // Teardown: abort fetch on unsubscribe
+      // Teardown: abort fetch on unsubscribe (does NOT cancel server-side job)
       return () => {
         controller.abort();
       };

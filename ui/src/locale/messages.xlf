@@ -65,6 +65,167 @@
           <context context-type="linenumber">98</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="sidebar.nav.ingestJobs" datatype="html">
+        <source>Ingest Jobs</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
+          <context context-type="linenumber">99</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.title" datatype="html">
+        <source>Ingest Jobs</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">15,17</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.refresh" datatype="html">
+        <source>Refresh</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">24,26</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.id" datatype="html">
+        <source>ID</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">42</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.source" datatype="html">
+        <source>Source</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">42,43</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.status" datatype="html">
+        <source>Status</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">43,44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.started" datatype="html">
+        <source>Started</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">44,45</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.duration" datatype="html">
+        <source>Duration</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">45,46</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.total" datatype="html">
+        <source>Total</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">46,47</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.success" datatype="html">
+        <source>Success</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">47,48</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.col.failed" datatype="html">
+        <source>Failed</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">48,50</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.loading" datatype="html">
+        <source>Loading...</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">54,56</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.noJobs" datatype="html">
+        <source>No ingest jobs found.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">58,60</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.title" datatype="html">
+        <source> Job Detail </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">91,93</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.close" datatype="html">
+        <source>Close detail</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">96,97</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.commandArgs" datatype="html">
+        <source>Command Arguments</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">107,108</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.error" datatype="html">
+        <source>Error</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">114,115</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.failures" datatype="html">
+        <source> Failures (<x id="INTERPOLATION" equiv-text="{{ jobDetail()!.failures.length }}"/>) </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">123,124</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.col.vulnId" datatype="html">
+        <source>Vuln ID</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">129,130</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.col.errorType" datatype="html">
+        <source>Error Type</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">130,131</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.col.message" datatype="html">
+        <source>Message</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">131,132</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.col.time" datatype="html">
+        <source>Time</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">132,134</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingestJobs.detail.loading" datatype="html">
+        <source> Loading job details... </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest-jobs/ingest-jobs.component.ts</context>
+          <context context-type="linenumber">155,158</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="ingest.title" datatype="html">
         <source>Data Ingest</source>
         <context-group purpose="location">
