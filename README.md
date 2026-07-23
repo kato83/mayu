@@ -167,6 +167,10 @@ mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
 mayu ingest --source ghsa --repo WordPress/wordpress-develop
 # With authentication (for rate limits or private repos)
 GITHUB_TOKEN=ghp_xxx mayu ingest --source ghsa --repo owner/repo
+# View ingest job history
+mayu ingest history
+# View details for a specific job (including failed IDs)
+mayu ingest history --job-id 42
 ```
 
 ### Search Vulnerabilities
@@ -256,6 +260,42 @@ Import vulnerability data from OSV into the local database.
 
 > [!TIP]
 > The list of available ecosystems is published at [`ecosystems.txt`](https://www.googleapis.com/download/storage/v1/b/osv-vulnerabilities/o/ecosystems.txt).
+
+### `mayu ingest history`
+
+Show ingest job execution history. Every `ingest` command is automatically recorded with its options, timing, status, and any failed vulnerability IDs.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--limit` | Number of recent jobs to display | `20` |
+| `--job-id` | Show details for a specific job ID (includes failure list) | — |
+| `--format` | Output format: `table`, `json` | `table` |
+
+**Examples:**
+
+```bash
+# List recent ingest jobs
+mayu ingest history
+
+# Show last 5 jobs
+mayu ingest history --limit 5
+
+# Show details for job #42 (including failed CVE/OSV IDs)
+mayu ingest history --job-id 42
+
+# JSON output for scripting
+mayu ingest history --format json
+```
+
+**Recorded information per job:**
+- Command options used (ecosystem, source, update mode, etc.)
+- Start and end timestamps
+- Status: `success`, `failed`, `partial` (some items failed)
+- Counts: total, success, failure
+- For each failure: vulnerability ID, error type, error message, stack trace
+
+> [!NOTE]
+> Only the 100 most recent jobs are retained. Older jobs are automatically pruned.
 
 ### `mayu audit`
 

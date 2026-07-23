@@ -31,6 +31,29 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 	if len(years) == 0 {
 		years = fetcher.NVDFeedYears()
 	}
+
+	// Start job recording
+	recorder := ing.startJob(ctx, "nvd", map[string]interface{}{
+		"native": true,
+		"years":  years,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Inserted == 0 && stats.Errors > 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
+
 	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Starting NVD native import (%d yearly feeds)...", len(years))})
 
 	var totalInserted int
@@ -49,6 +72,9 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 		if err != nil {
 			// Log error but continue with other years
 			ing.logger.Printf("error importing NVD year %d: %v", year, err)
+			if recorder != nil {
+				recorder.RecordFailure(fmt.Sprintf("NVD-feed-%d", year), "fetch_error", err)
+			}
 			totalErrors++
 			continue
 		}
@@ -101,6 +127,28 @@ func (ing *Ingester) UpdateNVDNative(ctx context.Context) (*Stats, error) {
 		Ecosystem:  nvdNativeSource,
 		IsFullSync: false,
 	}
+
+	// Start job recording
+	recorder := ing.startJob(ctx, "nvd", map[string]interface{}{
+		"native": true,
+		"update": true,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Inserted == 0 && stats.Errors > 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
 
 	ing.progress(Progress{Phase: "download", Message: "Downloading NVD modified feed..."})
 

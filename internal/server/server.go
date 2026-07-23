@@ -135,11 +135,18 @@ func (s *Server) routes() http.Handler {
 		r.Get("/ecosystems", s.handleListEcosystems)
 	})
 
-	// Ingest endpoint — no timeout middleware because ingest operations
-	// can run for hours (large ecosystem imports, EPSS backfill, etc.).
-	if s.fetcher != nil {
-		r.Post("/api/v1/ingest", s.handleIngest)
-	}
+	// Ingest endpoints
+	r.Route("/api/v1/ingest", func(r chi.Router) {
+		// Job history endpoints (with standard timeout)
+		r.With(middleware.Timeout(30 * time.Second)).Get("/jobs", s.handleListIngestJobs)
+		r.With(middleware.Timeout(30 * time.Second)).Get("/jobs/{id}", s.handleGetIngestJob)
+
+		// Ingest trigger — no timeout middleware because ingest operations
+		// can run for hours (large ecosystem imports, EPSS backfill, etc.).
+		if s.fetcher != nil {
+			r.Post("/", s.handleIngest)
+		}
+	})
 
 	// SPA static file serving with fallback to index.html
 	if s.uiDir != "" || s.embedFS != nil {

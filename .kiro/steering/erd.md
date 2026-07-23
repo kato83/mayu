@@ -301,6 +301,30 @@ erDiagram
         TIMESTAMPTZ created_at
     }
 
+    ingest_jobs {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        JSONB command_args "e.g. {ecosystem:Go, update:true}"
+        TEXT source "osv, nvd, mitre, epss, kev, ghsa"
+        TIMESTAMPTZ started_at
+        TIMESTAMPTZ finished_at
+        TEXT status "running, success, failed, partial"
+        INT total_count
+        INT success_count
+        INT failure_count
+        TEXT error_message "job-level error"
+        TEXT error_stack "job-level stack trace"
+    }
+
+    ingest_failures {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT job_id FK "→ ingest_jobs(id) CASCADE"
+        TEXT vuln_id "CVE-xxx or OSV-ID"
+        TEXT error_type "parse_error, store_error, fetch_error"
+        TEXT error_message
+        TEXT error_stack "stack trace at failure point"
+        TIMESTAMPTZ failed_at
+    }
+
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--|| vulnerability_summary : "has"
     vulnerabilities ||--o{ product_identifiers : "has"
@@ -329,6 +353,7 @@ erDiagram
     mitre_containers ||--o{ mitre_references : "has"
     mitre_containers ||--o{ mitre_credits : "has"
     mitre_affected ||--o{ mitre_affected_versions : "has"
+    ingest_jobs ||--o{ ingest_failures : "has"
 ```
 
 ## Design Principles

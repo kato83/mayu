@@ -28,6 +28,27 @@ func (ing *Ingester) ImportKEV(ctx context.Context) (*Stats, error) {
 		IsFullSync: true,
 	}
 
+	// Start job recording
+	recorder := ing.startJob(ctx, "kev", map[string]interface{}{
+		"update": false,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Inserted == 0 && stats.Errors > 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
+
 	ing.progress(Progress{Phase: "download", Message: "Downloading CISA KEV catalog..."})
 
 	catalog, err := ing.fetcher.FetchKEVCatalog(ctx)
@@ -44,6 +65,9 @@ func (ing *Ingester) ImportKEV(ctx context.Context) (*Stats, error) {
 		record, err := catalog.Vulnerabilities[i].ParseKEVRecord()
 		if err != nil {
 			ing.logger.Printf("parse KEV entry: %v (skipping)", err)
+			if recorder != nil {
+				recorder.RecordFailure(fmt.Sprintf("KEV-entry-%d", i), "parse_error", err)
+			}
 			parseErrors++
 			continue
 		}
@@ -123,6 +147,16 @@ func (ing *Ingester) UpdateKEV(ctx context.Context) (*Stats, error) {
 			Duration:   0,
 		}
 		ing.progress(Progress{Phase: "download", Message: "KEV catalog already up-to-date (synced within the last hour)"})
+
+		// Record the skip as a successful no-op job
+		recorder := ing.startJob(ctx, "kev", map[string]interface{}{
+			"update":  true,
+			"skipped": true,
+		})
+		if recorder != nil {
+			recorder.Finish(ctx, "success", 0, 0, 0, nil)
+		}
+
 		return stats, nil
 	}
 
