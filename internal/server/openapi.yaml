@@ -265,17 +265,69 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/ingest/jobs/{id}/stream:
+    get:
+      operationId: streamIngestJobProgress
+      summary: Stream ingest job progress via SSE
+      description: |
+        Streams real-time progress events for an ingest job via Server-Sent Events (SSE).
+
+        Supports late-joining: if the job is still running, all events from the beginning
+        are replayed, then new events are streamed in real-time. If the job has already
+        finished, a single final status event is sent and the stream closes.
+
+        The stream ends when the job completes (phase `done` or `error`).
+        Disconnecting from this stream does NOT cancel the server-side ingest job.
+      tags:
+        - ingest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Ingest job ID (from POST /api/v1/ingest response)
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        "200":
+          description: |
+            SSE stream of IngestEvent objects. Each event is prefixed with `data: `
+            and separated by double newlines.
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/IngestEvent"
+        "400":
+          description: Invalid job ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Ingest job not found (no active runner and not in DB)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/ingest:
     post:
       operationId: startIngest
       summary: Start a data ingest job
       description: |
-        Triggers a vulnerability data ingestion operation and streams progress
-        via Server-Sent Events (SSE). Only one ingest job can run at a time.
+        Triggers a vulnerability data ingestion operation in the background.
+        Returns immediately with the job ID. Only one ingest job can run at a time.
 
-        The response uses `text/event-stream` content type. Each SSE event contains
-        a JSON object with progress information. The stream ends with a `done` or
-        `error` phase event.
+        The ingest runs server-side in a goroutine and is not affected by client
+        disconnection. Use `GET /api/v1/ingest/jobs/{id}/stream` to receive
+        real-time progress events via SSE.
 
         **Security:** This endpoint does not execute shell commands. All operations
         call Go functions directly with strict input validation (allowlist-based type,
@@ -291,12 +343,12 @@ paths:
       responses:
         "202":
           description: |
-            Ingest job started. Response is a Server-Sent Events stream.
-            Each event is a JSON-encoded IngestEvent object prefixed with `data: `.
+            Ingest job accepted and started in the background.
+            Use the returned `job_id` to stream progress or query status.
           content:
-            text/event-stream:
+            application/json:
               schema:
-                $ref: "#/components/schemas/IngestEvent"
+                $ref: "#/components/schemas/IngestStartResponse"
         "400":
           description: Invalid request parameters (bad type, missing ecosystem, invalid repo format, etc.)
           content:
@@ -906,3 +958,20 @@ components:
           type: string
           description: Human-readable status message
           example: "Downloading Go/all.zip..."
+
+    IngestStartResponse:
+      type: object
+      description: Immediate response from POST /api/v1/ingest with the background job ID.
+      required:
+        - job_id
+        - status
+      properties:
+        job_id:
+          type: integer
+          format: int64
+          description: The ID of the started ingest job. Use this to stream progress.
+          example: 42
+        status:
+          type: string
+          description: Initial status of the job (always "running")
+          example: running
