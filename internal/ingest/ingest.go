@@ -72,6 +72,13 @@ func WithStoreWorkers(n int) Option {
 	}
 }
 
+// WithJobRecorder enables job logging via the provided store.
+func WithJobRecorder(s store.Store) Option {
+	return func(ing *Ingester) {
+		ing.jobStore = s
+	}
+}
+
 // Ingester orchestrates the full ingestion pipeline.
 type Ingester struct {
 	fetcher      *fetcher.Fetcher
@@ -81,6 +88,7 @@ type Ingester struct {
 	batchSize    int
 	storeWorkers int
 	progressFn   func(Progress)
+	jobStore     store.Store // optional: enables ingest job recording
 }
 
 // DefaultStoreWorkers returns the default number of parallel store workers
@@ -118,6 +126,28 @@ func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, 
 		Ecosystem:  ecosystem,
 		IsFullSync: true,
 	}
+
+	// Start job recording
+	recorder := ing.startJob(ctx, "osv", map[string]interface{}{
+		"ecosystem": ecosystem,
+		"update":    false,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Inserted == 0 && stats.Errors > 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
 
 	// Phase 1: Download and start streaming
 	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Downloading %s/all.zip...", ecosystem)})
@@ -171,6 +201,28 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 		IsFullSync: false,
 	}
 
+	// Start job recording
+	recorder := ing.startJob(ctx, "osv", map[string]interface{}{
+		"ecosystem": ecosystem,
+		"update":    true,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Inserted == 0 && stats.Errors > 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
+
 	// Get last sync state
 	syncState, err := ing.store.GetSyncState(ctx, ecosystem)
 	if err != nil {
@@ -179,6 +231,11 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 	if syncState == nil {
 		// No previous sync — fall back to full import
 		ing.logger.Printf("no previous sync state for %s, performing full import", ecosystem)
+		// Cancel this job recorder; FullImport will create its own.
+		if recorder != nil {
+			recorder.Finish(ctx, "success", 0, 0, 0, nil)
+			recorder = nil
+		}
 		return ing.FullImport(ctx, ecosystem)
 	}
 
@@ -199,6 +256,11 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 			// modified_id.csv does not exist for this ecosystem — fall back to full import
 			ing.logger.Printf("modified_id.csv not found for %s, falling back to full import", ecosystem)
 			ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("modified_id.csv not found for %s, falling back to full import...", ecosystem)})
+			// Cancel this job recorder; FullImport will create its own.
+			if recorder != nil {
+				recorder.Finish(ctx, "success", 0, 0, 0, nil)
+				recorder = nil
+			}
 			return ing.FullImport(ctx, ecosystem)
 		}
 		return nil, fmt.Errorf("fetch modified_id.csv: %w", err)
@@ -251,6 +313,9 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 				data, err := ing.fetcher.FetchVulnerability(fCtx, ecosystem, entry.ID)
 				if err != nil {
 					ing.logger.Printf("fetch %s: %v (skipping)", entry.ID, err)
+					if recorder != nil {
+						recorder.RecordFailure(entry.ID, "fetch_error", err)
+					}
 					atomic.AddInt64(&fetchErrors, 1)
 					return nil
 				}
@@ -258,6 +323,9 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 				vuln, err := ing.parser.Parse(data)
 				if err != nil {
 					ing.logger.Printf("parse %s: %v (skipping)", entry.ID, err)
+					if recorder != nil {
+						recorder.RecordFailure(entry.ID, "parse_error", err)
+					}
 					atomic.AddInt64(&fetchErrors, 1)
 					return nil
 				}
@@ -356,6 +424,27 @@ func (ing *Ingester) BulkImportAll(ctx context.Context) (*Stats, error) {
 		Ecosystem:  "all",
 		IsFullSync: true,
 	}
+
+	// Start job recording
+	recorder := ing.startJob(ctx, "osv-bulk", map[string]interface{}{
+		"bulk": true,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Inserted == 0 && stats.Errors > 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
 
 	// Phase 1: Download the top-level all.zip.
 	ing.progress(Progress{Phase: "download", Message: "Downloading top-level all.zip (~1.3GB)... this may take a while."})
@@ -585,6 +674,20 @@ func (ing *Ingester) progress(p Progress) {
 	if ing.progressFn != nil {
 		ing.progressFn(p)
 	}
+}
+
+// startJob creates a new job record if job recording is enabled.
+// Returns nil if jobStore is not configured or if job creation fails.
+func (ing *Ingester) startJob(ctx context.Context, source string, args map[string]interface{}) *JobRecorder {
+	if ing.jobStore == nil {
+		return nil
+	}
+	jr, err := NewJobRecorder(ctx, ing.jobStore, source, args)
+	if err != nil {
+		ing.logger.Printf("warning: failed to create ingest job record: %v", err)
+		return nil
+	}
+	return jr
 }
 
 // refreshSummary calls RefreshSummary on the store for the given vulnerability IDs.

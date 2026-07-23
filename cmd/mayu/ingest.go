@@ -99,6 +99,15 @@ func runIngest(args []string, cfg *config.Config) error {
 		}
 		defer func() { _ = s.Close() }()
 
+		// Record ingest job
+		jobStart := time.Now().UTC()
+		jobID, _ := s.CreateIngestJob(ctx, &store.IngestJob{
+			CommandArgs: map[string]interface{}{"file": true, "files": files},
+			Source:      "file",
+			StartedAt:   jobStart,
+			Status:      "running",
+		})
+
 		p := parser.New()
 		var imported, failed int
 
@@ -108,6 +117,12 @@ func runIngest(args []string, cfg *config.Config) error {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "  ✗ %s: %v\n", path, err)
 				failed++
+				if jobID > 0 {
+					_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
+						JobID: jobID, VulnID: path, ErrorType: "fetch_error",
+						ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
+					})
+				}
 				continue
 			}
 
@@ -119,6 +134,12 @@ func runIngest(args []string, cfg *config.Config) error {
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "  ✗ %s: GitHub→OSV conversion error: %v\n", path, err)
 					failed++
+					if jobID > 0 {
+						_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
+							JobID: jobID, VulnID: path, ErrorType: "parse_error",
+							ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
+						})
+					}
 					continue
 				}
 				fmt.Printf("  ℹ %s: detected GitHub Advisory format, converted to OSV\n", path)
@@ -127,6 +148,12 @@ func runIngest(args []string, cfg *config.Config) error {
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "  ✗ %s: parse error: %v\n", path, err)
 					failed++
+					if jobID > 0 {
+						_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
+							JobID: jobID, VulnID: path, ErrorType: "parse_error",
+							ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
+						})
+					}
 					continue
 				}
 				// Set RawJSON for storage (preserves original JSON)
@@ -136,11 +163,33 @@ func runIngest(args []string, cfg *config.Config) error {
 			if err := s.Insert(ctx, vuln); err != nil {
 				fmt.Fprintf(os.Stderr, "  ✗ %s (id=%s): insert error: %v\n", path, vuln.ID, err)
 				failed++
+				if jobID > 0 {
+					_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
+						JobID: jobID, VulnID: vuln.ID, ErrorType: "store_error",
+						ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
+					})
+				}
 				continue
 			}
 
 			fmt.Printf("  ✓ %s (id=%s, aliases=%v)\n", path, vuln.ID, vuln.Aliases)
 			imported++
+		}
+
+		// Finalize job record
+		if jobID > 0 {
+			now := time.Now().UTC()
+			total := imported + failed
+			status := "success"
+			if failed > 0 && imported > 0 {
+				status = "partial"
+			} else if failed > 0 {
+				status = "failed"
+			}
+			_ = s.UpdateIngestJob(ctx, &store.IngestJob{
+				ID: jobID, FinishedAt: &now, Status: status,
+				TotalCount: &total, SuccessCount: &imported, FailureCount: &failed,
+			})
 		}
 
 		fmt.Printf("\nDone: %d imported, %d failed\n", imported, failed)
@@ -166,6 +215,7 @@ func runIngest(args []string, cfg *config.Config) error {
 		ingest.WithBatchSize(*batchSize),
 		ingest.WithStoreWorkers(*storeWorkers),
 		ingest.WithProgress(printProgress),
+		ingest.WithJobRecorder(s),
 	)
 
 	// Handle --source (converted data sources)
@@ -294,18 +344,54 @@ func runIngest(args []string, cfg *config.Config) error {
 
 			fmt.Printf("\n=== Importing GitHub Security Advisories (%s/%s) ===\n", owner, repo)
 
+			// Record ingest job
+			jobStart := time.Now().UTC()
+			jobID, _ := s.CreateIngestJob(ctx, &store.IngestJob{
+				CommandArgs: map[string]interface{}{"source": "ghsa", "repo": *ghsaRepo},
+				Source:      "ghsa",
+				StartedAt:   jobStart,
+				Status:      "running",
+			})
+
 			// Fetch advisories from GitHub API
 			advisoryData, err := f.FetchGitHubAdvisories(ctx, owner, repo, token)
 			if err != nil {
 				if ctx.Err() != nil {
 					fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+					if jobID > 0 {
+						now := time.Now().UTC()
+						zero := 0
+						_ = s.UpdateIngestJob(ctx, &store.IngestJob{
+							ID: jobID, FinishedAt: &now, Status: "failed",
+							TotalCount: &zero, SuccessCount: &zero, FailureCount: &zero,
+							ErrorMessage: strPtr("import interrupted"),
+						})
+					}
 					return nil
+				}
+				if jobID > 0 {
+					now := time.Now().UTC()
+					zero := 0
+					msg := err.Error()
+					_ = s.UpdateIngestJob(ctx, &store.IngestJob{
+						ID: jobID, FinishedAt: &now, Status: "failed",
+						TotalCount: &zero, SuccessCount: &zero, FailureCount: &zero,
+						ErrorMessage: &msg,
+					})
 				}
 				return fmt.Errorf("fetch GitHub advisories: %w", err)
 			}
 
 			if len(advisoryData) == 0 {
 				fmt.Println("  No published advisories found.")
+				if jobID > 0 {
+					now := time.Now().UTC()
+					zero := 0
+					_ = s.UpdateIngestJob(ctx, &store.IngestJob{
+						ID: jobID, FinishedAt: &now, Status: "success",
+						TotalCount: &zero, SuccessCount: &zero, FailureCount: &zero,
+					})
+				}
 				return nil
 			}
 
@@ -317,17 +403,45 @@ func runIngest(args []string, cfg *config.Config) error {
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "  ✗ conversion error: %v\n", err)
 					failed++
+					if jobID > 0 {
+						_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
+							JobID: jobID, VulnID: "unknown", ErrorType: "parse_error",
+							ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
+						})
+					}
 					continue
 				}
 
 				if err := s.Insert(ctx, vuln); err != nil {
 					fmt.Fprintf(os.Stderr, "  ✗ %s: insert error: %v\n", vuln.ID, err)
 					failed++
+					if jobID > 0 {
+						_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
+							JobID: jobID, VulnID: vuln.ID, ErrorType: "store_error",
+							ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
+						})
+					}
 					continue
 				}
 
 				fmt.Printf("  ✓ %s (aliases=%v)\n", vuln.ID, vuln.Aliases)
 				imported++
+			}
+
+			// Finalize job record
+			if jobID > 0 {
+				now := time.Now().UTC()
+				total := imported + failed
+				status := "success"
+				if failed > 0 && imported > 0 {
+					status = "partial"
+				} else if failed > 0 {
+					status = "failed"
+				}
+				_ = s.UpdateIngestJob(ctx, &store.IngestJob{
+					ID: jobID, FinishedAt: &now, Status: status,
+					TotalCount: &total, SuccessCount: &imported, FailureCount: &failed,
+				})
 			}
 
 			fmt.Printf("\nDone: %d imported, %d failed\n", imported, failed)
@@ -406,6 +520,7 @@ func runIngest(args []string, cfg *config.Config) error {
 			ecoIng := ingest.New(f, p, s,
 				ingest.WithBatchSize(*batchSize),
 				ingest.WithStoreWorkers(*storeWorkers),
+				ingest.WithJobRecorder(s),
 				ingest.WithProgress(func(prog ingest.Progress) {
 					// Prefix progress with ecosystem name for parallel output
 					switch prog.Phase {
@@ -539,4 +654,9 @@ func resolveEcosystems(ctx context.Context, f *fetcher.Fetcher, all bool, ecosys
 		return nil, fmt.Errorf("ecosystem must not be empty")
 	}
 	return []string{eco}, nil
+}
+
+// strPtr returns a pointer to the given string.
+func strPtr(s string) *string {
+	return &s
 }

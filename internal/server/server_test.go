@@ -19,6 +19,8 @@ type mockStore struct {
 	getVulnerabilityDetailFunc func(ctx context.Context, id string) (*model.VulnerabilityDetail, error)
 	searchFunc                 func(ctx context.Context, query store.SearchQuery) ([]*model.Vulnerability, error)
 	countFunc                  func(ctx context.Context, query store.SearchQuery) (int64, error)
+	listIngestJobsFunc         func(ctx context.Context, limit int) ([]store.IngestJob, error)
+	getIngestJobFunc           func(ctx context.Context, id int64) (*store.IngestJob, error)
 }
 
 func (m *mockStore) Insert(ctx context.Context, vuln *model.Vulnerability) error { return nil }
@@ -63,6 +65,28 @@ func (m *mockStore) ListOSVEcosystems(ctx context.Context) ([]string, error) {
 }
 func (m *mockStore) UpsertOSVEcosystems(ctx context.Context, names []string) error { return nil }
 func (m *mockStore) SearchByPackages(ctx context.Context, packages []store.PackageQuery) (map[string][]*model.Vulnerability, error) {
+	return nil, nil
+}
+func (m *mockStore) CreateIngestJob(ctx context.Context, job *store.IngestJob) (int64, error) {
+	return 0, nil
+}
+func (m *mockStore) UpdateIngestJob(ctx context.Context, job *store.IngestJob) error { return nil }
+func (m *mockStore) RecordIngestFailure(ctx context.Context, failure *store.IngestFailure) error {
+	return nil
+}
+func (m *mockStore) RecordIngestFailures(ctx context.Context, failures []store.IngestFailure) error {
+	return nil
+}
+func (m *mockStore) ListIngestJobs(ctx context.Context, limit int) ([]store.IngestJob, error) {
+	if m.listIngestJobsFunc != nil {
+		return m.listIngestJobsFunc(ctx, limit)
+	}
+	return nil, nil
+}
+func (m *mockStore) GetIngestJob(ctx context.Context, id int64) (*store.IngestJob, error) {
+	if m.getIngestJobFunc != nil {
+		return m.getIngestJobFunc(ctx, id)
+	}
 	return nil, nil
 }
 

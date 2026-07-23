@@ -19,6 +19,35 @@ func (ing *Ingester) ImportConvertedSource(ctx context.Context, source fetcher.C
 		IsFullSync: true,
 	}
 
+	// Determine the job source label based on the converted source name.
+	jobSource := "nvd-converted"
+	if source.Name == "Debian" || source.Name == "debian" {
+		jobSource = "debian"
+	}
+
+	// Start job recording
+	recorder := ing.startJob(ctx, jobSource, map[string]interface{}{
+		"source": source.Name,
+		"bucket": source.Bucket,
+		"prefix": source.Prefix,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Inserted == 0 && stats.Errors > 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
+
 	// Phase 1: Download all files from the bucket
 	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Listing and downloading %s data from gs://%s/%s...", source.Name, source.Bucket, source.Prefix)})
 
@@ -44,6 +73,9 @@ func (ing *Ingester) ImportConvertedSource(ctx context.Context, source fetcher.C
 	stats.Errors = len(result.Errors)
 	for _, e := range result.Errors {
 		ing.logger.Printf("parse error: %s: %v", e.ID, e.Error)
+		if recorder != nil {
+			recorder.RecordFailure(e.ID, "parse_error", e.Error)
+		}
 	}
 
 	ing.progress(Progress{Phase: "parse", Current: len(result.Vulnerabilities), Total: stats.Total, Message: fmt.Sprintf("Parsed %d entries (%d errors)", len(result.Vulnerabilities), stats.Errors)})

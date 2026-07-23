@@ -96,6 +96,7 @@ export class SidebarComponent {
   readonly navItems: NavItem[] = [
     { label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`, route: '/vulnerabilities', icon: '🛡️' },
     { label: $localize`:@@sidebar.nav.ingest:Ingest`, route: '/ingest', icon: '📥' },
+    { label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`, route: '/ingest/jobs', icon: '📋' },
   ];
 
   setTheme(mode: ThemeMode): void {
