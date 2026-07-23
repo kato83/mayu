@@ -99,13 +99,6 @@ func (a *activeRunners) start(r *ingestRunner) {
 	a.mu.Unlock()
 }
 
-// get returns the current runner (may be nil or finished).
-func (a *activeRunners) get() *ingestRunner {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	return a.current
-}
-
 // getByID returns the runner only if it matches the given job ID.
 func (a *activeRunners) getByID(jobID int64) *ingestRunner {
 	a.mu.RLock()
