@@ -7,12 +7,15 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/parser"
+	"github.com/kato83/mayu/internal/store"
 )
 
 // ingestRequest is the JSON request body for POST /api/v1/ingest.
@@ -32,24 +35,30 @@ type ingestEvent struct {
 	Message string `json:"message,omitempty"`
 }
 
+// ingestStartResponse is the immediate response from POST /api/v1/ingest.
+type ingestStartResponse struct {
+	JobID int64  `json:"job_id"`
+	State string `json:"status"`
+}
+
 // allowedIngestTypes is the permit-list of valid ingest type values.
 var allowedIngestTypes = map[string]bool{
 	"ecosystem":        true,
 	"ecosystem_update": true,
 	"all":              true,
 	"all_bulk":         true,
-	"nvd":              true,
-	"nvd_update":       true,
-	"nvd_converted":    true,
-	"mitre":            true,
-	"mitre_update":     true,
-	"epss":             true,
-	"epss_update":      true,
-	"epss_backfill":    true,
-	"kev":              true,
-	"kev_update":       true,
-	"debian":           true,
-	"ghsa":             true,
+	"nvd":             true,
+	"nvd_update":      true,
+	"nvd_converted":   true,
+	"mitre":           true,
+	"mitre_update":    true,
+	"epss":            true,
+	"epss_update":     true,
+	"epss_backfill":   true,
+	"kev":             true,
+	"kev_update":      true,
+	"debian":          true,
+	"ghsa":            true,
 }
 
 // ecosystemNameRe validates ecosystem names to prevent path traversal.
@@ -62,8 +71,8 @@ var ghsaRepoRe = regexp.MustCompile(`^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$`)
 // dateRe validates date strings in YYYY-MM-DD format.
 var dateRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
-// handleIngest handles POST /api/v1/ingest — starts an ingest job and
-// streams progress via Server-Sent Events (SSE).
+// handleIngest handles POST /api/v1/ingest — starts an ingest job in the
+// background and returns the job ID immediately.
 func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 	// Reject if no fetcher configured (ingest not available).
 	if s.fetcher == nil {
@@ -137,41 +146,67 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "an ingest job is already running")
 		return
 	}
-	defer s.ingestRunning.Store(false)
 
-	// Ensure client supports SSE.
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		writeError(w, http.StatusInternalServerError, "streaming not supported")
+	// Create job record in DB.
+	cmdArgs := map[string]interface{}{"type": req.Type}
+	if req.Ecosystem != "" {
+		cmdArgs["ecosystem"] = req.Ecosystem
+	}
+	if req.Repo != "" {
+		cmdArgs["repo"] = req.Repo
+	}
+	if req.From != "" {
+		cmdArgs["from"] = req.From
+	}
+	if req.To != "" {
+		cmdArgs["to"] = req.To
+	}
+
+	source := ingestTypeToSource(req.Type)
+	job := &store.IngestJob{
+		CommandArgs: cmdArgs,
+		Source:      source,
+		StartedAt:   time.Now().UTC(),
+		Status:      "running",
+	}
+
+	jobID, err := s.store.CreateIngestJob(r.Context(), job)
+	if err != nil {
+		s.ingestRunning.Store(false)
+		slog.Error("failed to create ingest job", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to create ingest job")
 		return
 	}
 
-	// Set SSE headers.
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-	w.WriteHeader(http.StatusAccepted)
-	flusher.Flush()
+	// Create a runner for progress tracking.
+	runner := newIngestRunner(jobID)
+	s.runners.start(runner)
 
-	// Use request context for cancellation (client disconnect).
-	ctx := r.Context()
+	// Launch the ingest in a background goroutine (independent of request context).
+	go s.runIngestJob(runner, job, req)
 
-	// Create ingester with progress callback that writes SSE events.
-	progressFn := func(p ingest.Progress) {
-		evt := ingestEvent{
-			Phase:   p.Phase,
-			Current: p.Current,
-			Total:   p.Total,
-			Message: p.Message,
-		}
-		s.writeSSE(w, flusher, evt)
-	}
+	// Return job ID immediately.
+	writeJSON(w, http.StatusAccepted, ingestStartResponse{
+		JobID: jobID,
+		State: "running",
+	})
+}
+
+// runIngestJob executes the ingest operation in the background.
+func (s *Server) runIngestJob(runner *ingestRunner, job *store.IngestJob, req ingestRequest) {
+	defer func() {
+		s.ingestRunning.Store(false)
+		runner.finish()
+	}()
+
+	// Use a background context so the job is not tied to any HTTP request.
+	ctx := context.Background()
+
+	progressFn := runner.progressCallback()
 
 	p := parser.New()
 	ing := ingest.New(s.fetcher, p, s.store, ingest.WithProgress(progressFn))
 
-	// Execute the ingest job.
 	var stats *ingest.Stats
 	var ingestErr error
 
@@ -181,7 +216,7 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 	case "ecosystem_update":
 		stats, ingestErr = ing.DeltaImport(ctx, req.Ecosystem)
 	case "all":
-		stats, ingestErr = s.ingestAll(ctx, ing)
+		stats, ingestErr = s.ingestAll(ctx, ing, progressFn)
 	case "all_bulk":
 		stats, ingestErr = ing.BulkImportAll(ctx)
 	case "nvd":
@@ -218,28 +253,134 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 		stats, ingestErr = s.ingestGHSA(ctx, req.Repo, progressFn)
 	}
 
-	// Send final event.
+	// Send final event and update DB.
 	if ingestErr != nil {
-		s.writeSSE(w, flusher, ingestEvent{
+		runner.appendEvent(ingestEvent{
 			Phase:   "error",
 			Message: ingestErr.Error(),
 		})
+		errMsg := ingestErr.Error()
+		job.Status = "failed"
+		job.ErrorMessage = &errMsg
+	} else {
+		msg := "completed"
+		if stats != nil {
+			msg = fmt.Sprintf("completed: %d inserted, %d total, %d errors in %s",
+				stats.Inserted, stats.Total, stats.Errors, stats.Duration.Round(1))
+			totalCount := stats.Total
+			successCount := stats.Inserted
+			failureCount := stats.Errors
+			job.TotalCount = &totalCount
+			job.SuccessCount = &successCount
+			job.FailureCount = &failureCount
+		}
+		runner.appendEvent(ingestEvent{
+			Phase:   "done",
+			Message: msg,
+		})
+		if stats != nil && stats.Errors > 0 {
+			job.Status = "partial"
+		} else {
+			job.Status = "success"
+		}
+	}
+
+	now := time.Now().UTC()
+	job.FinishedAt = &now
+
+	if err := s.store.UpdateIngestJob(ctx, job); err != nil {
+		slog.Error("failed to update ingest job", "job_id", job.ID, "error", err)
+	}
+}
+
+// handleIngestJobStream handles GET /api/v1/ingest/jobs/{id}/stream — streams
+// progress events via SSE. Supports late-joining: sends all events from offset 0
+// and then waits for new events until the job completes.
+func (s *Server) handleIngestJobStream(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	jobID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid job ID")
 		return
 	}
 
-	msg := "completed"
-	if stats != nil {
-		msg = fmt.Sprintf("completed: %d inserted, %d total, %d errors in %s",
-			stats.Inserted, stats.Total, stats.Errors, stats.Duration.Round(1))
+	// Look for an active runner with this job ID.
+	runner := s.runners.getByID(jobID)
+	if runner == nil {
+		// No active runner — the job may have already completed.
+		// Return the final status from the DB.
+		job, err := s.store.GetIngestJob(r.Context(), jobID)
+		if err != nil {
+			slog.Error("failed to get ingest job for stream", "id", jobID, "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		if job == nil {
+			writeError(w, http.StatusNotFound, "ingest job not found")
+			return
+		}
+		// Send a single SSE event with the final status.
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			writeError(w, http.StatusInternalServerError, "streaming not supported")
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("X-Accel-Buffering", "no")
+		w.WriteHeader(http.StatusOK)
+
+		phase := "done"
+		msg := fmt.Sprintf("job %d finished with status: %s", job.ID, job.Status)
+		if job.Status == "failed" {
+			phase = "error"
+			if job.ErrorMessage != nil {
+				msg = *job.ErrorMessage
+			}
+		}
+		s.writeSSE(w, flusher, ingestEvent{Phase: phase, Message: msg})
+		return
 	}
-	s.writeSSE(w, flusher, ingestEvent{
-		Phase:   "done",
-		Message: msg,
-	})
+
+	// Set up SSE streaming.
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		writeError(w, http.StatusInternalServerError, "streaming not supported")
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.WriteHeader(http.StatusOK)
+	flusher.Flush()
+
+	ctx := r.Context()
+	offset := 0
+
+	for {
+		events, done := runner.snapshot(offset)
+		for _, evt := range events {
+			s.writeSSE(w, flusher, evt)
+		}
+		offset += len(events)
+
+		if done {
+			return
+		}
+
+		// Wait for new events or client disconnect.
+		runner.wait(ctx)
+		if ctx.Err() != nil {
+			return
+		}
+	}
 }
 
 // ingestAll imports all ecosystems sequentially (matching CLI --all behavior).
-func (s *Server) ingestAll(ctx context.Context, ing *ingest.Ingester) (*ingest.Stats, error) {
+func (s *Server) ingestAll(ctx context.Context, ing *ingest.Ingester, progressFn func(ingest.Progress)) (*ingest.Stats, error) {
 	ecosystems, err := s.fetcher.ListEcosystems(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list ecosystems: %w", err)
@@ -250,12 +391,19 @@ func (s *Server) ingestAll(ctx context.Context, ing *ingest.Ingester) (*ingest.S
 		IsFullSync: true,
 	}
 
-	for _, eco := range ecosystems {
+	for i, eco := range ecosystems {
 		select {
 		case <-ctx.Done():
 			return totalStats, ctx.Err()
 		default:
 		}
+
+		progressFn(ingest.Progress{
+			Phase:   "download",
+			Current: i + 1,
+			Total:   len(ecosystems),
+			Message: fmt.Sprintf("Importing ecosystem: %s", eco),
+		})
 
 		stats, err := ing.FullImport(ctx, eco)
 		if err != nil {
@@ -357,4 +505,26 @@ func (s *Server) ingestGHSA(ctx context.Context, repo string, progressFn func(in
 	}
 
 	return stats, nil
+}
+
+// ingestTypeToSource maps ingest type strings to source names for job records.
+func ingestTypeToSource(t string) string {
+	switch t {
+	case "ecosystem", "ecosystem_update", "all", "all_bulk":
+		return "osv"
+	case "nvd", "nvd_update", "nvd_converted":
+		return "nvd"
+	case "mitre", "mitre_update":
+		return "mitre"
+	case "epss", "epss_update", "epss_backfill":
+		return "epss"
+	case "kev", "kev_update":
+		return "kev"
+	case "debian":
+		return "debian"
+	case "ghsa":
+		return "ghsa"
+	default:
+		return t
+	}
 }

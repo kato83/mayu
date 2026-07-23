@@ -77,6 +77,7 @@ mayu/
 - Styling: TailwindCSS v4
 - Testing: Vitest (run via `pnpm run test`, not `npx vitest` directly)
 - Package manager: pnpm
+- CLI execution: Always use `pnpm exec` instead of `npx` (e.g., `pnpm exec ng build`, not `npx ng build`)
 - All user-facing text must be internationalized using Angular's built-in i18n
 - Use custom IDs with `@@` syntax: `i18n="@@component.purpose"`
 - Source locale: English (`en`), translations: Japanese (`ja`)

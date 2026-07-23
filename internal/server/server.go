@@ -66,6 +66,7 @@ type Server struct {
 	embedFS       fs.FS
 	fetcher       *fetcher.Fetcher
 	ingestRunning atomic.Bool
+	runners       activeRunners
 }
 
 // New creates a new Server with the given configuration.
@@ -141,10 +142,12 @@ func (s *Server) routes() http.Handler {
 		r.With(middleware.Timeout(30 * time.Second)).Get("/jobs", s.handleListIngestJobs)
 		r.With(middleware.Timeout(30 * time.Second)).Get("/jobs/{id}", s.handleGetIngestJob)
 
-		// Ingest trigger — no timeout middleware because ingest operations
-		// can run for hours (large ecosystem imports, EPSS backfill, etc.).
+		// SSE stream for job progress — no timeout (long-lived connection)
+		r.Get("/jobs/{id}/stream", s.handleIngestJobStream)
+
+		// Ingest trigger — returns immediately with job ID
 		if s.fetcher != nil {
-			r.Post("/", s.handleIngest)
+			r.With(middleware.Timeout(30 * time.Second)).Post("/", s.handleIngest)
 		}
 	})
 
