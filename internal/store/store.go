@@ -50,6 +50,12 @@ type Store interface {
 	// Called synchronously at the end of each import pipeline.
 	RefreshSummary(ctx context.Context, vulnIDs []string) error
 
+	// RefreshEPSSSummary performs a lightweight update of vulnerability_summary
+	// for EPSS-related fields only (epss_score, epss_percentile).
+	// Unlike RefreshSummary, this does not recompute severity, CWEs, or ecosystems.
+	// Used by the EPSS ingest pipeline for significantly better performance.
+	RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error
+
 	// UpsertProductIdentifiers stores product identifiers for vulnerabilities.
 	// It replaces all existing identifiers for the given (vulnerability_id, source)
 	// combination and inserts the new ones.
