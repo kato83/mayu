@@ -4,21 +4,26 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kato83/mayu/internal/model"
 )
 
-// UpsertEPSSBatch stores multiple EPSS score entries in a single transaction.
+// UpsertEPSSBatch stores multiple EPSS score entries using bulk multi-value INSERT.
 // It retries automatically on deadlock (same pattern as NVD/MITRE UpsertBatch).
 //
 // The upsert strategy:
-//   - Ensure a corresponding vulnerabilities row exists (INSERT ... ON CONFLICT DO NOTHING).
-//   - For each EPSS score, INSERT or UPDATE on (cve_id, score_date) conflict.
+//   - Bulk-ensure corresponding vulnerabilities rows exist (INSERT ... ON CONFLICT DO NOTHING).
+//   - Bulk-upsert EPSS scores using (cve_id, score_date) unique constraint.
 //
-// This design supports future scoring systems (e.g., LEV) by keeping the
-// vulnerability creation logic generic and separate from scoring-specific storage.
+// Both operations use a single SQL statement with multi-value VALUES clause,
+// reducing round-trips from 2*N to 2 per batch.
 func (s *PostgresStore) UpsertEPSSBatch(ctx context.Context, scores []*model.EPSSScore) error {
+	if len(scores) == 0 {
+		return nil
+	}
+
 	const maxRetries = 5
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		err := s.upsertEPSSBatchOnce(ctx, scores)
@@ -40,64 +45,148 @@ func (s *PostgresStore) UpsertEPSSBatch(ctx context.Context, scores []*model.EPS
 }
 
 func (s *PostgresStore) upsertEPSSBatchOnce(ctx context.Context, scores []*model.EPSSScore) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
+	// PostgreSQL parameter limit is 65535. We use 1 param per vuln row (step 1)
+	// and 6 params per EPSS score row (step 2). Process in sub-chunks if needed.
+	const maxParamsPerChunk = 60000
+	const colsPerRow = 6
 
-	for _, score := range scores {
-		if err := s.upsertEPSSScore(ctx, tx, score); err != nil {
-			return fmt.Errorf("upsert EPSS %s: %w", score.CVEID, err)
+	maxRowsPerChunk := maxParamsPerChunk / colsPerRow
+	for i := 0; i < len(scores); i += maxRowsPerChunk {
+		end := i + maxRowsPerChunk
+		if end > len(scores) {
+			end = len(scores)
+		}
+		if err := s.upsertEPSSChunk(ctx, scores[i:end]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *PostgresStore) upsertEPSSChunk(ctx context.Context, scores []*model.EPSSScore) error {
+	if len(scores) == 0 {
+		return nil
+	}
+
+	// --- Step 1: Bulk ensure vulnerability rows exist ---
+	// Build: INSERT INTO vulnerabilities (id, ...) VALUES ($1,...),($2,...),... ON CONFLICT DO NOTHING
+	// Deduplicate CVE IDs within this chunk
+	seen := make(map[string]struct{}, len(scores))
+	uniqueCVEs := make([]string, 0, len(scores))
+	for _, s := range scores {
+		if _, ok := seen[s.CVEID]; !ok {
+			seen[s.CVEID] = struct{}{}
+			uniqueCVEs = append(uniqueCVEs, s.CVEID)
 		}
 	}
 
-	return tx.Commit()
-}
-
-// upsertEPSSScore inserts or updates a single EPSS score within a transaction.
-// Strategy:
-//  1. Ensure the CVE exists in the vulnerabilities table (source='epss').
-//     Uses ON CONFLICT DO NOTHING to avoid overwriting existing vulnerability data
-//     contributed by other sources (OSV, NVD, MITRE).
-//  2. Upsert into epss_scores using (cve_id, score_date) unique constraint.
-//     On conflict, updates the score values and raw_json (newer data wins).
-func (s *PostgresStore) upsertEPSSScore(ctx context.Context, tx *sql.Tx, score *model.EPSSScore) error {
-	cveID := score.CVEID
-
-	// --- Step 1: Ensure vulnerability row exists ---
-	// EPSS only contributes the CVE ID; it doesn't provide summary/details/dates.
-	// Use DO NOTHING to preserve data from richer sources (OSV, NVD, MITRE).
-	// modified uses NOW() because the column has a NOT NULL constraint.
-	_, err := tx.ExecContext(ctx, `
-		INSERT INTO vulnerabilities (id, summary, details, published, modified, withdrawn)
-		VALUES ($1, NULL, NULL, NULL, NOW(), NULL)
-		ON CONFLICT (id) DO NOTHING`,
-		cveID,
-	)
-	if err != nil {
-		return fmt.Errorf("ensure vulnerability exists: %w", err)
+	vulnArgs := make([]interface{}, 0, len(uniqueCVEs))
+	vulnValues := make([]string, 0, len(uniqueCVEs))
+	for i, cveID := range uniqueCVEs {
+		vulnValues = append(vulnValues, fmt.Sprintf("($%d, NULL, NULL, NULL, NOW(), NULL)", i+1))
+		vulnArgs = append(vulnArgs, cveID)
 	}
 
-	// --- Step 2: Upsert EPSS score ---
-	_, err = tx.ExecContext(ctx, `
-		INSERT INTO epss_scores (cve_id, vulnerability_id, epss, percentile, score_date, raw_json)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (cve_id, score_date) DO UPDATE SET
+	vulnQuery := `INSERT INTO vulnerabilities (id, summary, details, published, modified, withdrawn) VALUES ` +
+		strings.Join(vulnValues, ", ") +
+		` ON CONFLICT (id) DO NOTHING`
+
+	_, err := s.db.ExecContext(ctx, vulnQuery, vulnArgs...)
+	if err != nil {
+		return fmt.Errorf("bulk ensure vulnerabilities: %w", err)
+	}
+
+	// --- Step 2: Bulk upsert EPSS scores ---
+	// Build: INSERT INTO epss_scores (...) VALUES ($1,$2,$3,$4,$5,$6),($7,...),... ON CONFLICT DO UPDATE
+	const colsPerRow = 6
+	epssArgs := make([]interface{}, 0, len(scores)*colsPerRow)
+	epssValues := make([]string, 0, len(scores))
+	for i, score := range scores {
+		base := i*colsPerRow + 1
+		epssValues = append(epssValues, fmt.Sprintf(
+			"($%d, $%d, $%d, $%d, $%d, $%d)",
+			base, base+1, base+2, base+3, base+4, base+5,
+		))
+		epssArgs = append(epssArgs,
+			score.CVEID,        // cve_id
+			score.CVEID,        // vulnerability_id (same as cve_id)
+			score.EPSS,         // epss
+			score.Percentile,   // percentile
+			score.ScoreDate,    // score_date
+			[]byte(score.RawJSON), // raw_json
+		)
+	}
+
+	epssQuery := `INSERT INTO epss_scores (cve_id, vulnerability_id, epss, percentile, score_date, raw_json) VALUES ` +
+		strings.Join(epssValues, ", ") +
+		` ON CONFLICT (cve_id, score_date) DO UPDATE SET
 			epss = EXCLUDED.epss,
 			percentile = EXCLUDED.percentile,
-			raw_json = EXCLUDED.raw_json`,
-		cveID,
-		cveID,
-		score.EPSS,
-		score.Percentile,
-		score.ScoreDate,
-		[]byte(score.RawJSON),
-	)
+			raw_json = EXCLUDED.raw_json`
+
+	_, err = s.db.ExecContext(ctx, epssQuery, epssArgs...)
 	if err != nil {
-		return fmt.Errorf("upsert epss_score: %w", err)
+		return fmt.Errorf("bulk upsert epss_scores: %w", err)
 	}
 
+	return nil
+}
+
+// RefreshEPSSSummary performs a lightweight update of vulnerability_summary
+// for EPSS-related fields only (epss_score, epss_percentile).
+// Unlike the full RefreshSummary which recomputes severity, CWEs, ecosystems etc.,
+// this only updates the two EPSS columns using a single bulk query.
+// This is safe because EPSS import does not change any other summary fields.
+func (s *PostgresStore) RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error {
+	if len(vulnIDs) == 0 {
+		return nil
+	}
+
+	// Process in batches to avoid exceeding parameter limits
+	const batchSize = 5000
+	for i := 0; i < len(vulnIDs); i += batchSize {
+		end := i + batchSize
+		if end > len(vulnIDs) {
+			end = len(vulnIDs)
+		}
+		if err := s.refreshEPSSSummaryBatch(ctx, vulnIDs[i:end]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *PostgresStore) refreshEPSSSummaryBatch(ctx context.Context, vulnIDs []string) error {
+	// Build parameter placeholders for the IN clause
+	placeholders := make([]string, len(vulnIDs))
+	args := make([]interface{}, len(vulnIDs))
+	for i, id := range vulnIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	// Single query: update epss_score and epss_percentile in vulnerability_summary
+	// using a lateral join to get the latest EPSS score per vulnerability.
+	// Uses INSERT ... ON CONFLICT to handle both existing and new summary rows.
+	query := `
+		INSERT INTO vulnerability_summary (vulnerability_id, epss_score, epss_percentile, computed_at)
+		SELECT e.vulnerability_id, e.epss, e.percentile, NOW()
+		FROM (
+			SELECT DISTINCT ON (vulnerability_id)
+				vulnerability_id, epss, percentile
+			FROM epss_scores
+			WHERE vulnerability_id IN (` + strings.Join(placeholders, ", ") + `)
+			ORDER BY vulnerability_id, score_date DESC
+		) e
+		ON CONFLICT (vulnerability_id) DO UPDATE SET
+			epss_score = EXCLUDED.epss_score,
+			epss_percentile = EXCLUDED.epss_percentile,
+			computed_at = EXCLUDED.computed_at`
+
+	_, err := s.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("refresh EPSS summary: %w", err)
+	}
 	return nil
 }
 
