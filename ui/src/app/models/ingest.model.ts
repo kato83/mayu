@@ -22,3 +22,34 @@ export interface IngestEvent {
   total?: number;
   message?: string;
 }
+
+export interface IngestJob {
+  id: number;
+  source: string;
+  command_args: Record<string, unknown>;
+  started_at: string;
+  finished_at: string | null;
+  status: 'running' | 'success' | 'failed' | 'partial';
+  total_count: number | null;
+  success_count: number | null;
+  failure_count: number | null;
+  error_message: string | null;
+  error_stack: string | null;
+}
+
+export interface IngestFailure {
+  id: number;
+  vuln_id: string;
+  error_type: string;
+  error_message: string | null;
+  error_stack: string | null;
+  failed_at: string;
+}
+
+export interface IngestJobDetail extends IngestJob {
+  failures: IngestFailure[];
+}
+
+export interface IngestJobsResponse {
+  jobs: IngestJob[];
+}

@@ -29,6 +29,27 @@ func (ing *Ingester) ImportEPSS(ctx context.Context) (*Stats, error) {
 		IsFullSync: true,
 	}
 
+	// Start job recording
+	recorder := ing.startJob(ctx, "epss", map[string]interface{}{
+		"update": false,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Inserted == 0 && stats.Errors > 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
+
 	ing.progress(Progress{Phase: "download", Message: "Downloading EPSS scores (CSV bulk)..."})
 
 	scores, err := ing.fetcher.FetchEPSSByCSV(ctx)
@@ -143,6 +164,16 @@ func (ing *Ingester) UpdateEPSS(ctx context.Context) (*Stats, error) {
 			Duration:   0,
 		}
 		ing.progress(Progress{Phase: "download", Message: "EPSS scores already up-to-date (synced today)"})
+
+		// Record the skip as a successful no-op job
+		recorder := ing.startJob(ctx, "epss", map[string]interface{}{
+			"update":  true,
+			"skipped": true,
+		})
+		if recorder != nil {
+			recorder.Finish(ctx, "success", 0, 0, 0, nil)
+		}
+
 		return stats, nil
 	}
 
@@ -237,6 +268,29 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 		IsFullSync: true,
 	}
 
+	// Start job recording
+	recorder := ing.startJob(ctx, "epss", map[string]interface{}{
+		"backfill": true,
+		"from":     from,
+		"to":       to,
+	})
+	defer func() {
+		if recorder != nil {
+			status := "success"
+			var jobErr error
+			if stats.Errors > 0 && stats.Inserted > 0 {
+				status = "partial"
+			} else if stats.Errors > 0 && stats.Inserted == 0 {
+				status = "failed"
+			}
+			if ctx.Err() != nil {
+				status = "failed"
+				jobErr = ctx.Err()
+			}
+			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
+		}
+	}()
+
 	// Parse and validate date range
 	fromDate, err := time.Parse("2006-01-02", from)
 	if err != nil {
@@ -328,6 +382,9 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 		if err != nil {
 			// Log the error but continue with next date (transient failures, missing dates, etc.)
 			ing.logger.Printf("warning: failed to fetch EPSS for %s: %v (skipping)", dateStr, err)
+			if recorder != nil {
+				recorder.RecordFailure(dateStr, "fetch_error", err)
+			}
 			failedDays++
 			ing.progress(Progress{Phase: "store", Current: processedDays, Total: pendingDays,
 				Message: fmt.Sprintf("  [%d/%d] %s - FAILED: %v", processedDays, pendingDays, dateStr, err)})
@@ -338,6 +395,9 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 		inserted, err := ing.storeEPSSBatches(ctx, scores)
 		if err != nil {
 			ing.logger.Printf("warning: failed to store EPSS for %s: %v (skipping)", dateStr, err)
+			if recorder != nil {
+				recorder.RecordFailure(dateStr, "store_error", err)
+			}
 			failedDays++
 			ing.progress(Progress{Phase: "store", Current: processedDays, Total: pendingDays,
 				Message: fmt.Sprintf("  [%d/%d] %s - STORE FAILED: %v", processedDays, pendingDays, dateStr, err)})

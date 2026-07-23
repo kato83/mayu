@@ -1,12 +1,14 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-import { IngestParams, IngestEvent } from '../models/ingest.model';
+import { IngestParams, IngestEvent, IngestJobsResponse, IngestJobDetail } from '../models/ingest.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class IngestService {
+  private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/v1/ingest';
 
   /**
@@ -104,5 +106,21 @@ export class IngestService {
     } catch (err) {
       subscriber.error(err);
     }
+  }
+
+  /**
+   * List recent ingest jobs.
+   */
+  listJobs(limit: number = 20): Observable<IngestJobsResponse> {
+    return this.http.get<IngestJobsResponse>(`${this.baseUrl}/jobs`, {
+      params: { limit: limit.toString() },
+    });
+  }
+
+  /**
+   * Get a single ingest job detail including failures.
+   */
+  getJob(id: number): Observable<IngestJobDetail> {
+    return this.http.get<IngestJobDetail>(`${this.baseUrl}/jobs/${id}`);
   }
 }
