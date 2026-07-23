@@ -17,6 +17,7 @@ const epssSource = "EPSS"
 // (e.g., LEV/NIST CSWP 41) which will follow the same batch upsert pattern.
 type epssBatchStore interface {
 	UpsertEPSSBatch(ctx context.Context, scores []*model.EPSSScore) error
+	RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error
 }
 
 // ImportEPSS performs a full import of EPSS scores from the bulk CSV download.
@@ -224,8 +225,15 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 		ing.progress(Progress{Phase: "store", Current: inserted, Total: total})
 	}
 
-	// Refresh vulnerability_summary for all imported CVEs
-	ing.refreshSummary(ctx, allCVEIDs)
+	// Lightweight EPSS-only summary update (only updates epss_score and epss_percentile)
+	// This replaces the full refreshSummary which was extremely expensive for EPSS imports
+	// because it recomputed severity, CWEs, ecosystems etc. that EPSS does not affect.
+	if len(allCVEIDs) > 0 {
+		ing.progress(Progress{Phase: "summary", Message: fmt.Sprintf("Updating EPSS summary for %d vulnerabilities...", len(allCVEIDs))})
+		if err := es.RefreshEPSSSummary(ctx, allCVEIDs); err != nil {
+			ing.logger.Printf("warning: failed to refresh EPSS summary: %v", err)
+		}
+	}
 
 	return inserted, nil
 }

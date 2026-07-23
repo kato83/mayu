@@ -84,7 +84,8 @@ func (m *mockMITREStore) Insert(ctx context.Context, vuln *model.Vulnerability) 
 func (m *mockMITREStore) UpsertBatch(ctx context.Context, vulns []*model.Vulnerability) error {
 	return nil
 }
-func (m *mockMITREStore) RefreshSummary(ctx context.Context, vulnIDs []string) error { return nil }
+func (m *mockMITREStore) RefreshSummary(ctx context.Context, vulnIDs []string) error     { return nil }
+func (m *mockMITREStore) RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error { return nil }
 func (m *mockMITREStore) UpsertProductIdentifiers(ctx context.Context, identifiers []*model.ProductIdentifier) error {
 	return nil
 }
