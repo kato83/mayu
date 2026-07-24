@@ -312,13 +312,26 @@ func (s *PostgresStore) aggregateEcosystems(ctx context.Context, tx *sql.Tx, vul
 	}
 	defer func() { _ = rows.Close() }()
 
+	seen := make(map[string]bool)
 	var ecosystems []string
 	for rows.Next() {
 		var eco string
 		if err := rows.Scan(&eco); err != nil {
 			return nil, err
 		}
-		ecosystems = append(ecosystems, eco)
+		if !seen[eco] {
+			seen[eco] = true
+			ecosystems = append(ecosystems, eco)
+		}
+		// Also add the base ecosystem name (before first colon) for prefix search support.
+		// e.g., "Ubuntu:22.04:LTS" -> also add "Ubuntu"
+		if idx := strings.IndexByte(eco, ':'); idx > 0 {
+			base := eco[:idx]
+			if !seen[base] {
+				seen[base] = true
+				ecosystems = append(ecosystems, base)
+			}
+		}
 	}
 	return ecosystems, rows.Err()
 }
