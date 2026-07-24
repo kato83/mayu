@@ -137,8 +137,6 @@ mayu ingest --ecosystem Go --update
 mayu ingest --all
 # Import all ecosystems with custom parallelism
 mayu ingest --all --concurrency 5 --store-workers 8
-# Bulk import from single top-level all.zip (~1.3GB, all ecosystems at once)
-mayu ingest --all --bulk
 # Import NVD CVE data directly from NVD JSON Feed 2.0
 mayu ingest --source nvd --native
 # Import only a specific year's NVD data
@@ -244,7 +242,6 @@ Import vulnerability data from OSV into the local database.
 |------|-------------|---------|
 | `--ecosystem` | Ecosystem to import (e.g., Go, PyPI, npm) | — |
 | `--all` | Import all ecosystems (dynamically fetched from GCS) | `false` |
-| `--bulk` | Use top-level all.zip for bulk import (with `--all`) | `false` |
 | `--update` | Perform delta update instead of full import | `false` |
 | `--backfill` | Backfill historical data (with `--source epss`) | `false` |
 | `--from` | Start date for backfill (YYYY-MM-DD) | `2023-03-07` (EPSS v3) |

@@ -414,94 +414,6 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 	return stats, nil
 }
 
-// BulkImportAll performs a bulk import from the top-level all.zip, which
-// contains vulnerabilities from all ecosystems in a single archive (~1.3GB).
-// This is more efficient than importing each ecosystem separately when doing
-// a complete fresh import.
-func (ing *Ingester) BulkImportAll(ctx context.Context) (*Stats, error) {
-	start := time.Now()
-	stats := &Stats{
-		Ecosystem:  "all",
-		IsFullSync: true,
-	}
-
-	// Start job recording
-	recorder := ing.startJob(ctx, "osv-bulk", map[string]interface{}{
-		"bulk": true,
-	})
-	defer func() {
-		if recorder != nil {
-			status := "success"
-			var jobErr error
-			if stats.Errors > 0 && stats.Inserted > 0 {
-				status = "partial"
-			} else if stats.Inserted == 0 && stats.Errors > 0 {
-				status = "failed"
-			}
-			if ctx.Err() != nil {
-				status = "failed"
-				jobErr = ctx.Err()
-			}
-			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
-		}
-	}()
-
-	// Phase 1: Download the top-level all.zip.
-	ing.progress(Progress{Phase: "download", Message: "Downloading top-level all.zip (~1.3GB)... this may take a while."})
-
-	entries, errCh, totalEntries, err := ing.fetcher.StreamTopLevelAllZip(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("fetch top-level all.zip: %w", err)
-	}
-
-	// Phase 2+3: Parallel parse and store with multiple workers.
-	ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Processing %d entries...", totalEntries)})
-
-	inserted, processed, parseErrors, err := ing.streamParseAndStore(ctx, entries, errCh, totalEntries)
-	if err != nil {
-		return nil, err
-	}
-
-	stats.Inserted = inserted
-	stats.Total = processed + parseErrors
-	stats.Errors = parseErrors
-	stats.Skipped = parseErrors
-
-	// Update sync state for "all".
-	now := time.Now().UTC().Format(time.RFC3339)
-	syncState := &store.SyncState{
-		Source:         "all",
-		LastModifiedAt: now,
-		RecordCount:    int64(stats.Inserted),
-	}
-	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
-		ing.logger.Printf("warning: failed to update sync state: %v", err)
-	}
-
-	// Update sync state for each ecosystem so that subsequent delta updates
-	// (--all --update) can use the bulk import timestamp as baseline.
-	ecosystems, listErr := ing.fetcher.ListEcosystems(ctx)
-	if listErr != nil {
-		ing.logger.Printf("warning: failed to list ecosystems for sync state update: %v", listErr)
-	} else {
-		for _, eco := range ecosystems {
-			ecoState := &store.SyncState{
-				Source:         eco,
-				LastModifiedAt: now,
-				RecordCount:    0, // Exact per-ecosystem count unknown; will be corrected on next full/delta import.
-			}
-			if err := ing.store.UpdateSyncState(ctx, ecoState); err != nil {
-				ing.logger.Printf("warning: failed to update sync state for %s: %v", eco, err)
-			}
-		}
-	}
-
-	stats.Duration = time.Since(start)
-	ing.progress(Progress{Phase: "store", Current: stats.Inserted, Total: stats.Total, Message: fmt.Sprintf("Done: %d inserted in %s", stats.Inserted, stats.Duration.Round(time.Millisecond))})
-
-	return stats, nil
-}
-
 // storeBatches splits a slice of vulnerabilities into batches and stores them
 // using parallel workers. Returns the total count inserted.
 func (ing *Ingester) storeBatches(ctx context.Context, vulns []*model.Vulnerability) (int, error) {
@@ -531,8 +443,8 @@ func (ing *Ingester) storeBatches(ctx context.Context, vulns []*model.Vulnerabil
 }
 
 // streamParseAndStore reads ZipEntry values from a channel, parses them, and
-// stores them in parallel batches. This is the shared pipeline used by both
-// FullImport and BulkImportAll.
+// stores them in parallel batches. This is the shared pipeline used by
+// FullImport.
 //
 // It returns (inserted, processed, errors, err).
 func (ing *Ingester) streamParseAndStore(ctx context.Context, entries <-chan fetcher.ZipEntry, errCh <-chan error, total int) (inserted int, processed int, parseErrors int, err error) {

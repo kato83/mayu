@@ -33,7 +33,7 @@ const (
 	// DefaultHTTPTimeout is the default timeout for HTTP requests.
 	DefaultHTTPTimeout = 5 * time.Minute
 
-	// LargeFileHTTPTimeout is the timeout for large file downloads (e.g., top-level all.zip ~1.3GB).
+	// LargeFileHTTPTimeout is the timeout for large file downloads (e.g., MITRE cvelistV5 zip).
 	LargeFileHTTPTimeout = 60 * time.Minute
 
 	// MaxResponseSize is the maximum allowed HTTP response body size (2 GB).
