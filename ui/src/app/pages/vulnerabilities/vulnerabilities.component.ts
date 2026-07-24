@@ -20,10 +20,11 @@ interface FilterState {
   since: string;
   version: string;
   kev: boolean;
+  sort: string;
 }
 
 function emptyFilters(): FilterState {
-  return { id: '', package: '', ecosystem: '', severity: '', since: '', version: '', kev: false };
+  return { id: '', package: '', ecosystem: '', severity: '', since: '', version: '', kev: false, sort: 'modified_desc' };
 }
 
 @Component({
@@ -137,6 +138,22 @@ function emptyFilters(): FilterState {
               <span class="text-sm font-medium text-slate-700 dark:text-slate-300" i18n="@@vulnList.filterKev">KEV only</span>
             </label>
           </div>
+
+          <!-- Sort -->
+          <div>
+            <label for="filter-sort" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterSort">Sort</label>
+            <select
+              id="filter-sort"
+              [ngModel]="filters.sort"
+              (ngModelChange)="onFilterChange('sort', $event)"
+              class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            >
+              <option value="modified_desc" i18n="@@vulnList.sortModifiedDesc">Modified (newest)</option>
+              <option value="modified_asc" i18n="@@vulnList.sortModifiedAsc">Modified (oldest)</option>
+              <option value="published_desc" i18n="@@vulnList.sortPublishedDesc">Published (newest)</option>
+              <option value="published_asc" i18n="@@vulnList.sortPublishedAsc">Published (oldest)</option>
+            </select>
+          </div>
         </div>
 
         <!-- Clear button -->
@@ -182,7 +199,13 @@ function emptyFilters(): FilterState {
                   <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colSummary">Summary</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colEcosystem">Ecosystem</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colSeverity">Severity</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colModified">Modified</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    @if (filters.sort.startsWith('published')) {
+                      <span i18n="@@vulnList.colPublished">Published</span>
+                    } @else {
+                      <span i18n="@@vulnList.colModified">Modified</span>
+                    }
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
@@ -222,7 +245,11 @@ function emptyFilters(): FilterState {
                       }
                     </td>
                     <td class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                      {{ vuln.modified | date:'yyyy-MM-dd' }}
+                      @if (filters.sort.startsWith('published')) {
+                        {{ vuln.published | date:'yyyy-MM-dd' }}
+                      } @else {
+                        {{ vuln.modified | date:'yyyy-MM-dd' }}
+                      }
                     </td>
                   </tr>
                 }
@@ -317,6 +344,7 @@ export class VulnerabilitiesComponent implements OnInit {
           since: params['since'] || '',
           version: params['version'] || '',
           kev: params['kev'] === 'true',
+          sort: params['sort'] || 'modified_desc',
         };
 
         const limit = params['limit'] ? parseInt(params['limit'], 10) : 20;
@@ -450,6 +478,7 @@ export class VulnerabilitiesComponent implements OnInit {
       queryParams[key] = this.filters[key] || null;
     }
     queryParams['kev'] = this.filters.kev ? 'true' : null;
+    queryParams['sort'] = this.filters.sort !== 'modified_desc' ? this.filters.sort : null;
     queryParams['limit'] = this.limit();
     queryParams['cursor'] = this.currentCursor || null;
     queryParams['page'] = this.currentPage() > 1 ? this.currentPage() : null;
@@ -496,6 +525,9 @@ export class VulnerabilitiesComponent implements OnInit {
     if (this.filters.since) params.since = this.filters.since;
     if (this.filters.version) params.version = this.filters.version;
     if (this.filters.kev) params.kev = true;
+    if (this.filters.sort && this.filters.sort !== 'modified_desc') {
+      params.sort = this.filters.sort as SearchParams['sort'];
+    }
 
     this.vulnService.search(params)
       .pipe(takeUntilDestroyed(this.destroyRef))

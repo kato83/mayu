@@ -29,6 +29,7 @@ func runSearch(args []string, cfg *config.Config) error {
 	since := fs.String("since", "", "Filter by modified date (YYYY-MM-DD or RFC3339)")
 	version := fs.String("version", "", "Filter by affected version")
 	kev := fs.Bool("kev", false, "Filter to only KEV (Known Exploited Vulnerabilities) entries")
+	sort := fs.String("sort", "modified_desc", "Sort order: modified_desc, modified_asc, published_desc, published_asc")
 	format := fs.String("format", "table", "Output format: table, json, csv")
 	limit := fs.Int("limit", 20, "Maximum number of results")
 	offset := fs.Int("offset", 0, "Offset for pagination (deprecated: use --starting-token)")
@@ -114,6 +115,7 @@ func runSearch(args []string, cfg *config.Config) error {
 		Severity:    *severity,
 		Since:       *since,
 		Version:     *version,
+		Sort:        *sort,
 		Limit:       *limit,
 		Offset:      *offset,
 		Cursor:      *startingToken,

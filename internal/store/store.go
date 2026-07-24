@@ -159,6 +159,10 @@ type SearchQuery struct {
 	// When set, the search uses a lightweight query that avoids fetching raw_json.
 	// Supported fields: id, summary, modified, severity, ecosystem
 	Fields []string
+
+	// Sort specifies the sort order for results.
+	// Valid values: "modified_desc" (default), "modified_asc", "published_desc", "published_asc"
+	Sort string
 }
 
 // SyncState tracks the incremental import state for a data source.
