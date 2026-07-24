@@ -7,6 +7,7 @@ interface NavItem {
   label: string;
   route: string;
   icon: string;
+  children?: NavItem[];
 }
 
 @Component({
@@ -38,15 +39,47 @@ interface NavItem {
         <ul class="space-y-1 px-3">
           @for (item of navItems; track item.route) {
             <li>
-              <a
-                [routerLink]="item.route"
-                routerLinkActive="bg-slate-700 text-white"
-                (click)="closed.emit()"
-                class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-              >
-                <span class="text-lg">{{ item.icon }}</span>
-                <span>{{ item.label }}</span>
-              </a>
+              @if (item.children) {
+                <!-- Parent item with children -->
+                <a
+                  [routerLink]="item.route"
+                  routerLinkActive="bg-slate-700 text-white"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  (click)="closed.emit()"
+                  class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                >
+                  <span class="text-lg">{{ item.icon }}</span>
+                  <span>{{ item.label }}</span>
+                </a>
+                <!-- Children -->
+                <ul class="mt-1 space-y-1">
+                  @for (child of item.children; track child.route) {
+                    <li>
+                      <a
+                        [routerLink]="child.route"
+                        routerLinkActive="bg-slate-700 text-white"
+                        [routerLinkActiveOptions]="{ exact: true }"
+                        (click)="closed.emit()"
+                        class="flex items-center gap-3 pl-9 pr-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                      >
+                        <span class="text-lg">{{ child.icon }}</span>
+                        <span>{{ child.label }}</span>
+                      </a>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <!-- Simple item without children -->
+                <a
+                  [routerLink]="item.route"
+                  routerLinkActive="bg-slate-700 text-white"
+                  (click)="closed.emit()"
+                  class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                >
+                  <span class="text-lg">{{ item.icon }}</span>
+                  <span>{{ item.label }}</span>
+                </a>
+              }
             </li>
           }
         </ul>
@@ -95,8 +128,12 @@ export class SidebarComponent {
 
   readonly navItems: NavItem[] = [
     { label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`, route: '/vulnerabilities', icon: '🛡️' },
-    { label: $localize`:@@sidebar.nav.ingest:Ingest`, route: '/ingest', icon: '📥' },
-    { label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`, route: '/ingest/jobs', icon: '📋' },
+    {
+      label: $localize`:@@sidebar.nav.ingest:Ingest`, route: '/ingest', icon: '📥',
+      children: [
+        { label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`, route: '/ingest/jobs', icon: '📋' },
+      ],
+    },
     { label: $localize`:@@sidebar.nav.status:Status`, route: '/status', icon: '📊' },
   ];
 
