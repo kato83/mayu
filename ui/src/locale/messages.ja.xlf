@@ -406,10 +406,6 @@
         <source>All Ecosystems</source>
         <target>全エコシステム</target>
       </trans-unit>
-      <trans-unit id="ingest.option.allBulk" datatype="html">
-        <source>All Ecosystems (Bulk)</source>
-        <target>全エコシステム（一括）</target>
-      </trans-unit>
       <trans-unit id="ingest.option.nvd" datatype="html">
         <source>NVD</source>
         <target>NVD</target>

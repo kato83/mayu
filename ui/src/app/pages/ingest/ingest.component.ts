@@ -217,7 +217,6 @@ export class IngestComponent implements OnInit, OnDestroy {
     { value: 'ecosystem', label: $localize`:@@ingest.option.ecosystem:Ecosystem (Full)`, needsEcosystem: true, needsRepo: false, needsDates: false },
     { value: 'ecosystem_update', label: $localize`:@@ingest.option.ecosystemUpdate:Ecosystem (Delta Update)`, needsEcosystem: true, needsRepo: false, needsDates: false },
     { value: 'all', label: $localize`:@@ingest.option.all:All Ecosystems`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'all_bulk', label: $localize`:@@ingest.option.allBulk:All Ecosystems (Bulk)`, needsEcosystem: false, needsRepo: false, needsDates: false },
     { value: 'nvd', label: $localize`:@@ingest.option.nvd:NVD`, needsEcosystem: false, needsRepo: false, needsDates: false },
     { value: 'nvd_update', label: $localize`:@@ingest.option.nvdUpdate:NVD (Delta Update)`, needsEcosystem: false, needsRepo: false, needsDates: false },
     { value: 'nvd_converted', label: $localize`:@@ingest.option.nvdConverted:NVD (Converted)`, needsEcosystem: false, needsRepo: false, needsDates: false },
