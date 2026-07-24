@@ -92,8 +92,15 @@ func (ing *Ingester) ImportConvertedSource(ctx context.Context, source fetcher.C
 	// Update sync state
 	lastModified := findLatestModified(result.Vulnerabilities)
 	if !lastModified.IsZero() {
+		// Determine source_type from the converted source name
+		sourceType := "osv"
+		switch source.Name {
+		case "NVD", "nvd":
+			sourceType = "nvd"
+		}
 		syncState := &store.SyncState{
 			Source:         source.Name,
+			SourceType:     sourceType,
 			LastModifiedAt: lastModified.Format(time.RFC3339),
 			RecordCount:    int64(stats.Inserted),
 		}

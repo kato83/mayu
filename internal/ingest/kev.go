@@ -94,6 +94,7 @@ func (ing *Ingester) ImportKEV(ctx context.Context) (*Stats, error) {
 	// Update sync state
 	syncState := &store.SyncState{
 		Source:         kevSource,
+		SourceType:     "kev",
 		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 		RecordCount:    int64(inserted),
 	}

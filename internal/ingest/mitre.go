@@ -73,6 +73,7 @@ func (ing *Ingester) ImportMITRE(ctx context.Context) (*Stats, error) {
 	// Update sync state.
 	syncState := &store.SyncState{
 		Source:         mitreSource,
+		SourceType:     "mitre",
 		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 		RecordCount:    int64(inserted),
 	}
@@ -150,6 +151,7 @@ func (ing *Ingester) UpdateMITRE(ctx context.Context) (*Stats, error) {
 		// Still update sync state timestamp.
 		newState := &store.SyncState{
 			Source:         mitreSource,
+			SourceType:     "mitre",
 			LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 			RecordCount:    syncState.RecordCount,
 		}
@@ -200,6 +202,7 @@ func (ing *Ingester) UpdateMITRE(ctx context.Context) (*Stats, error) {
 	// Update sync state.
 	newState := &store.SyncState{
 		Source:         mitreSource,
+		SourceType:     "mitre",
 		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 		RecordCount:    syncState.RecordCount + int64(totalInserted),
 	}

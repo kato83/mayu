@@ -97,6 +97,7 @@ export class SidebarComponent {
     { label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`, route: '/vulnerabilities', icon: '🛡️' },
     { label: $localize`:@@sidebar.nav.ingest:Ingest`, route: '/ingest', icon: '📥' },
     { label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`, route: '/ingest/jobs', icon: '📋' },
+    { label: $localize`:@@sidebar.nav.status:Status`, route: '/status', icon: '📊' },
   ];
 
   setTheme(mode: ThemeMode): void {

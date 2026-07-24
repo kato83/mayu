@@ -67,6 +67,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "status":
+		if err := runStatus(os.Args[2:], cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "help", "-h", "--help":
 		printUsage()
 	default:
@@ -122,6 +127,7 @@ func printUsage() {
 	fmt.Println("  search     Search for vulnerabilities")
 	fmt.Println("  audit      Audit SBOM for known vulnerabilities")
 	fmt.Println("  serve      Start the API server")
+	fmt.Println("  status     Show data source sync status")
 	fmt.Println("  migrate    Run database migrations")
 	fmt.Println("  version    Print version information")
 	fmt.Println("  help       Show this help message")

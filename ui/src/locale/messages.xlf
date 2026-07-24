@@ -72,6 +72,13 @@
           <context context-type="linenumber">99</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="sidebar.nav.status" datatype="html">
+        <source>Status</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
+          <context context-type="linenumber">100</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="ingestJobs.title" datatype="html">
         <source>Ingest Jobs</source>
         <context-group purpose="location">
@@ -448,6 +455,104 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
           <context context-type="linenumber">232</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.title" datatype="html">
+        <source>Data Source Status</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">15,17</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.refresh" datatype="html">
+        <source>Refresh</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">24,26</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.title" datatype="html">
+        <source>EPSS Coverage</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">38,39</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.dateRange" datatype="html">
+        <source>Date Range</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">41,42</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.daysCovered" datatype="html">
+        <source>Days Covered</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">47,48</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.totalScores" datatype="html">
+        <source>Total Scores</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">53,54</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.coverage" datatype="html">
+        <source>Coverage</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">59,60</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.col.sourceType" datatype="html">
+        <source>Type</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">83,84</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.col.source" datatype="html">
+        <source>Source</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">84,85</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.col.lastSynced" datatype="html">
+        <source>Last Synced</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">85,86</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.col.lastModified" datatype="html">
+        <source>Last Modified</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">86,87</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.col.recordCount" datatype="html">
+        <source>Records</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">87,89</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.loading" datatype="html">
+        <source>Loading...</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">93,95</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="status.noData" datatype="html">
+        <source>No sync data found. Run an ingest operation to populate data.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">97,99</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterId" datatype="html">

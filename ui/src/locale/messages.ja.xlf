@@ -566,6 +566,70 @@
         <source> Loading job details... </source>
         <target>ジョブ詳細を読み込み中...</target>
       </trans-unit>
+      <trans-unit id="sidebar.nav.status" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
+      <trans-unit id="status.title" datatype="html">
+        <source>Data Source Status</source>
+        <target>データソース状況</target>
+      </trans-unit>
+      <trans-unit id="status.refresh" datatype="html">
+        <source>Refresh</source>
+        <target>更新</target>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.title" datatype="html">
+        <source>EPSS Coverage</source>
+        <target>EPSSカバレッジ</target>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.dateRange" datatype="html">
+        <source>Date Range</source>
+        <target>対象期間</target>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.daysCovered" datatype="html">
+        <source>Days Covered</source>
+        <target>取り込み日数</target>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.totalScores" datatype="html">
+        <source>Total Scores</source>
+        <target>合計スコア数</target>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.coverage" datatype="html">
+        <source>Coverage</source>
+        <target>カバレッジ</target>
+      </trans-unit>
+      <trans-unit id="status.col.sourceType" datatype="html">
+        <source>Type</source>
+        <target>種別</target>
+      </trans-unit>
+      <trans-unit id="status.col.source" datatype="html">
+        <source>Source</source>
+        <target>ソース</target>
+      </trans-unit>
+      <trans-unit id="status.col.lastSynced" datatype="html">
+        <source>Last Synced</source>
+        <target>最終同期</target>
+      </trans-unit>
+      <trans-unit id="status.col.lastModified" datatype="html">
+        <source>Last Modified</source>
+        <target>最終更新</target>
+      </trans-unit>
+      <trans-unit id="status.col.recordCount" datatype="html">
+        <source>Records</source>
+        <target>レコード数</target>
+      </trans-unit>
+      <trans-unit id="status.loading" datatype="html">
+        <source>Loading...</source>
+        <target>読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="status.noData" datatype="html">
+        <source>No sync data found. Run an ingest operation to populate data.</source>
+        <target>同期データがありません。データ取り込みを実行してください。</target>
+      </trans-unit>
+      <trans-unit id="status.epssCoverage.missingDays" datatype="html">
+        <source>Missing days</source>
+        <target>欠落日数</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

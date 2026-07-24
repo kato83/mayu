@@ -896,19 +896,21 @@ func (s *PostgresStore) buildCountConditions(query SearchQuery) (string, []inter
 // GetSyncState retrieves the sync state for a given source.
 func (s *PostgresStore) GetSyncState(ctx context.Context, source string) (*SyncState, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT source, last_modified_at, record_count FROM sync_state WHERE source = $1`,
+		SELECT source, source_type, last_modified_at, last_synced_at, record_count FROM sync_state WHERE source = $1`,
 		source,
 	)
 
 	var state SyncState
 	var lastModified time.Time
-	if err := row.Scan(&state.Source, &lastModified, &state.RecordCount); err != nil {
+	var lastSynced time.Time
+	if err := row.Scan(&state.Source, &state.SourceType, &lastModified, &lastSynced, &state.RecordCount); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("query sync_state: %w", err)
 	}
 	state.LastModifiedAt = lastModified.Format(time.RFC3339Nano)
+	state.LastSyncedAt = lastSynced.Format(time.RFC3339Nano)
 	return &state, nil
 }
 
@@ -924,18 +926,46 @@ func (s *PostgresStore) UpdateSyncState(ctx context.Context, state *SyncState) e
 	}
 
 	_, err = s.db.ExecContext(ctx, `
-		INSERT INTO sync_state (source, last_modified_at, record_count)
-		VALUES ($1, $2, $3)
+		INSERT INTO sync_state (source, source_type, last_modified_at, record_count)
+		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (source) DO UPDATE SET
+			source_type = EXCLUDED.source_type,
 			last_modified_at = EXCLUDED.last_modified_at,
 			last_synced_at = NOW(),
 			record_count = EXCLUDED.record_count`,
-		state.Source, lastModified, state.RecordCount,
+		state.Source, state.SourceType, lastModified, state.RecordCount,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert sync_state: %w", err)
 	}
 	return nil
+}
+
+// ListSyncStates returns all sync state records ordered by source_type and source.
+func (s *PostgresStore) ListSyncStates(ctx context.Context) ([]SyncState, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT source, source_type, last_modified_at, last_synced_at, record_count
+		FROM sync_state ORDER BY source_type, source`)
+	if err != nil {
+		return nil, fmt.Errorf("query sync_states: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var states []SyncState
+	for rows.Next() {
+		var state SyncState
+		var lastModified, lastSynced time.Time
+		if err := rows.Scan(&state.Source, &state.SourceType, &lastModified, &lastSynced, &state.RecordCount); err != nil {
+			return nil, fmt.Errorf("scan sync_state: %w", err)
+		}
+		state.LastModifiedAt = lastModified.Format(time.RFC3339Nano)
+		state.LastSyncedAt = lastSynced.Format(time.RFC3339Nano)
+		states = append(states, state)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate sync_states: %w", err)
+	}
+	return states, nil
 }
 
 // --- Helper functions ---

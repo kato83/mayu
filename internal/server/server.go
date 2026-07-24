@@ -134,20 +134,21 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
+		r.Get("/status", s.handleStatus)
 	})
 
 	// Ingest endpoints
 	r.Route("/api/v1/ingest", func(r chi.Router) {
 		// Job history endpoints (with standard timeout)
-		r.With(middleware.Timeout(30 * time.Second)).Get("/jobs", s.handleListIngestJobs)
-		r.With(middleware.Timeout(30 * time.Second)).Get("/jobs/{id}", s.handleGetIngestJob)
+		r.With(middleware.Timeout(30*time.Second)).Get("/jobs", s.handleListIngestJobs)
+		r.With(middleware.Timeout(30*time.Second)).Get("/jobs/{id}", s.handleGetIngestJob)
 
 		// SSE stream for job progress — no timeout (long-lived connection)
 		r.Get("/jobs/{id}/stream", s.handleIngestJobStream)
 
 		// Ingest trigger — returns immediately with job ID
 		if s.fetcher != nil {
-			r.With(middleware.Timeout(30 * time.Second)).Post("/", s.handleIngest)
+			r.With(middleware.Timeout(30*time.Second)).Post("/", s.handleIngest)
 		}
 	})
 

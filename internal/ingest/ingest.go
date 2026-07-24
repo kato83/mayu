@@ -173,6 +173,7 @@ func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, 
 	// Update sync state
 	syncState := &store.SyncState{
 		Source:         ecosystem,
+		SourceType:     "osv",
 		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 		RecordCount:    int64(stats.Inserted),
 	}
@@ -395,6 +396,7 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 		}
 		newSyncState := &store.SyncState{
 			Source:         ecosystem,
+			SourceType:     "osv",
 			LastModifiedAt: latest.Format(time.RFC3339Nano),
 			RecordCount:    syncState.RecordCount + int64(stats.Inserted),
 		}

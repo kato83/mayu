@@ -176,6 +176,7 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to create ingest job")
 		return
 	}
+	job.ID = jobID
 
 	// Create a runner for progress tracking.
 	runner := newIngestRunner(jobID)
@@ -499,6 +500,17 @@ func (s *Server) ingestGHSA(ctx context.Context, repo string, progressFn func(in
 
 		stats.Inserted++
 		progressFn(ingest.Progress{Phase: "store", Current: i + 1, Total: stats.Total})
+	}
+
+	// Update sync state for GHSA source
+	syncState := &store.SyncState{
+		Source:         "GHSA:" + repo,
+		SourceType:     "ghsa",
+		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
+		RecordCount:    int64(stats.Inserted),
+	}
+	if err := s.store.UpdateSyncState(ctx, syncState); err != nil {
+		slog.Error("failed to update GHSA sync state", "repo", repo, "error", err)
 	}
 
 	return stats, nil

@@ -10,12 +10,12 @@ import (
 // ingestRunner manages background ingest job execution with progress streaming.
 // Only one job can run at a time (enforced by Server.ingestRunning).
 type ingestRunner struct {
-	mu       sync.RWMutex
-	jobID    int64
-	events   []ingestEvent
-	done     bool
+	mu     sync.RWMutex
+	jobID  int64
+	events []ingestEvent
+	done   bool
 	// subscribers waiting for new events (signaled on each new event or completion)
-	notify   chan struct{}
+	notify chan struct{}
 }
 
 // newIngestRunner creates a runner for a specific job.
