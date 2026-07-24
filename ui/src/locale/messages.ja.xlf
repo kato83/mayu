@@ -630,6 +630,10 @@
         <source>Missing days</source>
         <target>欠落日数</target>
       </trans-unit>
+      <trans-unit id="vulnList.filterKev" datatype="html">
+        <source>KEV only</source>
+        <target>KEV掲載のみ</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

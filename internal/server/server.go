@@ -322,6 +322,12 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		Fields:      fields,
 	}
 
+	// KEV filter
+	if kevStr := q.Get("kev"); kevStr == "true" {
+		t := true
+		query.InKEV = &t
+	}
+
 	ctx := r.Context()
 
 	// Execute count and search in parallel
