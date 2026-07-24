@@ -19,10 +19,11 @@ interface FilterState {
   severity: string;
   since: string;
   version: string;
+  kev: boolean;
 }
 
 function emptyFilters(): FilterState {
-  return { id: '', package: '', ecosystem: '', severity: '', since: '', version: '' };
+  return { id: '', package: '', ecosystem: '', severity: '', since: '', version: '', kev: false };
 }
 
 @Component({
@@ -122,6 +123,19 @@ function emptyFilters(): FilterState {
               (ngModelChange)="onFilterChange('since', $event)"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
+          </div>
+
+          <!-- KEV filter -->
+          <div class="flex items-end">
+            <label class="inline-flex items-center gap-2 cursor-pointer py-1.5">
+              <input
+                type="checkbox"
+                [ngModel]="filters.kev"
+                (ngModelChange)="onFilterChange('kev', $event)"
+                class="rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+              />
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-300" i18n="@@vulnList.filterKev">KEV only</span>
+            </label>
           </div>
         </div>
 
@@ -302,6 +316,7 @@ export class VulnerabilitiesComponent implements OnInit {
           severity: params['severity'] || '',
           since: params['since'] || '',
           version: params['version'] || '',
+          kev: params['kev'] === 'true',
         };
 
         const limit = params['limit'] ? parseInt(params['limit'], 10) : 20;
@@ -327,7 +342,7 @@ export class VulnerabilitiesComponent implements OnInit {
       });
   }
 
-  onFilterChange(key: keyof FilterState, value: string): void {
+  onFilterChange(key: keyof FilterState, value: string | boolean): void {
     this.filters = { ...this.filters, [key]: value };
     this.filterChange$.next();
   }
@@ -430,10 +445,11 @@ export class VulnerabilitiesComponent implements OnInit {
     const queryParams: Record<string, string | number | null> = {};
 
     // Add non-empty filters to URL
-    const filterKeys: (keyof FilterState)[] = ['id', 'package', 'ecosystem', 'severity', 'since', 'version'];
+    const filterKeys = ['id', 'package', 'ecosystem', 'severity', 'since', 'version'] as const;
     for (const key of filterKeys) {
       queryParams[key] = this.filters[key] || null;
     }
+    queryParams['kev'] = this.filters.kev ? 'true' : null;
     queryParams['limit'] = this.limit();
     queryParams['cursor'] = this.currentCursor || null;
     queryParams['page'] = this.currentPage() > 1 ? this.currentPage() : null;
@@ -479,6 +495,7 @@ export class VulnerabilitiesComponent implements OnInit {
     if (this.filters.severity) params.severity = this.filters.severity as SearchParams['severity'];
     if (this.filters.since) params.since = this.filters.since;
     if (this.filters.version) params.version = this.filters.version;
+    if (this.filters.kev) params.kev = true;
 
     this.vulnService.search(params)
       .pipe(takeUntilDestroyed(this.destroyRef))

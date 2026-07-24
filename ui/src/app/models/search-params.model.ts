@@ -24,6 +24,9 @@ export interface SearchParams {
   /** Filter by affected version */
   version?: string;
 
+  /** Filter to only KEV (Known Exploited Vulnerabilities) entries */
+  kev?: boolean;
+
   /** Maximum number of results (1-1000, default: 20) */
   limit?: number;
 

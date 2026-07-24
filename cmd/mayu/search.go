@@ -28,6 +28,7 @@ func runSearch(args []string, cfg *config.Config) error {
 	severity := fs.String("severity", "", "Filter by severity level (critical, high, medium, low, none). Note: filters by CVSS score range; entries without scores are excluded")
 	since := fs.String("since", "", "Filter by modified date (YYYY-MM-DD or RFC3339)")
 	version := fs.String("version", "", "Filter by affected version")
+	kev := fs.Bool("kev", false, "Filter to only KEV (Known Exploited Vulnerabilities) entries")
 	format := fs.String("format", "table", "Output format: table, json, csv")
 	limit := fs.Int("limit", 20, "Maximum number of results")
 	offset := fs.Int("offset", 0, "Offset for pagination (deprecated: use --starting-token)")
@@ -116,6 +117,10 @@ func runSearch(args []string, cfg *config.Config) error {
 		Limit:       *limit,
 		Offset:      *offset,
 		Cursor:      *startingToken,
+	}
+
+	if *kev {
+		query.InKEV = kev
 	}
 
 	// Resolve database URL

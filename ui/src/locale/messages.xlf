@@ -13,70 +13,70 @@
         <source>Mayu</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">22,23</context>
+          <context context-type="linenumber">23,24</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.closeMenu" datatype="html">
         <source>Close menu</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">27,28</context>
+          <context context-type="linenumber">28,29</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.theme" datatype="html">
         <source>Theme</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">57,58</context>
+          <context context-type="linenumber">90,91</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.themeLight" datatype="html">
         <source>Light</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">63</context>
+          <context context-type="linenumber">96</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.themeDark" datatype="html">
         <source>Dark</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">69</context>
+          <context context-type="linenumber">102</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.themeSystem" datatype="html">
         <source>System</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">75</context>
+          <context context-type="linenumber">108</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.vulnerabilities" datatype="html">
         <source>Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">97</context>
+          <context context-type="linenumber">130</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.ingest" datatype="html">
         <source>Ingest</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">98</context>
+          <context context-type="linenumber">132</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.ingestJobs" datatype="html">
         <source>Ingest Jobs</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">99</context>
+          <context context-type="linenumber">134</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.status" datatype="html">
         <source>Status</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">100</context>
+          <context context-type="linenumber">137</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingestJobs.title" datatype="html">
@@ -377,84 +377,84 @@
         <source>NVD</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">221</context>
+          <context context-type="linenumber">220</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.nvdUpdate" datatype="html">
         <source>NVD (Delta Update)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">222</context>
+          <context context-type="linenumber">221</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.nvdConverted" datatype="html">
         <source>NVD (Converted)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">223</context>
+          <context context-type="linenumber">222</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.mitre" datatype="html">
         <source>MITRE</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">224</context>
+          <context context-type="linenumber">223</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.mitreUpdate" datatype="html">
         <source>MITRE (Delta Update)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">225</context>
+          <context context-type="linenumber">224</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.epss" datatype="html">
         <source>EPSS</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">226</context>
+          <context context-type="linenumber">225</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.epssUpdate" datatype="html">
         <source>EPSS (Delta Update)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">227</context>
+          <context context-type="linenumber">226</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.epssBackfill" datatype="html">
         <source>EPSS (Backfill)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">228</context>
+          <context context-type="linenumber">227</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.kev" datatype="html">
         <source>KEV</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">229</context>
+          <context context-type="linenumber">228</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.kevUpdate" datatype="html">
         <source>KEV (Delta Update)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">230</context>
+          <context context-type="linenumber">229</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.debian" datatype="html">
         <source>Debian</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">231</context>
+          <context context-type="linenumber">230</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.ghsa" datatype="html">
         <source>GitHub Security Advisories</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">232</context>
+          <context context-type="linenumber">231</context>
         </context-group>
       </trans-unit>
       <trans-unit id="status.title" datatype="html">
@@ -506,200 +506,214 @@
           <context context-type="linenumber">59,60</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="status.epssCoverage.missingDays" datatype="html">
+        <source>Missing days</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
+          <context context-type="linenumber">85</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="status.col.sourceType" datatype="html">
         <source>Type</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
-          <context context-type="linenumber">83,84</context>
+          <context context-type="linenumber">110,111</context>
         </context-group>
       </trans-unit>
       <trans-unit id="status.col.source" datatype="html">
         <source>Source</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
-          <context context-type="linenumber">84,85</context>
+          <context context-type="linenumber">111,112</context>
         </context-group>
       </trans-unit>
       <trans-unit id="status.col.lastSynced" datatype="html">
         <source>Last Synced</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
-          <context context-type="linenumber">85,86</context>
+          <context context-type="linenumber">112,113</context>
         </context-group>
       </trans-unit>
       <trans-unit id="status.col.lastModified" datatype="html">
         <source>Last Modified</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
-          <context context-type="linenumber">86,87</context>
+          <context context-type="linenumber">113,114</context>
         </context-group>
       </trans-unit>
       <trans-unit id="status.col.recordCount" datatype="html">
         <source>Records</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
-          <context context-type="linenumber">87,89</context>
+          <context context-type="linenumber">114,116</context>
         </context-group>
       </trans-unit>
       <trans-unit id="status.loading" datatype="html">
         <source>Loading...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
-          <context context-type="linenumber">93,95</context>
+          <context context-type="linenumber">120,122</context>
         </context-group>
       </trans-unit>
       <trans-unit id="status.noData" datatype="html">
         <source>No sync data found. Run an ingest operation to populate data.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
-          <context context-type="linenumber">97,99</context>
+          <context context-type="linenumber">124,126</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterId" datatype="html">
         <source>ID / Alias</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">39,41</context>
+          <context context-type="linenumber">40,42</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterIdPlaceholder" datatype="html">
         <source>CVE-2024-..., GHSA-...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">45,46</context>
+          <context context-type="linenumber">46,47</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterPackage" datatype="html">
         <source>Package</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">53,55</context>
+          <context context-type="linenumber">54,56</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterPackagePlaceholder" datatype="html">
         <source>golang.org/x/crypto, pkg:golang/...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">59,60</context>
+          <context context-type="linenumber">60,61</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterEcosystem" datatype="html">
         <source>Ecosystem</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">68,69</context>
+          <context context-type="linenumber">69,70</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterEcosystemNote" datatype="html">
         <source> (OSV only)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">69,71</context>
+          <context context-type="linenumber">70,72</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.allEcosystems" datatype="html">
         <source>All ecosystems</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">77,78</context>
+          <context context-type="linenumber">78,79</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterSeverity" datatype="html">
         <source>Severity</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">86,88</context>
+          <context context-type="linenumber">87,89</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.allSeverities" datatype="html">
         <source>All severities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">93,94</context>
+          <context context-type="linenumber">94,95</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterVersion" datatype="html">
         <source>Version</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">103,105</context>
+          <context context-type="linenumber">104,106</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterVersionPlaceholder" datatype="html">
         <source>0.17.0</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">110</context>
+          <context context-type="linenumber">111</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterSince" datatype="html">
         <source>Modified since</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">117,119</context>
+          <context context-type="linenumber">118,120</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vulnList.filterKev" datatype="html">
+        <source>KEV only</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
+          <context context-type="linenumber">137,139</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.clearFilters" datatype="html">
         <source> Clear filters </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">135,137</context>
+          <context context-type="linenumber">149,151</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.loading" datatype="html">
         <source>Loading vulnerabilities...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">143,147</context>
+          <context context-type="linenumber">157,161</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.empty" datatype="html">
         <source>No vulnerabilities found.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">159,160</context>
+          <context context-type="linenumber">173,174</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.emptyHint" datatype="html">
         <source>Try adjusting your filters.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">160,162</context>
+          <context context-type="linenumber">174,176</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colId" datatype="html">
         <source>ID</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">168</context>
+          <context context-type="linenumber">182</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colSummary" datatype="html">
         <source>Summary</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">168,169</context>
+          <context context-type="linenumber">182,183</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colEcosystem" datatype="html">
         <source>Ecosystem</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">169,170</context>
+          <context context-type="linenumber">183,184</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colSeverity" datatype="html">
         <source>Severity</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">170,171</context>
+          <context context-type="linenumber">184,185</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colModified" datatype="html">
         <source>Modified</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">171,173</context>
+          <context context-type="linenumber">185,187</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.breadcrumbList" datatype="html">
