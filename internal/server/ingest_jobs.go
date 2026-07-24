@@ -27,18 +27,18 @@ type ingestJobResponse struct {
 
 // ingestJobDetailResponse is the JSON representation of an ingest job (detail view with failures).
 type ingestJobDetailResponse struct {
-	ID           int64                    `json:"id"`
-	Source       string                   `json:"source"`
-	CommandArgs  map[string]interface{}   `json:"command_args"`
-	StartedAt    time.Time                `json:"started_at"`
-	FinishedAt   *time.Time               `json:"finished_at"`
-	Status       string                   `json:"status"`
-	TotalCount   *int                     `json:"total_count"`
-	SuccessCount *int                     `json:"success_count"`
-	FailureCount *int                     `json:"failure_count"`
-	ErrorMessage *string                  `json:"error_message"`
-	ErrorStack   *string                  `json:"error_stack"`
-	Failures     []ingestFailureResponse  `json:"failures"`
+	ID           int64                   `json:"id"`
+	Source       string                  `json:"source"`
+	CommandArgs  map[string]interface{}  `json:"command_args"`
+	StartedAt    time.Time               `json:"started_at"`
+	FinishedAt   *time.Time              `json:"finished_at"`
+	Status       string                  `json:"status"`
+	TotalCount   *int                    `json:"total_count"`
+	SuccessCount *int                    `json:"success_count"`
+	FailureCount *int                    `json:"failure_count"`
+	ErrorMessage *string                 `json:"error_message"`
+	ErrorStack   *string                 `json:"error_stack"`
+	Failures     []ingestFailureResponse `json:"failures"`
 }
 
 // ingestFailureResponse is the JSON representation of an ingest failure.

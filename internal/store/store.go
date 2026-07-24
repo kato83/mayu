@@ -68,6 +68,12 @@ type Store interface {
 	// UpdateSyncState creates or updates the sync state for a source.
 	UpdateSyncState(ctx context.Context, state *SyncState) error
 
+	// ListSyncStates returns all sync state records ordered by source_type and source.
+	ListSyncStates(ctx context.Context) ([]SyncState, error)
+
+	// GetEPSSCoverage returns summary statistics about EPSS data coverage.
+	GetEPSSCoverage(ctx context.Context) (*EPSSCoverage, error)
+
 	// Close releases any resources held by the store.
 	Close() error
 
@@ -157,7 +163,18 @@ type SearchQuery struct {
 
 // SyncState tracks the incremental import state for a data source.
 type SyncState struct {
-	Source         string // e.g., "Go", "npm", "NVD", "Debian"
+	Source         string // e.g., "Go", "npm", "NVD:2024", "GHSA:owner/repo"
+	SourceType     string // osv, nvd, mitre, epss, kev, ghsa
 	LastModifiedAt string // ISO 8601 timestamp from modified_id.csv
+	LastSyncedAt   string // ISO 8601 timestamp when mayu last synced (from DB default NOW())
 	RecordCount    int64
+}
+
+// EPSSCoverage holds summary statistics about EPSS data coverage.
+type EPSSCoverage struct {
+	TotalDays    int      // Total number of distinct dates with EPSS scores
+	FirstDate    string   // Earliest EPSS score date (YYYY-MM-DD)
+	LastDate     string   // Latest EPSS score date (YYYY-MM-DD)
+	TotalScores  int64    // Total number of EPSS score records
+	MissingDates []string // Dates in [FirstDate, LastDate] range that have no EPSS scores
 }

@@ -71,6 +71,7 @@ func (ing *Ingester) ImportEPSS(ctx context.Context) (*Stats, error) {
 	// Update sync state
 	syncState := &store.SyncState{
 		Source:         epssSource,
+		SourceType:     "epss",
 		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 		RecordCount:    int64(inserted),
 	}
@@ -113,6 +114,7 @@ func (ing *Ingester) ImportEPSSByDate(ctx context.Context, date string) (*Stats,
 	// Update sync state
 	syncState := &store.SyncState{
 		Source:         epssSource,
+		SourceType:     "epss",
 		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 		RecordCount:    int64(inserted),
 	}
@@ -420,6 +422,7 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 	// Update sync state
 	syncState := &store.SyncState{
 		Source:         epssSource,
+		SourceType:     "epss",
 		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 		RecordCount:    int64(totalInserted),
 	}

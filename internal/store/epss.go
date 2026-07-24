@@ -108,11 +108,11 @@ func (s *PostgresStore) upsertEPSSChunk(ctx context.Context, scores []*model.EPS
 			base, base+1, base+2, base+3, base+4, base+5,
 		))
 		epssArgs = append(epssArgs,
-			score.CVEID,        // cve_id
-			score.CVEID,        // vulnerability_id (same as cve_id)
-			score.EPSS,         // epss
-			score.Percentile,   // percentile
-			score.ScoreDate,    // score_date
+			score.CVEID,           // cve_id
+			score.CVEID,           // vulnerability_id (same as cve_id)
+			score.EPSS,            // epss
+			score.Percentile,      // percentile
+			score.ScoreDate,       // score_date
 			[]byte(score.RawJSON), // raw_json
 		)
 	}
@@ -246,6 +246,52 @@ func (s *PostgresStore) CountEPSSScores(ctx context.Context) (int64, error) {
 		return 0, fmt.Errorf("count EPSS scores: %w", err)
 	}
 	return count, nil
+}
+
+// GetEPSSCoverage returns summary statistics about EPSS data coverage.
+func (s *PostgresStore) GetEPSSCoverage(ctx context.Context) (*EPSSCoverage, error) {
+	row := s.db.QueryRowContext(ctx, `
+		SELECT
+			COUNT(DISTINCT score_date) AS total_days,
+			COALESCE(MIN(score_date)::text, '') AS first_date,
+			COALESCE(MAX(score_date)::text, '') AS last_date,
+			COUNT(*) AS total_scores
+		FROM epss_scores`)
+
+	var cov EPSSCoverage
+	if err := row.Scan(&cov.TotalDays, &cov.FirstDate, &cov.LastDate, &cov.TotalScores); err != nil {
+		return nil, fmt.Errorf("query EPSS coverage: %w", err)
+	}
+
+	// Compute missing dates by generating the full date series and finding gaps
+	if cov.FirstDate != "" && cov.LastDate != "" {
+		rows, err := s.db.QueryContext(ctx, `
+			SELECT d::date::text
+			FROM generate_series($1::date, $2::date, '1 day'::interval) AS d
+			WHERE d::date NOT IN (SELECT DISTINCT score_date FROM epss_scores)
+			ORDER BY d`,
+			cov.FirstDate, cov.LastDate,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("query EPSS missing dates: %w", err)
+		}
+		defer func() { _ = rows.Close() }()
+
+		for rows.Next() {
+			var date string
+			if err := rows.Scan(&date); err != nil {
+				return nil, fmt.Errorf("scan EPSS missing date: %w", err)
+			}
+			if len(date) >= 10 {
+				cov.MissingDates = append(cov.MissingDates, date[:10])
+			}
+		}
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("iterate EPSS missing dates: %w", err)
+		}
+	}
+
+	return &cov, nil
 }
 
 // GetEPSSImportedDates returns a set of dates (YYYY-MM-DD) for which EPSS scores

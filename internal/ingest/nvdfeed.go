@@ -90,6 +90,7 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 	// Update sync state
 	syncState := &store.SyncState{
 		Source:         nvdNativeSource,
+		SourceType:     "nvd",
 		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 		RecordCount:    int64(totalInserted),
 	}
@@ -178,6 +179,7 @@ func (ing *Ingester) UpdateNVDNative(ctx context.Context) (*Stats, error) {
 	// Update sync state
 	newSyncState := &store.SyncState{
 		Source:         nvdNativeSource,
+		SourceType:     "nvd",
 		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 		RecordCount:    syncState.RecordCount + int64(inserted),
 	}

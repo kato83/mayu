@@ -35,6 +35,13 @@ export const routes: Routes = [
             (m) => m.IngestComponent,
           ),
       },
+      {
+        path: 'status',
+        loadComponent: () =>
+          import('./pages/status/status.component').then(
+            (m) => m.StatusComponent,
+          ),
+      },
     ],
   },
 ];

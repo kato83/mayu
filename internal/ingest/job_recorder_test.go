@@ -14,16 +14,16 @@ import (
 type mockJobStore struct {
 	store.Store // embed interface for unimplemented methods
 
-	mu              sync.Mutex
-	createdJobs     []*store.IngestJob
-	updatedJobs     []*store.IngestJob
-	recordedSingle  []*store.IngestFailure
-	recordedBatch   []store.IngestFailure
-	createJobErr    error
-	updateJobErr    error
-	recordFailErr   error
-	recordBatchErr  error
-	nextJobID       int64
+	mu             sync.Mutex
+	createdJobs    []*store.IngestJob
+	updatedJobs    []*store.IngestJob
+	recordedSingle []*store.IngestFailure
+	recordedBatch  []store.IngestFailure
+	createJobErr   error
+	updateJobErr   error
+	recordFailErr  error
+	recordBatchErr error
+	nextJobID      int64
 }
 
 func (m *mockJobStore) CreateIngestJob(_ context.Context, job *store.IngestJob) (int64, error) {
