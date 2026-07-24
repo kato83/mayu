@@ -30,6 +30,28 @@ func setupTestStore(t *testing.T) *PostgresStore {
 	return store
 }
 
+// refreshAllSummaries fetches all vulnerability IDs from DB and refreshes their summaries.
+// This is needed in tests because UpsertBatch does not automatically call RefreshSummary.
+func refreshAllSummaries(t *testing.T, store *PostgresStore, ctx context.Context) {
+	t.Helper()
+	rows, err := store.db.QueryContext(ctx, `SELECT id FROM vulnerabilities`)
+	if err != nil {
+		t.Fatalf("query vulnerability IDs for summary refresh: %v", err)
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			t.Fatalf("scan vulnerability ID: %v", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := store.RefreshSummary(ctx, ids); err != nil {
+		t.Fatalf("RefreshSummary failed: %v", err)
+	}
+}
+
 func TestInsertAndGetByID(t *testing.T) {
 	store := setupTestStore(t)
 	ctx := context.Background()
@@ -349,6 +371,9 @@ func TestSearch(t *testing.T) {
 	vuln1, _ := model.ParseVulnerability(data1)
 	vuln2, _ := model.ParseVulnerability(data2)
 	store.UpsertBatch(ctx, []*model.Vulnerability{vuln1, vuln2})
+	// Refresh summary to populate ecosystem_list for GIN-indexed ecosystem search.
+	// Use canonical IDs (CVE when available) as UpsertBatch resolves them.
+	refreshAllSummaries(t, store, ctx)
 
 	t.Run("by ID", func(t *testing.T) {
 		// GO-2024-2687 has alias CVE-2023-45288, so canonical ID becomes CVE-2023-45288

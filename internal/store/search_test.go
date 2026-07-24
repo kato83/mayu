@@ -40,6 +40,7 @@ func TestSearchWithSince(t *testing.T) {
 	if err := store.UpsertBatch(ctx, []*model.Vulnerability{vulnOld, vulnNew}); err != nil {
 		t.Fatalf("UpsertBatch failed: %v", err)
 	}
+	refreshAllSummaries(t, store, ctx)
 
 	// Search with --since (should only return the new one)
 	sinceDate := now.Add(-1 * time.Hour).Format("2006-01-02T15:04:05Z")
@@ -213,6 +214,7 @@ func TestCount(t *testing.T) {
 	if err := store.UpsertBatch(ctx, vulns); err != nil {
 		t.Fatalf("UpsertBatch failed: %v", err)
 	}
+	refreshAllSummaries(t, store, ctx)
 
 	t.Run("count all", func(t *testing.T) {
 		count, err := store.Count(ctx, SearchQuery{})
