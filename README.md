@@ -439,6 +439,9 @@ database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 > [!NOTE]
 > Converted sources (NVD, Debian) contain 50,000+ entries and are downloaded individually since no bulk archive is available. This may take significant time.
 
+> [!TIP]
+> For a detailed comparison of the two NVD import methods (native vs. OSV-converted), see [docs/nvd-import-comparison.md](docs/nvd-import-comparison.md).
+
 | Source | Status | Method |
 |--------|--------|--------|
 | KEV | ✅ Supported | `mayu ingest --source kev` |
