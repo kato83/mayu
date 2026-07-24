@@ -735,7 +735,6 @@ components:
             - ecosystem
             - ecosystem_update
             - all
-            - all_bulk
             - nvd
             - nvd_update
             - nvd_converted
