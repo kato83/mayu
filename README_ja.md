@@ -439,6 +439,9 @@ database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 > [!NOTE]
 > 変換ソース（NVD、Debian）は50,000件以上のエントリを含み、一括アーカイブが提供されていないため個別にダウンロードします。取り込みにはかなりの時間がかかります。
 
+> [!TIP]
+> NVD の2つのインポート方式（ネイティブ vs OSV変換）の詳細な比較は [docs/nvd-import-comparison.ja.md](docs/nvd-import-comparison.ja.md) を参照してください。
+
 | ソース | ステータス | 取得方法 |
 |--------|-----------|---------|
 | KEV | ✅ 対応済み | `mayu ingest --source kev` |
