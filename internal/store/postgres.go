@@ -678,6 +678,23 @@ func severityToLevel(level string) int {
 	}
 }
 
+// buildOrderClause returns the ORDER BY clause for the given sort parameter.
+// prefix is the table alias prefix (e.g., "v." or "" depending on the query).
+// Valid sort values: "modified_desc" (default), "modified_asc", "published_desc", "published_asc".
+func buildOrderClause(sort string, prefix string) string {
+	id := prefix + "id"
+	switch strings.ToLower(sort) {
+	case "modified_asc":
+		return "ORDER BY " + prefix + "modified ASC, " + id + " ASC"
+	case "published_desc":
+		return "ORDER BY " + prefix + "published DESC NULLS LAST, " + id + " DESC"
+	case "published_asc":
+		return "ORDER BY " + prefix + "published ASC NULLS LAST, " + id + " ASC"
+	default: // "modified_desc" or empty
+		return "ORDER BY " + prefix + "modified DESC, " + id + " DESC"
+	}
+}
+
 // Search finds vulnerabilities matching the given query parameters.
 func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model.Vulnerability, error) {
 	// Use lightweight query path when fields are specified (avoids raw_json fetch)
@@ -697,7 +714,11 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	baseQuery, args, argIdx := s.buildSearchConditions(query)
 
 	// Apply cursor-based or offset-based pagination
+	// Note: cursor-based pagination currently only supports published_desc ordering.
+	// When a cursor is set, the sort order is forced to published_desc for correctness.
+	sortOrder := query.Sort
 	if query.Cursor != "" {
+		sortOrder = "published_desc"
 		cursor, err := DecodeCursor(query.Cursor)
 		if err != nil {
 			return nil, fmt.Errorf("invalid cursor: %w", err)
@@ -721,7 +742,7 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	}
 
 	argIdx++
-	baseQuery += fmt.Sprintf(` ORDER BY published DESC NULLS LAST, v.id DESC LIMIT $%d`, argIdx)
+	baseQuery += fmt.Sprintf(` %s LIMIT $%d`, buildOrderClause(sortOrder, ""), argIdx)
 	args = append(args, limit)
 
 	// Apply offset only when no cursor is set (backward compatibility)
@@ -1281,7 +1302,10 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 	}
 
 	// ORDER BY and pagination (cursor-based or offset-based)
+	// Note: cursor-based pagination currently only supports published_desc ordering.
+	sortOrder := query.Sort
 	if query.Cursor != "" {
+		sortOrder = "published_desc"
 		cursor, err := DecodeCursor(query.Cursor)
 		if err != nil {
 			return nil, fmt.Errorf("invalid cursor: %w", err)
@@ -1302,7 +1326,7 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 	}
 
 	argIdx++
-	baseQuery += fmt.Sprintf(` ORDER BY v.published DESC NULLS LAST, v.id DESC LIMIT $%d`, argIdx)
+	baseQuery += fmt.Sprintf(` %s LIMIT $%d`, buildOrderClause(sortOrder, "v."), argIdx)
 	args = append(args, limit)
 
 	if query.Cursor == "" && offset > 0 {

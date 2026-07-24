@@ -322,6 +322,20 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		Fields:      fields,
 	}
 
+	// Sort parameter
+	if sortParam := q.Get("sort"); sortParam != "" {
+		validSorts := map[string]bool{
+			"modified_desc": true, "modified_asc": true,
+			"published_desc": true, "published_asc": true,
+		}
+		if !validSorts[sortParam] {
+			writeError(w, http.StatusBadRequest,
+				fmt.Sprintf("invalid sort %q (valid: modified_desc, modified_asc, published_desc, published_asc)", sortParam))
+			return
+		}
+		query.Sort = sortParam
+	}
+
 	// KEV filter
 	if kevStr := q.Get("kev"); kevStr == "true" {
 		t := true

@@ -102,6 +102,10 @@
         <source>Modified</source>
         <target>更新日</target>
       </trans-unit>
+      <trans-unit id="vulnList.colPublished" datatype="html">
+        <source>Published</source>
+        <target>公開日</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.breadcrumbList" datatype="html">
         <source>Vulnerabilities</source>
         <target>脆弱性一覧</target>
@@ -633,6 +637,30 @@
       <trans-unit id="vulnList.filterKev" datatype="html">
         <source>KEV only</source>
         <target>KEV掲載のみ</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterSort" datatype="html">
+        <source>Sort</source>
+        <target>並び順</target>
+      </trans-unit>
+      <trans-unit id="vulnList.sortModifiedDesc" datatype="html">
+        <source>Modified (newest)</source>
+        <target>更新日（新しい順）</target>
+      </trans-unit>
+      <trans-unit id="vulnList.sortModifiedAsc" datatype="html">
+        <source>Modified (oldest)</source>
+        <target>更新日（古い順）</target>
+      </trans-unit>
+      <trans-unit id="vulnList.sortPublishedDesc" datatype="html">
+        <source>Published (newest)</source>
+        <target>公開日（新しい順）</target>
+      </trans-unit>
+      <trans-unit id="vulnList.sortPublishedAsc" datatype="html">
+        <source>Published (oldest)</source>
+        <target>公開日（古い順）</target>
+      </trans-unit>
+      <trans-unit id="vulnList.colPublished" datatype="html">
+        <source>Published</source>
+        <target>公開日</target>
       </trans-unit>
     </body>
   </file>
