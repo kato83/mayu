@@ -67,15 +67,17 @@ func (s *PostgresStore) upsertKEVEntry(ctx context.Context, tx *sql.Tx, record *
 
 	// --- Step 1: Ensure vulnerability row exists ---
 	// KEV contributes the CVE ID and short description; it doesn't provide
-	// detailed summary/published/modified dates.
+	// detailed summary/published/modified dates from the original advisory.
+	// Use date_added as published/modified to reflect when the CVE became
+	// publicly known as exploited.
 	// Use DO NOTHING to preserve data from richer sources (OSV, NVD, MITRE).
-	// modified uses NOW() because the column has a NOT NULL constraint.
 	_, err := tx.ExecContext(ctx, `
 		INSERT INTO vulnerabilities (id, summary, details, published, modified, withdrawn)
-		VALUES ($1, $2, NULL, NULL, NOW(), NULL)
+		VALUES ($1, $2, NULL, $3, $3, NULL)
 		ON CONFLICT (id) DO NOTHING`,
 		cveID,
 		record.ShortDescription,
+		record.DateAdded,
 	)
 	if err != nil {
 		return fmt.Errorf("ensure vulnerability exists: %w", err)
