@@ -567,7 +567,8 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		innerWhere := `1=1`
 		if query.Ecosystem != "" {
 			argIdx++
-			innerWhere += fmt.Sprintf(` AND pi.ecosystem = $%d`, argIdx)
+			// Use prefix match for versioned ecosystems (e.g., "Ubuntu" matches "Ubuntu:22.04:LTS")
+			innerWhere += fmt.Sprintf(` AND (pi.ecosystem = $%d OR pi.ecosystem LIKE $%d || ':%%')`, argIdx, argIdx)
 			args = append(args, query.Ecosystem)
 		}
 		if query.PackageName != "" {
@@ -838,7 +839,8 @@ func (s *PostgresStore) buildCountConditions(query SearchQuery) (string, []inter
 		innerWhere := `1=1`
 		if query.Ecosystem != "" {
 			argIdx++
-			innerWhere += fmt.Sprintf(` AND pi.ecosystem = $%d`, argIdx)
+			// Use prefix match for versioned ecosystems (e.g., "Ubuntu" matches "Ubuntu:22.04:LTS")
+			innerWhere += fmt.Sprintf(` AND (pi.ecosystem = $%d OR pi.ecosystem LIKE $%d || ':%%')`, argIdx, argIdx)
 			args = append(args, query.Ecosystem)
 		}
 		if query.PackageName != "" {
@@ -1181,7 +1183,8 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 		innerWhere := `1=1`
 		if query.Ecosystem != "" {
 			argIdx++
-			innerWhere += fmt.Sprintf(` AND pi.ecosystem = $%d`, argIdx)
+			// Use prefix match for versioned ecosystems (e.g., "Ubuntu" matches "Ubuntu:22.04:LTS")
+			innerWhere += fmt.Sprintf(` AND (pi.ecosystem = $%d OR pi.ecosystem LIKE $%d || ':%%')`, argIdx, argIdx)
 			args = append(args, query.Ecosystem)
 		}
 		if query.PackageName != "" {
