@@ -26,7 +26,6 @@ func runIngest(args []string, cfg *config.Config) error {
 	ecosystem := fs.String("ecosystem", "", "Ecosystem to import (e.g., Go, PyPI, npm)")
 	source := fs.String("source", "", "Import from source (nvd, debian, mitre, epss, kev, ghsa)")
 	all := fs.Bool("all", false, "Import all ecosystems")
-	bulk := fs.Bool("bulk", false, "Use top-level all.zip for bulk import (with --all)")
 	update := fs.Bool("update", false, "Perform delta update instead of full import")
 	backfill := fs.Bool("backfill", false, "Backfill historical data (with --source epss)")
 	fromDate := fs.String("from", "", "Start date for backfill (YYYY-MM-DD, default: 2023-03-07 for EPSS v3)")
@@ -51,7 +50,6 @@ func runIngest(args []string, cfg *config.Config) error {
 		fmt.Println("  mayu ingest --ecosystem Go")
 		fmt.Println("  mayu ingest --ecosystem Go --update")
 		fmt.Println("  mayu ingest --all")
-		fmt.Println("  mayu ingest --all --bulk    # Download single all.zip (~1.3GB) for all ecosystems")
 		fmt.Println("  mayu ingest --source nvd")
 		fmt.Println("  mayu ingest --source nvd --native        # Import directly from NVD JSON Feed 2.0")
 		fmt.Println("  mayu ingest --source nvd --native --year 2024  # Import only 2024 NVD data")
@@ -464,21 +462,6 @@ func runIngest(args []string, cfg *config.Config) error {
 				return nil
 			}
 			return fmt.Errorf("import %s: %w", src.Name, err)
-		}
-		printStats(stats)
-		return nil
-	}
-
-	// Handle --all --bulk: download the single top-level all.zip (~1.3GB)
-	if *all && *bulk {
-		fmt.Println("\n=== Bulk import from top-level all.zip ===")
-		stats, err := ing.BulkImportAll(ctx)
-		if err != nil {
-			if ctx.Err() != nil {
-				fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
-				return nil
-			}
-			return fmt.Errorf("bulk import: %w", err)
 		}
 		printStats(stats)
 		return nil

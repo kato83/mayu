@@ -46,19 +46,18 @@ var allowedIngestTypes = map[string]bool{
 	"ecosystem":        true,
 	"ecosystem_update": true,
 	"all":              true,
-	"all_bulk":         true,
-	"nvd":             true,
-	"nvd_update":      true,
-	"nvd_converted":   true,
-	"mitre":           true,
-	"mitre_update":    true,
-	"epss":            true,
-	"epss_update":     true,
-	"epss_backfill":   true,
-	"kev":             true,
-	"kev_update":      true,
-	"debian":          true,
-	"ghsa":            true,
+	"nvd":              true,
+	"nvd_update":       true,
+	"nvd_converted":    true,
+	"mitre":            true,
+	"mitre_update":     true,
+	"epss":             true,
+	"epss_update":      true,
+	"epss_backfill":    true,
+	"kev":              true,
+	"kev_update":       true,
+	"debian":           true,
+	"ghsa":             true,
 }
 
 // ecosystemNameRe validates ecosystem names to prevent path traversal.
@@ -217,8 +216,6 @@ func (s *Server) runIngestJob(runner *ingestRunner, job *store.IngestJob, req in
 		stats, ingestErr = ing.DeltaImport(ctx, req.Ecosystem)
 	case "all":
 		stats, ingestErr = s.ingestAll(ctx, ing, progressFn)
-	case "all_bulk":
-		stats, ingestErr = ing.BulkImportAll(ctx)
 	case "nvd":
 		stats, ingestErr = ing.ImportNVDNative(ctx)
 	case "nvd_update":
@@ -510,7 +507,7 @@ func (s *Server) ingestGHSA(ctx context.Context, repo string, progressFn func(in
 // ingestTypeToSource maps ingest type strings to source names for job records.
 func ingestTypeToSource(t string) string {
 	switch t {
-	case "ecosystem", "ecosystem_update", "all", "all_bulk":
+	case "ecosystem", "ecosystem_update", "all":
 		return "osv"
 	case "nvd", "nvd_update", "nvd_converted":
 		return "nvd"

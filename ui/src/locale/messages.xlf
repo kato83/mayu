@@ -366,13 +366,6 @@
           <context context-type="linenumber">219</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="ingest.option.allBulk" datatype="html">
-        <source>All Ecosystems (Bulk)</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">220</context>
-        </context-group>
-      </trans-unit>
       <trans-unit id="ingest.option.nvd" datatype="html">
         <source>NVD</source>
         <context-group purpose="location">

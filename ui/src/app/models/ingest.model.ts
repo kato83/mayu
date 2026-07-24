@@ -1,6 +1,6 @@
 export type IngestType =
   | 'ecosystem' | 'ecosystem_update'
-  | 'all' | 'all_bulk'
+  | 'all'
   | 'nvd' | 'nvd_update' | 'nvd_converted'
   | 'mitre' | 'mitre_update'
   | 'epss' | 'epss_update' | 'epss_backfill'
