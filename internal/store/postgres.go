@@ -563,29 +563,44 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		}
 
 	case query.PackageName != "" || query.Ecosystem != "":
-		// Use product_identifiers for cross-source package search
-		innerWhere := `1=1`
-		if query.Ecosystem != "" {
+		if query.PackageName == "" && query.Ecosystem != "" {
+			// Ecosystem-only search: use vulnerability_summary.ecosystem_list GIN index
+			// (much faster than scanning product_identifiers for large ecosystems)
 			argIdx++
-			// Use prefix match for versioned ecosystems (e.g., "Ubuntu" matches "Ubuntu:22.04:LTS")
-			innerWhere += fmt.Sprintf(` AND (pi.ecosystem = $%d OR pi.ecosystem LIKE $%d || ':%%')`, argIdx, argIdx)
+			baseQuery = fmt.Sprintf(`SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+			       vs.severity_worst
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+			LEFT JOIN LATERAL (
+				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+			) oe ON true
+			WHERE vs.ecosystem_list @> ARRAY[$%d]::text[] AND 1=1`, argIdx)
 			args = append(args, query.Ecosystem)
+		} else {
+			// Package name search (with optional ecosystem filter): use product_identifiers
+			innerWhere := `1=1`
+			if query.Ecosystem != "" {
+				argIdx++
+				// Use prefix match for versioned ecosystems (e.g., "Ubuntu" matches "Ubuntu:22.04:LTS")
+				innerWhere += fmt.Sprintf(` AND (pi.ecosystem = $%d OR pi.ecosystem LIKE $%d || ':%%')`, argIdx, argIdx)
+				args = append(args, query.Ecosystem)
+			}
+			if query.PackageName != "" {
+				argIdx++
+				innerWhere += fmt.Sprintf(` AND pi.name = $%d`, argIdx)
+				args = append(args, query.PackageName)
+			}
+			baseQuery = fmt.Sprintf(`SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
+			       vs.severity_worst
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+			LEFT JOIN LATERAL (
+				SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
+			) oe ON true
+			WHERE v.id IN (
+				SELECT DISTINCT pi.vulnerability_id FROM product_identifiers pi WHERE %s
+			) AND 1=1`, innerWhere)
 		}
-		if query.PackageName != "" {
-			argIdx++
-			innerWhere += fmt.Sprintf(` AND pi.name = $%d`, argIdx)
-			args = append(args, query.PackageName)
-		}
-		baseQuery = fmt.Sprintf(`SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
-		       vs.severity_worst
-		FROM vulnerabilities v
-		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
-		LEFT JOIN LATERAL (
-			SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
-		) oe ON true
-		WHERE v.id IN (
-			SELECT DISTINCT pi.vulnerability_id FROM product_identifiers pi WHERE %s
-		) AND 1=1`, innerWhere)
 
 	default:
 		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
@@ -836,21 +851,28 @@ func (s *PostgresStore) buildCountConditions(query SearchQuery) (string, []inter
 		}
 
 	case query.PackageName != "" || query.Ecosystem != "":
-		innerWhere := `1=1`
-		if query.Ecosystem != "" {
+		if query.PackageName == "" && query.Ecosystem != "" {
+			// Ecosystem-only: use vulnerability_summary.ecosystem_list GIN index
 			argIdx++
-			// Use prefix match for versioned ecosystems (e.g., "Ubuntu" matches "Ubuntu:22.04:LTS")
-			innerWhere += fmt.Sprintf(` AND (pi.ecosystem = $%d OR pi.ecosystem LIKE $%d || ':%%')`, argIdx, argIdx)
+			where = fmt.Sprintf(`WHERE vs.ecosystem_list @> ARRAY[$%d]::text[]`, argIdx)
 			args = append(args, query.Ecosystem)
+		} else {
+			innerWhere := `1=1`
+			if query.Ecosystem != "" {
+				argIdx++
+				// Use prefix match for versioned ecosystems (e.g., "Ubuntu" matches "Ubuntu:22.04:LTS")
+				innerWhere += fmt.Sprintf(` AND (pi.ecosystem = $%d OR pi.ecosystem LIKE $%d || ':%%')`, argIdx, argIdx)
+				args = append(args, query.Ecosystem)
+			}
+			if query.PackageName != "" {
+				argIdx++
+				innerWhere += fmt.Sprintf(` AND pi.name = $%d`, argIdx)
+				args = append(args, query.PackageName)
+			}
+			where = fmt.Sprintf(`WHERE v.id IN (
+				SELECT DISTINCT pi.vulnerability_id FROM product_identifiers pi WHERE %s
+			)`, innerWhere)
 		}
-		if query.PackageName != "" {
-			argIdx++
-			innerWhere += fmt.Sprintf(` AND pi.name = $%d`, argIdx)
-			args = append(args, query.PackageName)
-		}
-		where = fmt.Sprintf(`WHERE v.id IN (
-			SELECT DISTINCT pi.vulnerability_id FROM product_identifiers pi WHERE %s
-		)`, innerWhere)
 	}
 
 	// Severity filter
@@ -1180,25 +1202,36 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 		}
 
 	case query.PackageName != "" || query.Ecosystem != "":
-		innerWhere := `1=1`
-		if query.Ecosystem != "" {
+		if query.PackageName == "" && query.Ecosystem != "" {
+			// Ecosystem-only search: use vulnerability_summary.ecosystem_list GIN index
 			argIdx++
-			// Use prefix match for versioned ecosystems (e.g., "Ubuntu" matches "Ubuntu:22.04:LTS")
-			innerWhere += fmt.Sprintf(` AND (pi.ecosystem = $%d OR pi.ecosystem LIKE $%d || ':%%')`, argIdx, argIdx)
+			baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
+				vs.severity_worst, vs.severity_best, vs.scores_detail, vs.ecosystem_list
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+			WHERE vs.ecosystem_list @> ARRAY[$%d]::text[]`, argIdx)
 			args = append(args, query.Ecosystem)
+		} else {
+			innerWhere := `1=1`
+			if query.Ecosystem != "" {
+				argIdx++
+				// Use prefix match for versioned ecosystems (e.g., "Ubuntu" matches "Ubuntu:22.04:LTS")
+				innerWhere += fmt.Sprintf(` AND (pi.ecosystem = $%d OR pi.ecosystem LIKE $%d || ':%%')`, argIdx, argIdx)
+				args = append(args, query.Ecosystem)
+			}
+			if query.PackageName != "" {
+				argIdx++
+				innerWhere += fmt.Sprintf(` AND pi.name = $%d`, argIdx)
+				args = append(args, query.PackageName)
+			}
+			baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
+				vs.severity_worst, vs.severity_best, vs.scores_detail, vs.ecosystem_list
+			FROM vulnerabilities v
+			LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
+			WHERE v.id IN (
+				SELECT DISTINCT pi.vulnerability_id FROM product_identifiers pi WHERE %s
+			)`, innerWhere)
 		}
-		if query.PackageName != "" {
-			argIdx++
-			innerWhere += fmt.Sprintf(` AND pi.name = $%d`, argIdx)
-			args = append(args, query.PackageName)
-		}
-		baseQuery = fmt.Sprintf(`SELECT v.id, v.summary, v.modified, v.published,
-			vs.severity_worst, vs.severity_best, vs.scores_detail, vs.ecosystem_list
-		FROM vulnerabilities v
-		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
-		WHERE v.id IN (
-			SELECT DISTINCT pi.vulnerability_id FROM product_identifiers pi WHERE %s
-		)`, innerWhere)
 
 	default:
 		baseQuery = `SELECT v.id, v.summary, v.modified, v.published,
