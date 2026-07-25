@@ -666,6 +666,14 @@
         <source>API Keys</source>
         <target>APIキー</target>
       </trans-unit>
+      <trans-unit id="sidebar.roleAdmin" datatype="html">
+        <source>Admin</source>
+        <target>管理者</target>
+      </trans-unit>
+      <trans-unit id="sidebar.roleViewer" datatype="html">
+        <source>Viewer</source>
+        <target>閲覧者</target>
+      </trans-unit>
       <trans-unit id="sidebar.logout" datatype="html">
         <source> Logout </source>
         <target>ログアウト</target>
