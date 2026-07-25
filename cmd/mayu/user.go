@@ -154,9 +154,9 @@ func runUserList(args []string, cfg *config.Config) error {
 
 	// Print table
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "ID\tEMAIL\tNAME\tROLE\n")
+	_, _ = fmt.Fprintf(w, "ID\tEMAIL\tNAME\tROLE\n")
 	for _, u := range users {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%s\n", u.ID, u.Email, u.Name, u.Role)
+		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%s\n", u.ID, u.Email, u.Name, u.Role)
 	}
 	return w.Flush()
 }

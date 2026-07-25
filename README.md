@@ -446,7 +446,44 @@ If the default config file does not exist, mayu silently falls back to environme
 **Example `config.yaml`:**
 
 ```yaml
+# Database connection
 database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
+
+# Authentication settings
+auth:
+  # mode: none | local | oidc (default: none)
+  mode: none
+```
+
+**Example with local authentication:**
+
+```yaml
+database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
+
+auth:
+  mode: local
+  session_secret: "your-random-secret-key"
+  session_max_age: 86400  # seconds (default: 86400 = 24h)
+```
+
+**Example with OIDC authentication:**
+
+```yaml
+database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
+
+auth:
+  mode: oidc
+  session_secret: "your-random-secret-key"
+  session_max_age: 86400
+  oidc:
+    issuer: "https://accounts.google.com"
+    client_id: "your-client-id.apps.googleusercontent.com"
+    client_secret: "your-client-secret"
+    redirect_url: "http://localhost:8080/auth/callback"
+    scopes:
+      - openid
+      - email
+      - profile
 ```
 
 **Priority order** (highest to lowest):

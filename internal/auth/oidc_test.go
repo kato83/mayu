@@ -100,25 +100,25 @@ func setupMockOIDCServer(t *testing.T, key *rsa.PrivateKey, kid string, opts moc
 			"jwks_uri":               baseURL + "/jwks",
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(disc)
+		_ = json.NewEncoder(w).Encode(disc)
 	})
 
 	mux.HandleFunc("/jwks", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(jwksJSON(t, &key.PublicKey, kid))
+		_, _ = w.Write(jwksJSON(t, &key.PublicKey, kid))
 	})
 
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 		if opts.tokenError {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"error":"invalid_grant"}`))
+			_, _ = w.Write([]byte(`{"error":"invalid_grant"}`))
 			return
 		}
 
 		code := r.FormValue("code")
 		if code != opts.expectedCode {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"error":"invalid_grant","error_description":"code expired"}`))
+			_, _ = w.Write([]byte(`{"error":"invalid_grant","error_description":"code expired"}`))
 			return
 		}
 
@@ -141,7 +141,7 @@ func setupMockOIDCServer(t *testing.T, key *rsa.PrivateKey, kid string, opts moc
 			"expires_in":   3600,
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 
 	mux.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
@@ -151,7 +151,7 @@ func setupMockOIDCServer(t *testing.T, key *rsa.PrivateKey, kid string, opts moc
 			"name":  opts.name,
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 
 	server := httptest.NewServer(mux)
@@ -517,7 +517,7 @@ func TestHandleOIDCLogin(t *testing.T) {
 	handler(rec, req)
 
 	resp := rec.Result()
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusFound {
 		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusFound)
@@ -605,7 +605,7 @@ func TestHandleOIDCCallback_Success(t *testing.T) {
 	handler(rec, req)
 
 	resp := rec.Result()
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusFound {
 		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusFound)
@@ -662,7 +662,7 @@ func TestHandleOIDCCallback_InvalidState(t *testing.T) {
 			handler(rec, req)
 
 			resp := rec.Result()
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			if resp.StatusCode != http.StatusBadRequest {
 				t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusBadRequest)
@@ -688,7 +688,7 @@ func TestHandleOIDCCallback_MissingCode(t *testing.T) {
 	handler(rec, req)
 
 	resp := rec.Result()
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", resp.StatusCode, http.StatusBadRequest)
