@@ -137,6 +137,9 @@ func (s *PostgresStore) upsertEPSSChunk(ctx context.Context, scores []*model.EPS
 // Unlike the full RefreshSummary which recomputes severity, CWEs, ecosystems etc.,
 // this only updates the two EPSS columns using a single bulk query.
 // This is safe because EPSS import does not change any other summary fields.
+//
+// Retries automatically on deadlock (SQLSTATE 40P01) which can occur during
+// concurrent batch processing.
 func (s *PostgresStore) RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error {
 	if len(vulnIDs) == 0 {
 		return nil
@@ -149,11 +152,32 @@ func (s *PostgresStore) RefreshEPSSSummary(ctx context.Context, vulnIDs []string
 		if end > len(vulnIDs) {
 			end = len(vulnIDs)
 		}
-		if err := s.refreshEPSSSummaryBatch(ctx, vulnIDs[i:end]); err != nil {
+		if err := s.refreshEPSSSummaryBatchWithRetry(ctx, vulnIDs[i:end]); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (s *PostgresStore) refreshEPSSSummaryBatchWithRetry(ctx context.Context, vulnIDs []string) error {
+	const maxRetries = 5
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		err := s.refreshEPSSSummaryBatch(ctx, vulnIDs)
+		if err == nil {
+			return nil
+		}
+		if isDeadlock(err) && attempt < maxRetries {
+			backoff := time.Duration(10<<uint(attempt)) * time.Millisecond
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(backoff):
+			}
+			continue
+		}
+		return err
+	}
+	return fmt.Errorf("refresh EPSS summary: exceeded max retries due to deadlock")
 }
 
 func (s *PostgresStore) refreshEPSSSummaryBatch(ctx context.Context, vulnIDs []string) error {

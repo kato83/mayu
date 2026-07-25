@@ -174,6 +174,7 @@ func (s *PostgresStore) buildBaseDetail(ctx context.Context, vulnID string) (*mo
 		`SELECT raw_json FROM osv_entries WHERE vulnerability_id = $1 LIMIT 1`,
 		vulnID).Scan(&rawJSON)
 	if err == nil && rawJSON != nil {
+		detail.OsvRawJSON = rawJSON
 		vuln, parseErr := model.ParseVulnerability(rawJSON)
 		if parseErr == nil {
 			detail.Severity = vuln.Severity
@@ -233,10 +234,11 @@ func (s *PostgresStore) fetchNVDDetail(ctx context.Context, vulnID string) (*mod
 	var entryID int64
 	var vulnStatus, sourceIdentifier sql.NullString
 	var nvdPublished, nvdLastModified sql.NullTime
+	var rawJSON []byte
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, vuln_status, source_identifier, published, last_modified
+		`SELECT id, vuln_status, source_identifier, published, last_modified, raw_json
 		 FROM nvd_entries WHERE vulnerability_id = $1`, vulnID).
-		Scan(&entryID, &vulnStatus, &sourceIdentifier, &nvdPublished, &nvdLastModified)
+		Scan(&entryID, &vulnStatus, &sourceIdentifier, &nvdPublished, &nvdLastModified, &rawJSON)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -247,6 +249,7 @@ func (s *PostgresStore) fetchNVDDetail(ctx context.Context, vulnID string) (*mod
 	nvd := &model.NVDDetail{
 		VulnStatus:       vulnStatus.String,
 		SourceIdentifier: sourceIdentifier.String,
+		RawJSON:          rawJSON,
 	}
 	if nvdPublished.Valid {
 		t := nvdPublished.Time
@@ -466,10 +469,11 @@ func (s *PostgresStore) fetchMITREDetail(ctx context.Context, vulnID string) (*m
 	var entryID int64
 	var state, assignerShortName sql.NullString
 	var datePublished, dateUpdated sql.NullTime
+	var mitreRawJSON []byte
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, state, assigner_short_name, date_published, date_updated
+		`SELECT id, state, assigner_short_name, date_published, date_updated, raw_json
 		 FROM mitre_entries WHERE vulnerability_id = $1`, vulnID).
-		Scan(&entryID, &state, &assignerShortName, &datePublished, &dateUpdated)
+		Scan(&entryID, &state, &assignerShortName, &datePublished, &dateUpdated, &mitreRawJSON)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -480,6 +484,7 @@ func (s *PostgresStore) fetchMITREDetail(ctx context.Context, vulnID string) (*m
 	mitre := &model.MITREDetail{
 		State:             state.String,
 		AssignerShortName: assignerShortName.String,
+		RawJSON:           mitreRawJSON,
 	}
 	if datePublished.Valid {
 		t := datePublished.Time

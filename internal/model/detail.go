@@ -3,7 +3,10 @@
 // into a single response object.
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // VulnerabilityDetail is an enriched view of a vulnerability that combines
 // data from OSV, NVD, MITRE, EPSS, KEV, and LEV sources.
@@ -21,6 +24,9 @@ type VulnerabilityDetail struct {
 
 	// OSV severity (from osv_severity / raw_json)
 	Severity []Severity `json:"severity,omitempty"`
+
+	// OsvRawJSON is the original OSV JSON for raw display
+	OsvRawJSON json.RawMessage `json:"osv_raw_json,omitempty"`
 
 	// Normalized severity from vulnerability_summary (5-level scale label)
 	SeverityWorst string `json:"severity_worst,omitempty"`
@@ -140,6 +146,9 @@ type NVDDetail struct {
 
 	// Configurations contains CPE match criteria (affected software)
 	Configurations []NVDConfigurationDetail `json:"configurations,omitempty"`
+
+	// RawJSON is the original NVD JSON for raw display
+	RawJSON json.RawMessage `json:"raw_json,omitempty"`
 }
 
 // NVDMetricDetail represents a single CVSS metric entry from NVD.
@@ -236,6 +245,9 @@ type MITREDetail struct {
 
 	// SSVC contains CISA SSVC assessment data (if available)
 	SSVC *SSVCDetail `json:"ssvc,omitempty"`
+
+	// RawJSON is the original MITRE CVE Record JSON for raw display
+	RawJSON json.RawMessage `json:"raw_json,omitempty"`
 }
 
 // MITREMetricDetail represents a CVSS metric entry from MITRE.

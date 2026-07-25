@@ -198,6 +198,10 @@
         <source>View on NVD</source>
         <target>NVDで見る</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.rawJson" datatype="html">
+        <source>Raw JSON</source>
+        <target>Raw JSON</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.mitreAssigner" datatype="html">
         <source>Assigner</source>
         <target>割当者</target>

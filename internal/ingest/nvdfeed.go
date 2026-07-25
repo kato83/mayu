@@ -240,6 +240,8 @@ func (ing *Ingester) importNVDYear(ctx context.Context, year int) (inserted int,
 }
 
 // storeNVDBatches stores NVD entries in batches using the configured batch size.
+// To avoid OOM on large feeds (10,000+ entries), summary refresh is performed
+// incrementally per batch rather than accumulating all CVE IDs in memory.
 func (ing *Ingester) storeNVDBatches(ctx context.Context, entries []*model.NVDCVE) (int, error) {
 	if len(entries) == 0 {
 		return 0, nil
@@ -258,7 +260,6 @@ func (ing *Ingester) storeNVDBatches(ctx context.Context, entries []*model.NVDCV
 
 	total := len(entries)
 	inserted := 0
-	var allCVEIDs []string
 
 	for i := 0; i < total; i += ing.batchSize {
 		select {
@@ -277,17 +278,22 @@ func (ing *Ingester) storeNVDBatches(ctx context.Context, entries []*model.NVDCV
 			return inserted, fmt.Errorf("upsert batch at offset %d: %w", i, err)
 		}
 
-		// Collect CVE IDs for summary refresh
-		for _, e := range batch {
-			allCVEIDs = append(allCVEIDs, e.ID)
+		// Refresh summary immediately for this batch to avoid accumulating IDs in memory.
+		batchIDs := make([]string, len(batch))
+		for j, e := range batch {
+			batchIDs[j] = e.ID
+		}
+		ing.refreshSummary(ctx, batchIDs)
+
+		// Release references to processed entries so GC can reclaim the memory
+		// (raw JSON, configurations, etc. of each entry are large).
+		for j := i; j < end; j++ {
+			entries[j] = nil
 		}
 
 		inserted += len(batch)
 		ing.progress(Progress{Phase: "store", Current: inserted, Total: total})
 	}
-
-	// Refresh vulnerability_summary for all imported CVEs
-	ing.refreshSummary(ctx, allCVEIDs)
 
 	return inserted, nil
 }
