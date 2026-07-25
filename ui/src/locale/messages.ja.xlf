@@ -126,6 +126,30 @@
         <source>Withdrawn</source>
         <target>取り下げ日</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.osvPublished" datatype="html">
+        <source>Published</source>
+        <target>公開日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.osvModified" datatype="html">
+        <source>Modified</source>
+        <target>更新日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.osvWithdrawn" datatype="html">
+        <source>Withdrawn</source>
+        <target>取り下げ日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdPublished" datatype="html">
+        <source>Published</source>
+        <target>公開日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdModified" datatype="html">
+        <source>Modified</source>
+        <target>更新日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdStatus" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.aliases" datatype="html">
         <source>Aliases</source>
         <target>エイリアス</target>
@@ -177,6 +201,10 @@
       <trans-unit id="vulnDetail.mitreUpdated" datatype="html">
         <source>Updated</source>
         <target>更新日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mitreState" datatype="html">
+        <source>State</source>
+        <target>状態</target>
       </trans-unit>
       <trans-unit id="vulnDetail.mitreMetrics" datatype="html">
         <source>Metrics</source>
