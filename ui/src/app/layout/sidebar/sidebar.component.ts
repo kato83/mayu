@@ -1,5 +1,6 @@
 import { Component, input, output, inject, computed, signal, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { catchError, of } from 'rxjs';
 
 import { ThemeService, ThemeMode } from '../../services/theme.service';
 import { AuthService } from '../../services/auth.service';
@@ -174,7 +175,9 @@ export class SidebarComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.versionService.getVersion().subscribe({
+    this.versionService.getVersion().pipe(
+      catchError(() => of({ version: '' })),
+    ).subscribe({
       next: (res) => this.version.set(res.version),
     });
   }
