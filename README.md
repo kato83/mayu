@@ -376,6 +376,51 @@ mayu migrate down --steps 3
 mayu migrate status
 ```
 
+### `mayu user create`
+
+Create a new user account.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--email` | User email address (required) | — |
+| `--name` | User display name | — |
+| `--role` | User role: `admin` or `viewer` | `viewer` |
+| `--password` | User password (required) | — |
+
+**Examples:**
+
+```bash
+mayu user create --email admin@example.com --name Admin --role admin --password secret
+mayu user create --email viewer@example.com --role viewer --password mypass
+```
+
+### `mayu user list`
+
+List all users in table format (ID, Email, Name, Role).
+
+**Examples:**
+
+```bash
+mayu user list
+```
+
+### `mayu apikey create`
+
+Create a new API key for a user. The generated key is displayed once and cannot be recovered.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--user-email` | Email of the user to associate the key with (required) | — |
+| `--name` | Description/name for the API key | — |
+| `--expires` | Expiration duration (e.g., `90d`, `1y`, `24h`) | — (no expiration) |
+
+**Examples:**
+
+```bash
+mayu apikey create --user-email admin@example.com --name 'CI Pipeline'
+mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90d
+```
+
 ### `mayu version`
 
 Print version information.
