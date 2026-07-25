@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Frontend: Update TypeScript models and redesign vulnerability-detail page with merged top section and source tabs bottom section. The top section shows merged info (CVE ID, summary, CVSS scores from all sources showing highest, EPSS, KEV status, LEV, affected packages). The bottom section has a tab interface with tabs for each available source (OSV, NVD, MITRE) showing source-specific details.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "1. Update ui/src/app/models/vulnerability.model.ts: Add optional `base_score?: number` and `base_severity?: string` fields to the `Severity` interface to match the new backend response.",
     "2. Rewrite ui/src/app/pages/vulnerability-detail/vulnerability-detail.component.ts with the new layout: (A) TOP SECTION - a merged overview card showing: vulnerability ID + summary, merged CVSS scores (collect highest score from OSV severity, NVD metrics, MITRE metrics - show score badge with severity color), EPSS probability + percentile as compact badges, KEV indicator (red dot if in KEV), LEV score, affected packages list. (B) BOTTOM SECTION - a tabbed interface with tabs dynamically shown for available sources. OSV tab: details markdown, severity entries with vector + computed score, references, credits. NVD tab: status, description, CVSS metrics table, weaknesses, references. MITRE tab: state, assigner, metrics, problem types, SSVC, credits, references.",
