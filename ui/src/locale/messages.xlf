@@ -55,21 +55,21 @@
         <source>Admin</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">120,121</context>
+          <context context-type="linenumber">124,126</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.roleViewer" datatype="html">
         <source>Viewer</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">122,124</context>
+          <context context-type="linenumber">130,132</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.logout" datatype="html">
         <source> Logout </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">130,131</context>
+          <context context-type="linenumber">139,140</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.github" datatype="html">
@@ -83,49 +83,49 @@
         <source>Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">154</context>
+          <context context-type="linenumber">163</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.ingest" datatype="html">
         <source>Ingest</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">156</context>
+          <context context-type="linenumber">165</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.ingestJobs" datatype="html">
         <source>Ingest Jobs</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">158</context>
+          <context context-type="linenumber">167</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.status" datatype="html">
         <source>Status</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">161</context>
+          <context context-type="linenumber">170</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.webhooks" datatype="html">
         <source>Webhooks</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">162</context>
+          <context context-type="linenumber">171</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.watchlists" datatype="html">
         <source>Watchlists</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">163</context>
+          <context context-type="linenumber">172</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.apiKeys" datatype="html">
         <source>API Keys</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">164</context>
+          <context context-type="linenumber">173</context>
         </context-group>
       </trans-unit>
       <trans-unit id="apiKeys.title" datatype="html">

@@ -5,7 +5,12 @@
     "ng": "ng",
     "start": "ng serve",
     "start:ja": "ng serve --configuration=development-ja",
+    "copy-docs": "mkdir -p public/docs/docs && cp ../README.md public/docs/ && cp ../README_ja.md public/docs/ && cp ../docs/*.md public/docs/docs/ && cp ../docs/*.jpg ../docs/*.png public/docs/docs/ 2>/dev/null || true",
+    "prebuild": "pnpm run copy-docs",
     "build": "ng build",
+    "prestart": "pnpm run copy-docs",
+    "prestart:ja": "pnpm run copy-docs",
+    "pretest": "pnpm run copy-docs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
