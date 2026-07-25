@@ -23,6 +23,9 @@ type WatchlistStore interface {
 	// ListMatchesByWatchlist returns matches for a specific watchlist with pagination.
 	ListMatchesByWatchlist(ctx context.Context, watchlistID int64, limit int, offset int) ([]*WatchlistMatch, error)
 
+	// CountMatchesByWatchlist returns the total number of matches for a specific watchlist.
+	CountMatchesByWatchlist(ctx context.Context, watchlistID int64) (int64, error)
+
 	// ListMatchesByUser returns all matches across a user's watchlists with pagination.
 	ListMatchesByUser(ctx context.Context, userID int64, limit int, offset int) ([]*WatchlistMatch, error)
 

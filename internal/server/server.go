@@ -23,6 +23,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/fetcher"
+	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
@@ -69,21 +70,26 @@ type Config struct {
 	// WatchlistStore provides watchlist persistence for the watchlist API.
 	// If nil, watchlist endpoints are not registered.
 	WatchlistStore watchlist.WatchlistStore
+
+	// WatchlistMatcher is the ingest integration point for watchlist matching.
+	// If nil, watchlist matching is not wired into the ingest pipeline.
+	WatchlistMatcher ingest.WatchlistMatcher
 }
 
 // Server is the HTTP API server.
 type Server struct {
-	httpServer     *http.Server
-	store          store.Store
-	version        string
-	uiDir          string
-	embedFS        fs.FS
-	fetcher        *fetcher.Fetcher
-	authProvider   auth.AuthProvider
-	apiKeyStore    auth.APIKeyStore
-	watchlistStore watchlist.WatchlistStore
-	ingestRunning  atomic.Bool
-	runners        activeRunners
+	httpServer       *http.Server
+	store            store.Store
+	version          string
+	uiDir            string
+	embedFS          fs.FS
+	fetcher          *fetcher.Fetcher
+	authProvider     auth.AuthProvider
+	apiKeyStore      auth.APIKeyStore
+	watchlistStore   watchlist.WatchlistStore
+	watchlistMatcher ingest.WatchlistMatcher
+	ingestRunning    atomic.Bool
+	runners          activeRunners
 }
 
 // New creates a new Server with the given configuration.
@@ -94,14 +100,15 @@ func New(cfg Config) *Server {
 	}
 
 	s := &Server{
-		store:          cfg.Store,
-		version:        cfg.Version,
-		uiDir:          cfg.UIDir,
-		embedFS:        cfg.EmbedFS,
-		fetcher:        cfg.Fetcher,
-		authProvider:   ap,
-		apiKeyStore:    cfg.APIKeyStore,
-		watchlistStore: cfg.WatchlistStore,
+		store:            cfg.Store,
+		version:          cfg.Version,
+		uiDir:            cfg.UIDir,
+		embedFS:          cfg.EmbedFS,
+		fetcher:          cfg.Fetcher,
+		authProvider:     ap,
+		apiKeyStore:      cfg.APIKeyStore,
+		watchlistStore:   cfg.WatchlistStore,
+		watchlistMatcher: cfg.WatchlistMatcher,
 	}
 
 	router := s.routes()

@@ -84,3 +84,52 @@ func validateUpdateRequest(req *updateWatchlistRequest) error {
 
 	return nil
 }
+
+// validateWatchlistState validates the final state of a watchlist entity
+// to ensure match_type and required fields are consistent. This is called
+// after applying partial updates to the existing entity.
+func validateWatchlistState(wl *Watchlist) error {
+	if wl.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+
+	if !validMatchTypes[wl.MatchType] {
+		return fmt.Errorf("invalid match_type %q: must be one of package, purl, cpe, ecosystem", wl.MatchType)
+	}
+
+	switch wl.MatchType {
+	case MatchTypePackage:
+		if wl.Ecosystem == nil || *wl.Ecosystem == "" {
+			return fmt.Errorf("ecosystem is required for match_type 'package'")
+		}
+		if wl.PackageName == nil || *wl.PackageName == "" {
+			return fmt.Errorf("package_name is required for match_type 'package'")
+		}
+	case MatchTypePurl:
+		if wl.PurlPattern == nil || *wl.PurlPattern == "" {
+			return fmt.Errorf("purl_pattern is required for match_type 'purl'")
+		}
+	case MatchTypeCPE:
+		if wl.CpePattern == nil || *wl.CpePattern == "" {
+			return fmt.Errorf("cpe_pattern is required for match_type 'cpe'")
+		}
+	case MatchTypeEcosystem:
+		if wl.Ecosystem == nil || *wl.Ecosystem == "" {
+			return fmt.Errorf("ecosystem is required for match_type 'ecosystem'")
+		}
+	}
+
+	if wl.SeverityMin != nil {
+		if *wl.SeverityMin < 1 || *wl.SeverityMin > 5 {
+			return fmt.Errorf("severity_min must be between 1 and 5")
+		}
+	}
+
+	if wl.EpssThreshold != nil {
+		if *wl.EpssThreshold < 0.0 || *wl.EpssThreshold > 1.0 {
+			return fmt.Errorf("epss_threshold must be between 0.0 and 1.0")
+		}
+	}
+
+	return nil
+}
