@@ -1185,256 +1185,263 @@
           <context context-type="linenumber">149,151</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="vulnDetail.kevNotInKev" datatype="html">
+        <source>Not in KEV</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
+          <context context-type="linenumber">158,160</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="vulnDetail.levScore" datatype="html">
         <source>LEV Score</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">157,158</context>
+          <context context-type="linenumber">165,166</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.kevTitle" datatype="html">
         <source>CISA KEV (Known Exploited Vulnerabilities)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">169,170</context>
+          <context context-type="linenumber">177,178</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.kevVendor" datatype="html">
         <source>Vendor / Product</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">176,177</context>
+          <context context-type="linenumber">184,185</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.kevDateAdded" datatype="html">
         <source>Added</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">181,182</context>
+          <context context-type="linenumber">189,190</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.kevDueDate" datatype="html">
         <source>Due Date</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">187,188</context>
+          <context context-type="linenumber">195,196</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.kevRansomware" datatype="html">
         <source>Ransomware</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">193,194</context>
+          <context context-type="linenumber">201,202</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.kevRequiredAction" datatype="html">
         <source>Required Action</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">200,201</context>
+          <context context-type="linenumber">208,209</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.affectedPackages" datatype="html">
         <source>Affected Packages</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">211,213</context>
+          <context context-type="linenumber">219,221</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.versions" datatype="html">
         <source>Versions: </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">257,258</context>
+          <context context-type="linenumber">265,266</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.tabOsv" datatype="html">
         <source>OSV</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">282,283</context>
+          <context context-type="linenumber">290,291</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.tabNvd" datatype="html">
         <source>NVD</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">283,284</context>
+          <context context-type="linenumber">291,292</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.tabMitre" datatype="html">
         <source>MITRE</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">284,286</context>
+          <context context-type="linenumber">292,294</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.osvPublished" datatype="html">
         <source>Published</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">298,299</context>
+          <context context-type="linenumber">306,307</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.osvModified" datatype="html">
         <source>Modified</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">303,304</context>
+          <context context-type="linenumber">311,312</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.osvWithdrawn" datatype="html">
         <source>Withdrawn</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">308,309</context>
+          <context context-type="linenumber">316,317</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.details" datatype="html">
         <source>Details</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">315,316</context>
+          <context context-type="linenumber">323,324</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.severity" datatype="html">
         <source>Severity</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">321,322</context>
+          <context context-type="linenumber">329,330</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.references" datatype="html">
         <source>References</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">340,341</context>
+          <context context-type="linenumber">348,349</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.credits" datatype="html">
         <source>Credits</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">353,354</context>
+          <context context-type="linenumber">361,362</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.nvdPublished" datatype="html">
         <source>Published</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">375,376</context>
+          <context context-type="linenumber">383,384</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.nvdModified" datatype="html">
         <source>Modified</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">381,382</context>
+          <context context-type="linenumber">389,390</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.nvdStatus" datatype="html">
         <source>Status</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">387,388</context>
+          <context context-type="linenumber">395,396</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.nvdMetrics" datatype="html">
         <source>CVSS Metrics</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">397,398</context>
+          <context context-type="linenumber">405,406</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.nvdWeaknesses" datatype="html">
         <source>Weaknesses (CWE)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">411,412</context>
+          <context context-type="linenumber">419,420</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.nvdConfigurations" datatype="html">
         <source>Affected Software (CPE)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">421,422</context>
+          <context context-type="linenumber">429,430</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.nvdReferences" datatype="html">
         <source>NVD References</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">445,446</context>
+          <context context-type="linenumber">453,454</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.nvdViewOnNvd" datatype="html">
         <source>View on NVD</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">461,462</context>
+          <context context-type="linenumber">469,470</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.mitrePublished" datatype="html">
         <source>Published</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">474,475</context>
+          <context context-type="linenumber">482,483</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.mitreUpdated" datatype="html">
         <source>Updated</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">480,481</context>
+          <context context-type="linenumber">488,489</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.mitreState" datatype="html">
         <source>State</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">486,487</context>
+          <context context-type="linenumber">494,495</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.mitreAssigner" datatype="html">
         <source>Assigner</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">492,493</context>
+          <context context-type="linenumber">500,501</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.mitreMetrics" datatype="html">
         <source>Metrics</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">499,500</context>
+          <context context-type="linenumber">507,508</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.mitreProblemTypes" datatype="html">
         <source>Problem Types (CWE)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">517,518</context>
+          <context context-type="linenumber">525,526</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.mitreSsvc" datatype="html">
         <source>SSVC Assessment</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">532,533</context>
+          <context context-type="linenumber">540,541</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.mitreCredits" datatype="html">
         <source>Credits</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">547,548</context>
+          <context context-type="linenumber">555,556</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.mitreReferences" datatype="html">
         <source>MITRE References</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerability-detail/vulnerability-detail.component.html</context>
-          <context context-type="linenumber">562,563</context>
+          <context context-type="linenumber">570,571</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.notFound" datatype="html">

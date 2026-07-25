@@ -318,6 +318,10 @@
         <source>In KEV</source>
         <target>KEV登録済み</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.kevNotInKev" datatype="html">
+        <source>Not in KEV</source>
+        <target>KEV登録なし</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.kevVendor" datatype="html">
         <source>Vendor / Project</source>
         <target>ベンダー / プロジェクト</target>
