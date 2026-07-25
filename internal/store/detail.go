@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/kato83/mayu/internal/cvss"
 	"github.com/kato83/mayu/internal/model"
 )
 
@@ -173,6 +174,7 @@ func (s *PostgresStore) buildBaseDetail(ctx context.Context, vulnID string) (*mo
 		`SELECT raw_json FROM osv_entries WHERE vulnerability_id = $1 LIMIT 1`,
 		vulnID).Scan(&rawJSON)
 	if err == nil && rawJSON != nil {
+		detail.OsvRawJSON = rawJSON
 		vuln, parseErr := model.ParseVulnerability(rawJSON)
 		if parseErr == nil {
 			detail.Severity = vuln.Severity
@@ -188,6 +190,16 @@ func (s *PostgresStore) buildBaseDetail(ctx context.Context, vulnID string) (*mo
 			}
 			if vuln.Withdrawn != nil {
 				detail.Withdrawn = vuln.Withdrawn
+			}
+		}
+	}
+
+	// Compute CVSS base_score and base_severity from vector strings
+	for i := range detail.Severity {
+		if detail.Severity[i].Score != "" {
+			if score, ok := cvss.BaseScore(detail.Severity[i].Score); ok {
+				detail.Severity[i].BaseScore = &score
+				detail.Severity[i].BaseSeverity = cvss.BaseSeverity(score, detail.Severity[i].Score)
 			}
 		}
 	}
@@ -222,10 +234,11 @@ func (s *PostgresStore) fetchNVDDetail(ctx context.Context, vulnID string) (*mod
 	var entryID int64
 	var vulnStatus, sourceIdentifier sql.NullString
 	var nvdPublished, nvdLastModified sql.NullTime
+	var rawJSON []byte
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, vuln_status, source_identifier, published, last_modified
+		`SELECT id, vuln_status, source_identifier, published, last_modified, raw_json
 		 FROM nvd_entries WHERE vulnerability_id = $1`, vulnID).
-		Scan(&entryID, &vulnStatus, &sourceIdentifier, &nvdPublished, &nvdLastModified)
+		Scan(&entryID, &vulnStatus, &sourceIdentifier, &nvdPublished, &nvdLastModified, &rawJSON)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -236,6 +249,7 @@ func (s *PostgresStore) fetchNVDDetail(ctx context.Context, vulnID string) (*mod
 	nvd := &model.NVDDetail{
 		VulnStatus:       vulnStatus.String,
 		SourceIdentifier: sourceIdentifier.String,
+		RawJSON:          rawJSON,
 	}
 	if nvdPublished.Valid {
 		t := nvdPublished.Time
@@ -269,6 +283,12 @@ func (s *PostgresStore) fetchNVDDetail(ctx context.Context, vulnID string) (*mod
 
 	// Get references
 	nvd.References, err = s.fetchNVDReferences(ctx, entryID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get configurations (CPE matches)
+	nvd.Configurations, err = s.fetchNVDConfigurations(ctx, entryID)
 	if err != nil {
 		return nil, err
 	}
@@ -357,16 +377,103 @@ func (s *PostgresStore) fetchNVDReferences(ctx context.Context, entryID int64) (
 	return refs, rows.Err()
 }
 
+// fetchNVDConfigurations retrieves CPE match criteria for an NVD entry.
+func (s *PostgresStore) fetchNVDConfigurations(ctx context.Context, entryID int64) ([]model.NVDConfigurationDetail, error) {
+	// Get configurations
+	configRows, err := s.db.QueryContext(ctx,
+		`SELECT id, operator, negate FROM nvd_configurations WHERE nvd_entry_id = $1`, entryID)
+	if err != nil {
+		return nil, fmt.Errorf("query nvd_configurations: %w", err)
+	}
+	defer func() { _ = configRows.Close() }()
+
+	type configInfo struct {
+		id       int64
+		operator string
+		negate   bool
+	}
+	var configs []configInfo
+	for configRows.Next() {
+		var c configInfo
+		var operator sql.NullString
+		if err := configRows.Scan(&c.id, &operator, &c.negate); err != nil {
+			return nil, fmt.Errorf("scan nvd_configuration: %w", err)
+		}
+		c.operator = operator.String
+		configs = append(configs, c)
+	}
+	if err := configRows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(configs) == 0 {
+		return nil, nil
+	}
+
+	// Get all CPE matches for these configurations
+	var configIDs []int64
+	for _, c := range configs {
+		configIDs = append(configIDs, c.id)
+	}
+
+	matchRows, err := s.db.QueryContext(ctx,
+		`SELECT configuration_id, vulnerable, criteria,
+		        version_start_including, version_start_excluding,
+		        version_end_including, version_end_excluding
+		 FROM nvd_cpe_matches
+		 WHERE configuration_id = ANY($1)
+		 ORDER BY configuration_id, criteria`, configIDs)
+	if err != nil {
+		return nil, fmt.Errorf("query nvd_cpe_matches: %w", err)
+	}
+	defer func() { _ = matchRows.Close() }()
+
+	// Group matches by configuration_id
+	matchesByConfig := make(map[int64][]model.NVDCPEMatchDetail)
+	for matchRows.Next() {
+		var configID int64
+		var m model.NVDCPEMatchDetail
+		var vsi, vse, vei, vee sql.NullString
+		if err := matchRows.Scan(&configID, &m.Vulnerable, &m.Criteria, &vsi, &vse, &vei, &vee); err != nil {
+			return nil, fmt.Errorf("scan nvd_cpe_match: %w", err)
+		}
+		m.VersionStartIncluding = vsi.String
+		m.VersionStartExcluding = vse.String
+		m.VersionEndIncluding = vei.String
+		m.VersionEndExcluding = vee.String
+		matchesByConfig[configID] = append(matchesByConfig[configID], m)
+	}
+	if err := matchRows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Build result
+	var result []model.NVDConfigurationDetail
+	for _, c := range configs {
+		matches := matchesByConfig[c.id]
+		if len(matches) == 0 {
+			continue
+		}
+		result = append(result, model.NVDConfigurationDetail{
+			Operator: c.operator,
+			Negate:   c.negate,
+			Matches:  matches,
+		})
+	}
+	return result, nil
+}
+
 // fetchMITREDetail retrieves MITRE CVE Record enrichment data.
 func (s *PostgresStore) fetchMITREDetail(ctx context.Context, vulnID string) (*model.MITREDetail, error) {
 	// Get MITRE entry
 	var entryID int64
 	var state, assignerShortName sql.NullString
 	var datePublished, dateUpdated sql.NullTime
+	var mitreRawJSON []byte
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, state, assigner_short_name, date_published, date_updated
+		`SELECT id, state, assigner_short_name, date_published, date_updated, raw_json
 		 FROM mitre_entries WHERE vulnerability_id = $1`, vulnID).
-		Scan(&entryID, &state, &assignerShortName, &datePublished, &dateUpdated)
+		Scan(&entryID, &state, &assignerShortName, &datePublished, &dateUpdated, &mitreRawJSON)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -377,6 +484,7 @@ func (s *PostgresStore) fetchMITREDetail(ctx context.Context, vulnID string) (*m
 	mitre := &model.MITREDetail{
 		State:             state.String,
 		AssignerShortName: assignerShortName.String,
+		RawJSON:           mitreRawJSON,
 	}
 	if datePublished.Valid {
 		t := datePublished.Time
@@ -487,6 +595,19 @@ func (s *PostgresStore) fetchMITREMetrics(ctx context.Context, containerIDs []in
 			BaseSeverity: severity.String,
 			VectorString: vectorString.String,
 		}
+
+		// Compute missing base_score/base_severity from vector string
+		if m.VectorString != "" {
+			if m.BaseScore == 0 {
+				if score, ok := cvss.BaseScore(m.VectorString); ok {
+					m.BaseScore = score
+				}
+			}
+			if m.BaseSeverity == "" {
+				m.BaseSeverity = cvss.BaseSeverity(m.BaseScore, m.VectorString)
+			}
+		}
+
 		metrics = append(metrics, m)
 	}
 
@@ -634,6 +755,31 @@ func (s *PostgresStore) fetchEPSSDetail(ctx context.Context, vulnID string) (*mo
 		Percentile: percentile,
 		ScoreDate:  scoreDate,
 	}, nil
+}
+
+// GetEPSSHistory returns the full EPSS score history for a vulnerability, ordered by date.
+func (s *PostgresStore) GetEPSSHistory(ctx context.Context, vulnID string) ([]EPSSHistoryEntry, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT score_date::text, epss, percentile
+		FROM epss_scores
+		WHERE vulnerability_id = $1
+		ORDER BY score_date ASC`,
+		vulnID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query epss_scores history: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var entries []EPSSHistoryEntry
+	for rows.Next() {
+		var e EPSSHistoryEntry
+		if err := rows.Scan(&e.Date, &e.EPSS, &e.Percentile); err != nil {
+			return nil, fmt.Errorf("scan epss_history: %w", err)
+		}
+		entries = append(entries, e)
+	}
+	return entries, rows.Err()
 }
 
 // fetchKEVDetail retrieves the KEV catalog entry for a vulnerability.

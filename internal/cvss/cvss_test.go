@@ -5,6 +5,63 @@ import (
 	"testing"
 )
 
+func TestBaseSeverity(t *testing.T) {
+	tests := []struct {
+		name   string
+		score  float64
+		vector string
+		want   string
+	}{
+		// CVSS v3.1 boundary cases
+		{name: "v3.1 10.0=CRITICAL", score: 10.0, vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H", want: "CRITICAL"},
+		{name: "v3.1 9.0=CRITICAL", score: 9.0, vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", want: "CRITICAL"},
+		{name: "v3.1 8.9=HIGH", score: 8.9, vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N", want: "HIGH"},
+		{name: "v3.1 7.0=HIGH", score: 7.0, vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N", want: "HIGH"},
+		{name: "v3.1 6.9=MEDIUM", score: 6.9, vector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N", want: "MEDIUM"},
+		{name: "v3.1 4.0=MEDIUM", score: 4.0, vector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:N", want: "MEDIUM"},
+		{name: "v3.1 3.9=LOW", score: 3.9, vector: "CVSS:3.1/AV:L/AC:H/PR:H/UI:R/S:U/C:L/I:N/A:N", want: "LOW"},
+		{name: "v3.1 0.1=LOW", score: 0.1, vector: "CVSS:3.1/AV:L/AC:H/PR:H/UI:R/S:U/C:L/I:N/A:N", want: "LOW"},
+		{name: "v3.1 0.0=NONE", score: 0.0, vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N", want: "NONE"},
+
+		// CVSS v4.0 boundaries
+		{name: "v4.0 10.0=CRITICAL", score: 10.0, vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", want: "CRITICAL"},
+		{name: "v4.0 9.0=CRITICAL", score: 9.0, vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", want: "CRITICAL"},
+		{name: "v4.0 8.9=HIGH", score: 8.9, vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", want: "HIGH"},
+		{name: "v4.0 7.0=HIGH", score: 7.0, vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", want: "HIGH"},
+		{name: "v4.0 6.9=MEDIUM", score: 6.9, vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", want: "MEDIUM"},
+		{name: "v4.0 4.0=MEDIUM", score: 4.0, vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", want: "MEDIUM"},
+		{name: "v4.0 3.9=LOW", score: 3.9, vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", want: "LOW"},
+		{name: "v4.0 0.1=LOW", score: 0.1, vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", want: "LOW"},
+		{name: "v4.0 0.0=NONE", score: 0.0, vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", want: "NONE"},
+
+		// CVSS v2.0 boundaries (no CRITICAL level)
+		{name: "v2 10.0=HIGH", score: 10.0, vector: "AV:N/AC:L/Au:N/C:C/I:C/A:C", want: "HIGH"},
+		{name: "v2 7.0=HIGH", score: 7.0, vector: "AV:N/AC:L/Au:N/C:C/I:C/A:C", want: "HIGH"},
+		{name: "v2 6.9=MEDIUM", score: 6.9, vector: "AV:N/AC:L/Au:N/C:P/I:P/A:P", want: "MEDIUM"},
+		{name: "v2 4.0=MEDIUM", score: 4.0, vector: "AV:N/AC:L/Au:N/C:P/I:P/A:P", want: "MEDIUM"},
+		{name: "v2 3.9=LOW", score: 3.9, vector: "AV:L/AC:H/Au:N/C:P/I:N/A:N", want: "LOW"},
+		{name: "v2 0.1=LOW", score: 0.1, vector: "AV:L/AC:H/Au:N/C:P/I:N/A:N", want: "LOW"},
+		{name: "v2 0.0=NONE", score: 0.0, vector: "AV:L/AC:H/Au:N/C:N/I:N/A:N", want: "NONE"},
+		{name: "v2 parens 9.5=HIGH", score: 9.5, vector: "(AV:N/AC:L/Au:N/C:C/I:C/A:C)", want: "HIGH"},
+
+		// Empty vector defaults to v3 thresholds
+		{name: "empty vector 9.5=CRITICAL", score: 9.5, vector: "", want: "CRITICAL"},
+		{name: "empty vector 7.5=HIGH", score: 7.5, vector: "", want: "HIGH"},
+		{name: "empty vector 5.0=MEDIUM", score: 5.0, vector: "", want: "MEDIUM"},
+		{name: "empty vector 2.0=LOW", score: 2.0, vector: "", want: "LOW"},
+		{name: "empty vector 0.0=NONE", score: 0.0, vector: "", want: "NONE"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := BaseSeverity(tt.score, tt.vector)
+			if got != tt.want {
+				t.Errorf("BaseSeverity(%v, %q) = %q, want %q", tt.score, tt.vector, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestBaseScore(t *testing.T) {
 	tests := []struct {
 		name   string

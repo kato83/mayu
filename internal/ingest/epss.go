@@ -3,6 +3,7 @@ package ingest
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/kato83/mayu/internal/model"
@@ -187,6 +188,9 @@ func (ing *Ingester) UpdateEPSS(ctx context.Context) (*Stats, error) {
 
 // storeEPSSBatches stores EPSS scores in batches using the configured batch size.
 // It type-asserts the store to the epssBatchStore interface.
+//
+// To avoid OOM on large datasets (~200,000 scores per day), summary refresh is
+// performed incrementally per batch rather than accumulating all CVE IDs in memory.
 func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSScore) (int, error) {
 	if len(scores) == 0 {
 		return 0, nil
@@ -199,7 +203,7 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 
 	total := len(scores)
 	inserted := 0
-	var allCVEIDs []string
+	summaryUpdated := 0
 
 	for i := 0; i < total; i += ing.batchSize {
 		select {
@@ -218,23 +222,19 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 			return inserted, fmt.Errorf("upsert EPSS batch at offset %d: %w", i, err)
 		}
 
-		// Collect CVE IDs for summary refresh
-		for _, s := range batch {
-			allCVEIDs = append(allCVEIDs, s.CVEID)
+		// Refresh summary immediately for this batch to avoid accumulating IDs in memory.
+		batchIDs := make([]string, len(batch))
+		for j, s := range batch {
+			batchIDs[j] = s.CVEID
+		}
+		if err := es.RefreshEPSSSummary(ctx, batchIDs); err != nil {
+			ing.logger.Printf("warning: failed to refresh EPSS summary at offset %d: %v", i, err)
+		} else {
+			summaryUpdated += len(batchIDs)
 		}
 
 		inserted += len(batch)
 		ing.progress(Progress{Phase: "store", Current: inserted, Total: total})
-	}
-
-	// Lightweight EPSS-only summary update (only updates epss_score and epss_percentile)
-	// This replaces the full refreshSummary which was extremely expensive for EPSS imports
-	// because it recomputed severity, CWEs, ecosystems etc. that EPSS does not affect.
-	if len(allCVEIDs) > 0 {
-		ing.progress(Progress{Phase: "summary", Message: fmt.Sprintf("Updating EPSS summary for %d vulnerabilities...", len(allCVEIDs))})
-		if err := es.RefreshEPSSSummary(ctx, allCVEIDs); err != nil {
-			ing.logger.Printf("warning: failed to refresh EPSS summary: %v", err)
-		}
 	}
 
 	return inserted, nil
@@ -417,6 +417,12 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 		totalInserted += inserted
 		ing.progress(Progress{Phase: "store", Current: processedDays, Total: pendingDays,
 			Message: fmt.Sprintf("  [%d/%d] %s - %d scores", processedDays, pendingDays, dateStr, inserted)})
+
+		// Hint the GC to reclaim memory from the previous day's scores slice.
+		// Each day has ~200,000 entries (~50 MB), and without this hint the runtime
+		// may not collect them before the next allocation, leading to OOM over
+		// hundreds of iterations.
+		runtime.GC()
 	}
 
 	// Update sync state

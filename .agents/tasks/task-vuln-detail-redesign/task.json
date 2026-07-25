@@ -1,0 +1,14 @@
+{
+  "task_id": "task-vuln-detail-redesign",
+  "task_description": "Redesign the vulnerability detail page to merge information from multiple sources (OSV, NVD, MITRE) in a unified top section, add source-specific tabs at the bottom, and compute CVSS scores/severity from vector strings on the backend when not already stored in the database.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "Go build succeeds, all 18 Go packages pass (unit tests), Angular build succeeds with no warnings, all 132 UI tests pass across 13 test files. Backend adds BaseSeverity function with 31 test cases. Frontend tests cover merged CVSS display, tab rendering/switching, source-specific content, and error handling."
+  }
+}

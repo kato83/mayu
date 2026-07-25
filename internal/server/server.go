@@ -209,6 +209,7 @@ func (s *Server) routes() http.Handler {
 		r.Use(middleware.Timeout(30 * time.Second))
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
+		r.Get("/vulnerabilities/{id}/epss-history", s.handleGetEPSSHistory)
 		r.Get("/ecosystems", s.handleListEcosystems)
 		r.Get("/status", s.handleStatus)
 		r.Get("/version", s.handleVersion)
@@ -571,6 +572,36 @@ func (s *Server) handleGetVulnerability(w http.ResponseWriter, r *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, vuln)
+}
+
+// handleGetEPSSHistory handles GET /api/v1/vulnerabilities/{id}/epss-history
+func (s *Server) handleGetEPSSHistory(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "vulnerability ID is required")
+		return
+	}
+
+	// Decode percent-encoded path parameter
+	if decoded, err := url.PathUnescape(id); err == nil {
+		id = decoded
+	}
+
+	history, err := s.store.GetEPSSHistory(r.Context(), id)
+	if err != nil {
+		slog.Error("failed to get EPSS history", "id", id, "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if history == nil {
+		history = []store.EPSSHistoryEntry{}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"vulnerability_id": id,
+		"history":          history,
+	})
 }
 
 // --- Response types ---

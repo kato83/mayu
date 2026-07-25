@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Backend: Add CVSS score/severity computation from vector strings. When building the VulnerabilityDetail response, compute base_score and base_severity for: (1) OSV Severity entries which only have vector strings, (2) MITRE metrics where base_score is 0/nil or base_severity is empty but vector_string exists. Add a new BaseSeverity() function to the cvss package that returns the severity label (NONE/LOW/MEDIUM/HIGH/CRITICAL) from a score and CVSS version. Extend the Severity struct in model/osv.go to include computed BaseScore and BaseSeverity fields in JSON output. Apply computation in store/detail.go after building the base detail.",
+  "status": "completed",
+  "steps": [
+    "1. Add a new exported function to internal/cvss/cvss.go: `BaseSeverity(score float64, vector string) string` that returns CRITICAL/HIGH/MEDIUM/LOW/NONE based on CVSS version thresholds. For CVSS v2 (no prefix or parenthesized): HIGH>=7.0, MEDIUM>=4.0, LOW>0. For CVSS v3.x: CRITICAL>=9.0, HIGH>=7.0, MEDIUM>=4.0, LOW>=0.1, NONE=0. For CVSS v4.0: CRITICAL>=9.0, HIGH>=7.0, MEDIUM>=4.0, LOW>=0.1, NONE=0.",
+    "2. Add unit tests for BaseSeverity in internal/cvss/cvss_test.go covering all versions and boundary values.",
+    "3. Extend model.Severity struct in internal/model/osv.go to add two new JSON fields: `BaseScore *float64 json:\"base_score,omitempty\"` and `BaseSeverity string json:\"base_severity,omitempty\"`. These are computed fields, not from the OSV JSON.",
+    "4. In internal/store/detail.go, after the OSV raw_json is parsed into detail.Severity (around line 130-140 in buildBaseDetail), iterate over detail.Severity entries and for each one: call cvss.BaseScore(sev.Score) to compute the score, then call cvss.BaseSeverity(score, sev.Score) to get the label. Set sev.BaseScore and sev.BaseSeverity on the struct.",
+    "5. In internal/store/detail.go fetchMITREMetrics function, after scanning each metric row: if m.BaseScore is 0 and m.VectorString is not empty, call cvss.BaseScore(m.VectorString) to compute it, then call cvss.BaseSeverity to compute BaseSeverity. If m.BaseSeverity is empty and m.VectorString is not empty, compute it similarly.",
+    "6. Run `go build ./...` and `go test ./internal/cvss/ -v` to verify."
+  ],
+  "acceptance_criteria": [
+    "cvss.BaseSeverity returns correct severity labels for all CVSS versions (v2, v3.0, v3.1, v4.0)",
+    "OSV Severity entries in the API response include computed base_score and base_severity when vector string is parseable",
+    "MITRE metrics with missing base_score/base_severity but valid vector_string have computed values filled in",
+    "All existing Go tests continue to pass (make test)",
+    "New unit tests cover BaseSeverity edge cases"
+  ],
+  "verification": [
+    "Run `cd /projects/sandbox/mayu && go build ./...` - must succeed",
+    "Run `cd /projects/sandbox/mayu && go test ./internal/cvss/ -v -count=1` - all tests pass including new BaseSeverity tests",
+    "Run `cd /projects/sandbox/mayu && go test ./... -v -count=1` - all unit tests pass"
+  ],
+  "blocked_reason": null,
+  "findings": "All unit tests pass. Build succeeds. The BaseSeverity function uses isV2Vector helper to distinguish CVSS v2 (no CVSS: prefix) from v3.x/v4.0 vectors. Empty vector defaults to v3 thresholds. The cvss import was added to store/detail.go for both buildBaseDetail and fetchMITREMetrics usage."
+}

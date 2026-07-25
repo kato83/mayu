@@ -126,6 +126,30 @@
         <source>Withdrawn</source>
         <target>取り下げ日</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.osvPublished" datatype="html">
+        <source>Published</source>
+        <target>公開日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.osvModified" datatype="html">
+        <source>Modified</source>
+        <target>更新日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.osvWithdrawn" datatype="html">
+        <source>Withdrawn</source>
+        <target>取り下げ日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdPublished" datatype="html">
+        <source>Published</source>
+        <target>公開日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdModified" datatype="html">
+        <source>Modified</source>
+        <target>更新日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdStatus" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.aliases" datatype="html">
         <source>Aliases</source>
         <target>エイリアス</target>
@@ -166,6 +190,18 @@
         <source>NVD References</source>
         <target>NVD 参照</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.nvdConfigurations" datatype="html">
+        <source>Affected Software (CPE)</source>
+        <target>影響を受けるソフトウェア (CPE)</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdViewOnNvd" datatype="html">
+        <source>View on NVD</source>
+        <target>NVDで見る</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.rawJson" datatype="html">
+        <source>Raw JSON</source>
+        <target>Raw JSON</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.mitreAssigner" datatype="html">
         <source>Assigner</source>
         <target>割当者</target>
@@ -177,6 +213,10 @@
       <trans-unit id="vulnDetail.mitreUpdated" datatype="html">
         <source>Updated</source>
         <target>更新日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mitreState" datatype="html">
+        <source>State</source>
+        <target>状態</target>
       </trans-unit>
       <trans-unit id="vulnDetail.mitreMetrics" datatype="html">
         <source>Metrics</source>
@@ -214,6 +254,34 @@
         <source>Failed to load vulnerability details.</source>
         <target>脆弱性の詳細の読み込みに失敗しました。</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.riskIndicators" datatype="html">
+        <source>Risk Indicators</source>
+        <target>リスク指標</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.tabOsv" datatype="html">
+        <source>OSV</source>
+        <target>OSV</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.tabNvd" datatype="html">
+        <source>NVD</source>
+        <target>NVD</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.tabMitre" datatype="html">
+        <source>MITRE</source>
+        <target>MITRE</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mergedScores" datatype="html">
+        <source>Severity</source>
+        <target>深刻度</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.highestScore" datatype="html">
+        <source>Highest</source>
+        <target>最高</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.source" datatype="html">
+        <source>Source</source>
+        <target>ソース</target>
+      </trans-unit>
       <trans-unit id="pagination.showing" datatype="html">
         <source> Showing <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION" equiv-text="{{ startItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> to <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_1" equiv-text="{{ endItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> of <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_2" equiv-text="{{ total() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> results </source>
         <target><x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_2" equiv-text="{{ total() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/>件中 <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION" equiv-text="{{ startItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/>～<x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_1" equiv-text="{{ endItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/>件を表示</target>
@@ -246,9 +314,21 @@
         <source>Score Date</source>
         <target>スコア日</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.epssTrend" datatype="html">
+        <source>EPSS Trend</source>
+        <target>EPSS推移</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.kevTitle" datatype="html">
         <source>CISA KEV (Known Exploited Vulnerabilities)</source>
         <target>CISA KEV（既知の悪用された脆弱性）</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevInKev" datatype="html">
+        <source>In KEV</source>
+        <target>KEV登録済み</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevNotInKev" datatype="html">
+        <source>Not in KEV</source>
+        <target>KEV登録なし</target>
       </trans-unit>
       <trans-unit id="vulnDetail.kevVendor" datatype="html">
         <source>Vendor / Project</source>
@@ -263,7 +343,7 @@
         <target>脆弱性名</target>
       </trans-unit>
       <trans-unit id="vulnDetail.kevDateAdded" datatype="html">
-        <source>Date Added</source>
+        <source>Added</source>
         <target>追加日</target>
       </trans-unit>
       <trans-unit id="vulnDetail.kevDueDate" datatype="html">
@@ -275,8 +355,8 @@
         <target>必要な対応</target>
       </trans-unit>
       <trans-unit id="vulnDetail.kevRansomware" datatype="html">
-        <source>Ransomware Campaign Use</source>
-        <target>ランサムウェアキャンペーンでの使用</target>
+        <source>Ransomware</source>
+        <target>ランサムウェア</target>
       </trans-unit>
       <trans-unit id="vulnDetail.levTitle" datatype="html">
         <source>LEV (Likely Exploited Vulnerabilities)</source>

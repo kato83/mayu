@@ -3,7 +3,10 @@
 // into a single response object.
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // VulnerabilityDetail is an enriched view of a vulnerability that combines
 // data from OSV, NVD, MITRE, EPSS, KEV, and LEV sources.
@@ -21,6 +24,9 @@ type VulnerabilityDetail struct {
 
 	// OSV severity (from osv_severity / raw_json)
 	Severity []Severity `json:"severity,omitempty"`
+
+	// OsvRawJSON is the original OSV JSON for raw display
+	OsvRawJSON json.RawMessage `json:"osv_raw_json,omitempty"`
 
 	// Normalized severity from vulnerability_summary (5-level scale label)
 	SeverityWorst string `json:"severity_worst,omitempty"`
@@ -137,6 +143,12 @@ type NVDDetail struct {
 
 	// References contains NVD-specific references with tags
 	References []NVDReferenceDetail `json:"references,omitempty"`
+
+	// Configurations contains CPE match criteria (affected software)
+	Configurations []NVDConfigurationDetail `json:"configurations,omitempty"`
+
+	// RawJSON is the original NVD JSON for raw display
+	RawJSON json.RawMessage `json:"raw_json,omitempty"`
 }
 
 // NVDMetricDetail represents a single CVSS metric entry from NVD.
@@ -188,6 +200,23 @@ type NVDReferenceDetail struct {
 	Tags   []string `json:"tags,omitempty"`
 }
 
+// NVDConfigurationDetail represents a CPE configuration node from NVD.
+type NVDConfigurationDetail struct {
+	Operator string              `json:"operator,omitempty"`
+	Negate   bool                `json:"negate,omitempty"`
+	Matches  []NVDCPEMatchDetail `json:"matches,omitempty"`
+}
+
+// NVDCPEMatchDetail represents a single CPE match criteria.
+type NVDCPEMatchDetail struct {
+	Vulnerable            bool   `json:"vulnerable"`
+	Criteria              string `json:"criteria"`
+	VersionStartIncluding string `json:"version_start_including,omitempty"`
+	VersionStartExcluding string `json:"version_start_excluding,omitempty"`
+	VersionEndIncluding   string `json:"version_end_including,omitempty"`
+	VersionEndExcluding   string `json:"version_end_excluding,omitempty"`
+}
+
 // MITREDetail contains MITRE CVE Record enrichment data.
 type MITREDetail struct {
 	// State is the CVE record state (PUBLISHED, REJECTED)
@@ -216,6 +245,9 @@ type MITREDetail struct {
 
 	// SSVC contains CISA SSVC assessment data (if available)
 	SSVC *SSVCDetail `json:"ssvc,omitempty"`
+
+	// RawJSON is the original MITRE CVE Record JSON for raw display
+	RawJSON json.RawMessage `json:"raw_json,omitempty"`
 }
 
 // MITREMetricDetail represents a CVSS metric entry from MITRE.
