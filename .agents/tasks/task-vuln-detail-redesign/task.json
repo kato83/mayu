@@ -1,0 +1,7 @@
+{
+  "task_id": "task-vuln-detail-redesign",
+  "task_description": "Redesign the vulnerability detail page to merge information from multiple sources (OSV, NVD, MITRE) in a unified top section, add source-specific tabs at the bottom, and compute CVSS scores/severity from vector strings on the backend when not already stored in the database.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

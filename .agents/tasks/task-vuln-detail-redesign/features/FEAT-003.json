@@ -1,0 +1,22 @@
+{
+  "id": "FEAT-003",
+  "type": "chore",
+  "description": "Extract i18n messages and update Japanese translation file. Run the i18n extraction to pick up new translation IDs from the redesigned component, then update the Japanese translation file with appropriate translations.",
+  "status": "pending",
+  "steps": [
+    "1. Run `cd /projects/sandbox/mayu/ui && npx ng extract-i18n` to extract new i18n message IDs.",
+    "2. Open ui/src/locale/messages.ja.xlf and add Japanese translations for all new translation units that were added by the component redesign (tab labels, merged section headers, etc.). Preserve all existing translations.",
+    "3. Verify the build still works with translations: `cd /projects/sandbox/mayu/ui && pnpm exec ng build`"
+  ],
+  "acceptance_criteria": [
+    "All new i18n IDs from the redesigned component have corresponding Japanese translations in messages.ja.xlf",
+    "Existing translations are preserved",
+    "UI build succeeds (pnpm exec ng build)"
+  ],
+  "verification": [
+    "Run `cd /projects/sandbox/mayu/ui && pnpm exec ng build` - build succeeds",
+    "Verify messages.ja.xlf contains translations for new tab/section IDs by grep"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

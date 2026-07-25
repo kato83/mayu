@@ -50,9 +50,11 @@ type Vulnerability struct {
 
 // Severity represents a severity score entry.
 type Severity struct {
-	Type   SeverityType `json:"type"`
-	Score  string       `json:"score"`
-	Source string       `json:"source,omitempty"`
+	Type         SeverityType `json:"type"`
+	Score        string       `json:"score"`
+	Source       string       `json:"source,omitempty"`
+	BaseScore    *float64     `json:"base_score,omitempty"`
+	BaseSeverity string       `json:"base_severity,omitempty"`
 }
 
 // SeverityType represents the type of severity scoring system.

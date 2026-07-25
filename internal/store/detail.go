@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/kato83/mayu/internal/cvss"
 	"github.com/kato83/mayu/internal/model"
 )
 
@@ -188,6 +189,16 @@ func (s *PostgresStore) buildBaseDetail(ctx context.Context, vulnID string) (*mo
 			}
 			if vuln.Withdrawn != nil {
 				detail.Withdrawn = vuln.Withdrawn
+			}
+		}
+	}
+
+	// Compute CVSS base_score and base_severity from vector strings
+	for i := range detail.Severity {
+		if detail.Severity[i].Score != "" {
+			if score, ok := cvss.BaseScore(detail.Severity[i].Score); ok {
+				detail.Severity[i].BaseScore = &score
+				detail.Severity[i].BaseSeverity = cvss.BaseSeverity(score, detail.Severity[i].Score)
 			}
 		}
 	}
@@ -487,6 +498,19 @@ func (s *PostgresStore) fetchMITREMetrics(ctx context.Context, containerIDs []in
 			BaseSeverity: severity.String,
 			VectorString: vectorString.String,
 		}
+
+		// Compute missing base_score/base_severity from vector string
+		if m.VectorString != "" {
+			if m.BaseScore == 0 {
+				if score, ok := cvss.BaseScore(m.VectorString); ok {
+					m.BaseScore = score
+				}
+			}
+			if m.BaseSeverity == "" {
+				m.BaseSeverity = cvss.BaseSeverity(m.BaseScore, m.VectorString)
+			}
+		}
+
 		metrics = append(metrics, m)
 	}
 

@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Frontend: Update TypeScript models and redesign vulnerability-detail page with merged top section and source tabs bottom section. The top section shows merged info (CVE ID, summary, CVSS scores from all sources showing highest, EPSS, KEV status, LEV, affected packages). The bottom section has a tab interface with tabs for each available source (OSV, NVD, MITRE) showing source-specific details.",
+  "status": "pending",
+  "steps": [
+    "1. Update ui/src/app/models/vulnerability.model.ts: Add optional `base_score?: number` and `base_severity?: string` fields to the `Severity` interface to match the new backend response.",
+    "2. Rewrite ui/src/app/pages/vulnerability-detail/vulnerability-detail.component.ts with the new layout: (A) TOP SECTION - a merged overview card showing: vulnerability ID + summary, merged CVSS scores (collect highest score from OSV severity, NVD metrics, MITRE metrics - show score badge with severity color), EPSS probability + percentile as compact badges, KEV indicator (red dot if in KEV), LEV score, affected packages list. (B) BOTTOM SECTION - a tabbed interface with tabs dynamically shown for available sources. OSV tab: details markdown, severity entries with vector + computed score, references, credits. NVD tab: status, description, CVSS metrics table, weaknesses, references. MITRE tab: state, assigner, metrics, problem types, SSVC, credits, references.",
+    "3. Implement tab state using signals. Active tab signal defaults to 'osv'. Only show tabs for sources that have data (e.g., if no NVD data, do not show NVD tab).",
+    "4. All user-facing text must use i18n with @@ custom IDs. Add new i18n IDs for tab labels and merged section headers.",
+    "5. Update ui/src/app/pages/vulnerability-detail/vulnerability-detail.component.spec.ts to test the new layout: test that merged CVSS section appears, test tab switching, test that tabs only show for available sources.",
+    "6. Run UI tests to verify: `cd /projects/sandbox/mayu/ui && pnpm exec ng test --watch=false`"
+  ],
+  "acceptance_criteria": [
+    "Vulnerability model Severity interface has base_score and base_severity optional fields",
+    "Top section displays merged CVSS score (highest across all sources) with severity badge",
+    "Top section shows EPSS, KEV, LEV as compact indicators when available",
+    "Top section shows affected packages",
+    "Bottom section has functional tabs for OSV, NVD, MITRE (only shown when data exists)",
+    "Tab switching works via signal state",
+    "All text uses i18n with @@ IDs",
+    "All existing and new UI tests pass",
+    "Component uses standalone pattern, signals, native control flow, TailwindCSS v4"
+  ],
+  "verification": [
+    "Run `cd /projects/sandbox/mayu/ui && pnpm exec ng test --watch=false` - all tests pass",
+    "Run `cd /projects/sandbox/mayu/ui && pnpm exec ng build` - build succeeds with no errors"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
