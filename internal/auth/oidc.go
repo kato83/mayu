@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -51,6 +52,9 @@ type oidcClaims struct {
 	Sub   string `json:"sub"`
 	Email string `json:"email"`
 	Name  string `json:"name"`
+	Iss   string `json:"iss"`
+	Aud   string `json:"aud"`
+	Exp   int64  `json:"exp"`
 }
 
 // jwksResponse represents a JSON Web Key Set response.
@@ -75,6 +79,15 @@ type jwtHeader struct {
 	Typ string `json:"typ"`
 }
 
+// discoveryTTL is how long the OIDC discovery document is cached before re-fetching.
+const discoveryTTL = 1 * time.Hour
+
+// jwksTTL is how long JWKS keys are cached before re-fetching.
+const jwksTTL = 24 * time.Hour
+
+// clockSkewTolerance is the tolerance for clock differences when validating token expiry.
+const clockSkewTolerance = 2 * time.Minute
+
 // OIDCAuthProvider implements AuthProvider for OpenID Connect authentication.
 // It handles the authorization code flow with callback, user auto-provisioning,
 // and delegates session/API key validation to the underlying stores.
@@ -86,10 +99,12 @@ type OIDCAuthProvider struct {
 	maxAge   time.Duration
 	client   *http.Client
 
-	// Cached discovery document
-	mu        sync.RWMutex
-	discovery *oidcDiscovery
-	jwks      map[string]*rsa.PublicKey
+	// Cached discovery document with TTL
+	mu             sync.RWMutex
+	discovery      *oidcDiscovery
+	discoveryFetch time.Time
+	jwks           map[string]*rsa.PublicKey
+	jwksFetch      time.Time
 }
 
 // NewOIDCProvider creates a new OIDCAuthProvider.
@@ -158,7 +173,7 @@ func (p *OIDCAuthProvider) ValidateAPIKey(ctx context.Context, rawKey string) (*
 	rawHash := HashAPIKey(rawKey)
 
 	for _, candidate := range candidates {
-		if rawHash == candidate.KeyHash {
+		if subtle.ConstantTimeCompare([]byte(rawHash), []byte(candidate.KeyHash)) == 1 {
 			if candidate.ExpiresAt != nil && time.Now().After(*candidate.ExpiresAt) {
 				return nil, ErrAPIKeyExpired
 			}
@@ -256,10 +271,10 @@ func (p *OIDCAuthProvider) HandleCallback(ctx context.Context, code string) (*Us
 	return user, nil
 }
 
-// getDiscovery fetches and caches the OIDC discovery document.
+// getDiscovery fetches and caches the OIDC discovery document with TTL-based refresh.
 func (p *OIDCAuthProvider) getDiscovery() (*oidcDiscovery, error) {
 	p.mu.RLock()
-	if p.discovery != nil {
+	if p.discovery != nil && time.Since(p.discoveryFetch) < discoveryTTL {
 		disc := p.discovery
 		p.mu.RUnlock()
 		return disc, nil
@@ -270,7 +285,7 @@ func (p *OIDCAuthProvider) getDiscovery() (*oidcDiscovery, error) {
 	defer p.mu.Unlock()
 
 	// Double-check after acquiring write lock
-	if p.discovery != nil {
+	if p.discovery != nil && time.Since(p.discoveryFetch) < discoveryTTL {
 		return p.discovery, nil
 	}
 
@@ -291,6 +306,7 @@ func (p *OIDCAuthProvider) getDiscovery() (*oidcDiscovery, error) {
 	}
 
 	p.discovery = &disc
+	p.discoveryFetch = time.Now()
 	return &disc, nil
 }
 
@@ -348,7 +364,7 @@ func (p *OIDCAuthProvider) extractClaims(ctx context.Context, disc *oidcDiscover
 	return p.fetchUserinfo(ctx, disc.UserinfoEndpoint, tokenResp.AccessToken)
 }
 
-// decodeIDToken decodes a JWT ID token and verifies its RSA signature.
+// decodeIDToken decodes a JWT ID token and verifies its RSA signature and claims.
 func (p *OIDCAuthProvider) decodeIDToken(disc *oidcDiscovery, idToken string) (*oidcClaims, error) {
 	parts := strings.Split(idToken, ".")
 	if len(parts) != 3 {
@@ -381,6 +397,21 @@ func (p *OIDCAuthProvider) decodeIDToken(disc *oidcDiscovery, idToken string) (*
 		return nil, fmt.Errorf("parse JWT claims: %w", err)
 	}
 
+	// Validate issuer
+	if claims.Iss != disc.Issuer {
+		return nil, fmt.Errorf("%w: issuer mismatch", ErrOIDCInvalidToken)
+	}
+
+	// Validate audience
+	if claims.Aud != p.cfg.ClientID {
+		return nil, fmt.Errorf("%w: audience mismatch", ErrOIDCInvalidToken)
+	}
+
+	// Validate expiration (with clock skew tolerance)
+	if time.Now().After(time.Unix(claims.Exp, 0).Add(clockSkewTolerance)) {
+		return nil, fmt.Errorf("%w: token expired", ErrOIDCInvalidToken)
+	}
+
 	return &claims, nil
 }
 
@@ -407,9 +438,10 @@ func (p *OIDCAuthProvider) verifySignature(disc *oidcDiscovery, parts []string, 
 }
 
 // getPublicKey fetches and caches the RSA public key from the JWKS endpoint.
+// If the kid is not found in cache or the cache is expired, it re-fetches JWKS.
 func (p *OIDCAuthProvider) getPublicKey(jwksURI, kid string) (*rsa.PublicKey, error) {
 	p.mu.RLock()
-	if key, ok := p.jwks[kid]; ok {
+	if key, ok := p.jwks[kid]; ok && time.Since(p.jwksFetch) < jwksTTL {
 		p.mu.RUnlock()
 		return key, nil
 	}
@@ -418,12 +450,12 @@ func (p *OIDCAuthProvider) getPublicKey(jwksURI, kid string) (*rsa.PublicKey, er
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Double-check
-	if key, ok := p.jwks[kid]; ok {
+	// Double-check: if cache is still valid and kid exists, return it
+	if key, ok := p.jwks[kid]; ok && time.Since(p.jwksFetch) < jwksTTL {
 		return key, nil
 	}
 
-	// Fetch JWKS
+	// Fetch JWKS (either expired cache or unknown kid)
 	resp, err := p.client.Get(jwksURI)
 	if err != nil {
 		return nil, fmt.Errorf("fetch JWKS: %w", err)
@@ -439,7 +471,8 @@ func (p *OIDCAuthProvider) getPublicKey(jwksURI, kid string) (*rsa.PublicKey, er
 		return nil, fmt.Errorf("decode JWKS: %w", err)
 	}
 
-	// Parse and cache all RSA keys
+	// Replace cached keys with fresh set
+	newKeys := make(map[string]*rsa.PublicKey)
 	for _, k := range jwks.Keys {
 		if k.Kty != "RSA" {
 			continue
@@ -448,8 +481,10 @@ func (p *OIDCAuthProvider) getPublicKey(jwksURI, kid string) (*rsa.PublicKey, er
 		if err != nil {
 			continue
 		}
-		p.jwks[k.Kid] = pubKey
+		newKeys[k.Kid] = pubKey
 	}
+	p.jwks = newKeys
+	p.jwksFetch = time.Now()
 
 	key, ok := p.jwks[kid]
 	if !ok {

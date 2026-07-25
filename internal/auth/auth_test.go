@@ -66,7 +66,7 @@ type mockAPIKeyStore struct {
 	getAPIKeyByPrefixFn func(ctx context.Context, prefix string) ([]*APIKeyWithHash, error)
 	createAPIKeyFn      func(ctx context.Context, userID int64, name string, keyHash string, keyPrefix string, expiresAt *time.Time) (*APIKey, error)
 	listAPIKeysFn       func(ctx context.Context, userID int64) ([]*APIKey, error)
-	deleteAPIKeyFn      func(ctx context.Context, id int64, userID int64) error
+	deleteAPIKeyFn      func(ctx context.Context, id int64, userID int64) (int64, error)
 }
 
 func (m *mockAPIKeyStore) CreateAPIKey(ctx context.Context, userID int64, name string, keyHash string, keyPrefix string, expiresAt *time.Time) (*APIKey, error) {
@@ -83,11 +83,11 @@ func (m *mockAPIKeyStore) ListAPIKeys(ctx context.Context, userID int64) ([]*API
 	return nil, nil
 }
 
-func (m *mockAPIKeyStore) DeleteAPIKey(ctx context.Context, id int64, userID int64) error {
+func (m *mockAPIKeyStore) DeleteAPIKey(ctx context.Context, id int64, userID int64) (int64, error) {
 	if m.deleteAPIKeyFn != nil {
 		return m.deleteAPIKeyFn(ctx, id, userID)
 	}
-	return nil
+	return 1, nil
 }
 
 func (m *mockAPIKeyStore) GetAPIKeyByPrefix(ctx context.Context, prefix string) ([]*APIKeyWithHash, error) {
@@ -218,7 +218,7 @@ func TestLocalAuthProvider_Authenticate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider := NewLocalAuthProvider(tt.userStore, &mockAPIKeyStore{}, &mockSessionStore{}, "secret", 3600)
+			provider := NewLocalAuthProvider(tt.userStore, &mockAPIKeyStore{}, &mockSessionStore{}, 3600)
 			user, err := provider.Authenticate(context.Background(), tt.email, tt.password)
 
 			if tt.name == "store error" {
@@ -329,7 +329,7 @@ func TestLocalAuthProvider_ValidateSession(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider := NewLocalAuthProvider(tt.userStore, &mockAPIKeyStore{}, tt.sessionStore, "secret", 3600)
+			provider := NewLocalAuthProvider(tt.userStore, &mockAPIKeyStore{}, tt.sessionStore, 3600)
 			user, err := provider.ValidateSession(context.Background(), tt.sessionID)
 
 			if tt.wantErr != nil {
@@ -469,7 +469,7 @@ func TestLocalAuthProvider_ValidateAPIKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider := NewLocalAuthProvider(tt.userStore, tt.apiKeyStore, &mockSessionStore{}, "secret", 3600)
+			provider := NewLocalAuthProvider(tt.userStore, tt.apiKeyStore, &mockSessionStore{}, 3600)
 			user, err := provider.ValidateAPIKey(context.Background(), tt.rawKey)
 
 			if tt.wantErr != nil {
@@ -501,7 +501,7 @@ func TestLocalAuthProvider_CreateSession(t *testing.T) {
 		},
 	}
 
-	provider := NewLocalAuthProvider(&mockUserStore{}, &mockAPIKeyStore{}, sessionStore, "secret", 3600)
+	provider := NewLocalAuthProvider(&mockUserStore{}, &mockAPIKeyStore{}, sessionStore, 3600)
 	sessionID, err := provider.CreateSession(context.Background(), 42)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -527,7 +527,7 @@ func TestLocalAuthProvider_DeleteSession(t *testing.T) {
 		},
 	}
 
-	provider := NewLocalAuthProvider(&mockUserStore{}, &mockAPIKeyStore{}, sessionStore, "secret", 3600)
+	provider := NewLocalAuthProvider(&mockUserStore{}, &mockAPIKeyStore{}, sessionStore, 3600)
 	err := provider.DeleteSession(context.Background(), "session-to-delete")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -538,7 +538,7 @@ func TestLocalAuthProvider_DeleteSession(t *testing.T) {
 }
 
 func TestLocalAuthProvider_Mode(t *testing.T) {
-	provider := NewLocalAuthProvider(&mockUserStore{}, &mockAPIKeyStore{}, &mockSessionStore{}, "secret", 3600)
+	provider := NewLocalAuthProvider(&mockUserStore{}, &mockAPIKeyStore{}, &mockSessionStore{}, 3600)
 	if got := provider.Mode(); got != "local" {
 		t.Errorf("got mode %q, want %q", got, "local")
 	}

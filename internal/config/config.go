@@ -38,7 +38,8 @@ type AuthConfig struct {
 	Mode string `yaml:"mode"`
 	// OIDC holds OpenID Connect settings (used when Mode is "oidc").
 	OIDC OIDCConfig `yaml:"oidc"`
-	// SessionSecret is the secret used to sign session tokens.
+	// SessionSecret is reserved for future use (e.g., HMAC-based session signing).
+	// Currently unused - sessions use random database-stored tokens.
 	SessionSecret string `yaml:"session_secret"`
 	// SessionMaxAge is the session lifetime in seconds (default: 86400).
 	SessionMaxAge int `yaml:"session_max_age"`

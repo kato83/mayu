@@ -35,7 +35,7 @@ type LocalAuthProvider struct {
 
 // NewLocalAuthProvider creates a new LocalAuthProvider.
 // maxAge specifies the session lifetime; if zero, defaults to 24 hours.
-func NewLocalAuthProvider(users UserStore, apiKeys APIKeyStore, sessions SessionStore, sessionSecret string, maxAge int) *LocalAuthProvider {
+func NewLocalAuthProvider(users UserStore, apiKeys APIKeyStore, sessions SessionStore, maxAge int) *LocalAuthProvider {
 	duration := time.Duration(maxAge) * time.Second
 	if duration <= 0 {
 		duration = 24 * time.Hour
