@@ -426,6 +426,9 @@ mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90
 
 Webhook通知を新規作成します。
 
+> [!TIP]
+> テンプレート変数、イベント一覧、署名検証、配信動作の詳細ドキュメントは [docs/webhooks.ja.md](docs/webhooks.ja.md) を参照してください。
+
 | フラグ | 説明 | デフォルト |
 |--------|------|-----------|
 | `--name` | Webhook名（必須） | — |

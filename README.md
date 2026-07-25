@@ -425,6 +425,9 @@ mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90
 
 Create a new webhook for notifications.
 
+> [!TIP]
+> For detailed documentation on template variables, events, signature verification, and delivery behavior, see [docs/webhooks.md](docs/webhooks.md).
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--name` | Webhook name (required) | — |
