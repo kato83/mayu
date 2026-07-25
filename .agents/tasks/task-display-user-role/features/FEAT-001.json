@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Display user role badge in sidebar user info area. When auth.mode is not 'none' and a user is logged in, show a role badge (Admin/Viewer) next to or below the user email in the sidebar's user info section. The badge should be visually distinct (e.g., colored pill/label). Add proper i18n for the role labels and update Japanese translations.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Install dependencies: run `pnpm install` in the ui/ directory to ensure node_modules are available",
     "Modify ui/src/app/layout/sidebar/sidebar.component.ts: In the existing user info section (the `@if (authService.authMode() !== 'none' && authService.currentUser())` block), add a role badge/pill element between the email display and the logout button. Use TailwindCSS classes for styling - e.g., a small rounded pill with distinct colors: green/emerald for 'admin', blue/slate for 'viewer'. The badge text should use i18n.",
@@ -28,5 +28,5 @@
     "Verify i18n entries exist: grep for 'sidebar.roleAdmin' and 'sidebar.roleViewer' in ui/src/locale/messages.ja.xlf"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Test command for this project is `pnpm exec ng test` (NOT `pnpm run test -- --watch=false`). The @angular/build:unit-test builder runs vitest automatically without needing --watch=false flag. The i18n extraction uses npx internally via Makefile (make ui-i18n-extract). All 115 tests pass. Build succeeds."
 }
