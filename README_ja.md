@@ -447,7 +447,44 @@ mayu --config /path/to/config.yaml search --id CVE-2024-1234
 **`config.yaml` の例：**
 
 ```yaml
+# データベース接続
 database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
+
+# 認証設定
+auth:
+  # mode: none | local | oidc (デフォルト: none)
+  mode: none
+```
+
+**ローカル認証の例：**
+
+```yaml
+database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
+
+auth:
+  mode: local
+  session_secret: "your-random-secret-key"
+  session_max_age: 86400  # 秒 (デフォルト: 86400 = 24時間)
+```
+
+**OIDC 認証の例：**
+
+```yaml
+database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
+
+auth:
+  mode: oidc
+  session_secret: "your-random-secret-key"
+  session_max_age: 86400
+  oidc:
+    issuer: "https://accounts.google.com"
+    client_id: "your-client-id.apps.googleusercontent.com"
+    client_secret: "your-client-secret"
+    redirect_url: "http://localhost:8080/auth/callback"
+    scopes:
+      - openid
+      - email
+      - profile
 ```
 
 **優先順位**（高い順）：
