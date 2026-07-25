@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"text/template"
 	"time"
@@ -72,7 +73,6 @@ func toWebhookResponse(w *model.Webhook) webhookResponse {
 		Events:       w.Events,
 		ContentType:  w.ContentType,
 		BodyTemplate: w.BodyTemplate,
-		Secret:       w.Secret,
 		Enabled:      w.Enabled,
 		CreatedAt:    w.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    w.UpdatedAt.Format(time.RFC3339),
@@ -94,6 +94,21 @@ func toDeliveryLogResponse(dl *model.WebhookDeliveryLog) deliveryLogResponse {
 	}
 }
 
+// validateWebhookURL checks that the URL has an http or https scheme.
+func validateWebhookURL(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("url must use http or https scheme")
+	}
+	if u.Host == "" {
+		return fmt.Errorf("url must have a host")
+	}
+	return nil
+}
+
 // handleCreateWebhook handles POST /api/v1/webhooks
 func (s *Server) handleCreateWebhook(w http.ResponseWriter, r *http.Request) {
 	var req webhookRequest
@@ -108,6 +123,10 @@ func (s *Server) handleCreateWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.URL == "" {
 		writeError(w, http.StatusBadRequest, "url is required")
+		return
+	}
+	if err := validateWebhookURL(req.URL); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if len(req.Events) == 0 {
@@ -204,6 +223,10 @@ func (s *Server) handleUpdateWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.URL == "" {
 		writeError(w, http.StatusBadRequest, "url is required")
+		return
+	}
+	if err := validateWebhookURL(req.URL); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if len(req.Events) == 0 {

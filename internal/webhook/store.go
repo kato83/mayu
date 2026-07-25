@@ -31,6 +31,8 @@ type WebhookStore interface {
 	CreateDeliveryLog(ctx context.Context, log *model.WebhookDeliveryLog) error
 	// ListDeliveryLogs returns delivery logs for a webhook, ordered by most recent first.
 	ListDeliveryLogs(ctx context.Context, webhookID int64, limit int) ([]*model.WebhookDeliveryLog, error)
+	// PruneDeliveryLogs removes old delivery logs, keeping only the most recent N per webhook.
+	PruneDeliveryLogs(ctx context.Context, keepPerWebhook int) error
 }
 
 // PostgresWebhookStore implements WebhookStore using database/sql with the pgx stdlib driver.
@@ -344,4 +346,21 @@ func parseTextArray(s string) []string {
 		result = append(result, string(current))
 	}
 	return result
+}
+
+// PruneDeliveryLogs removes old delivery logs, keeping only the most recent N per webhook.
+func (s *PostgresWebhookStore) PruneDeliveryLogs(ctx context.Context, keepPerWebhook int) error {
+	_, err := s.db.ExecContext(ctx, `
+		DELETE FROM webhook_delivery_logs
+		WHERE id NOT IN (
+			SELECT id FROM (
+				SELECT id, ROW_NUMBER() OVER (PARTITION BY webhook_id ORDER BY delivered_at DESC) AS rn
+				FROM webhook_delivery_logs
+			) ranked
+			WHERE rn <= $1
+		)`, keepPerWebhook)
+	if err != nil {
+		return fmt.Errorf("prune delivery logs: %w", err)
+	}
+	return nil
 }

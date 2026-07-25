@@ -205,7 +205,9 @@ func (s *Server) runIngestJob(runner *ingestRunner, job *store.IngestJob, req in
 	progressFn := runner.progressCallback()
 
 	p := parser.New()
-	ing := ingest.New(s.fetcher, p, s.store, ingest.WithProgress(progressFn))
+	ing := ingest.New(s.fetcher, p, s.store, ingest.WithProgress(progressFn),
+		s.webhookNotifierOption(),
+	)
 
 	var stats *ingest.Stats
 	var ingestErr error
@@ -536,4 +538,15 @@ func ingestTypeToSource(t string) string {
 	default:
 		return t
 	}
+}
+
+// webhookNotifierOption returns an ingest Option that wires up webhook notifications.
+// If no webhook engine is configured, it returns a no-op option.
+func (s *Server) webhookNotifierOption() ingest.Option {
+	if s.webhookEngine == nil {
+		return func(_ *ingest.Ingester) {} // no-op
+	}
+	return ingest.WithWebhookNotifier(func(ctx context.Context, vulnIDs []string) {
+		s.webhookEngine.NotifyNewVulnerabilities(ctx, vulnIDs, s.store.GetSeveritiesByIDs)
+	})
 }

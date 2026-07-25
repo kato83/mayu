@@ -578,11 +578,12 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 	// Refresh vulnerability_summary for all ingested vulnerabilities
 	ing.refreshSummary(ctx, collectedIDs)
 
-	// Fire webhook notification (non-blocking) if a notifier is configured
+	// Fire webhook notification (non-blocking) if a notifier is configured.
+	// Use context.WithoutCancel so delivery is not interrupted if the parent context is cancelled.
 	if ing.webhookNotifier != nil && len(collectedIDs) > 0 {
 		ids := make([]string, len(collectedIDs))
 		copy(ids, collectedIDs)
-		go ing.webhookNotifier(ctx, ids)
+		go ing.webhookNotifier(context.WithoutCancel(ctx), ids)
 	}
 
 	return int(insertedTotal), nil
