@@ -208,3 +208,56 @@ func TestValidateDateInput(t *testing.T) {
 		})
 	}
 }
+
+func TestStripConfigFlag(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{
+			"no config flag",
+			[]string{"--steps", "3"},
+			[]string{"--steps", "3"},
+		},
+		{
+			"--config with separate value",
+			[]string{"--config", "/path/to/config.yaml", "--steps", "3"},
+			[]string{"--steps", "3"},
+		},
+		{
+			"--config= style",
+			[]string{"--config=/path/to/config.yaml", "--steps", "3"},
+			[]string{"--steps", "3"},
+		},
+		{
+			"config in the middle",
+			[]string{"--steps", "3", "--config", "/path/to/config.yaml"},
+			[]string{"--steps", "3"},
+		},
+		{
+			"config only",
+			[]string{"--config", "/path/to/config.yaml"},
+			[]string{},
+		},
+		{
+			"empty args",
+			[]string{},
+			[]string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripConfigFlag(tt.args)
+			if len(got) != len(tt.want) {
+				t.Fatalf("stripConfigFlag(%v) = %v, want %v", tt.args, got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("stripConfigFlag(%v)[%d] = %q, want %q", tt.args, i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
