@@ -12,12 +12,12 @@ import (
 // --- Mock stores ---
 
 type mockUserStore struct {
-	getUserByEmailFn      func(ctx context.Context, email string) (*UserWithPassword, error)
-	getUserByIDFn         func(ctx context.Context, id int64) (*User, error)
-	createUserFn          func(ctx context.Context, email, name, role, passwordHash string) (*User, error)
-	listUsersFn           func(ctx context.Context) ([]*User, error)
-	updateUserOIDCFn      func(ctx context.Context, userID int64, subject string) error
-	getUserByOIDCSubjFn   func(ctx context.Context, subject string) (*User, error)
+	getUserByEmailFn    func(ctx context.Context, email string) (*UserWithPassword, error)
+	getUserByIDFn       func(ctx context.Context, id int64) (*User, error)
+	createUserFn        func(ctx context.Context, email, name, role, passwordHash string) (*User, error)
+	listUsersFn         func(ctx context.Context) ([]*User, error)
+	updateUserOIDCFn    func(ctx context.Context, userID int64, subject string) error
+	getUserByOIDCSubjFn func(ctx context.Context, subject string) (*User, error)
 }
 
 func (m *mockUserStore) CreateUser(ctx context.Context, email, name, role, passwordHash string) (*User, error) {
@@ -446,8 +446,8 @@ func TestLocalAuthProvider_ValidateAPIKey(t *testing.T) {
 			wantUser:  nil,
 		},
 		{
-			name:   "key too short",
-			rawKey: "short",
+			name:        "key too short",
+			rawKey:      "short",
 			apiKeyStore: &mockAPIKeyStore{},
 			userStore:   &mockUserStore{},
 			wantErr:     ErrInvalidAPIKey,
