@@ -1,6 +1,6 @@
 import { Injectable, inject, LOCALE_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, of, switchMap } from 'rxjs';
+import { Observable, catchError, of } from 'rxjs';
 
 import { DOCS_MANIFEST, DocEntry } from './docs-manifest';
 
