@@ -153,6 +153,26 @@ func TestHealthCheck(t *testing.T) {
 	}
 }
 
+func TestVersionEndpoint(t *testing.T) {
+	srv := newTestServer(&mockStore{})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/version", nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+
+	var body map[string]string
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body["version"] != "test-v1.0.0" {
+		t.Errorf("expected version test-v1.0.0, got %q", body["version"])
+	}
+}
+
 func TestOpenAPISpec(t *testing.T) {
 	srv := newTestServer(&mockStore{})
 

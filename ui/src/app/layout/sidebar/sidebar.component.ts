@@ -1,8 +1,9 @@
-import { Component, input, output, inject, computed } from '@angular/core';
+import { Component, input, output, inject, computed, signal, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 import { ThemeService, ThemeMode } from '../../services/theme.service';
 import { AuthService } from '../../services/auth.service';
+import { VersionService } from '../../services/version.service';
 
 interface NavItem {
   label: string;
@@ -127,15 +128,23 @@ interface NavItem {
 
       <!-- Footer -->
       <div class="px-6 py-4 border-t border-slate-700 text-xs text-slate-400">
+        @if (version()) {
+          <span i18n="@@sidebar.version">v{{ version() }}</span>
+          <span class="mx-1">·</span>
+        }
         © 2026 Mayu Project
       </div>
     </aside>
   `,
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
   private readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
+  private readonly versionService = inject(VersionService);
   readonly authService = inject(AuthService);
+
+  /** Application version fetched from the API */
+  readonly version = signal('');
 
   /** Whether the sidebar is open (mobile) */
   open = input(false);
@@ -163,6 +172,12 @@ export class SidebarComponent {
     }
     return this.allNavItems;
   });
+
+  ngOnInit(): void {
+    this.versionService.getVersion().subscribe({
+      next: (res) => this.version.set(res.version),
+    });
+  }
 
   setTheme(mode: ThemeMode): void {
     this.themeService.setMode(mode);

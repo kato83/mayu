@@ -383,6 +383,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
 
+  /api/v1/version:
+    get:
+      operationId: getVersion
+      summary: Get application version
+      description: Returns the current version of the Mayu application.
+      tags:
+        - system
+      responses:
+        "200":
+          description: Version information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionResponse"
+
 components:
   schemas:
     SearchResponse:
@@ -709,6 +724,16 @@ components:
         version:
           type: string
           example: dev
+
+    VersionResponse:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: string
+          description: The application version string
+          example: "1.0.0"
 
     EcosystemsResponse:
       type: object

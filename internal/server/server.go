@@ -206,6 +206,7 @@ func (s *Server) routes() http.Handler {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(authMW)
 		r.Use(middleware.Timeout(30 * time.Second))
+		r.Get("/version", s.handleVersion)
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
@@ -283,6 +284,13 @@ func (s *Server) routes() http.Handler {
 func (s *Server) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{
 		"status":  "ok",
+		"version": s.version,
+	})
+}
+
+// handleVersion returns the application version.
+func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{
 		"version": s.version,
 	})
 }

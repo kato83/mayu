@@ -318,6 +318,10 @@
         <source>Theme</source>
         <target>テーマ</target>
       </trans-unit>
+      <trans-unit id="sidebar.version" datatype="html">
+        <source>v<x id="INTERPOLATION" equiv-text="{{ version() }}"/></source>
+        <target>v<x id="INTERPOLATION" equiv-text="{{ version() }}"/></target>
+      </trans-unit>
       <trans-unit id="sidebar.themeLight" datatype="html">
         <source>Light</source>
         <target>ライト</target>
