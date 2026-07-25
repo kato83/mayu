@@ -1,3 +1,6 @@
+---
+title: "NVD Import Comparison"
+---
 # NVD Import Methods: Native vs. OSV-Converted
 
 ## Background

@@ -8,3 +8,19 @@
  * The ThemeService adds/removes the "dark" class on <html>.
  */
 @custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Badge images: Display inline with minimal spacing.
+ * Applies to shields.io and GitHub Actions badge images rendered via MarkdownPipe.
+ */
+.prose img.badge {
+  display: inline;
+  margin: 0;
+}
+
+.prose > p:first-child:has(img.badge) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
