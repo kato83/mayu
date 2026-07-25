@@ -93,6 +93,16 @@ func (s *testWatchlistStore) ListMatchesByWatchlist(_ context.Context, watchlist
 	return result[offset:end], nil
 }
 
+func (s *testWatchlistStore) CountMatchesByWatchlist(_ context.Context, watchlistID int64) (int64, error) {
+	var count int64
+	for _, m := range s.matches {
+		if m.WatchlistID == watchlistID {
+			count++
+		}
+	}
+	return count, nil
+}
+
 func (s *testWatchlistStore) ListMatchesByUser(_ context.Context, userID int64, limit int, offset int) ([]*WatchlistMatch, error) {
 	var result []*WatchlistMatch
 	for _, m := range s.matches {
@@ -443,6 +453,31 @@ func TestHandleUpdateWatchlist(t *testing.T) {
 	}
 }
 
+func TestHandleUpdateWatchlist_MatchTypeFieldConsistency(t *testing.T) {
+	store := newTestStore()
+	user := &auth.User{ID: 1, Email: "test@example.com"}
+
+	eco := "Go"
+	store.watchlists = []*Watchlist{
+		{ID: 1, UserID: 1, Name: "Watch1", MatchType: MatchTypeEcosystem, Ecosystem: &eco, Enabled: true, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+	}
+
+	handler := HandleUpdateWatchlist(store)
+
+	r := chi.NewRouter()
+	r.Put("/{id}", handler)
+
+	// Change match_type to "purl" without providing purl_pattern - should fail
+	body := `{"match_type":"purl"}`
+	req := requestWithUser("PUT", "/1", []byte(body), user)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400 (purl_pattern required), got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestHandleListUserMatches(t *testing.T) {
 	store := newTestStore()
 	user := &auth.User{ID: 1, Email: "test@example.com"}
@@ -466,18 +501,15 @@ func TestHandleListUserMatches(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	var resp []matchResponse
+	var resp matchesListResponse
 	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if len(resp) != 2 {
-		t.Fatalf("expected 2 matches, got %d", len(resp))
+	if len(resp.Matches) != 2 {
+		t.Fatalf("expected 2 matches, got %d", len(resp.Matches))
 	}
-
-	// Check X-Total-Count header
-	totalCount := rr.Header().Get("X-Total-Count")
-	if totalCount != "2" {
-		t.Errorf("expected X-Total-Count 2, got %q", totalCount)
+	if resp.Total != 2 {
+		t.Errorf("expected total 2, got %d", resp.Total)
 	}
 }
 
@@ -506,11 +538,14 @@ func TestHandleListWatchlistMatches(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rr.Code, rr.Body.String())
 	}
 
-	var resp []matchResponse
+	var resp matchesListResponse
 	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if len(resp) != 1 {
-		t.Fatalf("expected 1 match, got %d", len(resp))
+	if len(resp.Matches) != 1 {
+		t.Fatalf("expected 1 match, got %d", len(resp.Matches))
+	}
+	if resp.Total != 1 {
+		t.Errorf("expected total 1, got %d", resp.Total)
 	}
 }

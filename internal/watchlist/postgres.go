@@ -125,13 +125,14 @@ func (s *PostgresWatchlistStore) ListWatchlists(ctx context.Context, userID int6
 }
 
 // UpdateWatchlist updates an existing watchlist entry.
+// The query is scoped by both id AND user_id for defense-in-depth.
 func (s *PostgresWatchlistStore) UpdateWatchlist(ctx context.Context, w *Watchlist) error {
 	_, err := s.db.ExecContext(ctx, `
 		UPDATE watchlists
 		SET name = $2, match_type = $3, ecosystem = $4, package_name = $5,
 		    purl_pattern = $6, cpe_pattern = $7, severity_min = $8,
 		    epss_threshold = $9, enabled = $10, updated_at = NOW()
-		WHERE id = $1`,
+		WHERE id = $1 AND user_id = $11`,
 		w.ID,
 		w.Name,
 		w.MatchType,
@@ -142,6 +143,7 @@ func (s *PostgresWatchlistStore) UpdateWatchlist(ctx context.Context, w *Watchli
 		nullableInt16(w.SeverityMin),
 		nullableFloat64(w.EpssThreshold),
 		w.Enabled,
+		w.UserID,
 	)
 	if err != nil {
 		return fmt.Errorf("update watchlist %d: %w", w.ID, err)
@@ -182,6 +184,21 @@ func (s *PostgresWatchlistStore) ListMatchesByWatchlist(ctx context.Context, wat
 	defer func() { _ = rows.Close() }()
 
 	return scanMatches(rows)
+}
+
+// CountMatchesByWatchlist returns the total number of matches for a specific watchlist.
+func (s *PostgresWatchlistStore) CountMatchesByWatchlist(ctx context.Context, watchlistID int64) (int64, error) {
+	var count int64
+	err := s.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM watchlist_matches
+		WHERE watchlist_id = $1`,
+		watchlistID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count matches for watchlist %d: %w", watchlistID, err)
+	}
+	return count, nil
 }
 
 // ListMatchesByUser returns all matches across a user's watchlists with pagination.

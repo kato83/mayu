@@ -2,7 +2,7 @@ CREATE TABLE watchlists (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    match_type TEXT NOT NULL,
+    match_type TEXT NOT NULL CHECK (match_type IN ('package', 'purl', 'cpe', 'ecosystem')),
     ecosystem TEXT,
     package_name TEXT,
     purl_pattern TEXT,

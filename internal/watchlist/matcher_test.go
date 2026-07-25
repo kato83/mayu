@@ -28,6 +28,9 @@ func (m *mockWatchlistStore) DeleteWatchlist(_ context.Context, id int64, userID
 func (m *mockWatchlistStore) ListMatchesByWatchlist(_ context.Context, watchlistID int64, limit int, offset int) ([]*WatchlistMatch, error) {
 	return nil, nil
 }
+func (m *mockWatchlistStore) CountMatchesByWatchlist(_ context.Context, watchlistID int64) (int64, error) {
+	return 0, nil
+}
 func (m *mockWatchlistStore) ListMatchesByUser(_ context.Context, userID int64, limit int, offset int) ([]*WatchlistMatch, error) {
 	return nil, nil
 }
