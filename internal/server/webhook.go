@@ -393,7 +393,7 @@ func (s *Server) handleTestWebhook(w http.ResponseWriter, r *http.Request) {
 
 	// Read limited response body
 	var respBody bytes.Buffer
-	respBody.ReadFrom(http.MaxBytesReader(nil, resp.Body, 1024))
+	_, _ = respBody.ReadFrom(http.MaxBytesReader(nil, resp.Body, 1024))
 
 	success := resp.StatusCode >= 200 && resp.StatusCode < 300
 	writeJSON(w, http.StatusOK, testWebhookResponse{
