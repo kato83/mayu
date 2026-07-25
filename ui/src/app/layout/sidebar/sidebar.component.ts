@@ -154,6 +154,7 @@ export class SidebarComponent implements OnInit {
   ngOnInit(): void {
     this.versionService.getVersion().subscribe({
       next: (res) => this.version.set(res.version),
+      error: (err) => console.warn('Failed to fetch version:', err),
     });
   }
 
