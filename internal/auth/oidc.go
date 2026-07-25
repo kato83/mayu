@@ -49,12 +49,42 @@ type oidcTokenResponse struct {
 
 // oidcClaims represents the claims extracted from an ID token or userinfo.
 type oidcClaims struct {
-	Sub   string `json:"sub"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
-	Iss   string `json:"iss"`
-	Aud   string `json:"aud"`
-	Exp   int64  `json:"exp"`
+	Sub   string        `json:"sub"`
+	Email string        `json:"email"`
+	Name  string        `json:"name"`
+	Iss   string        `json:"iss"`
+	Aud   stringOrArray `json:"aud"`
+	Exp   int64         `json:"exp"`
+}
+
+// stringOrArray handles the OIDC "aud" claim which can be either a single
+// string or an array of strings per RFC 7519 Section 4.1.3.
+type stringOrArray []string
+
+func (s *stringOrArray) UnmarshalJSON(data []byte) error {
+	// Try as a single string first
+	var single string
+	if err := json.Unmarshal(data, &single); err == nil {
+		*s = []string{single}
+		return nil
+	}
+	// Try as an array of strings
+	var multi []string
+	if err := json.Unmarshal(data, &multi); err != nil {
+		return fmt.Errorf("aud must be a string or array of strings: %w", err)
+	}
+	*s = multi
+	return nil
+}
+
+// Contains checks if the audience list contains the given value.
+func (s stringOrArray) Contains(val string) bool {
+	for _, v := range s {
+		if v == val {
+			return true
+		}
+	}
+	return false
 }
 
 // jwksResponse represents a JSON Web Key Set response.
@@ -403,7 +433,7 @@ func (p *OIDCAuthProvider) decodeIDToken(disc *oidcDiscovery, idToken string) (*
 	}
 
 	// Validate audience
-	if claims.Aud != p.cfg.ClientID {
+	if !claims.Aud.Contains(p.cfg.ClientID) {
 		return nil, fmt.Errorf("%w: audience mismatch", ErrOIDCInvalidToken)
 	}
 

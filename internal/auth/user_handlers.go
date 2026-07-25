@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -105,6 +106,14 @@ func HandleCreateAPIKey(apiKeys APIKeyStore) http.HandlerFunc {
 			return
 		}
 
+		slog.Info("API key created",
+			"event", "apikey_created",
+			"user_id", user.ID,
+			"email", user.Email,
+			"key_name", req.Name,
+			"key_prefix", keyPrefix,
+		)
+
 		resp := createAPIKeyResponse{
 			Key: rawKey,
 			APIKey: apiKeyResponse{
@@ -149,6 +158,13 @@ func HandleDeleteAPIKey(apiKeys APIKeyStore) http.HandlerFunc {
 			writeAuthError(w, http.StatusNotFound, "API key not found")
 			return
 		}
+
+		slog.Info("API key deleted",
+			"event", "apikey_deleted",
+			"user_id", user.ID,
+			"email", user.Email,
+			"key_id", id,
+		)
 
 		w.WriteHeader(http.StatusNoContent)
 	}

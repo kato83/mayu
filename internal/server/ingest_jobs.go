@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/store"
 )
 
@@ -117,7 +118,18 @@ func (s *Server) handleGetIngestJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, toIngestJobDetailResponse(*job))
+	resp := toIngestJobDetailResponse(*job)
+
+	// Redact internal error details for non-admin users
+	user := auth.UserFromContext(r.Context())
+	if user == nil || user.Role != auth.RoleAdmin {
+		resp.ErrorStack = nil
+		for i := range resp.Failures {
+			resp.Failures[i].ErrorStack = nil
+		}
+	}
+
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // --- Converters ---

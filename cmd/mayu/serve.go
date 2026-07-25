@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -95,6 +96,14 @@ func runServe(args []string, cfg *config.Config) error {
 	default:
 		// "none" or empty
 		authProvider = auth.NewNoAuthProvider()
+		if !isLocalhostAddr(*addr) {
+			slog.Warn("authentication is disabled and the server is bound to a non-localhost address; all requests will have unrestricted admin access",
+				"addr", *addr,
+				"hint", "set auth.mode in config.yaml to 'local' or 'oidc' for production use")
+		} else {
+			slog.Info("authentication disabled (auth.mode is not set); all requests have admin access",
+				"hint", "set auth.mode in config.yaml to 'local' or 'oidc' for production use")
+		}
 	}
 
 	// Initialize webhook system
@@ -175,4 +184,18 @@ func runServe(args []string, cfg *config.Config) error {
 		}
 		return nil
 	}
+}
+
+// isLocalhostAddr returns true if the given address binds only to localhost.
+// Addresses like ":8080", "0.0.0.0:8080", or "[::]:8080" are considered non-localhost.
+func isLocalhostAddr(addr string) bool {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return false
+	}
+	// Empty host means "all interfaces" (equivalent to 0.0.0.0)
+	if host == "" {
+		return false
+	}
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
