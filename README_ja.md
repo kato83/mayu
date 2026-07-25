@@ -422,6 +422,51 @@ mayu apikey create --user-email admin@example.com --name 'CI Pipeline'
 mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90d
 ```
 
+### `mayu webhook create`
+
+Webhook通知を新規作成します。
+
+| フラグ | 説明 | デフォルト |
+|--------|------|-----------|
+| `--name` | Webhook名（必須） | — |
+| `--url` | Webhook URL（必須） | — |
+| `--events` | 購読するイベントのカンマ区切りリスト（必須） | — |
+| `--content-type` | WebhookリクエストのContent-Typeヘッダー | `application/json` |
+| `--body-template` | リクエストボディのGoテンプレート（text/template形式） | — |
+| `--secret` | Webhook署名検証用のHMACシークレット | — |
+| `--enabled` | Webhookを有効にするかどうか | `true` |
+
+**使用例:**
+
+```bash
+mayu webhook create --name "security-team-slack" --url "https://hooks.slack.com/services/T00/B00/xxxx" --events "new_critical,new_high" --body-template '{"text": "{{.ID}} ({{.Severity}}) - {{.Summary}}"}'
+mayu webhook create --name "all-vulns" --url "https://example.com/webhook" --events "*"
+```
+
+### `mayu webhook list`
+
+登録済みの全Webhookをテーブル形式で表示します（ID、名前、URL、イベント、有効状態）。
+
+**使用例:**
+
+```bash
+mayu webhook list
+```
+
+### `mayu webhook test`
+
+Webhookにテストペイロードを送信して接続を確認します。
+
+| フラグ | 説明 | デフォルト |
+|--------|------|-----------|
+| `--id` | テストするWebhook ID（必須） | — |
+
+**使用例:**
+
+```bash
+mayu webhook test --id 1
+```
+
 ### `mayu version`
 
 バージョン情報を表示します。
@@ -485,6 +530,36 @@ auth:
       - openid
       - email
       - profile
+```
+
+**Webhook通知の例：**
+
+```yaml
+database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
+
+webhooks:
+  - name: "security-team-slack"
+    url: "https://hooks.slack.com/services/T00/B00/xxxx"
+    events: ["new_critical", "new_high"]
+    content_type: "application/json"
+    body_template: |
+      {"text": "🚨 {{.ID}} ({{.Severity}}) - {{.Summary}}"}
+
+  - name: "all-vulns-generic"
+    url: "https://my-internal-system.example.com/api/webhook"
+    events: ["*"]
+    content_type: "application/json"
+    body_template: |
+      {
+        "event": "{{.Event}}",
+        "vulnerability": {
+          "id": "{{.ID}}",
+          "severity": "{{.Severity}}",
+          "epss": {{.EPSS}},
+          "lev": {{.LEV}},
+          "summary": "{{.Summary}}"
+        }
+      }
 ```
 
 **優先順位**（高い順）：
@@ -655,6 +730,7 @@ curl "http://localhost:8080/api/v1/vulnerabilities/CVE-2023-38831?detail=true" |
 - [ ] EPSS 推移グラフ・LEV 可視化
 - [ ] トリアージ機能の拡張
 - [ ] ダッシュボード・レポート機能
-- [ ] 通知機能（Webhook、メール）
+- [x] 通知機能（Webhook）
+- [ ] 通知機能（メール）
 - [ ] [endoflife.date](https://endoflife.date/) 連携
 - [ ] SBOM 機能拡張（依存グラフ、継続的モニタリング）

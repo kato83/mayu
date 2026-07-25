@@ -806,6 +806,186 @@
         <source> Delete </source>
         <target>削除</target>
       </trans-unit>
+      <trans-unit id="sidebar.nav.webhooks" datatype="html">
+        <source>Webhooks</source>
+        <target>Webhook</target>
+      </trans-unit>
+      <trans-unit id="webhooks.title" datatype="html">
+        <source> Webhooks </source>
+        <target>Webhook</target>
+      </trans-unit>
+      <trans-unit id="webhooks.createButton" datatype="html">
+        <source> Create Webhook </source>
+        <target>Webhookを作成</target>
+      </trans-unit>
+      <trans-unit id="webhooks.testSuccess" datatype="html">
+        <source>Test webhook sent successfully.</source>
+        <target>テストWebhookが正常に送信されました。</target>
+      </trans-unit>
+      <trans-unit id="webhooks.testFailed" datatype="html">
+        <source>Test webhook failed.</source>
+        <target>テストWebhookが失敗しました。</target>
+      </trans-unit>
+      <trans-unit id="webhooks.dismissAlert" datatype="html">
+        <source> Dismiss </source>
+        <target>閉じる</target>
+      </trans-unit>
+      <trans-unit id="webhooks.editTitle" datatype="html">
+        <source>Edit Webhook</source>
+        <target>Webhookを編集</target>
+      </trans-unit>
+      <trans-unit id="webhooks.createTitle" datatype="html">
+        <source>Create New Webhook</source>
+        <target>新しいWebhookを作成</target>
+      </trans-unit>
+      <trans-unit id="webhooks.nameLabel" datatype="html">
+        <source> Name </source>
+        <target>名前</target>
+      </trans-unit>
+      <trans-unit id="webhooks.namePlaceholder" datatype="html">
+        <source>e.g. security-team-slack</source>
+        <target>例: security-team-slack</target>
+      </trans-unit>
+      <trans-unit id="webhooks.urlLabel" datatype="html">
+        <source> URL </source>
+        <target>URL</target>
+      </trans-unit>
+      <trans-unit id="webhooks.urlPlaceholder" datatype="html">
+        <source>https://hooks.slack.com/services/...</source>
+        <target>https://hooks.slack.com/services/...</target>
+      </trans-unit>
+      <trans-unit id="webhooks.eventsLabel" datatype="html">
+        <source> Events (comma-separated) </source>
+        <target>イベント（カンマ区切り）</target>
+      </trans-unit>
+      <trans-unit id="webhooks.eventsPlaceholder" datatype="html">
+        <source>new_critical, new_high, *</source>
+        <target>new_critical, new_high, *</target>
+      </trans-unit>
+      <trans-unit id="webhooks.contentTypeLabel" datatype="html">
+        <source> Content Type </source>
+        <target>コンテンツタイプ</target>
+      </trans-unit>
+      <trans-unit id="webhooks.bodyTemplateLabel" datatype="html">
+        <source> Body Template </source>
+        <target>ボディテンプレート</target>
+      </trans-unit>
+      <trans-unit id="webhooks.bodyTemplatePlaceholder" datatype="html">
+        <source>{"text": "..."}</source>
+        <target>{"text": "..."}</target>
+      </trans-unit>
+      <trans-unit id="webhooks.secretLabel" datatype="html">
+        <source> Secret </source>
+        <target>シークレット</target>
+      </trans-unit>
+      <trans-unit id="webhooks.secretPlaceholder" datatype="html">
+        <source>Optional HMAC secret</source>
+        <target>任意のHMACシークレット</target>
+      </trans-unit>
+      <trans-unit id="webhooks.enabledLabel" datatype="html">
+        <source> Enabled </source>
+        <target>有効</target>
+      </trans-unit>
+      <trans-unit id="webhooks.saveButton" datatype="html">
+        <source> Save </source>
+        <target>保存</target>
+      </trans-unit>
+      <trans-unit id="webhooks.cancelButton" datatype="html">
+        <source> Cancel </source>
+        <target>キャンセル</target>
+      </trans-unit>
+      <trans-unit id="webhooks.loading" datatype="html">
+        <source>Loading...</source>
+        <target>読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="webhooks.noWebhooks" datatype="html">
+        <source> No webhooks found. Create one to get started. </source>
+        <target>Webhookがありません。作成して始めましょう。</target>
+      </trans-unit>
+      <trans-unit id="webhooks.col.name" datatype="html">
+        <source>Name</source>
+        <target>名前</target>
+      </trans-unit>
+      <trans-unit id="webhooks.col.url" datatype="html">
+        <source>URL</source>
+        <target>URL</target>
+      </trans-unit>
+      <trans-unit id="webhooks.col.events" datatype="html">
+        <source>Events</source>
+        <target>イベント</target>
+      </trans-unit>
+      <trans-unit id="webhooks.col.enabled" datatype="html">
+        <source>Enabled</source>
+        <target>有効</target>
+      </trans-unit>
+      <trans-unit id="webhooks.col.actions" datatype="html">
+        <source>Actions</source>
+        <target>操作</target>
+      </trans-unit>
+      <trans-unit id="webhooks.editButton" datatype="html">
+        <source> Edit </source>
+        <target>編集</target>
+      </trans-unit>
+      <trans-unit id="webhooks.testButton" datatype="html">
+        <source> Test </source>
+        <target>テスト</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveriesLink" datatype="html">
+        <source> Logs </source>
+        <target>ログ</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deleteButton" datatype="html">
+        <source> Delete </source>
+        <target>削除</target>
+      </trans-unit>
+      <trans-unit id="webhooks.statusEnabled" datatype="html">
+        <source> Enabled </source>
+        <target>有効</target>
+      </trans-unit>
+      <trans-unit id="webhooks.statusDisabled" datatype="html">
+        <source> Disabled </source>
+        <target>無効</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.backButton" datatype="html">
+        <source> Back to Webhooks </source>
+        <target>Webhook一覧に戻る</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.title" datatype="html">
+        <source> Delivery Logs </source>
+        <target>配信ログ</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.loading" datatype="html">
+        <source>Loading...</source>
+        <target>読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.noLogs" datatype="html">
+        <source> No delivery logs found for this webhook. </source>
+        <target>このWebhookの配信ログがありません。</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.event" datatype="html">
+        <source>Event</source>
+        <target>イベント</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.status" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.attempt" datatype="html">
+        <source>Attempt</source>
+        <target>試行回数</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.deliveredAt" datatype="html">
+        <source>Delivered At</source>
+        <target>配信日時</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.duration" datatype="html">
+        <source>Duration (ms)</source>
+        <target>所要時間 (ms)</target>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.error" datatype="html">
+        <source>Error</source>
+        <target>エラー</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>
