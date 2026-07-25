@@ -87,17 +87,31 @@ func WithWebhookNotifier(fn func(ctx context.Context, vulnIDs []string)) Option 
 	}
 }
 
+// WithWatchlistMatcher sets a watchlist matcher that runs after each batch is processed.
+func WithWatchlistMatcher(m WatchlistMatcher) Option {
+	return func(ing *Ingester) {
+		ing.watchlistMatcher = m
+	}
+}
+
+// WatchlistMatcher is the interface for watchlist matching after ingest.
+type WatchlistMatcher interface {
+	// MatchNewVulnerabilities checks newly ingested vulnerabilities against watchlists.
+	MatchNewVulnerabilities(ctx context.Context, vulnIDs []string) error
+}
+
 // Ingester orchestrates the full ingestion pipeline.
 type Ingester struct {
-	fetcher         *fetcher.Fetcher
-	parser          *parser.Parser
-	store           store.Store
-	logger          *log.Logger
-	batchSize       int
-	storeWorkers    int
-	progressFn      func(Progress)
-	jobStore        store.Store // optional: enables ingest job recording
-	webhookNotifier func(ctx context.Context, vulnIDs []string)
+	fetcher          *fetcher.Fetcher
+	parser           *parser.Parser
+	store            store.Store
+	logger           *log.Logger
+	batchSize        int
+	storeWorkers     int
+	progressFn       func(Progress)
+	jobStore         store.Store // optional: enables ingest job recording
+	webhookNotifier  func(ctx context.Context, vulnIDs []string)
+	watchlistMatcher WatchlistMatcher
 }
 
 // DefaultStoreWorkers returns the default number of parallel store workers
@@ -586,6 +600,9 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 		go ing.webhookNotifier(context.WithoutCancel(ctx), ids)
 	}
 
+	// Run watchlist matching after summary is up-to-date
+	ing.matchWatchlists(ctx, collectedIDs)
+
 	return int(insertedTotal), nil
 }
 
@@ -619,6 +636,28 @@ func (ing *Ingester) startJob(ctx context.Context, source string, args map[strin
 		return nil
 	}
 	return jr
+}
+
+// matchWatchlists runs the watchlist matcher against newly ingested vulnerability IDs.
+// It logs warnings on failure but does not fail the import.
+func (ing *Ingester) matchWatchlists(ctx context.Context, vulnIDs []string) {
+	if ing.watchlistMatcher == nil || len(vulnIDs) == 0 {
+		return
+	}
+
+	// Deduplicate IDs
+	seen := make(map[string]struct{}, len(vulnIDs))
+	unique := make([]string, 0, len(vulnIDs))
+	for _, id := range vulnIDs {
+		if _, ok := seen[id]; !ok {
+			seen[id] = struct{}{}
+			unique = append(unique, id)
+		}
+	}
+
+	if err := ing.watchlistMatcher.MatchNewVulnerabilities(ctx, unique); err != nil {
+		ing.logger.Printf("warning: watchlist matching failed: %v", err)
+	}
 }
 
 // refreshSummary calls RefreshSummary on the store for the given vulnerability IDs.
