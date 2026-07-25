@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Backend: Add CVSS score/severity computation from vector strings. When building the VulnerabilityDetail response, compute base_score and base_severity for: (1) OSV Severity entries which only have vector strings, (2) MITRE metrics where base_score is 0/nil or base_severity is empty but vector_string exists. Add a new BaseSeverity() function to the cvss package that returns the severity label (NONE/LOW/MEDIUM/HIGH/CRITICAL) from a score and CVSS version. Extend the Severity struct in model/osv.go to include computed BaseScore and BaseSeverity fields in JSON output. Apply computation in store/detail.go after building the base detail.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Add a new exported function to internal/cvss/cvss.go: `BaseSeverity(score float64, vector string) string` that returns CRITICAL/HIGH/MEDIUM/LOW/NONE based on CVSS version thresholds. For CVSS v2 (no prefix or parenthesized): HIGH>=7.0, MEDIUM>=4.0, LOW>0. For CVSS v3.x: CRITICAL>=9.0, HIGH>=7.0, MEDIUM>=4.0, LOW>=0.1, NONE=0. For CVSS v4.0: CRITICAL>=9.0, HIGH>=7.0, MEDIUM>=4.0, LOW>=0.1, NONE=0.",
     "2. Add unit tests for BaseSeverity in internal/cvss/cvss_test.go covering all versions and boundary values.",
@@ -24,5 +24,5 @@
     "Run `cd /projects/sandbox/mayu && go test ./... -v -count=1` - all unit tests pass"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All unit tests pass. Build succeeds. The BaseSeverity function uses isV2Vector helper to distinguish CVSS v2 (no CVSS: prefix) from v3.x/v4.0 vectors. Empty vector defaults to v3 thresholds. The cvss import was added to store/detail.go for both buildBaseDetail and fetchMITREMetrics usage."
 }
