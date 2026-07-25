@@ -27,6 +27,7 @@ import (
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/validate"
+	"github.com/kato83/mayu/internal/watchlist"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -64,20 +65,25 @@ type Config struct {
 	// APIKeyStore provides API key persistence for user-facing key management.
 	// If nil, API key management endpoints are not registered.
 	APIKeyStore auth.APIKeyStore
+
+	// WatchlistStore provides watchlist persistence for the watchlist API.
+	// If nil, watchlist endpoints are not registered.
+	WatchlistStore watchlist.WatchlistStore
 }
 
 // Server is the HTTP API server.
 type Server struct {
-	httpServer    *http.Server
-	store         store.Store
-	version       string
-	uiDir         string
-	embedFS       fs.FS
-	fetcher       *fetcher.Fetcher
-	authProvider  auth.AuthProvider
-	apiKeyStore   auth.APIKeyStore
-	ingestRunning atomic.Bool
-	runners       activeRunners
+	httpServer     *http.Server
+	store          store.Store
+	version        string
+	uiDir          string
+	embedFS        fs.FS
+	fetcher        *fetcher.Fetcher
+	authProvider   auth.AuthProvider
+	apiKeyStore    auth.APIKeyStore
+	watchlistStore watchlist.WatchlistStore
+	ingestRunning  atomic.Bool
+	runners        activeRunners
 }
 
 // New creates a new Server with the given configuration.
@@ -88,13 +94,14 @@ func New(cfg Config) *Server {
 	}
 
 	s := &Server{
-		store:        cfg.Store,
-		version:      cfg.Version,
-		uiDir:        cfg.UIDir,
-		embedFS:      cfg.EmbedFS,
-		fetcher:      cfg.Fetcher,
-		authProvider: ap,
-		apiKeyStore:  cfg.APIKeyStore,
+		store:          cfg.Store,
+		version:        cfg.Version,
+		uiDir:          cfg.UIDir,
+		embedFS:        cfg.EmbedFS,
+		fetcher:        cfg.Fetcher,
+		authProvider:   ap,
+		apiKeyStore:    cfg.APIKeyStore,
+		watchlistStore: cfg.WatchlistStore,
 	}
 
 	router := s.routes()
@@ -202,6 +209,21 @@ func (s *Server) routes() http.Handler {
 			r.Get("/", auth.HandleListAPIKeys(s.apiKeyStore))
 			r.Post("/", auth.HandleCreateAPIKey(s.apiKeyStore))
 			r.Delete("/{id}", auth.HandleDeleteAPIKey(s.apiKeyStore))
+		})
+	}
+
+	// Watchlist management endpoints
+	if s.watchlistStore != nil {
+		r.Route("/api/v1/watchlists", func(r chi.Router) {
+			r.Use(authMW)
+			r.Use(middleware.Timeout(30 * time.Second))
+			r.Get("/", watchlist.HandleListWatchlists(s.watchlistStore))
+			r.Post("/", watchlist.HandleCreateWatchlist(s.watchlistStore))
+			r.Get("/matches", watchlist.HandleListUserMatches(s.watchlistStore))
+			r.Get("/{id}", watchlist.HandleGetWatchlist(s.watchlistStore))
+			r.Put("/{id}", watchlist.HandleUpdateWatchlist(s.watchlistStore))
+			r.Delete("/{id}", watchlist.HandleDeleteWatchlist(s.watchlistStore))
+			r.Get("/{id}/matches", watchlist.HandleListWatchlistMatches(s.watchlistStore))
 		})
 	}
 

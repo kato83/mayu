@@ -25,6 +25,13 @@ func withUser(ctx context.Context, u *User) context.Context {
 	return context.WithValue(ctx, userContextKey, u)
 }
 
+// ContextWithUser returns a new context that carries the given user.
+// This is the exported version of withUser, intended for use in tests
+// from other packages.
+func ContextWithUser(ctx context.Context, u *User) context.Context {
+	return context.WithValue(ctx, userContextKey, u)
+}
+
 // SessionMiddleware returns middleware that validates the session cookie.
 // If the cookie is missing or invalid, it responds with 401 Unauthorized.
 func SessionMiddleware(provider AuthProvider) func(http.Handler) http.Handler {
