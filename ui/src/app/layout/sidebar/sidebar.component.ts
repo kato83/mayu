@@ -114,7 +114,23 @@ interface NavItem {
       <!-- User info & Logout (hidden when auth mode is 'none') -->
       @if (authService.authMode() !== 'none' && authService.currentUser()) {
         <div class="px-4 py-3 border-t border-slate-700">
-          <p class="text-xs text-slate-400 truncate">{{ authService.currentUser()!.email }}</p>
+          <div class="flex items-center gap-2">
+            <p class="text-sm text-slate-200 truncate font-medium">{{ authService.currentUser()!.name }}</p>
+            @if (authService.currentUser()!.role === 'admin') {
+              <span
+                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-300"
+                data-testid="role-badge-admin"
+                i18n="@@sidebar.roleAdmin"
+              >Admin</span>
+            } @else {
+              <span
+                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-slate-500/20 text-blue-300"
+                data-testid="role-badge-viewer"
+                i18n="@@sidebar.roleViewer"
+              >Viewer</span>
+            }
+          </div>
+          <p class="text-xs text-slate-400 truncate mt-0.5">{{ authService.currentUser()!.email }}</p>
           <button
             (click)="onLogout()"
             class="mt-2 w-full text-left text-sm text-slate-300 hover:text-white transition-colors cursor-pointer"
