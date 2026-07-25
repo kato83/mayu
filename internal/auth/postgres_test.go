@@ -170,7 +170,7 @@ func TestPostgresAuthStore_APIKeyCRUD(t *testing.T) {
 	}
 
 	// Delete API key
-	err = store.DeleteAPIKey(ctx, key.ID, user.ID)
+	_, err = store.DeleteAPIKey(ctx, key.ID, user.ID)
 	if err != nil {
 		t.Fatalf("DeleteAPIKey: %v", err)
 	}

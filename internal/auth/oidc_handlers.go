@@ -34,6 +34,7 @@ func HandleOIDCLogin(provider *OIDCAuthProvider) http.HandlerFunc {
 			Value:    state,
 			Path:     "/",
 			HttpOnly: true,
+			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   oidcStateCookieMaxAge,
 		})
@@ -74,6 +75,7 @@ func HandleOIDCCallback(provider *OIDCAuthProvider) http.HandlerFunc {
 			Value:    "",
 			Path:     "/",
 			HttpOnly: true,
+			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1,
 		})
@@ -115,6 +117,7 @@ func HandleOIDCCallback(provider *OIDCAuthProvider) http.HandlerFunc {
 			Value:    sessionID,
 			Path:     "/",
 			HttpOnly: true,
+			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   int(24 * time.Hour / time.Second),
 		})

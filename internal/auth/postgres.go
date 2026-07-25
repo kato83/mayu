@@ -225,16 +225,21 @@ func (s *PostgresAuthStore) ListAPIKeys(ctx context.Context, userID int64) ([]*A
 }
 
 // DeleteAPIKey removes an API key by ID, scoped to a user.
-func (s *PostgresAuthStore) DeleteAPIKey(ctx context.Context, id int64, userID int64) error {
-	_, err := s.db.ExecContext(ctx, `
+// Returns the number of rows affected (0 if the key was not found).
+func (s *PostgresAuthStore) DeleteAPIKey(ctx context.Context, id int64, userID int64) (int64, error) {
+	result, err := s.db.ExecContext(ctx, `
 		DELETE FROM api_keys
 		WHERE id = $1 AND user_id = $2`,
 		id, userID,
 	)
 	if err != nil {
-		return fmt.Errorf("delete api_key %d: %w", id, err)
+		return 0, fmt.Errorf("delete api_key %d: %w", id, err)
 	}
-	return nil
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("delete api_key %d rows affected: %w", id, err)
+	}
+	return rows, nil
 }
 
 // GetAPIKeyByPrefix retrieves all API key records matching the given prefix.

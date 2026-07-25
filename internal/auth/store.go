@@ -40,7 +40,8 @@ type APIKeyStore interface {
 	ListAPIKeys(ctx context.Context, userID int64) ([]*APIKey, error)
 
 	// DeleteAPIKey removes an API key by ID, scoped to a user.
-	DeleteAPIKey(ctx context.Context, id int64, userID int64) error
+	// Returns the number of rows affected (0 if not found).
+	DeleteAPIKey(ctx context.Context, id int64, userID int64) (int64, error)
 
 	// GetAPIKeyByPrefix retrieves all API key records matching the given prefix.
 	// Returns the full records including the hash for verification.

@@ -139,8 +139,14 @@ func HandleDeleteAPIKey(apiKeys APIKeyStore) http.HandlerFunc {
 			return
 		}
 
-		if err := apiKeys.DeleteAPIKey(r.Context(), id, user.ID); err != nil {
+		rowsAffected, err := apiKeys.DeleteAPIKey(r.Context(), id, user.ID)
+		if err != nil {
 			writeAuthError(w, http.StatusInternalServerError, "failed to delete API key")
+			return
+		}
+
+		if rowsAffected == 0 {
+			writeAuthError(w, http.StatusNotFound, "API key not found")
 			return
 		}
 

@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -72,20 +70,11 @@ func runServe(args []string, cfg *config.Config) error {
 	switch cfg.Auth.Mode {
 	case "local":
 		authStore := auth.NewPostgresAuthStore(s.DB())
-		sessionSecret := cfg.Auth.SessionSecret
-		if sessionSecret == "" {
-			b := make([]byte, 32)
-			if _, err := rand.Read(b); err != nil {
-				return fmt.Errorf("generate session secret: %w", err)
-			}
-			sessionSecret = hex.EncodeToString(b)
-			slog.Warn("no session_secret configured, using randomly generated secret (sessions will not persist across restarts)")
-		}
 		maxAge := cfg.Auth.SessionMaxAge
 		if maxAge <= 0 {
 			maxAge = 86400
 		}
-		authProvider = auth.NewLocalAuthProvider(authStore, authStore, authStore, sessionSecret, maxAge)
+		authProvider = auth.NewLocalAuthProvider(authStore, authStore, authStore, maxAge)
 		apiKeyStore = authStore
 	case "oidc":
 		oidcCfg := cfg.Auth.OIDC
@@ -115,6 +104,25 @@ func runServe(args []string, cfg *config.Config) error {
 		AuthProvider: authProvider,
 		APIKeyStore:  apiKeyStore,
 	})
+
+	// Start periodic session cleanup if auth is enabled
+	if cfg.Auth.Mode == "local" || cfg.Auth.Mode == "oidc" {
+		authStore := auth.NewPostgresAuthStore(s.DB())
+		go func() {
+			ticker := time.NewTicker(1 * time.Hour)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if err := authStore.DeleteExpiredSessions(context.Background()); err != nil {
+						slog.Error("failed to cleanup expired sessions", "error", err)
+					}
+				}
+			}
+		}()
+	}
 
 	// Start server in goroutine.
 	// errCh is buffered (cap 1) so the goroutine never blocks on send.

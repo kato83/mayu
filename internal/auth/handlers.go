@@ -70,6 +70,7 @@ func HandleLogin(provider AuthProvider) http.HandlerFunc {
 			Value:    sessionID,
 			Path:     "/",
 			HttpOnly: true,
+			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   int(24 * time.Hour / time.Second),
 		})
@@ -105,6 +106,7 @@ func HandleLogout(provider AuthProvider) http.HandlerFunc {
 			Value:    "",
 			Path:     "/",
 			HttpOnly: true,
+			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1,
 		})
