@@ -985,6 +985,7 @@
       <trans-unit id="webhooks.deliveries.col.error" datatype="html">
         <source>Error</source>
         <target>エラー</target>
+      </trans-unit>
       <trans-unit id="sidebar.nav.watchlists" datatype="html">
         <source>Watchlists</source>
         <target>ウォッチリスト</target>
