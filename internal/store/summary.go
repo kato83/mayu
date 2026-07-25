@@ -424,3 +424,45 @@ func nullableBytes(b []byte) interface{} {
 	}
 	return b
 }
+
+// GetSeveritiesByIDs returns a map of vulnerability ID to worst severity level (1-5)
+// for the given IDs by querying the vulnerability_summary table.
+func (s *PostgresStore) GetSeveritiesByIDs(ctx context.Context, ids []string) (map[string]int, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	// Build parameter placeholders
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT vulnerability_id, severity_worst
+		FROM vulnerability_summary
+		WHERE vulnerability_id IN (%s) AND severity_worst IS NOT NULL`,
+		strings.Join(placeholders, ","))
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get severities by IDs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	result := make(map[string]int, len(ids))
+	for rows.Next() {
+		var vulnID string
+		var severity int
+		if err := rows.Scan(&vulnID, &severity); err != nil {
+			return nil, fmt.Errorf("scan severity: %w", err)
+		}
+		result[vulnID] = severity
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate severities: %w", err)
+	}
+	return result, nil
+}

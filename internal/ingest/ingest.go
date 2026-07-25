@@ -79,16 +79,25 @@ func WithJobRecorder(s store.Store) Option {
 	}
 }
 
+// WithWebhookNotifier sets a callback that is invoked (non-blocking) after
+// ingestion completes with the list of ingested vulnerability IDs.
+func WithWebhookNotifier(fn func(ctx context.Context, vulnIDs []string)) Option {
+	return func(ing *Ingester) {
+		ing.webhookNotifier = fn
+	}
+}
+
 // Ingester orchestrates the full ingestion pipeline.
 type Ingester struct {
-	fetcher      *fetcher.Fetcher
-	parser       *parser.Parser
-	store        store.Store
-	logger       *log.Logger
-	batchSize    int
-	storeWorkers int
-	progressFn   func(Progress)
-	jobStore     store.Store // optional: enables ingest job recording
+	fetcher         *fetcher.Fetcher
+	parser          *parser.Parser
+	store           store.Store
+	logger          *log.Logger
+	batchSize       int
+	storeWorkers    int
+	progressFn      func(Progress)
+	jobStore        store.Store // optional: enables ingest job recording
+	webhookNotifier func(ctx context.Context, vulnIDs []string)
 }
 
 // DefaultStoreWorkers returns the default number of parallel store workers
@@ -568,6 +577,14 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 
 	// Refresh vulnerability_summary for all ingested vulnerabilities
 	ing.refreshSummary(ctx, collectedIDs)
+
+	// Fire webhook notification (non-blocking) if a notifier is configured.
+	// Use context.WithoutCancel so delivery is not interrupted if the parent context is cancelled.
+	if ing.webhookNotifier != nil && len(collectedIDs) > 0 {
+		ids := make([]string, len(collectedIDs))
+		copy(ids, collectedIDs)
+		go ing.webhookNotifier(context.WithoutCancel(ctx), ids)
+	}
 
 	return int(insertedTotal), nil
 }
