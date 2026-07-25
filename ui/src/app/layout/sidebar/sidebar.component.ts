@@ -122,7 +122,7 @@ interface NavItem {
                 data-testid="role-badge-admin"
                 i18n="@@sidebar.roleAdmin"
               >Admin</span>
-            } @else {
+            } @else if (authService.currentUser()!.role === 'viewer') {
               <span
                 class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-slate-500/20 text-blue-300"
                 data-testid="role-badge-viewer"
