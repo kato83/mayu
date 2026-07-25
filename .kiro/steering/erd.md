@@ -353,6 +353,31 @@ erDiagram
         TIMESTAMPTZ expires_at "NOT NULL"
     }
 
+    watchlists {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT user_id FK "→ users(id) CASCADE"
+        TEXT name "NOT NULL"
+        TEXT match_type "NOT NULL: package, purl, cpe, ecosystem"
+        TEXT ecosystem "nullable, for package/ecosystem match"
+        TEXT package_name "nullable, for package match"
+        TEXT purl_pattern "nullable, for purl match"
+        TEXT cpe_pattern "nullable, for cpe match"
+        SMALLINT severity_min "nullable, 1-5 scale"
+        FLOAT8 epss_threshold "nullable, 0.0-1.0"
+        BOOLEAN enabled "NOT NULL DEFAULT true"
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+        TIMESTAMPTZ updated_at "DEFAULT NOW()"
+    }
+
+    watchlist_matches {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT watchlist_id FK "→ watchlists(id) CASCADE"
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
+        TIMESTAMPTZ matched_at "DEFAULT NOW()"
+        BOOLEAN notified "NOT NULL DEFAULT false"
+        TIMESTAMPTZ notified_at "nullable"
+    }
+
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--|| vulnerability_summary : "has"
     vulnerabilities ||--o{ product_identifiers : "has"
@@ -384,6 +409,9 @@ erDiagram
     ingest_jobs ||--o{ ingest_failures : "has"
     users ||--o{ api_keys : "has"
     users ||--o{ sessions : "has"
+    users ||--o{ watchlists : "has"
+    watchlists ||--o{ watchlist_matches : "has"
+    vulnerabilities ||--o{ watchlist_matches : "has"
 ```
 
 ## Design Principles
