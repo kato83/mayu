@@ -145,6 +145,12 @@ func (s *Server) routes() http.Handler {
 	r.Post("/auth/logout", auth.HandleLogout(s.authProvider))
 	r.Get("/auth/config", auth.HandleAuthConfig(s.authProvider.Mode()))
 
+	// OIDC-specific routes (public, pre-auth endpoints)
+	if oidcProvider, ok := s.authProvider.(*auth.OIDCAuthProvider); ok {
+		r.Get("/auth/oidc/login", auth.HandleOIDCLogin(oidcProvider))
+		r.Get("/auth/callback", auth.HandleOIDCCallback(oidcProvider))
+	}
+
 	// Determine auth middleware based on mode
 	var authMW func(http.Handler) http.Handler
 	if s.authProvider.Mode() == "none" {
