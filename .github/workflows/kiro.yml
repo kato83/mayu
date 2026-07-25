@@ -43,6 +43,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure git identity for Kiro
+        run: |
+          git config user.name "kiro-agent[bot]"
+          git config user.email "244629292+kiro-agent[bot]@users.noreply.github.com"
+
       - uses: kirodotdev-labs/kiro-action@v0
         with:
           kiro_api_key: ${{ secrets.KIRO_API_KEY }}
