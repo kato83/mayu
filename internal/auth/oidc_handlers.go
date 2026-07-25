@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"net/http"
 	"time"
@@ -64,7 +65,7 @@ func HandleOIDCCallback(provider *OIDCAuthProvider) http.HandlerFunc {
 		}
 
 		queryState := r.URL.Query().Get("state")
-		if queryState == "" || queryState != stateCookie.Value {
+		if queryState == "" || subtle.ConstantTimeCompare([]byte(queryState), []byte(stateCookie.Value)) != 1 {
 			writeAuthError(w, http.StatusBadRequest, "invalid state parameter")
 			return
 		}

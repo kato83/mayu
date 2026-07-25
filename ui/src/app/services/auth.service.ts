@@ -21,7 +21,7 @@ export class AuthService {
 
   readonly isAuthenticated = signal(false);
   readonly currentUser = signal<User | null>(null);
-  readonly authMode = signal<string>('none');
+  readonly authMode = signal<string>('unknown');
 
   private configLoaded = false;
 

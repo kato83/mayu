@@ -67,6 +67,7 @@ func runServe(args []string, cfg *config.Config) error {
 	// Initialize auth provider based on config
 	var authProvider auth.AuthProvider
 	var apiKeyStore auth.APIKeyStore
+	var sessionCleanupStore auth.SessionStore
 	switch cfg.Auth.Mode {
 	case "local":
 		authStore := auth.NewPostgresAuthStore(s.DB())
@@ -76,6 +77,7 @@ func runServe(args []string, cfg *config.Config) error {
 		}
 		authProvider = auth.NewLocalAuthProvider(authStore, authStore, authStore, maxAge)
 		apiKeyStore = authStore
+		sessionCleanupStore = authStore
 	case "oidc":
 		oidcCfg := cfg.Auth.OIDC
 		if oidcCfg.Issuer == "" || oidcCfg.ClientID == "" || oidcCfg.ClientSecret == "" || oidcCfg.RedirectURL == "" {
@@ -88,6 +90,7 @@ func runServe(args []string, cfg *config.Config) error {
 		}
 		authProvider = auth.NewOIDCProvider(oidcCfg, authStore, authStore, authStore, maxAge)
 		apiKeyStore = authStore
+		sessionCleanupStore = authStore
 	default:
 		// "none" or empty
 		authProvider = auth.NewNoAuthProvider()
@@ -106,8 +109,7 @@ func runServe(args []string, cfg *config.Config) error {
 	})
 
 	// Start periodic session cleanup if auth is enabled
-	if cfg.Auth.Mode == "local" || cfg.Auth.Mode == "oidc" {
-		authStore := auth.NewPostgresAuthStore(s.DB())
+	if sessionCleanupStore != nil {
 		go func() {
 			ticker := time.NewTicker(1 * time.Hour)
 			defer ticker.Stop()
@@ -116,7 +118,7 @@ func runServe(args []string, cfg *config.Config) error {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					if err := authStore.DeleteExpiredSessions(context.Background()); err != nil {
+					if err := sessionCleanupStore.DeleteExpiredSessions(context.Background()); err != nil {
 						slog.Error("failed to cleanup expired sessions", "error", err)
 					}
 				}

@@ -11,6 +11,11 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
+  // If auth mode is still unknown (config not loaded), treat as unauthenticated
+  if (authService.authMode() === 'unknown') {
+    return router.createUrlTree(['/login']);
+  }
+
   // If authenticated, allow access
   if (authService.isAuthenticated()) {
     return true;
