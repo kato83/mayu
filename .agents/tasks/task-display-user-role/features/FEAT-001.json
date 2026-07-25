@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Display user role badge in sidebar user info area. When auth.mode is not 'none' and a user is logged in, show a role badge (Admin/Viewer) next to or below the user email in the sidebar's user info section. The badge should be visually distinct (e.g., colored pill/label). Add proper i18n for the role labels and update Japanese translations.",
+  "status": "completed",
+  "steps": [
+    "Install dependencies: run `pnpm install` in the ui/ directory to ensure node_modules are available",
+    "Modify ui/src/app/layout/sidebar/sidebar.component.ts: In the existing user info section (the `@if (authService.authMode() !== 'none' && authService.currentUser())` block), add a role badge/pill element between the email display and the logout button. Use TailwindCSS classes for styling - e.g., a small rounded pill with distinct colors: green/emerald for 'admin', blue/slate for 'viewer'. The badge text should use i18n.",
+    "Add i18n attributes: Use `i18n=\"@@sidebar.roleAdmin\"` and `i18n=\"@@sidebar.roleViewer\"` for the badge labels in the template. The source text should be 'Admin' and 'Viewer' respectively.",
+    "Run `make ui-i18n-extract` from the project root to regenerate ui/src/locale/messages.xlf with the new trans-units",
+    "Update ui/src/locale/messages.ja.xlf: Add new trans-unit entries for sidebar.roleAdmin (target: '管理者') and sidebar.roleViewer (target: '閲覧者')",
+    "Verify the build compiles with `pnpm exec ng build` in ui/",
+    "Run tests with `pnpm run test -- --watch=false` in ui/ to ensure nothing is broken"
+  ],
+  "acceptance_criteria": [
+    "When auth mode is 'local' or 'oidc' and a user is logged in, their role is displayed as a badge in the sidebar user info area",
+    "Admin role shows a visually distinct badge (different color from Viewer)",
+    "Viewer role shows a different colored badge",
+    "When auth mode is 'none', no role badge is shown (entire user info section is hidden)",
+    "The role labels are internationalized with @@sidebar.roleAdmin and @@sidebar.roleViewer custom IDs",
+    "Japanese translation file contains translations for the new role labels",
+    "The Angular production build (`pnpm exec ng build`) completes without errors",
+    "Existing tests continue to pass"
+  ],
+  "verification": [
+    "Run `cd /projects/sandbox/mayu/ui && pnpm run test -- --watch=false` and confirm all tests pass",
+    "Run `cd /projects/sandbox/mayu/ui && pnpm exec ng build` and confirm build succeeds",
+    "Verify i18n entries exist: grep for 'sidebar.roleAdmin' and 'sidebar.roleViewer' in ui/src/locale/messages.ja.xlf"
+  ],
+  "blocked_reason": null,
+  "findings": "Test command for this project is `pnpm exec ng test` (NOT `pnpm run test -- --watch=false`). The @angular/build:unit-test builder runs vitest automatically without needing --watch=false flag. The i18n extraction uses npx internally via Makefile (make ui-i18n-extract). All 115 tests pass. Build succeeds."
+}

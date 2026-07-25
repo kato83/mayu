@@ -1,0 +1,14 @@
+{
+  "task_id": "task-display-user-role",
+  "task_description": "Display logged-in user's role (admin/viewer) as a visual badge in the sidebar user info area. Hidden when auth.mode is 'none'. Internationalized with Japanese translations.",
+  "status": "completed",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "Go build and tests pass. Angular build (pnpm exec ng build) passes. All 115 Vitest tests pass. i18n extraction verified with correct entries in both messages.xlf and messages.ja.xlf."
+  }
+}
