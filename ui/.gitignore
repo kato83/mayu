@@ -42,3 +42,6 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Generated docs (copied from repo root by copy-docs script)
+/public/docs
