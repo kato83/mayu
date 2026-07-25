@@ -122,6 +122,23 @@ describe('SidebarComponent', () => {
       expect(badge!.className).toContain('text-amber-300');
     });
 
+    it('should not display any role badge when user has an unknown role', () => {
+      authService.authMode.set('local');
+      authService.currentUser.set({
+        id: 4,
+        email: 'editor@example.com',
+        name: 'Editor User',
+        role: 'editor' as any,
+      });
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      const adminBadge = el.querySelector('[data-testid="role-badge-admin"]');
+      const viewerBadge = el.querySelector('[data-testid="role-badge-viewer"]');
+      expect(adminBadge).toBeFalsy();
+      expect(viewerBadge).toBeFalsy();
+    });
+
     it('should use blue styling for viewer badge', () => {
       authService.authMode.set('local');
       authService.currentUser.set({
