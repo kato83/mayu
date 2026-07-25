@@ -64,6 +64,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'watchlists',
+        loadComponent: () =>
+          import('./pages/watchlists/watchlists.component').then(
+            (m) => m.WatchlistsComponent,
+          ),
+      },
+      {
         path: 'api-keys',
         loadComponent: () =>
           import('./pages/api-keys/api-keys.component').then(
