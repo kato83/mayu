@@ -662,6 +662,150 @@
         <source>Published</source>
         <target>公開日</target>
       </trans-unit>
+      <trans-unit id="sidebar.nav.apiKeys" datatype="html">
+        <source>API Keys</source>
+        <target>APIキー</target>
+      </trans-unit>
+      <trans-unit id="sidebar.logout" datatype="html">
+        <source> Logout </source>
+        <target>ログアウト</target>
+      </trans-unit>
+      <trans-unit id="login.title" datatype="html">
+        <source> Sign In </source>
+        <target>ログイン</target>
+      </trans-unit>
+      <trans-unit id="login.loading" datatype="html">
+        <source> Loading... </source>
+        <target>読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="login.emailLabel" datatype="html">
+        <source> Email </source>
+        <target>メールアドレス</target>
+      </trans-unit>
+      <trans-unit id="login.emailPlaceholder" datatype="html">
+        <source>you@example.com</source>
+        <target>you@example.com</target>
+      </trans-unit>
+      <trans-unit id="login.passwordLabel" datatype="html">
+        <source> Password </source>
+        <target>パスワード</target>
+      </trans-unit>
+      <trans-unit id="login.passwordPlaceholder" datatype="html">
+        <source>••••••••</source>
+        <target>••••••••</target>
+      </trans-unit>
+      <trans-unit id="login.signingIn" datatype="html">
+        <source>Signing in...</source>
+        <target>ログイン中...</target>
+      </trans-unit>
+      <trans-unit id="login.signInButton" datatype="html">
+        <source>Sign In</source>
+        <target>ログイン</target>
+      </trans-unit>
+      <trans-unit id="login.ssoButton" datatype="html">
+        <source> Sign in with SSO </source>
+        <target>SSOでログイン</target>
+      </trans-unit>
+      <trans-unit id="login.invalidCredentials" datatype="html">
+        <source>Invalid email or password</source>
+        <target>メールアドレスまたはパスワードが正しくありません</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.title" datatype="html">
+        <source> API Keys </source>
+        <target>APIキー</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.createButton" datatype="html">
+        <source> Create API Key </source>
+        <target>APIキーを作成</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.createdMessage" datatype="html">
+        <source> API key created successfully. Copy it now - it will not be shown again. </source>
+        <target>APIキーが作成されました。今すぐコピーしてください。再度表示されません。</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.copyButton" datatype="html">
+        <source> Copy </source>
+        <target>コピー</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.copied" datatype="html">
+        <source>Copied!</source>
+        <target>コピーしました！</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.createTitle" datatype="html">
+        <source> Create New API Key </source>
+        <target>新しいAPIキーを作成</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.nameLabel" datatype="html">
+        <source> Name </source>
+        <target>名前</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.namePlaceholder" datatype="html">
+        <source>e.g. CI Pipeline</source>
+        <target>例: CIパイプライン</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.expiryLabel" datatype="html">
+        <source> Expiration </source>
+        <target>有効期限</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.expiryNever" datatype="html">
+        <source>Never</source>
+        <target>無期限</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.expiry30" datatype="html">
+        <source>30 days</source>
+        <target>30日</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.expiry90" datatype="html">
+        <source>90 days</source>
+        <target>90日</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.expiry365" datatype="html">
+        <source>1 year</source>
+        <target>1年</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.createSubmit" datatype="html">
+        <source> Create </source>
+        <target>作成</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.cancelButton" datatype="html">
+        <source> Cancel </source>
+        <target>キャンセル</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.loading" datatype="html">
+        <source>Loading...</source>
+        <target>読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.noKeys" datatype="html">
+        <source> No API keys found. Create one to get started. </source>
+        <target>APIキーがありません。作成して始めましょう。</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.col.name" datatype="html">
+        <source>Name</source>
+        <target>名前</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.col.prefix" datatype="html">
+        <source>Prefix</source>
+        <target>プレフィックス</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.col.created" datatype="html">
+        <source>Created</source>
+        <target>作成日</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.col.expires" datatype="html">
+        <source>Expires</source>
+        <target>有効期限</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.col.actions" datatype="html">
+        <source>Actions</source>
+        <target>操作</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.never" datatype="html">
+        <source>Never</source>
+        <target>無期限</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.deleteButton" datatype="html">
+        <source> Delete </source>
+        <target>削除</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

@@ -44,6 +44,12 @@ func (s *PostgresStore) Close() error {
 	return s.db.Close()
 }
 
+// DB returns the underlying *sql.DB connection pool.
+// This is used by other packages (e.g., auth) that need direct database access.
+func (s *PostgresStore) DB() *sql.DB {
+	return s.db
+}
+
 // CleanAll removes all data from all tables. Used for testing only.
 func (s *PostgresStore) CleanAll(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `

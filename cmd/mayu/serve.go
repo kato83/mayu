@@ -4,11 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/server"
@@ -62,15 +64,67 @@ func runServe(args []string, cfg *config.Config) error {
 	}
 	defer func() { _ = s.Close() }()
 
+	// Initialize auth provider based on config
+	var authProvider auth.AuthProvider
+	var apiKeyStore auth.APIKeyStore
+	var sessionCleanupStore auth.SessionStore
+	switch cfg.Auth.Mode {
+	case "local":
+		authStore := auth.NewPostgresAuthStore(s.DB())
+		maxAge := cfg.Auth.SessionMaxAge
+		if maxAge <= 0 {
+			maxAge = 86400
+		}
+		authProvider = auth.NewLocalAuthProvider(authStore, authStore, authStore, maxAge)
+		apiKeyStore = authStore
+		sessionCleanupStore = authStore
+	case "oidc":
+		oidcCfg := cfg.Auth.OIDC
+		if oidcCfg.Issuer == "" || oidcCfg.ClientID == "" || oidcCfg.ClientSecret == "" || oidcCfg.RedirectURL == "" {
+			return fmt.Errorf("oidc auth mode requires issuer, client_id, client_secret, and redirect_url to be configured")
+		}
+		authStore := auth.NewPostgresAuthStore(s.DB())
+		maxAge := cfg.Auth.SessionMaxAge
+		if maxAge <= 0 {
+			maxAge = 86400
+		}
+		authProvider = auth.NewOIDCProvider(oidcCfg, authStore, authStore, authStore, maxAge)
+		apiKeyStore = authStore
+		sessionCleanupStore = authStore
+	default:
+		// "none" or empty
+		authProvider = auth.NewNoAuthProvider()
+	}
+
 	// Create and start server
 	srv := server.New(server.Config{
-		Addr:    *addr,
-		Store:   s,
-		Version: version,
-		UIDir:   *uiDir,
-		EmbedFS: uiassets.FS(),
-		Fetcher: fetcher.New(),
+		Addr:         *addr,
+		Store:        s,
+		Version:      version,
+		UIDir:        *uiDir,
+		EmbedFS:      uiassets.FS(),
+		Fetcher:      fetcher.New(),
+		AuthProvider: authProvider,
+		APIKeyStore:  apiKeyStore,
 	})
+
+	// Start periodic session cleanup if auth is enabled
+	if sessionCleanupStore != nil {
+		go func() {
+			ticker := time.NewTicker(1 * time.Hour)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if err := sessionCleanupStore.DeleteExpiredSessions(context.Background()); err != nil {
+						slog.Error("failed to cleanup expired sessions", "error", err)
+					}
+				}
+			}
+		}()
+	}
 
 	// Start server in goroutine.
 	// errCh is buffered (cap 1) so the goroutine never blocks on send.
