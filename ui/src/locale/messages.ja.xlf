@@ -1210,6 +1210,10 @@
         <source> Delete </source>
         <target>削除</target>
       </trans-unit>
+      <trans-unit id="sidebar.version" datatype="html">
+        <source>Mayu v<x id="INTERPOLATION" equiv-text="{{ version() }}"/></source>
+        <target>Mayu v<x id="INTERPOLATION" equiv-text="{{ version() }}"/></target>
+      </trans-unit>
     </body>
   </file>
 </xliff>
