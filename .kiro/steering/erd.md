@@ -353,6 +353,32 @@ erDiagram
         TIMESTAMPTZ expires_at "NOT NULL"
     }
 
+    webhooks {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT name "NOT NULL"
+        TEXT url "NOT NULL"
+        TEXT_ARRAY events "NOT NULL"
+        TEXT content_type "NOT NULL DEFAULT 'application/json'"
+        TEXT body_template "NOT NULL"
+        TEXT secret "nullable, HMAC shared secret"
+        BOOLEAN enabled "NOT NULL DEFAULT true"
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+        TIMESTAMPTZ updated_at "DEFAULT NOW()"
+    }
+
+    webhook_delivery_logs {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT webhook_id FK "→ webhooks(id) CASCADE"
+        TEXT event "NOT NULL"
+        TEXT payload "nullable"
+        INT response_status "nullable"
+        TEXT response_body "nullable"
+        TEXT error_message "nullable"
+        INT attempt "NOT NULL DEFAULT 1"
+        TIMESTAMPTZ delivered_at "DEFAULT NOW()"
+        INT duration_ms "nullable"
+    }
+
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--|| vulnerability_summary : "has"
     vulnerabilities ||--o{ product_identifiers : "has"
@@ -384,6 +410,7 @@ erDiagram
     ingest_jobs ||--o{ ingest_failures : "has"
     users ||--o{ api_keys : "has"
     users ||--o{ sessions : "has"
+    webhooks ||--o{ webhook_delivery_logs : "has"
 ```
 
 ## Design Principles
