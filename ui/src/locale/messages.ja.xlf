@@ -231,8 +231,8 @@
         <target>MITRE</target>
       </trans-unit>
       <trans-unit id="vulnDetail.mergedScores" datatype="html">
-        <source>CVSS Scores</source>
-        <target>CVSSスコア</target>
+        <source>Severity</source>
+        <target>深刻度</target>
       </trans-unit>
       <trans-unit id="vulnDetail.highestScore" datatype="html">
         <source>Highest</source>
@@ -278,6 +278,10 @@
         <source>CISA KEV (Known Exploited Vulnerabilities)</source>
         <target>CISA KEV（既知の悪用された脆弱性）</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.kevInKev" datatype="html">
+        <source>In KEV</source>
+        <target>KEV登録済み</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.kevVendor" datatype="html">
         <source>Vendor / Project</source>
         <target>ベンダー / プロジェクト</target>
@@ -291,7 +295,7 @@
         <target>脆弱性名</target>
       </trans-unit>
       <trans-unit id="vulnDetail.kevDateAdded" datatype="html">
-        <source>Date Added</source>
+        <source>Added</source>
         <target>追加日</target>
       </trans-unit>
       <trans-unit id="vulnDetail.kevDueDate" datatype="html">
@@ -303,8 +307,8 @@
         <target>必要な対応</target>
       </trans-unit>
       <trans-unit id="vulnDetail.kevRansomware" datatype="html">
-        <source>Ransomware Campaign Use</source>
-        <target>ランサムウェアキャンペーンでの使用</target>
+        <source>Ransomware</source>
+        <target>ランサムウェア</target>
       </trans-unit>
       <trans-unit id="vulnDetail.levTitle" datatype="html">
         <source>LEV (Likely Exploited Vulnerabilities)</source>
