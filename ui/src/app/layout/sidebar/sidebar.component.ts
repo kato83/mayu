@@ -1,4 +1,4 @@
-import { Component, input, output, inject } from '@angular/core';
+import { Component, input, output, inject, computed } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 import { ThemeService, ThemeMode } from '../../services/theme.service';
@@ -38,7 +38,7 @@ interface NavItem {
       <!-- Navigation -->
       <nav class="flex-1 overflow-y-auto py-4">
         <ul class="space-y-1 px-3">
-          @for (item of navItems; track item.route) {
+          @for (item of navItems(); track item.route) {
             <li>
               @if (item.children) {
                 <!-- Parent item with children -->
@@ -111,8 +111,8 @@ interface NavItem {
         </div>
       </div>
 
-      <!-- User info & Logout -->
-      @if (authService.currentUser()) {
+      <!-- User info & Logout (hidden when auth mode is 'none') -->
+      @if (authService.authMode() !== 'none' && authService.currentUser()) {
         <div class="px-4 py-3 border-t border-slate-700">
           <p class="text-xs text-slate-400 truncate">{{ authService.currentUser()!.email }}</p>
           <button
@@ -143,7 +143,7 @@ export class SidebarComponent {
   /** Emitted when sidebar should close */
   closed = output<void>();
 
-  readonly navItems: NavItem[] = [
+  private readonly allNavItems: NavItem[] = [
     { label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`, route: '/vulnerabilities', icon: '🛡️' },
     {
       label: $localize`:@@sidebar.nav.ingest:Ingest`, route: '/ingest', icon: '📥',
@@ -154,6 +154,13 @@ export class SidebarComponent {
     { label: $localize`:@@sidebar.nav.status:Status`, route: '/status', icon: '📊' },
     { label: $localize`:@@sidebar.nav.apiKeys:API Keys`, route: '/api-keys', icon: '🔑' },
   ];
+
+  readonly navItems = computed(() => {
+    if (this.authService.authMode() === 'none') {
+      return this.allNavItems.filter((item) => item.route !== '/api-keys');
+    }
+    return this.allNavItems;
+  });
 
   setTheme(mode: ThemeMode): void {
     this.themeService.setMode(mode);
