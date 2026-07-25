@@ -21,6 +21,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
@@ -55,6 +56,14 @@ type Config struct {
 	// Fetcher is the data fetcher for ingest operations.
 	// If nil, the ingest endpoint is not registered.
 	Fetcher *fetcher.Fetcher
+
+	// AuthProvider handles authentication and authorization.
+	// If nil, NoAuthProvider behavior is assumed.
+	AuthProvider auth.AuthProvider
+
+	// APIKeyStore provides API key persistence for user-facing key management.
+	// If nil, API key management endpoints are not registered.
+	APIKeyStore auth.APIKeyStore
 }
 
 // Server is the HTTP API server.
@@ -65,18 +74,27 @@ type Server struct {
 	uiDir         string
 	embedFS       fs.FS
 	fetcher       *fetcher.Fetcher
+	authProvider  auth.AuthProvider
+	apiKeyStore   auth.APIKeyStore
 	ingestRunning atomic.Bool
 	runners       activeRunners
 }
 
 // New creates a new Server with the given configuration.
 func New(cfg Config) *Server {
+	ap := cfg.AuthProvider
+	if ap == nil {
+		ap = auth.NewNoAuthProvider()
+	}
+
 	s := &Server{
-		store:   cfg.Store,
-		version: cfg.Version,
-		uiDir:   cfg.UIDir,
-		embedFS: cfg.EmbedFS,
-		fetcher: cfg.Fetcher,
+		store:        cfg.Store,
+		version:      cfg.Version,
+		uiDir:        cfg.UIDir,
+		embedFS:      cfg.EmbedFS,
+		fetcher:      cfg.Fetcher,
+		authProvider: ap,
+		apiKeyStore:  cfg.APIKeyStore,
 	}
 
 	router := s.routes()
@@ -111,11 +129,11 @@ func (s *Server) routes() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Content-Type"},
+		AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Content-Type", "Authorization"},
 		ExposedHeaders:   []string{"X-Total-Count"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 
@@ -128,8 +146,31 @@ func (s *Server) routes() http.Handler {
 	// Swagger UI (Scalar)
 	r.Get("/swagger", s.handleSwaggerUI)
 
-	// API v1 routes (with 30s timeout)
+	// Auth endpoints (public, no auth required)
+	r.Post("/auth/login", auth.HandleLogin(s.authProvider))
+	r.Post("/auth/logout", auth.HandleLogout(s.authProvider))
+	r.Get("/auth/config", auth.HandleAuthConfig(s.authProvider.Mode()))
+
+	// OIDC-specific routes (public, pre-auth endpoints)
+	if oidcProvider, ok := s.authProvider.(*auth.OIDCAuthProvider); ok {
+		r.Get("/auth/oidc/login", auth.HandleOIDCLogin(oidcProvider))
+		r.Get("/auth/callback", auth.HandleOIDCCallback(oidcProvider))
+	}
+
+	// Determine auth middleware based on mode
+	var authMW func(http.Handler) http.Handler
+	if s.authProvider.Mode() == "none" {
+		authMW = auth.NoAuthMiddleware()
+	} else {
+		authMW = auth.CombinedAuthMiddleware(s.authProvider)
+	}
+
+	// Protected auth endpoint
+	r.With(authMW).Get("/auth/me", auth.HandleMe())
+
+	// API v1 routes (with 30s timeout and auth)
 	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(authMW)
 		r.Use(middleware.Timeout(30 * time.Second))
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
@@ -139,6 +180,7 @@ func (s *Server) routes() http.Handler {
 
 	// Ingest endpoints
 	r.Route("/api/v1/ingest", func(r chi.Router) {
+		r.Use(authMW)
 		// Job history endpoints (with standard timeout)
 		r.With(middleware.Timeout(30*time.Second)).Get("/jobs", s.handleListIngestJobs)
 		r.With(middleware.Timeout(30*time.Second)).Get("/jobs/{id}", s.handleGetIngestJob)
@@ -151,6 +193,17 @@ func (s *Server) routes() http.Handler {
 			r.With(middleware.Timeout(30*time.Second)).Post("/", s.handleIngest)
 		}
 	})
+
+	// User API key management endpoints
+	if s.apiKeyStore != nil {
+		r.Route("/api/v1/user/api-keys", func(r chi.Router) {
+			r.Use(authMW)
+			r.Use(middleware.Timeout(30 * time.Second))
+			r.Get("/", auth.HandleListAPIKeys(s.apiKeyStore))
+			r.Post("/", auth.HandleCreateAPIKey(s.apiKeyStore))
+			r.Delete("/{id}", auth.HandleDeleteAPIKey(s.apiKeyStore))
+		})
+	}
 
 	// SPA static file serving with fallback to index.html
 	if s.uiDir != "" || s.embedFS != nil {

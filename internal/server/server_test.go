@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/store"
 )
@@ -106,11 +107,23 @@ func (m *mockStore) GetEPSSCoverage(ctx context.Context) (*store.EPSSCoverage, e
 }
 
 // newTestServer creates a Server with the given mock store for testing.
+// By default it uses NoAuthProvider so existing tests don't need auth.
 func newTestServer(ms *mockStore) *Server {
 	return New(Config{
-		Addr:    ":0",
-		Store:   ms,
-		Version: "test-v1.0.0",
+		Addr:         ":0",
+		Store:        ms,
+		Version:      "test-v1.0.0",
+		AuthProvider: auth.NewNoAuthProvider(),
+	})
+}
+
+// newTestServerWithAuth creates a Server with the given mock store and auth provider.
+func newTestServerWithAuth(ms *mockStore, ap auth.AuthProvider) *Server {
+	return New(Config{
+		Addr:         ":0",
+		Store:        ms,
+		Version:      "test-v1.0.0",
+		AuthProvider: ap,
 	})
 }
 
@@ -687,5 +700,229 @@ func TestSearchVulnerabilities_NoNextCursorWhenFewerResults(t *testing.T) {
 	}
 	if resp.NextCursor != "" {
 		t.Errorf("expected empty next_cursor when results < limit, got %q", resp.NextCursor)
+	}
+}
+
+// --- Auth integration tests ---
+
+// localAuthProvider is a simple AuthProvider for testing that validates
+// a fixed session and API key.
+type localAuthProvider struct {
+	validSession string
+	validAPIKey  string
+	user         *auth.User
+}
+
+func (p *localAuthProvider) Authenticate(_ context.Context, email, password string) (*auth.User, error) {
+	if email == "test@example.com" && password == "password" {
+		return p.user, nil
+	}
+	return nil, errors.New("invalid credentials")
+}
+
+func (p *localAuthProvider) ValidateSession(_ context.Context, sessionID string) (*auth.User, error) {
+	if sessionID == p.validSession {
+		return p.user, nil
+	}
+	return nil, errors.New("invalid session")
+}
+
+func (p *localAuthProvider) ValidateAPIKey(_ context.Context, rawKey string) (*auth.User, error) {
+	if rawKey == p.validAPIKey {
+		return p.user, nil
+	}
+	return nil, errors.New("invalid api key")
+}
+
+func (p *localAuthProvider) CreateSession(_ context.Context, _ int64) (string, error) {
+	return "new-session-id", nil
+}
+
+func (p *localAuthProvider) DeleteSession(_ context.Context, _ string) error {
+	return nil
+}
+
+func (p *localAuthProvider) Mode() string {
+	return "local"
+}
+
+func TestAuthMiddleware_ProtectsAPIRoutes(t *testing.T) {
+	provider := &localAuthProvider{
+		validSession: "good-session",
+		validAPIKey:  "good-api-key",
+		user: &auth.User{
+			ID:    1,
+			Email: "test@example.com",
+			Name:  "Test",
+			Role:  "admin",
+		},
+	}
+
+	ms := &mockStore{
+		countFunc: func(_ context.Context, _ store.SearchQuery) (int64, error) {
+			return 0, nil
+		},
+		searchFunc: func(_ context.Context, _ store.SearchQuery) ([]*model.Vulnerability, error) {
+			return nil, nil
+		},
+	}
+
+	srv := newTestServerWithAuth(ms, provider)
+
+	t.Run("unauthenticated returns 401", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/vulnerabilities", nil)
+		w := httptest.NewRecorder()
+		srv.httpServer.Handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", w.Code)
+		}
+	})
+
+	t.Run("valid session returns 200", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/vulnerabilities", nil)
+		req.AddCookie(&http.Cookie{Name: "mayu_session", Value: "good-session"})
+		w := httptest.NewRecorder()
+		srv.httpServer.Handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+	})
+
+	t.Run("valid API key returns 200", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/vulnerabilities", nil)
+		req.Header.Set("Authorization", "Bearer good-api-key")
+		w := httptest.NewRecorder()
+		srv.httpServer.Handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+	})
+
+	t.Run("invalid session returns 401", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/vulnerabilities", nil)
+		req.AddCookie(&http.Cookie{Name: "mayu_session", Value: "bad-session"})
+		w := httptest.NewRecorder()
+		srv.httpServer.Handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", w.Code)
+		}
+	})
+}
+
+func TestAuthMiddleware_PublicEndpointsRemainOpen(t *testing.T) {
+	provider := &localAuthProvider{
+		validSession: "x",
+		validAPIKey:  "x",
+		user: &auth.User{
+			ID:    1,
+			Email: "test@example.com",
+			Name:  "Test",
+			Role:  "admin",
+		},
+	}
+
+	srv := newTestServerWithAuth(&mockStore{}, provider)
+
+	publicEndpoints := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/healthz"},
+		{http.MethodGet, "/openapi.yaml"},
+		{http.MethodGet, "/swagger"},
+		{http.MethodGet, "/auth/config"},
+	}
+
+	for _, ep := range publicEndpoints {
+		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
+			req := httptest.NewRequest(ep.method, ep.path, nil)
+			w := httptest.NewRecorder()
+			srv.httpServer.Handler.ServeHTTP(w, req)
+
+			if w.Code == http.StatusUnauthorized {
+				t.Fatalf("%s %s should not require auth, got 401", ep.method, ep.path)
+			}
+		})
+	}
+}
+
+func TestAuthConfig_Endpoint(t *testing.T) {
+	provider := &localAuthProvider{
+		validSession: "x",
+		validAPIKey:  "x",
+		user:         &auth.User{ID: 1, Role: "admin"},
+	}
+
+	srv := newTestServerWithAuth(&mockStore{}, provider)
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/config", nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	var resp map[string]string
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp["mode"] != "local" {
+		t.Errorf("expected mode 'local', got %q", resp["mode"])
+	}
+}
+
+func TestAuthMe_WithValidSession(t *testing.T) {
+	testUser := &auth.User{
+		ID:    42,
+		Email: "me@example.com",
+		Name:  "Me",
+		Role:  "viewer",
+	}
+	provider := &localAuthProvider{
+		validSession: "my-session",
+		validAPIKey:  "x",
+		user:         testUser,
+	}
+
+	srv := newTestServerWithAuth(&mockStore{}, provider)
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/me", nil)
+	req.AddCookie(&http.Cookie{Name: "mayu_session", Value: "my-session"})
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	var resp map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp["email"] != "me@example.com" {
+		t.Errorf("expected email 'me@example.com', got %v", resp["email"])
+	}
+}
+
+func TestAuthMe_Unauthenticated(t *testing.T) {
+	provider := &localAuthProvider{
+		validSession: "x",
+		validAPIKey:  "x",
+		user:         &auth.User{ID: 1, Role: "admin"},
+	}
+
+	srv := newTestServerWithAuth(&mockStore{}, provider)
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/me", nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
 	}
 }

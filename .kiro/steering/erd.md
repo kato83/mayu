@@ -325,6 +325,34 @@ erDiagram
         TIMESTAMPTZ failed_at
     }
 
+    users {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT email UK "UNIQUE NOT NULL"
+        TEXT name
+        TEXT role "admin or viewer, DEFAULT viewer"
+        TEXT password_hash "nullable, for local auth"
+        TEXT oidc_subject "nullable, for OIDC"
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+        TIMESTAMPTZ updated_at "DEFAULT NOW()"
+    }
+
+    api_keys {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT user_id FK "→ users(id) CASCADE"
+        TEXT key_prefix "first 8 chars for identification"
+        TEXT key_hash "NOT NULL"
+        TEXT name
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+        TIMESTAMPTZ expires_at
+    }
+
+    sessions {
+        TEXT id PK "random token"
+        BIGINT user_id FK "→ users(id) CASCADE"
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+        TIMESTAMPTZ expires_at "NOT NULL"
+    }
+
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--|| vulnerability_summary : "has"
     vulnerabilities ||--o{ product_identifiers : "has"
@@ -354,6 +382,8 @@ erDiagram
     mitre_containers ||--o{ mitre_credits : "has"
     mitre_affected ||--o{ mitre_affected_versions : "has"
     ingest_jobs ||--o{ ingest_failures : "has"
+    users ||--o{ api_keys : "has"
+    users ||--o{ sessions : "has"
 ```
 
 ## Design Principles

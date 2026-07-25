@@ -1,10 +1,17 @@
 import { Routes } from '@angular/router';
 import { LayoutComponent } from './layout/layout.component';
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   {
+    path: 'login',
+    loadComponent: () =>
+      import('./pages/login/login.component').then((m) => m.LoginComponent),
+  },
+  {
     path: '',
     component: LayoutComponent,
+    canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'vulnerabilities', pathMatch: 'full' },
       {
@@ -40,6 +47,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/status/status.component').then(
             (m) => m.StatusComponent,
+          ),
+      },
+      {
+        path: 'api-keys',
+        loadComponent: () =>
+          import('./pages/api-keys/api-keys.component').then(
+            (m) => m.ApiKeysComponent,
           ),
       },
     ],
