@@ -85,6 +85,17 @@ func runServe(args []string, cfg *config.Config) error {
 			maxAge = 86400
 		}
 		authProvider = auth.NewLocalAuthProvider(authStore, authStore, authStore, sessionSecret, maxAge)
+	case "oidc":
+		oidcCfg := cfg.Auth.OIDC
+		if oidcCfg.Issuer == "" || oidcCfg.ClientID == "" || oidcCfg.ClientSecret == "" || oidcCfg.RedirectURL == "" {
+			return fmt.Errorf("oidc auth mode requires issuer, client_id, client_secret, and redirect_url to be configured")
+		}
+		authStore := auth.NewPostgresAuthStore(s.DB())
+		maxAge := cfg.Auth.SessionMaxAge
+		if maxAge <= 0 {
+			maxAge = 86400
+		}
+		authProvider = auth.NewOIDCProvider(oidcCfg, authStore, authStore, authStore, maxAge)
 	default:
 		// "none" or empty
 		authProvider = auth.NewNoAuthProvider()
