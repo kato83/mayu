@@ -51,60 +51,74 @@
           <context context-type="linenumber">109</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="sidebar.roleAdmin" datatype="html">
+        <source>Admin</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
+          <context context-type="linenumber">124,126</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sidebar.roleViewer" datatype="html">
+        <source>Viewer</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
+          <context context-type="linenumber">130,132</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="sidebar.logout" datatype="html">
         <source> Logout </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">123,124</context>
+          <context context-type="linenumber">139,140</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.vulnerabilities" datatype="html">
         <source>Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">147</context>
+          <context context-type="linenumber">163</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.ingest" datatype="html">
         <source>Ingest</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">149</context>
+          <context context-type="linenumber">165</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.ingestJobs" datatype="html">
         <source>Ingest Jobs</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">151</context>
+          <context context-type="linenumber">167</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.status" datatype="html">
         <source>Status</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">154</context>
+          <context context-type="linenumber">170</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.webhooks" datatype="html">
         <source>Webhooks</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">155</context>
+          <context context-type="linenumber">171</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.watchlists" datatype="html">
         <source>Watchlists</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">155</context>
+          <context context-type="linenumber">172</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sidebar.nav.apiKeys" datatype="html">
         <source>API Keys</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
-          <context context-type="linenumber">156</context>
+          <context context-type="linenumber">173</context>
         </context-group>
       </trans-unit>
       <trans-unit id="apiKeys.title" datatype="html">
@@ -1353,312 +1367,6 @@
           <context context-type="linenumber">671</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="webhooks.deliveries.backButton" datatype="html">
-        <source> Back to Webhooks </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
-          <context context-type="linenumber">19,21</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deliveries.title" datatype="html">
-        <source> Delivery Logs </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
-          <context context-type="linenumber">22,26</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deliveries.loading" datatype="html">
-        <source>Loading...</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
-          <context context-type="linenumber">27,28</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deliveries.noLogs" datatype="html">
-        <source> No delivery logs found for this webhook. </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
-          <context context-type="linenumber">30,33</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deliveries.col.event" datatype="html">
-        <source>Event</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
-          <context context-type="linenumber">37,38</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deliveries.col.status" datatype="html">
-        <source>Status</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
-          <context context-type="linenumber">38,39</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deliveries.col.attempt" datatype="html">
-        <source>Attempt</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
-          <context context-type="linenumber">39,40</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deliveries.col.deliveredAt" datatype="html">
-        <source>Delivered At</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
-          <context context-type="linenumber">40,41</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deliveries.col.duration" datatype="html">
-        <source>Duration (ms)</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
-          <context context-type="linenumber">41,42</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deliveries.col.error" datatype="html">
-        <source>Error</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
-          <context context-type="linenumber">42,44</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.title" datatype="html">
-        <source> Webhooks </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">15,17</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.createButton" datatype="html">
-        <source> Create Webhook </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">22,24</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.testSuccess" datatype="html">
-        <source>Test webhook sent successfully.</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">41,42</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.testFailed" datatype="html">
-        <source>Test webhook failed.</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">46,47</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.dismissAlert" datatype="html">
-        <source> Dismiss </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">60,62</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.editTitle" datatype="html">
-        <source>Edit Webhook</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">70,72</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.createTitle" datatype="html">
-        <source>Create New Webhook</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">72,74</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.nameLabel" datatype="html">
-        <source> Name </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">78,79</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.namePlaceholder" datatype="html">
-        <source>e.g. security-team-slack</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">87,88</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.urlLabel" datatype="html">
-        <source> URL </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">93,94</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.urlPlaceholder" datatype="html">
-        <source>https://hooks.slack.com/services/...</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">102,103</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.eventsLabel" datatype="html">
-        <source> Events (comma-separated) </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">108,109</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.eventsPlaceholder" datatype="html">
-        <source>new_critical, new_high, *</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">117,118</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.contentTypeLabel" datatype="html">
-        <source> Content Type </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">123,125</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.bodyTemplateLabel" datatype="html">
-        <source> Body Template </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">136,138</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.bodyTemplatePlaceholder" datatype="html">
-        <source>{&quot;text&quot;: &quot;...&quot;}</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">144,145</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.secretLabel" datatype="html">
-        <source> Secret </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">150,151</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.secretPlaceholder" datatype="html">
-        <source>Optional HMAC secret</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">158,159</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.enabledLabel" datatype="html">
-        <source> Enabled </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">171,172</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.saveButton" datatype="html">
-        <source> Save </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">181,182</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.cancelButton" datatype="html">
-        <source> Cancel </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">189,190</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.loading" datatype="html">
-        <source>Loading...</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">198,199</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.noWebhooks" datatype="html">
-        <source> No webhooks found. Create one to get started. </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">201,203</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.col.name" datatype="html">
-        <source>Name</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">208,209</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.col.url" datatype="html">
-        <source>URL</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">210</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.col.events" datatype="html">
-        <source>Events</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">210,211</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.col.enabled" datatype="html">
-        <source>Enabled</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">211,212</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.col.actions" datatype="html">
-        <source>Actions</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">212,214</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.statusEnabled" datatype="html">
-        <source> Enabled </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">232,233</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.statusDisabled" datatype="html">
-        <source> Disabled </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">236,237</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.editButton" datatype="html">
-        <source> Edit </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">247,248</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.testButton" datatype="html">
-        <source> Test </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">255,256</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deliveriesLink" datatype="html">
-        <source> Logs </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">262,263</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="webhooks.deleteButton" datatype="html">
-        <source> Delete </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">269,270</context>
       <trans-unit id="watchlists.title" datatype="html">
         <source> Watchlists </source>
         <context-group purpose="location">
@@ -2054,6 +1762,314 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
           <context context-type="linenumber">378,380</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.backButton" datatype="html">
+        <source> Back to Webhooks </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
+          <context context-type="linenumber">19,21</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.title" datatype="html">
+        <source> Delivery Logs </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
+          <context context-type="linenumber">22,26</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.loading" datatype="html">
+        <source>Loading...</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
+          <context context-type="linenumber">27,28</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.noLogs" datatype="html">
+        <source> No delivery logs found for this webhook. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
+          <context context-type="linenumber">30,33</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.event" datatype="html">
+        <source>Event</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
+          <context context-type="linenumber">37,38</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.status" datatype="html">
+        <source>Status</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
+          <context context-type="linenumber">38,39</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.attempt" datatype="html">
+        <source>Attempt</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
+          <context context-type="linenumber">39,40</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.deliveredAt" datatype="html">
+        <source>Delivered At</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
+          <context context-type="linenumber">40,41</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.duration" datatype="html">
+        <source>Duration (ms)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
+          <context context-type="linenumber">41,42</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveries.col.error" datatype="html">
+        <source>Error</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhook-deliveries.component.ts</context>
+          <context context-type="linenumber">42,44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.title" datatype="html">
+        <source> Webhooks </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">15,17</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.createButton" datatype="html">
+        <source> Create Webhook </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">22,24</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.testSuccess" datatype="html">
+        <source>Test webhook sent successfully.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">41,42</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.testFailed" datatype="html">
+        <source>Test webhook failed.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">46,47</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.dismissAlert" datatype="html">
+        <source> Dismiss </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">60,62</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.editTitle" datatype="html">
+        <source>Edit Webhook</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">70,72</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.createTitle" datatype="html">
+        <source>Create New Webhook</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">72,74</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.nameLabel" datatype="html">
+        <source> Name </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">78,79</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.namePlaceholder" datatype="html">
+        <source>e.g. security-team-slack</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">87,88</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.urlLabel" datatype="html">
+        <source> URL </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">93,94</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.urlPlaceholder" datatype="html">
+        <source>https://hooks.slack.com/services/...</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">102,103</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.eventsLabel" datatype="html">
+        <source> Events (comma-separated) </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">108,109</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.eventsPlaceholder" datatype="html">
+        <source>new_critical, new_high, *</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">117,118</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.contentTypeLabel" datatype="html">
+        <source> Content Type </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">123,125</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.bodyTemplateLabel" datatype="html">
+        <source> Body Template </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">136,138</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.bodyTemplatePlaceholder" datatype="html">
+        <source>{&quot;text&quot;: &quot;...&quot;}</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">144,145</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.secretLabel" datatype="html">
+        <source> Secret </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">150,151</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.secretPlaceholder" datatype="html">
+        <source>Optional HMAC secret</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">158,159</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.enabledLabel" datatype="html">
+        <source> Enabled </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">171,172</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.saveButton" datatype="html">
+        <source> Save </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">181,182</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.cancelButton" datatype="html">
+        <source> Cancel </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">189,190</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.loading" datatype="html">
+        <source>Loading...</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">198,199</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.noWebhooks" datatype="html">
+        <source> No webhooks found. Create one to get started. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">201,203</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.col.name" datatype="html">
+        <source>Name</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">208,209</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.col.url" datatype="html">
+        <source>URL</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">210</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.col.events" datatype="html">
+        <source>Events</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">210,211</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.col.enabled" datatype="html">
+        <source>Enabled</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">211,212</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.col.actions" datatype="html">
+        <source>Actions</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">212,214</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.statusEnabled" datatype="html">
+        <source> Enabled </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">232,233</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.statusDisabled" datatype="html">
+        <source> Disabled </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">236,237</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.editButton" datatype="html">
+        <source> Edit </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">247,248</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.testButton" datatype="html">
+        <source> Test </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">255,256</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deliveriesLink" datatype="html">
+        <source> Logs </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">262,263</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.deleteButton" datatype="html">
+        <source> Delete </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">269,270</context>
         </context-group>
       </trans-unit>
       <trans-unit id="externalLink.title" datatype="html">
