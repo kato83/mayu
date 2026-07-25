@@ -1,4 +1,5 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Marked, Tokens } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -6,6 +7,8 @@ import DOMPurify from 'dompurify';
  * Converts Markdown text to sanitized HTML.
  *
  * Uses `marked` for Markdown→HTML conversion and `DOMPurify` for XSS protection.
+ * The result is marked as trusted via Angular's DomSanitizer to preserve
+ * attributes like `id` on headings (which Angular's built-in sanitizer strips).
  * Links are rendered with `target="_blank"` and `rel="noopener noreferrer"`.
  * Headings are rendered with slugified `id` attributes for anchor navigation.
  * Badge images (shields.io, github actions) are rendered with a `badge` class.
@@ -19,6 +22,7 @@ import DOMPurify from 'dompurify';
 })
 export class MarkdownPipe implements PipeTransform {
   private readonly markedInstance: Marked;
+  private readonly sanitizer = inject(DomSanitizer, { optional: true });
 
   constructor() {
     this.markedInstance = new Marked({
@@ -34,7 +38,7 @@ export class MarkdownPipe implements PipeTransform {
           const plainText = text.replace(/<[^>]*>/g, '');
           const slug = plainText
             .toLowerCase()
-            .replace(/[^\w\s-]/g, '')
+            .replace(/[^\p{L}\p{N}\s-]/gu, '')
             .replace(/\s+/g, '-');
           return `<h${depth} id="${slug}">${text}</h${depth}>\n`;
         },
@@ -51,12 +55,36 @@ export class MarkdownPipe implements PipeTransform {
     });
   }
 
-  transform(value: string | null | undefined): string {
+  transform(value: string | null | undefined): string | SafeHtml {
     if (!value) {
       return '';
     }
 
-    const html = this.markedInstance.parse(value) as string;
+    const sanitized = this.toHtml(value);
+
+    // Bypass Angular's built-in sanitizer since DOMPurify already handles XSS.
+    // This preserves id attributes on headings needed for anchor navigation.
+    if (this.sanitizer) {
+      return this.sanitizer.bypassSecurityTrustHtml(sanitized);
+    }
+    return sanitized;
+  }
+
+  /**
+   * Convert Markdown to sanitized HTML string.
+   * Unlike `transform()`, this returns a plain string without Angular SafeHtml wrapping.
+   * Useful for programmatic HTML inspection (e.g., ToC extraction).
+   */
+  toHtml(value: string | null | undefined): string {
+    if (!value) {
+      return '';
+    }
+
+    let html = this.markedInstance.parse(value) as string;
+
+    // Wrap tables in a scrollable container for mobile viewports
+    html = html.replace(/<table>/g, '<div class="overflow-x-auto"><table>');
+    html = html.replace(/<\/table>/g, '</table></div>');
 
     return this.sanitize(html);
   }

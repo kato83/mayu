@@ -314,21 +314,28 @@
         <source>Documentation</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/docs/docs.component.ts</context>
-          <context context-type="linenumber">17,18</context>
+          <context context-type="linenumber">24,25</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="docs.toc" datatype="html">
+        <source>Table of Contents</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/docs/docs.component.ts</context>
+          <context context-type="linenumber">42,43</context>
         </context-group>
       </trans-unit>
       <trans-unit id="docs.loading" datatype="html">
         <source>Loading document...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/docs/docs.component.ts</context>
-          <context context-type="linenumber">37,39</context>
+          <context context-type="linenumber">63,65</context>
         </context-group>
       </trans-unit>
       <trans-unit id="docs.error" datatype="html">
         <source>Failed to load document.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/docs/docs.component.ts</context>
-          <context context-type="linenumber">41,43</context>
+          <context context-type="linenumber">67,69</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingestJobs.title" datatype="html">

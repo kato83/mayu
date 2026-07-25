@@ -1,5 +1,5 @@
-import { Component, inject, OnInit, signal, DestroyRef } from '@angular/core';
-import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, inject, OnInit, OnDestroy, signal, DestroyRef } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { map, switchMap, catchError, of } from 'rxjs';
@@ -17,10 +17,11 @@ interface TocEntry {
 @Component({
   selector: 'app-docs',
   imports: [RouterLink, RouterLinkActive, MarkdownPipe],
+  providers: [MarkdownPipe],
   template: `
     <div class="flex flex-col md:flex-row gap-6">
       <!-- Document list sidebar -->
-      <nav class="w-full md:w-64 shrink-0 md:sticky md:top-4 md:self-start">
+      <nav class="w-full md:w-64 shrink-0 md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-2rem)] md:overflow-y-auto">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3" i18n="@@docs.title">Documentation</h2>
         <ul class="space-y-1">
           @for (doc of documents; track doc.slug) {
@@ -44,7 +45,8 @@ interface TocEntry {
               @for (entry of toc(); track entry.id) {
                 <li [style.padding-left.rem]="(entry.depth - 1) * 0.75">
                   <a
-                    [href]="'#' + entry.id"
+                    (click)="scrollToFragment(entry.id, $event)"
+                    [href]="currentPath() + '#' + entry.id"
                     class="block py-1 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate"
                   >
                     {{ entry.text }}
@@ -73,12 +75,13 @@ interface TocEntry {
     </div>
   `,
 })
-export class DocsComponent implements OnInit {
+export class DocsComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly docsService = inject(DocsService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly titleService = inject(Title);
-  private readonly markdownPipe = new MarkdownPipe();
+  private readonly markdownPipe = inject(MarkdownPipe);
 
   readonly documents: DocEntry[] = DOCS_MANIFEST;
 
@@ -86,6 +89,11 @@ export class DocsComponent implements OnInit {
   loading = signal(false);
   error = signal<string | null>(null);
   toc = signal<TocEntry[]>([]);
+  currentPath = signal('');
+
+  ngOnDestroy(): void {
+    this.titleService.setTitle('Mayu');
+  }
 
   ngOnInit(): void {
     this.route.params
@@ -113,15 +121,32 @@ export class DocsComponent implements OnInit {
           this.titleService.setTitle(`${pageTitle} - Mayu`);
 
           const rewritten = this.rewriteImagePaths(body, slug);
-          this.content.set(rewritten);
+          const withLinks = this.rewriteDocLinks(rewritten);
+          this.content.set(withLinks);
+
+          // Update current path for ToC links
+          this.currentPath.set(this.router.url.split('#')[0]);
 
           // Generate TOC from the rendered HTML
-          const html = this.markdownPipe.transform(rewritten);
+          const html = this.markdownPipe.toHtml(withLinks);
           this.toc.set(this.extractToc(html));
 
           this.loading.set(false);
         }
       });
+  }
+
+  /**
+   * Scroll to a fragment within the current page without navigating away.
+   */
+  scrollToFragment(id: string, event: Event): void {
+    event.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      // Update URL fragment without triggering navigation
+      history.replaceState(null, '', this.currentPath() + '#' + id);
+    }
   }
 
   /**
@@ -191,5 +216,44 @@ export class DocsComponent implements OnInit {
     const cleaned = relativePath.startsWith('./') ? relativePath.substring(2) : relativePath;
     // Combine base directory with the relative path
     return baseDir + cleaned;
+  }
+
+  /**
+   * Rewrite Markdown links pointing to .md / .ja.md files into internal /docs/:slug links.
+   * Matches patterns like [text](path/to/file.md) or [text](file.ja.md).
+   */
+  private rewriteDocLinks(markdown: string): string {
+    // Build a mapping from filename (without directory prefix and extension) to slug
+    const fileToSlug = new Map<string, string>();
+    for (const doc of this.documents) {
+      // Extract base name without extension from filename
+      const fname = doc.filename.split('/').pop() || '';
+      const baseName = fname.replace(/\.md$/, '');
+      fileToSlug.set(baseName.toLowerCase(), doc.slug);
+
+      if (doc.filenameJa) {
+        const fnameJa = doc.filenameJa.split('/').pop() || '';
+        const baseNameJa = fnameJa.replace(/\.md$/, '');
+        fileToSlug.set(baseNameJa.toLowerCase(), doc.slug);
+      }
+    }
+
+    // Match Markdown links: [text](path) where path ends with .md or .ja.md
+    // Excludes image links (prefixed with !)
+    return markdown.replace(
+      /(?<!!)\[([^\]]*)\]\(([^)]*\.(?:ja\.)?md)\)/g,
+      (match, text, href) => {
+        // Extract filename from the href path
+        const fileName = href.split('/').pop() || '';
+        const baseName = fileName.replace(/\.md$/, '').toLowerCase();
+        const slug = fileToSlug.get(baseName);
+
+        if (slug) {
+          return `[${text}](/docs/${slug})`;
+        }
+        // If no matching slug found, leave the link unchanged
+        return match;
+      },
+    );
   }
 }
