@@ -62,7 +62,6 @@ func setupTestStore(t *testing.T) *testEnv {
 	}
 }
 
-
 func TestCreateAndGetWatchlist(t *testing.T) {
 	env := setupTestStore(t)
 	ctx := context.Background()
@@ -218,6 +217,7 @@ func TestUpdateWatchlist(t *testing.T) {
 	newEco := "npm"
 	updated := &Watchlist{
 		ID:        id,
+		UserID:    env.userID,
 		Name:      "Updated name",
 		MatchType: MatchTypePackage,
 		Ecosystem: &newEco,
@@ -543,4 +543,3 @@ func TestWatchlistMatchesCascadeOnDelete(t *testing.T) {
 		t.Errorf("expected 0 matches after cascade delete, got %d", count)
 	}
 }
-
