@@ -752,6 +752,31 @@ func (s *PostgresStore) fetchEPSSDetail(ctx context.Context, vulnID string) (*mo
 	}, nil
 }
 
+// GetEPSSHistory returns the full EPSS score history for a vulnerability, ordered by date.
+func (s *PostgresStore) GetEPSSHistory(ctx context.Context, vulnID string) ([]EPSSHistoryEntry, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT score_date::text, epss, percentile
+		FROM epss_scores
+		WHERE vulnerability_id = $1
+		ORDER BY score_date ASC`,
+		vulnID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query epss_scores history: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var entries []EPSSHistoryEntry
+	for rows.Next() {
+		var e EPSSHistoryEntry
+		if err := rows.Scan(&e.Date, &e.EPSS, &e.Percentile); err != nil {
+			return nil, fmt.Errorf("scan epss_history: %w", err)
+		}
+		entries = append(entries, e)
+	}
+	return entries, rows.Err()
+}
+
 // fetchKEVDetail retrieves the KEV catalog entry for a vulnerability.
 // Returns nil if the vulnerability is not in the KEV catalog.
 func (s *PostgresStore) fetchKEVDetail(ctx context.Context, vulnID string) (*model.KEVDetail, error) {

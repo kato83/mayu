@@ -110,6 +110,10 @@ type Store interface {
 	// GetSeveritiesByIDs returns a map of vulnerability ID to worst severity level (1-5)
 	// for the given IDs by querying the vulnerability_summary table.
 	GetSeveritiesByIDs(ctx context.Context, ids []string) (map[string]int, error)
+
+	// GetEPSSHistory returns the full EPSS score history for a vulnerability.
+	// Results are ordered by date ascending.
+	GetEPSSHistory(ctx context.Context, vulnID string) ([]EPSSHistoryEntry, error)
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.
@@ -185,4 +189,11 @@ type EPSSCoverage struct {
 	LastDate     string   // Latest EPSS score date (YYYY-MM-DD)
 	TotalScores  int64    // Total number of EPSS score records
 	MissingDates []string // Dates in [FirstDate, LastDate] range that have no EPSS scores
+}
+
+// EPSSHistoryEntry represents a single EPSS score data point.
+type EPSSHistoryEntry struct {
+	Date       string  `json:"date"`
+	EPSS       float64 `json:"epss"`
+	Percentile float64 `json:"percentile"`
 }

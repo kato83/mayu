@@ -310,6 +310,10 @@
         <source>Score Date</source>
         <target>スコア日</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.epssTrend" datatype="html">
+        <source>EPSS Trend</source>
+        <target>EPSS推移</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.kevTitle" datatype="html">
         <source>CISA KEV (Known Exploited Vulnerabilities)</source>
         <target>CISA KEV（既知の悪用された脆弱性）</target>

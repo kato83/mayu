@@ -109,6 +109,10 @@ func (m *mockStore) GetEPSSCoverage(ctx context.Context) (*store.EPSSCoverage, e
 	return &store.EPSSCoverage{}, nil
 }
 
+func (m *mockStore) GetEPSSHistory(ctx context.Context, vulnID string) ([]store.EPSSHistoryEntry, error) {
+	return nil, nil
+}
+
 // newTestServer creates a Server with the given mock store for testing.
 // By default it uses NoAuthProvider so existing tests don't need auth.
 func newTestServer(ms *mockStore) *Server {
