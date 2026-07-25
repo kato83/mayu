@@ -23,10 +23,12 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/fetcher"
+	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/validate"
+	"github.com/kato83/mayu/internal/watchlist"
 	"github.com/kato83/mayu/internal/webhook"
 	"golang.org/x/sync/errgroup"
 )
@@ -73,23 +75,33 @@ type Config struct {
 	// WebhookEngine dispatches webhook notifications.
 	// If nil, webhook test endpoint will use a default client.
 	WebhookEngine *webhook.Engine
+
+	// WatchlistStore provides watchlist persistence for the watchlist API.
+	// If nil, watchlist endpoints are not registered.
+	WatchlistStore watchlist.WatchlistStore
+
+	// WatchlistMatcher is the ingest integration point for watchlist matching.
+	// If nil, watchlist matching is not wired into the ingest pipeline.
+	WatchlistMatcher ingest.WatchlistMatcher
 }
 
 // Server is the HTTP API server.
 type Server struct {
-	httpServer    *http.Server
-	store         store.Store
-	version       string
-	uiDir         string
-	embedFS       fs.FS
-	fetcher       *fetcher.Fetcher
-	authProvider  auth.AuthProvider
-	apiKeyStore   auth.APIKeyStore
-	webhookStore  webhook.WebhookStore
-	webhookEngine *webhook.Engine
-	loginLimiter  *auth.LoginRateLimiter
-	ingestRunning atomic.Bool
-	runners       activeRunners
+	httpServer       *http.Server
+	store            store.Store
+	version          string
+	uiDir            string
+	embedFS          fs.FS
+	fetcher          *fetcher.Fetcher
+	authProvider     auth.AuthProvider
+	apiKeyStore      auth.APIKeyStore
+	webhookStore     webhook.WebhookStore
+	webhookEngine    *webhook.Engine
+	watchlistStore   watchlist.WatchlistStore
+	watchlistMatcher ingest.WatchlistMatcher
+	loginLimiter     *auth.LoginRateLimiter
+	ingestRunning    atomic.Bool
+	runners          activeRunners
 }
 
 // New creates a new Server with the given configuration.
@@ -100,16 +112,18 @@ func New(cfg Config) *Server {
 	}
 
 	s := &Server{
-		store:         cfg.Store,
-		version:       cfg.Version,
-		uiDir:         cfg.UIDir,
-		embedFS:       cfg.EmbedFS,
-		fetcher:       cfg.Fetcher,
-		authProvider:  ap,
-		apiKeyStore:   cfg.APIKeyStore,
-		webhookStore:  cfg.WebhookStore,
-		webhookEngine: cfg.WebhookEngine,
-		loginLimiter:  auth.NewLoginRateLimiter(10, 15*time.Minute),
+		store:            cfg.Store,
+		version:          cfg.Version,
+		uiDir:            cfg.UIDir,
+		embedFS:          cfg.EmbedFS,
+		fetcher:          cfg.Fetcher,
+		authProvider:     ap,
+		apiKeyStore:      cfg.APIKeyStore,
+		webhookStore:     cfg.WebhookStore,
+		webhookEngine:    cfg.WebhookEngine,
+		watchlistStore:   cfg.WatchlistStore,
+		watchlistMatcher: cfg.WatchlistMatcher,
+		loginLimiter:     auth.NewLoginRateLimiter(10, 15*time.Minute),
 	}
 
 	router := s.routes()
@@ -237,6 +251,21 @@ func (s *Server) routes() http.Handler {
 			r.Delete("/{id}", s.handleDeleteWebhook)
 			r.Get("/{id}/deliveries", s.handleListWebhookDeliveries)
 			r.Post("/{id}/test", s.handleTestWebhook)
+		})
+	}
+
+	// Watchlist management endpoints
+	if s.watchlistStore != nil {
+		r.Route("/api/v1/watchlists", func(r chi.Router) {
+			r.Use(authMW)
+			r.Use(middleware.Timeout(30 * time.Second))
+			r.Get("/", watchlist.HandleListWatchlists(s.watchlistStore))
+			r.Post("/", watchlist.HandleCreateWatchlist(s.watchlistStore))
+			r.Get("/matches", watchlist.HandleListUserMatches(s.watchlistStore))
+			r.Get("/{id}", watchlist.HandleGetWatchlist(s.watchlistStore))
+			r.Put("/{id}", watchlist.HandleUpdateWatchlist(s.watchlistStore))
+			r.Delete("/{id}", watchlist.HandleDeleteWatchlist(s.watchlistStore))
+			r.Get("/{id}/matches", watchlist.HandleListWatchlistMatches(s.watchlistStore))
 		})
 	}
 

@@ -366,6 +366,22 @@ erDiagram
         TIMESTAMPTZ updated_at "DEFAULT NOW()"
     }
 
+    watchlists {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT user_id FK "→ users(id) CASCADE"
+        TEXT name "NOT NULL"
+        TEXT match_type "NOT NULL: package, purl, cpe, ecosystem"
+        TEXT ecosystem "nullable, for package/ecosystem match"
+        TEXT package_name "nullable, for package match"
+        TEXT purl_pattern "nullable, for purl match"
+        TEXT cpe_pattern "nullable, for cpe match"
+        SMALLINT severity_min "nullable, 1-5 scale"
+        FLOAT8 epss_threshold "nullable, 0.0-1.0"
+        BOOLEAN enabled "NOT NULL DEFAULT true"
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+        TIMESTAMPTZ updated_at "DEFAULT NOW()"
+    }
+
     webhook_delivery_logs {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         BIGINT webhook_id FK "→ webhooks(id) CASCADE"
@@ -377,6 +393,15 @@ erDiagram
         INT attempt "NOT NULL DEFAULT 1"
         TIMESTAMPTZ delivered_at "DEFAULT NOW()"
         INT duration_ms "nullable"
+    }
+
+    watchlist_matches {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT watchlist_id FK "→ watchlists(id) CASCADE"
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
+        TIMESTAMPTZ matched_at "DEFAULT NOW()"
+        BOOLEAN notified "NOT NULL DEFAULT false"
+        TIMESTAMPTZ notified_at "nullable"
     }
 
     vulnerabilities ||--o{ vulnerability_aliases : "has"
@@ -411,6 +436,9 @@ erDiagram
     users ||--o{ api_keys : "has"
     users ||--o{ sessions : "has"
     webhooks ||--o{ webhook_delivery_logs : "has"
+    users ||--o{ watchlists : "has"
+    watchlists ||--o{ watchlist_matches : "has"
+    vulnerabilities ||--o{ watchlist_matches : "has"
 ```
 
 ## Design Principles
