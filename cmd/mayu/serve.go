@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/server"
@@ -62,14 +66,39 @@ func runServe(args []string, cfg *config.Config) error {
 	}
 	defer func() { _ = s.Close() }()
 
+	// Initialize auth provider based on config
+	var authProvider auth.AuthProvider
+	switch cfg.Auth.Mode {
+	case "local":
+		authStore := auth.NewPostgresAuthStore(s.DB())
+		sessionSecret := cfg.Auth.SessionSecret
+		if sessionSecret == "" {
+			b := make([]byte, 32)
+			if _, err := rand.Read(b); err != nil {
+				return fmt.Errorf("generate session secret: %w", err)
+			}
+			sessionSecret = hex.EncodeToString(b)
+			slog.Warn("no session_secret configured, using randomly generated secret (sessions will not persist across restarts)")
+		}
+		maxAge := cfg.Auth.SessionMaxAge
+		if maxAge <= 0 {
+			maxAge = 86400
+		}
+		authProvider = auth.NewLocalAuthProvider(authStore, authStore, authStore, sessionSecret, maxAge)
+	default:
+		// "none" or empty
+		authProvider = auth.NewNoAuthProvider()
+	}
+
 	// Create and start server
 	srv := server.New(server.Config{
-		Addr:    *addr,
-		Store:   s,
-		Version: version,
-		UIDir:   *uiDir,
-		EmbedFS: uiassets.FS(),
-		Fetcher: fetcher.New(),
+		Addr:         *addr,
+		Store:        s,
+		Version:      version,
+		UIDir:        *uiDir,
+		EmbedFS:      uiassets.FS(),
+		Fetcher:      fetcher.New(),
+		AuthProvider: authProvider,
 	})
 
 	// Start server in goroutine.
