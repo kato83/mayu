@@ -129,7 +129,7 @@ func (s *Server) routes() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
 		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type", "Authorization"},
 		ExposedHeaders:   []string{"X-Total-Count"},
