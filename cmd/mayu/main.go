@@ -35,60 +35,60 @@ func main() {
 	case "ingest":
 		// Check for sub-subcommand 'history'
 		if len(os.Args) > 2 && os.Args[2] == "history" {
-			if err := runIngestHistory(os.Args[3:], cfg); err != nil {
+			if err := runIngestHistory(stripConfigFlag(os.Args[3:]), cfg); err != nil {
 				fmt.Fprintf(os.Stderr, "error: %v\n", err)
 				os.Exit(1)
 			}
 		} else {
-			if err := runIngest(os.Args[2:], cfg); err != nil {
+			if err := runIngest(subcommandArgs(), cfg); err != nil {
 				fmt.Fprintf(os.Stderr, "error: %v\n", err)
 				os.Exit(1)
 			}
 		}
 	case "search":
-		if err := runSearch(os.Args[2:], cfg); err != nil {
+		if err := runSearch(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "serve":
-		if err := runServe(os.Args[2:], cfg); err != nil {
+		if err := runServe(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "audit":
-		exitCode, err := runAudit(os.Args[2:], cfg)
+		exitCode, err := runAudit(subcommandArgs(), cfg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(2)
 		}
 		os.Exit(exitCode)
 	case "migrate":
-		if err := runMigrate(os.Args[2:], cfg); err != nil {
+		if err := runMigrate(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "status":
-		if err := runStatus(os.Args[2:], cfg); err != nil {
+		if err := runStatus(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "user":
-		if err := runUser(os.Args[2:], cfg); err != nil {
+		if err := runUser(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "apikey":
-		if err := runAPIKey(os.Args[2:], cfg); err != nil {
+		if err := runAPIKey(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "webhook":
-		if err := runWebhook(os.Args[2:], cfg); err != nil {
+		if err := runWebhook(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	case "watch":
-		if err := runWatch(os.Args[2:], cfg); err != nil {
+		if err := runWatch(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
@@ -131,6 +131,28 @@ func loadGlobalConfig() (*config.Config, error) {
 	}
 
 	return config.Load(configPath, explicit)
+}
+
+// subcommandArgs returns os.Args[2:] with the global --config flag (and its
+// value) stripped out so that subcommand FlagSets do not see unknown flags.
+func subcommandArgs() []string {
+	return stripConfigFlag(os.Args[2:])
+}
+
+// stripConfigFlag removes --config <path> or --config=<path> from an args slice.
+func stripConfigFlag(args []string) []string {
+	filtered := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--config" && i+1 < len(args) {
+			i++ // skip the value
+			continue
+		}
+		if strings.HasPrefix(args[i], "--config=") {
+			continue
+		}
+		filtered = append(filtered, args[i])
+	}
+	return filtered
 }
 
 func printUsage() {
