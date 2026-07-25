@@ -106,3 +106,126 @@ func TestLoad_ExtraFields(t *testing.T) {
 		t.Errorf("DatabaseURL = %q, want %q", cfg.DatabaseURL, "postgres://localhost/test")
 	}
 }
+
+func TestLoad_AuthModeLocal(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.yaml")
+	content := []byte(`database_url: postgres://localhost/test
+auth:
+  mode: local
+  session_secret: my-secret-key
+  session_max_age: 3600
+`)
+	if err := os.WriteFile(cfgPath, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(cfgPath, true)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Auth.Mode != "local" {
+		t.Errorf("Auth.Mode = %q, want %q", cfg.Auth.Mode, "local")
+	}
+	if cfg.Auth.SessionSecret != "my-secret-key" {
+		t.Errorf("Auth.SessionSecret = %q, want %q", cfg.Auth.SessionSecret, "my-secret-key")
+	}
+	if cfg.Auth.SessionMaxAge != 3600 {
+		t.Errorf("Auth.SessionMaxAge = %d, want %d", cfg.Auth.SessionMaxAge, 3600)
+	}
+}
+
+func TestLoad_AuthModeOIDC(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.yaml")
+	content := []byte(`database_url: postgres://localhost/test
+auth:
+  mode: oidc
+  session_secret: oidc-secret
+  session_max_age: 7200
+  oidc:
+    issuer: https://accounts.example.com
+    client_id: my-client-id
+    client_secret: my-client-secret
+    redirect_url: http://localhost:8080/auth/callback
+    scopes:
+      - openid
+      - profile
+      - email
+`)
+	if err := os.WriteFile(cfgPath, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(cfgPath, true)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Auth.Mode != "oidc" {
+		t.Errorf("Auth.Mode = %q, want %q", cfg.Auth.Mode, "oidc")
+	}
+	if cfg.Auth.OIDC.Issuer != "https://accounts.example.com" {
+		t.Errorf("Auth.OIDC.Issuer = %q, want %q", cfg.Auth.OIDC.Issuer, "https://accounts.example.com")
+	}
+	if cfg.Auth.OIDC.ClientID != "my-client-id" {
+		t.Errorf("Auth.OIDC.ClientID = %q, want %q", cfg.Auth.OIDC.ClientID, "my-client-id")
+	}
+	if cfg.Auth.OIDC.ClientSecret != "my-client-secret" {
+		t.Errorf("Auth.OIDC.ClientSecret = %q, want %q", cfg.Auth.OIDC.ClientSecret, "my-client-secret")
+	}
+	if cfg.Auth.OIDC.RedirectURL != "http://localhost:8080/auth/callback" {
+		t.Errorf("Auth.OIDC.RedirectURL = %q, want %q", cfg.Auth.OIDC.RedirectURL, "http://localhost:8080/auth/callback")
+	}
+	expectedScopes := []string{"openid", "profile", "email"}
+	if len(cfg.Auth.OIDC.Scopes) != len(expectedScopes) {
+		t.Fatalf("Auth.OIDC.Scopes length = %d, want %d", len(cfg.Auth.OIDC.Scopes), len(expectedScopes))
+	}
+	for i, s := range cfg.Auth.OIDC.Scopes {
+		if s != expectedScopes[i] {
+			t.Errorf("Auth.OIDC.Scopes[%d] = %q, want %q", i, s, expectedScopes[i])
+		}
+	}
+}
+
+func TestLoad_AuthModeNone(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.yaml")
+	content := []byte(`database_url: postgres://localhost/test
+auth:
+  mode: none
+`)
+	if err := os.WriteFile(cfgPath, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(cfgPath, true)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Auth.Mode != "none" {
+		t.Errorf("Auth.Mode = %q, want %q", cfg.Auth.Mode, "none")
+	}
+}
+
+func TestLoad_AuthModeEmpty(t *testing.T) {
+	// When auth mode is not specified, the zero value (empty string) is returned.
+	// Callers should treat empty as "none".
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.yaml")
+	content := []byte(`database_url: postgres://localhost/test
+`)
+	if err := os.WriteFile(cfgPath, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(cfgPath, true)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Auth.Mode != "" {
+		t.Errorf("Auth.Mode = %q, want empty string (treated as none)", cfg.Auth.Mode)
+	}
+	if cfg.Auth.SessionMaxAge != 0 {
+		t.Errorf("Auth.SessionMaxAge = %d, want 0 (zero value)", cfg.Auth.SessionMaxAge)
+	}
+}
