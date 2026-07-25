@@ -108,12 +108,12 @@ func (s *PostgresStore) upsertEPSSChunk(ctx context.Context, scores []*model.EPS
 			base, base+1, base+2, base+3, base+4, base+5,
 		))
 		epssArgs = append(epssArgs,
-			score.CVEID,           // cve_id
-			score.CVEID,           // vulnerability_id (same as cve_id)
-			score.EPSS,            // epss
-			score.Percentile,      // percentile
-			score.ScoreDate,       // score_date
-			[]byte(score.RawJSON), // raw_json
+			score.CVEID,                  // cve_id
+			score.CVEID,                  // vulnerability_id (same as cve_id)
+			score.EPSS,                   // epss
+			score.Percentile,             // percentile
+			score.ScoreDate,              // score_date
+			sanitizeJSONB(score.RawJSON), // raw_json
 		)
 	}
 

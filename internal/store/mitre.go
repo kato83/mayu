@@ -146,7 +146,7 @@ func (s *PostgresStore) upsertMITREEntry(ctx context.Context, tx *sql.Tx, entry 
 		dateReservedPtr,
 		datePublishedPtr,
 		dateUpdatedPtr,
-		rawJSON,
+		sanitizeJSONB(rawJSON),
 	).Scan(&mitreEntryID)
 	if err != nil {
 		return fmt.Errorf("insert mitre_entry: %w", err)

@@ -116,7 +116,7 @@ func (s *PostgresStore) upsertKEVEntry(ctx context.Context, tx *sql.Tx, record *
 		record.KnownRansomwareCampaignUse,
 		nullIfEmpty(record.Notes),
 		pgTextArray(record.CWEs),
-		[]byte(record.RawJSON),
+		sanitizeJSONB(record.RawJSON),
 	)
 	if err != nil {
 		return fmt.Errorf("upsert kev_entry: %w", err)

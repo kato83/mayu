@@ -284,7 +284,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		osvID,
 		canID,
 		nullIfEmpty(vuln.SchemaVersion),
-		rawJSON,
+		sanitizeJSONB(rawJSON),
 		nullableRawJSON(vuln.DatabaseSpecific),
 	)
 	if err != nil {
@@ -1027,6 +1027,18 @@ func (s *PostgresStore) ListSyncStates(ctx context.Context) ([]SyncState, error)
 
 // --- Helper functions ---
 
+// sanitizeJSONB removes Unicode escape sequences unsupported by PostgreSQL's JSONB type.
+// PostgreSQL rejects \u0000 (NULL byte) in JSONB. This function strips such sequences
+// from the raw JSON bytes before storage.
+func sanitizeJSONB(data []byte) []byte {
+	if len(data) == 0 {
+		return data
+	}
+	// Replace literal \u0000 sequences (6 bytes: \, u, 0, 0, 0, 0) with empty string.
+	// This handles the most common case. PostgreSQL only rejects \u0000 specifically.
+	return []byte(strings.ReplaceAll(string(data), `\u0000`, ""))
+}
+
 // nullIfEmpty returns nil if the string is empty, otherwise returns the string.
 func nullIfEmpty(s string) interface{} {
 	if s == "" {
@@ -1036,11 +1048,12 @@ func nullIfEmpty(s string) interface{} {
 }
 
 // nullableRawJSON returns nil if the json.RawMessage is nil or empty.
+// It also sanitizes the JSON to remove Unicode escape sequences unsupported by PostgreSQL.
 func nullableRawJSON(data json.RawMessage) interface{} {
 	if len(data) == 0 || string(data) == "null" {
 		return nil
 	}
-	return []byte(data)
+	return sanitizeJSONB([]byte(data))
 }
 
 // pgTextArray converts a Go string slice for use as a PostgreSQL TEXT[] parameter.

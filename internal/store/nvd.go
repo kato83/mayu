@@ -104,7 +104,7 @@ func (s *PostgresStore) upsertNVDEntry(ctx context.Context, tx *sql.Tx, entry *m
 		nullIfEmpty(entry.VulnStatus),
 		entry.Published.Time,
 		entry.LastModified.Time,
-		rawJSON,
+		sanitizeJSONB(rawJSON),
 	).Scan(&nvdEntryID)
 	if err != nil {
 		return fmt.Errorf("insert nvd_entry: %w", err)
