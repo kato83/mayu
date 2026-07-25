@@ -68,6 +68,7 @@ func runServe(args []string, cfg *config.Config) error {
 
 	// Initialize auth provider based on config
 	var authProvider auth.AuthProvider
+	var apiKeyStore auth.APIKeyStore
 	switch cfg.Auth.Mode {
 	case "local":
 		authStore := auth.NewPostgresAuthStore(s.DB())
@@ -85,6 +86,7 @@ func runServe(args []string, cfg *config.Config) error {
 			maxAge = 86400
 		}
 		authProvider = auth.NewLocalAuthProvider(authStore, authStore, authStore, sessionSecret, maxAge)
+		apiKeyStore = authStore
 	case "oidc":
 		oidcCfg := cfg.Auth.OIDC
 		if oidcCfg.Issuer == "" || oidcCfg.ClientID == "" || oidcCfg.ClientSecret == "" || oidcCfg.RedirectURL == "" {
@@ -96,6 +98,7 @@ func runServe(args []string, cfg *config.Config) error {
 			maxAge = 86400
 		}
 		authProvider = auth.NewOIDCProvider(oidcCfg, authStore, authStore, authStore, maxAge)
+		apiKeyStore = authStore
 	default:
 		// "none" or empty
 		authProvider = auth.NewNoAuthProvider()
@@ -110,6 +113,7 @@ func runServe(args []string, cfg *config.Config) error {
 		EmbedFS:      uiassets.FS(),
 		Fetcher:      fetcher.New(),
 		AuthProvider: authProvider,
+		APIKeyStore:  apiKeyStore,
 	})
 
 	// Start server in goroutine.

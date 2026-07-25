@@ -1,7 +1,8 @@
 import { Component, input, output, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
 import { ThemeService, ThemeMode } from '../../services/theme.service';
+import { AuthService } from '../../services/auth.service';
 
 interface NavItem {
   label: string;
@@ -110,6 +111,20 @@ interface NavItem {
         </div>
       </div>
 
+      <!-- User info & Logout -->
+      @if (authService.currentUser()) {
+        <div class="px-4 py-3 border-t border-slate-700">
+          <p class="text-xs text-slate-400 truncate">{{ authService.currentUser()!.email }}</p>
+          <button
+            (click)="onLogout()"
+            class="mt-2 w-full text-left text-sm text-slate-300 hover:text-white transition-colors cursor-pointer"
+            i18n="@@sidebar.logout"
+          >
+            Logout
+          </button>
+        </div>
+      }
+
       <!-- Footer -->
       <div class="px-6 py-4 border-t border-slate-700 text-xs text-slate-400">
         © 2026 Mayu Project
@@ -119,6 +134,8 @@ interface NavItem {
 })
 export class SidebarComponent {
   private readonly themeService = inject(ThemeService);
+  private readonly router = inject(Router);
+  readonly authService = inject(AuthService);
 
   /** Whether the sidebar is open (mobile) */
   open = input(false);
@@ -135,6 +152,7 @@ export class SidebarComponent {
       ],
     },
     { label: $localize`:@@sidebar.nav.status:Status`, route: '/status', icon: '📊' },
+    { label: $localize`:@@sidebar.nav.apiKeys:API Keys`, route: '/api-keys', icon: '🔑' },
   ];
 
   setTheme(mode: ThemeMode): void {
@@ -156,5 +174,13 @@ export class SidebarComponent {
     }
     // On desktop (md+), always visible. On mobile, hidden by default.
     return `${base} -translate-x-full md:translate-x-0`;
+  }
+
+  onLogout(): void {
+    this.authService.logout().subscribe({
+      next: () => {
+        this.router.navigate(['/login']);
+      },
+    });
   }
 }

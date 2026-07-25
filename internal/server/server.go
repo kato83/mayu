@@ -60,6 +60,10 @@ type Config struct {
 	// AuthProvider handles authentication and authorization.
 	// If nil, NoAuthProvider behavior is assumed.
 	AuthProvider auth.AuthProvider
+
+	// APIKeyStore provides API key persistence for user-facing key management.
+	// If nil, API key management endpoints are not registered.
+	APIKeyStore auth.APIKeyStore
 }
 
 // Server is the HTTP API server.
@@ -71,6 +75,7 @@ type Server struct {
 	embedFS       fs.FS
 	fetcher       *fetcher.Fetcher
 	authProvider  auth.AuthProvider
+	apiKeyStore   auth.APIKeyStore
 	ingestRunning atomic.Bool
 	runners       activeRunners
 }
@@ -89,6 +94,7 @@ func New(cfg Config) *Server {
 		embedFS:      cfg.EmbedFS,
 		fetcher:      cfg.Fetcher,
 		authProvider: ap,
+		apiKeyStore:  cfg.APIKeyStore,
 	}
 
 	router := s.routes()
@@ -124,7 +130,7 @@ func (s *Server) routes() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type", "Authorization"},
 		ExposedHeaders:   []string{"X-Total-Count"},
 		AllowCredentials: true,
@@ -187,6 +193,17 @@ func (s *Server) routes() http.Handler {
 			r.With(middleware.Timeout(30*time.Second)).Post("/", s.handleIngest)
 		}
 	})
+
+	// User API key management endpoints
+	if s.apiKeyStore != nil {
+		r.Route("/api/v1/user/api-keys", func(r chi.Router) {
+			r.Use(authMW)
+			r.Use(middleware.Timeout(30 * time.Second))
+			r.Get("/", auth.HandleListAPIKeys(s.apiKeyStore))
+			r.Post("/", auth.HandleCreateAPIKey(s.apiKeyStore))
+			r.Delete("/{id}", auth.HandleDeleteAPIKey(s.apiKeyStore))
+		})
+	}
 
 	// SPA static file serving with fallback to index.html
 	if s.uiDir != "" || s.embedFS != nil {
