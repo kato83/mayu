@@ -210,6 +210,7 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
 		r.Get("/status", s.handleStatus)
+		r.Get("/version", s.handleVersion)
 	})
 
 	// Ingest endpoints
