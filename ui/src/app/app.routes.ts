@@ -77,6 +77,18 @@ export const routes: Routes = [
             (m) => m.ApiKeysComponent,
           ),
       },
+      {
+        path: 'docs',
+        redirectTo: 'docs/readme',
+        pathMatch: 'full',
+      },
+      {
+        path: 'docs/:slug',
+        loadComponent: () =>
+          import('./pages/docs/docs.component').then(
+            (m) => m.DocsComponent,
+          ),
+      },
     ],
   },
 ];
