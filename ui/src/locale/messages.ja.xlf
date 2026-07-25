@@ -194,6 +194,10 @@
         <source>Affected Software (CPE)</source>
         <target>影響を受けるソフトウェア (CPE)</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.nvdViewOnNvd" datatype="html">
+        <source>View on NVD</source>
+        <target>NVDで見る</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.mitreAssigner" datatype="html">
         <source>Assigner</source>
         <target>割当者</target>
