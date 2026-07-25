@@ -492,6 +492,8 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 	switch {
 	case query.ID != "":
 		// Match by vulnerabilities.id OR vulnerability_aliases.alias
+		// Uses UNION instead of OR to allow the planner to use the PK index directly,
+		// avoiding a full table scan that occurs with OR conditions.
 		argIdx++
 		baseQuery = `SELECT oe.raw_json, v.id, v.summary, v.details, v.published, v.modified, oe.osv_id,
 		       vs.severity_worst
@@ -500,8 +502,10 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		LEFT JOIN LATERAL (
 			SELECT e.raw_json, e.osv_id FROM osv_entries e WHERE e.vulnerability_id = v.id ORDER BY e.osv_id LIMIT 1
 		) oe ON true
-		WHERE (v.id = $` + fmt.Sprint(argIdx) + `
-			OR v.id IN (SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $` + fmt.Sprint(argIdx) + `)
+		WHERE v.id IN (
+			SELECT $` + fmt.Sprint(argIdx) + `
+			UNION
+			SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $` + fmt.Sprint(argIdx) + `
 		) AND 1=1`
 		args = append(args, query.ID)
 
@@ -843,8 +847,10 @@ func (s *PostgresStore) buildCountConditions(query SearchQuery) (string, []inter
 	switch {
 	case query.ID != "":
 		argIdx++
-		where = fmt.Sprintf(`WHERE (v.id = $%d
-			OR v.id IN (SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $%d)
+		where = fmt.Sprintf(`WHERE v.id IN (
+			SELECT $%d
+			UNION
+			SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $%d
 		)`, argIdx, argIdx)
 		args = append(args, query.ID)
 
