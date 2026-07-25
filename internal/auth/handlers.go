@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -55,6 +56,11 @@ func HandleLogin(provider AuthProvider) http.HandlerFunc {
 
 		user, err := provider.Authenticate(r.Context(), req.Email, req.Password)
 		if err != nil {
+			slog.Warn("authentication failed",
+				"event", "login_failed",
+				"email", req.Email,
+				"remote_addr", r.RemoteAddr,
+			)
 			writeAuthError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
@@ -64,6 +70,14 @@ func HandleLogin(provider AuthProvider) http.HandlerFunc {
 			writeAuthError(w, http.StatusInternalServerError, "failed to create session")
 			return
 		}
+
+		slog.Info("user logged in",
+			"event", "login_success",
+			"user_id", user.ID,
+			"email", user.Email,
+			"role", user.Role,
+			"remote_addr", r.RemoteAddr,
+		)
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     CookieName,
@@ -99,6 +113,11 @@ func HandleLogout(provider AuthProvider) http.HandlerFunc {
 		if err == nil && cookie.Value != "" {
 			_ = provider.DeleteSession(r.Context(), cookie.Value)
 		}
+
+		slog.Info("user logged out",
+			"event", "logout",
+			"remote_addr", r.RemoteAddr,
+		)
 
 		// Clear the cookie
 		http.SetCookie(w, &http.Cookie{

@@ -87,6 +87,7 @@ type Server struct {
 	apiKeyStore   auth.APIKeyStore
 	webhookStore  webhook.WebhookStore
 	webhookEngine *webhook.Engine
+	loginLimiter  *auth.LoginRateLimiter
 	ingestRunning atomic.Bool
 	runners       activeRunners
 }
@@ -108,6 +109,7 @@ func New(cfg Config) *Server {
 		apiKeyStore:   cfg.APIKeyStore,
 		webhookStore:  cfg.WebhookStore,
 		webhookEngine: cfg.WebhookEngine,
+		loginLimiter:  auth.NewLoginRateLimiter(10, 15*time.Minute),
 	}
 
 	router := s.routes()
@@ -142,7 +144,12 @@ func (s *Server) routes() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowOriginFunc: func(r *http.Request, origin string) bool {
+			// In no-auth mode (development), allow all origins for convenience.
+			// In authenticated modes, only allow same-origin requests.
+			// Deploy behind a reverse proxy or configure AllowedOrigins for production CORS needs.
+			return s.authProvider.Mode() == "none"
+		},
 		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type", "Authorization"},
 		ExposedHeaders:   []string{"X-Total-Count"},
@@ -160,7 +167,7 @@ func (s *Server) routes() http.Handler {
 	r.Get("/swagger", s.handleSwaggerUI)
 
 	// Auth endpoints (public, no auth required)
-	r.Post("/auth/login", auth.HandleLogin(s.authProvider))
+	r.With(auth.RateLimitLogin(s.loginLimiter)).Post("/auth/login", auth.HandleLogin(s.authProvider))
 	r.Post("/auth/logout", auth.HandleLogout(s.authProvider))
 	r.Get("/auth/config", auth.HandleAuthConfig(s.authProvider.Mode()))
 
@@ -203,7 +210,7 @@ func (s *Server) routes() http.Handler {
 
 		// Ingest trigger — returns immediately with job ID
 		if s.fetcher != nil {
-			r.With(middleware.Timeout(30*time.Second)).Post("/", s.handleIngest)
+			r.With(auth.RequireRole(auth.RoleAdmin), middleware.Timeout(30*time.Second)).Post("/", s.handleIngest)
 		}
 	})
 
