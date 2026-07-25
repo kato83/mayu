@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, DestroyRef } from '@angular/core';
 import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { map, switchMap, catchError, of } from 'rxjs';
 
 import { DocsService } from './docs.service';
 import { DOCS_MANIFEST, DocEntry } from './docs-manifest';
@@ -59,27 +60,56 @@ export class DocsComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => {
-        const slug = params['slug'] || 'readme';
-        this.loadDocument(slug);
+      .pipe(
+        map((params) => params['slug'] || 'readme'),
+        switchMap((slug) => {
+          this.loading.set(true);
+          this.error.set(null);
+          this.content.set('');
+          return this.docsService.getDocument(slug).pipe(
+            map((md) => ({ md, slug, failed: false })),
+            catchError(() => of({ md: '', slug, failed: true })),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ md, slug, failed }) => {
+        if (failed) {
+          this.error.set('Failed to load document.');
+          this.loading.set(false);
+        } else {
+          this.content.set(this.rewriteImagePaths(md, slug));
+          this.loading.set(false);
+        }
       });
   }
 
-  private loadDocument(slug: string): void {
-    this.loading.set(true);
-    this.error.set(null);
-    this.content.set('');
+  private rewriteImagePaths(markdown: string, slug: string): string {
+    const entry = this.docsService.getEntry(slug);
+    if (!entry) {
+      return markdown;
+    }
 
-    this.docsService.getDocument(slug).subscribe({
-      next: (md) => {
-        this.content.set(md);
-        this.loading.set(false);
+    // Determine the base directory of the source markdown file
+    const lastSlash = entry.filename.lastIndexOf('/');
+    const baseDir = lastSlash >= 0 ? entry.filename.substring(0, lastSlash + 1) : '';
+
+    // Rewrite relative image paths (Markdown image syntax)
+    // Matches ![alt](path) where path is relative (not absolute and not a URL)
+    return markdown.replace(
+      /!\[([^\]]*)\]\((\.[^)]+)\)/g,
+      (match, alt, relativePath) => {
+        // Resolve the relative path against the base directory
+        const resolved = this.resolveRelativePath(baseDir, relativePath);
+        return `![${alt}](${resolved})`;
       },
-      error: () => {
-        this.error.set('Failed to load document.');
-        this.loading.set(false);
-      },
-    });
+    );
+  }
+
+  private resolveRelativePath(baseDir: string, relativePath: string): string {
+    // Remove leading './' if present
+    const cleaned = relativePath.startsWith('./') ? relativePath.substring(2) : relativePath;
+    // Combine base directory with the relative path
+    return baseDir + cleaned;
   }
 }
