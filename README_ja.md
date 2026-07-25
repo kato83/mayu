@@ -377,6 +377,51 @@ mayu migrate down --steps 3
 mayu migrate status
 ```
 
+### `mayu user create`
+
+新しいユーザーアカウントを作成します。
+
+| フラグ | 説明 | デフォルト |
+|--------|------|-----------|
+| `--email` | ユーザーのメールアドレス（必須） | — |
+| `--name` | ユーザーの表示名 | — |
+| `--role` | ユーザーの役割: `admin` または `viewer` | `viewer` |
+| `--password` | ユーザーのパスワード（必須） | — |
+
+**使用例:**
+
+```bash
+mayu user create --email admin@example.com --name Admin --role admin --password secret
+mayu user create --email viewer@example.com --role viewer --password mypass
+```
+
+### `mayu user list`
+
+全ユーザーをテーブル形式で表示します（ID、Email、Name、Role）。
+
+**使用例:**
+
+```bash
+mayu user list
+```
+
+### `mayu apikey create`
+
+ユーザー用の新しい API キーを作成します。生成されたキーは一度だけ表示され、復元できません。
+
+| フラグ | 説明 | デフォルト |
+|--------|------|-----------|
+| `--user-email` | キーを関連付けるユーザーのメールアドレス（必須） | — |
+| `--name` | API キーの説明/名前 | — |
+| `--expires` | 有効期限（例: `90d`, `1y`, `24h`） | —（無期限） |
+
+**使用例:**
+
+```bash
+mayu apikey create --user-email admin@example.com --name 'CI Pipeline'
+mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90d
+```
+
 ### `mayu version`
 
 バージョン情報を表示します。

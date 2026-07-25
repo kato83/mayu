@@ -72,6 +72,16 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "user":
+		if err := runUser(os.Args[2:], cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	case "apikey":
+		if err := runAPIKey(os.Args[2:], cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "help", "-h", "--help":
 		printUsage()
 	default:
@@ -129,6 +139,8 @@ func printUsage() {
 	fmt.Println("  serve      Start the API server")
 	fmt.Println("  status     Show data source sync status")
 	fmt.Println("  migrate    Run database migrations")
+	fmt.Println("  user       Manage user accounts")
+	fmt.Println("  apikey     Manage API keys")
 	fmt.Println("  version    Print version information")
 	fmt.Println("  help       Show this help message")
 	fmt.Println()
