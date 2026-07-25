@@ -207,6 +207,7 @@ func (s *Server) runIngestJob(runner *ingestRunner, job *store.IngestJob, req in
 	p := parser.New()
 	ing := ingest.New(s.fetcher, p, s.store, ingest.WithProgress(progressFn),
 		s.webhookNotifierOption(),
+		s.watchlistMatcherOption(),
 	)
 
 	var stats *ingest.Stats
@@ -516,6 +517,19 @@ func (s *Server) ingestGHSA(ctx context.Context, repo string, progressFn func(in
 	}
 
 	return stats, nil
+}
+
+// watchlistMatcherOption returns an ingest.Option that wires the watchlist
+// matcher into the ingest pipeline. If no watchlist store is configured,
+// it returns a no-op option.
+func (s *Server) watchlistMatcherOption() ingest.Option {
+	if s.watchlistStore == nil {
+		return func(_ *ingest.Ingester) {} // no-op
+	}
+	if s.watchlistMatcher == nil {
+		return func(_ *ingest.Ingester) {} // no-op
+	}
+	return ingest.WithWatchlistMatcher(s.watchlistMatcher)
 }
 
 // ingestTypeToSource maps ingest type strings to source names for job records.

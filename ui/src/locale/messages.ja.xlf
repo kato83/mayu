@@ -985,6 +985,229 @@
       <trans-unit id="webhooks.deliveries.col.error" datatype="html">
         <source>Error</source>
         <target>エラー</target>
+      <trans-unit id="sidebar.nav.watchlists" datatype="html">
+        <source>Watchlists</source>
+        <target>ウォッチリスト</target>
+      </trans-unit>
+      <trans-unit id="watchlists.title" datatype="html">
+        <source> Watchlists </source>
+        <target>ウォッチリスト</target>
+      </trans-unit>
+      <trans-unit id="watchlists.createButton" datatype="html">
+        <source> Create Watchlist </source>
+        <target>ウォッチリストを作成</target>
+      </trans-unit>
+      <trans-unit id="watchlists.editTitle" datatype="html">
+        <source>Edit Watchlist</source>
+        <target>ウォッチリストを編集</target>
+      </trans-unit>
+      <trans-unit id="watchlists.createTitle" datatype="html">
+        <source>Create New Watchlist</source>
+        <target>新しいウォッチリストを作成</target>
+      </trans-unit>
+      <trans-unit id="watchlists.nameLabel" datatype="html">
+        <source> Name </source>
+        <target>名前</target>
+      </trans-unit>
+      <trans-unit id="watchlists.namePlaceholder" datatype="html">
+        <source>e.g. My Go Packages</source>
+        <target>例: Goパッケージ監視</target>
+      </trans-unit>
+      <trans-unit id="watchlists.matchTypeLabel" datatype="html">
+        <source> Match Type </source>
+        <target>マッチタイプ</target>
+      </trans-unit>
+      <trans-unit id="watchlists.matchType.package" datatype="html">
+        <source>Package</source>
+        <target>パッケージ</target>
+      </trans-unit>
+      <trans-unit id="watchlists.matchType.purl" datatype="html">
+        <source>PURL</source>
+        <target>PURL</target>
+      </trans-unit>
+      <trans-unit id="watchlists.matchType.cpe" datatype="html">
+        <source>CPE</source>
+        <target>CPE</target>
+      </trans-unit>
+      <trans-unit id="watchlists.matchType.ecosystem" datatype="html">
+        <source>Ecosystem</source>
+        <target>エコシステム</target>
+      </trans-unit>
+      <trans-unit id="watchlists.ecosystemLabel" datatype="html">
+        <source> Ecosystem </source>
+        <target>エコシステム</target>
+      </trans-unit>
+      <trans-unit id="watchlists.ecosystemPlaceholder" datatype="html">
+        <source>e.g. Go, npm, PyPI</source>
+        <target>例: Go, npm, PyPI</target>
+      </trans-unit>
+      <trans-unit id="watchlists.packageNameLabel" datatype="html">
+        <source> Package Name </source>
+        <target>パッケージ名</target>
+      </trans-unit>
+      <trans-unit id="watchlists.packageNamePlaceholder" datatype="html">
+        <source>e.g. golang.org/x/crypto</source>
+        <target>例: golang.org/x/crypto</target>
+      </trans-unit>
+      <trans-unit id="watchlists.purlPatternLabel" datatype="html">
+        <source> PURL Pattern </source>
+        <target>PURLパターン</target>
+      </trans-unit>
+      <trans-unit id="watchlists.purlPatternPlaceholder" datatype="html">
+        <source>e.g. pkg:golang/golang.org/x/crypto</source>
+        <target>例: pkg:golang/golang.org/x/crypto</target>
+      </trans-unit>
+      <trans-unit id="watchlists.cpePatternLabel" datatype="html">
+        <source> CPE Pattern </source>
+        <target>CPEパターン</target>
+      </trans-unit>
+      <trans-unit id="watchlists.cpePatternPlaceholder" datatype="html">
+        <source>e.g. cpe:2.3:a:apache:http_server</source>
+        <target>例: cpe:2.3:a:apache:http_server</target>
+      </trans-unit>
+      <trans-unit id="watchlists.severityMinLabel" datatype="html">
+        <source> Minimum Severity </source>
+        <target>最小深刻度</target>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.any" datatype="html">
+        <source>Any</source>
+        <target>すべて</target>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.critical" datatype="html">
+        <source>Critical</source>
+        <target>クリティカル</target>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.high" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.medium" datatype="html">
+        <source>Medium</source>
+        <target>中</target>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.low" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.none" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="watchlists.epssThresholdLabel" datatype="html">
+        <source> EPSS Threshold </source>
+        <target>EPSS閾値</target>
+      </trans-unit>
+      <trans-unit id="watchlists.epssThresholdPlaceholder" datatype="html">
+        <source>e.g. 0.5</source>
+        <target>例: 0.5</target>
+      </trans-unit>
+      <trans-unit id="watchlists.enabledLabel" datatype="html">
+        <source> Enabled </source>
+        <target>有効</target>
+      </trans-unit>
+      <trans-unit id="watchlists.submitButton" datatype="html">
+        <source> Save </source>
+        <target>保存</target>
+      </trans-unit>
+      <trans-unit id="watchlists.cancelButton" datatype="html">
+        <source> Cancel </source>
+        <target>キャンセル</target>
+      </trans-unit>
+      <trans-unit id="watchlists.loading" datatype="html">
+        <source>Loading...</source>
+        <target>読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="watchlists.noWatchlists" datatype="html">
+        <source> No watchlists found. Create one to start monitoring vulnerabilities. </source>
+        <target>ウォッチリストがありません。作成して脆弱性の監視を始めましょう。</target>
+      </trans-unit>
+      <trans-unit id="watchlists.col.name" datatype="html">
+        <source>Name</source>
+        <target>名前</target>
+      </trans-unit>
+      <trans-unit id="watchlists.col.type" datatype="html">
+        <source>Type</source>
+        <target>タイプ</target>
+      </trans-unit>
+      <trans-unit id="watchlists.col.conditions" datatype="html">
+        <source>Conditions</source>
+        <target>条件</target>
+      </trans-unit>
+      <trans-unit id="watchlists.col.enabled" datatype="html">
+        <source>Enabled</source>
+        <target>有効</target>
+      </trans-unit>
+      <trans-unit id="watchlists.col.created" datatype="html">
+        <source>Created</source>
+        <target>作成日</target>
+      </trans-unit>
+      <trans-unit id="watchlists.col.actions" datatype="html">
+        <source>Actions</source>
+        <target>操作</target>
+      </trans-unit>
+      <trans-unit id="watchlists.yes" datatype="html">
+        <source>Yes</source>
+        <target>はい</target>
+      </trans-unit>
+      <trans-unit id="watchlists.no" datatype="html">
+        <source>No</source>
+        <target>いいえ</target>
+      </trans-unit>
+      <trans-unit id="watchlists.editButton" datatype="html">
+        <source> Edit </source>
+        <target>編集</target>
+      </trans-unit>
+      <trans-unit id="watchlists.deleteButton" datatype="html">
+        <source> Delete </source>
+        <target>削除</target>
+      </trans-unit>
+      <trans-unit id="watchlists.matchesButton" datatype="html">
+        <source> Matches </source>
+        <target>マッチ履歴</target>
+      </trans-unit>
+      <trans-unit id="watchlists.matchHistory" datatype="html">
+        <source> Match History </source>
+        <target>マッチ履歴</target>
+      </trans-unit>
+      <trans-unit id="watchlists.closeMatches" datatype="html">
+        <source> Close </source>
+        <target>閉じる</target>
+      </trans-unit>
+      <trans-unit id="watchlists.matchesLoading" datatype="html">
+        <source>Loading matches...</source>
+        <target>マッチ履歴を読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="watchlists.noMatches" datatype="html">
+        <source> No matches found for this watchlist. </source>
+        <target>このウォッチリストにマッチする脆弱性はありません。</target>
+      </trans-unit>
+      <trans-unit id="watchlists.match.vulnId" datatype="html">
+        <source>Vulnerability ID</source>
+        <target>脆弱性ID</target>
+      </trans-unit>
+      <trans-unit id="watchlists.match.matchedAt" datatype="html">
+        <source>Matched At</source>
+        <target>マッチ日時</target>
+      </trans-unit>
+      <trans-unit id="watchlists.match.notified" datatype="html">
+        <source>Notified</source>
+        <target>通知済み</target>
+      </trans-unit>
+      <trans-unit id="watchlists.matchTotal" datatype="html">
+        <source>Total matches:</source>
+        <target>マッチ合計:</target>
+      </trans-unit>
+      <trans-unit id="watchlists.deleteConfirmTitle" datatype="html">
+        <source> Delete Watchlist </source>
+        <target>ウォッチリストを削除</target>
+      </trans-unit>
+      <trans-unit id="watchlists.deleteConfirmMessage" datatype="html">
+        <source> Are you sure you want to delete this watchlist? This action cannot be undone. </source>
+        <target>このウォッチリストを削除してもよろしいですか？この操作は元に戻せません。</target>
+      </trans-unit>
+      <trans-unit id="watchlists.confirmDeleteButton" datatype="html">
+        <source> Delete </source>
+        <target>削除</target>
       </trans-unit>
     </body>
   </file>

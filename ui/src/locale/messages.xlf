@@ -93,6 +93,13 @@
           <context context-type="linenumber">155</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="sidebar.nav.watchlists" datatype="html">
+        <source>Watchlists</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
+          <context context-type="linenumber">155</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="sidebar.nav.apiKeys" datatype="html">
         <source>API Keys</source>
         <context-group purpose="location">
@@ -1652,6 +1659,401 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
           <context context-type="linenumber">269,270</context>
+      <trans-unit id="watchlists.title" datatype="html">
+        <source> Watchlists </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">22,24</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.createButton" datatype="html">
+        <source> Create Watchlist </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">29,31</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.editTitle" datatype="html">
+        <source>Edit Watchlist</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">38,40</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.createTitle" datatype="html">
+        <source>Create New Watchlist</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">40,42</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.nameLabel" datatype="html">
+        <source> Name </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">46,47</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.namePlaceholder" datatype="html">
+        <source>e.g. My Go Packages</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">55,56</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.matchTypeLabel" datatype="html">
+        <source> Match Type </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">62,64</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.matchType.package" datatype="html">
+        <source>Package</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">71,72</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.matchType.purl" datatype="html">
+        <source>PURL</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">72,73</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.matchType.cpe" datatype="html">
+        <source>CPE</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">73,74</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.matchType.ecosystem" datatype="html">
+        <source>Ecosystem</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">74,76</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.ecosystemLabel" datatype="html">
+        <source> Ecosystem </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">82,83</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.ecosystemPlaceholder" datatype="html">
+        <source>e.g. Go, npm, PyPI</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">90,91</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.packageNameLabel" datatype="html">
+        <source> Package Name </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">99,100</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.packageNamePlaceholder" datatype="html">
+        <source>e.g. golang.org/x/crypto</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">107,108</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.purlPatternLabel" datatype="html">
+        <source> PURL Pattern </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">116,117</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.purlPatternPlaceholder" datatype="html">
+        <source>e.g. pkg:golang/golang.org/x/crypto</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">124,125</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.cpePatternLabel" datatype="html">
+        <source> CPE Pattern </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">133,134</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.cpePatternPlaceholder" datatype="html">
+        <source>e.g. cpe:2.3:a:apache:http_server</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">141,142</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.severityMinLabel" datatype="html">
+        <source> Minimum Severity </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">149,151</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.any" datatype="html">
+        <source>Any</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">157,158</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.critical" datatype="html">
+        <source>Critical</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">158,159</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.high" datatype="html">
+        <source>High</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">159,160</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.medium" datatype="html">
+        <source>Medium</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">160,161</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.low" datatype="html">
+        <source>Low</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">161,162</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.severity.none" datatype="html">
+        <source>None</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">162,164</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.epssThresholdLabel" datatype="html">
+        <source> EPSS Threshold </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">168,170</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.epssThresholdPlaceholder" datatype="html">
+        <source>e.g. 0.5</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">179,180</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.enabledLabel" datatype="html">
+        <source> Enabled </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">194,195</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.submitButton" datatype="html">
+        <source> Save </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">206,207</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.cancelButton" datatype="html">
+        <source> Cancel </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">214,215</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">371,372</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.loading" datatype="html">
+        <source>Loading...</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">223,224</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.noWatchlists" datatype="html">
+        <source> No watchlists found. Create one to start monitoring vulnerabilities. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">226,228</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.col.name" datatype="html">
+        <source>Name</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">233,234</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.col.type" datatype="html">
+        <source>Type</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">234,235</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.col.conditions" datatype="html">
+        <source>Conditions</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">235,236</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.col.enabled" datatype="html">
+        <source>Enabled</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">236,237</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.col.created" datatype="html">
+        <source>Created</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">237,238</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.col.actions" datatype="html">
+        <source>Actions</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">238,240</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.yes" datatype="html">
+        <source>Yes</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">255,256</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">338,339</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.no" datatype="html">
+        <source>No</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">257,258</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">340,341</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.editButton" datatype="html">
+        <source> Edit </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">268,269</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.deleteButton" datatype="html">
+        <source> Delete </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">275,276</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.matchesButton" datatype="html">
+        <source> Matches </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">282,283</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.matchHistory" datatype="html">
+        <source> Match History </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">298,300</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.closeMatches" datatype="html">
+        <source> Close </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">305,307</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.matchesLoading" datatype="html">
+        <source>Loading matches...</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">309,310</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.noMatches" datatype="html">
+        <source> No matches found for this watchlist. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">312,314</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.match.vulnId" datatype="html">
+        <source>Vulnerability ID</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">319,320</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.match.matchedAt" datatype="html">
+        <source>Matched At</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">320,321</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.match.notified" datatype="html">
+        <source>Notified</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">321,323</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.matchTotal" datatype="html">
+        <source>Total matches:</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">349,350</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.deleteConfirmTitle" datatype="html">
+        <source> Delete Watchlist </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">360,362</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.deleteConfirmMessage" datatype="html">
+        <source> Are you sure you want to delete this watchlist? This action cannot be undone. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">363,365</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.confirmDeleteButton" datatype="html">
+        <source> Delete </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">378,380</context>
         </context-group>
       </trans-unit>
       <trans-unit id="externalLink.title" datatype="html">
