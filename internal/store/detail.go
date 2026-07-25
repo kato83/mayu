@@ -284,6 +284,12 @@ func (s *PostgresStore) fetchNVDDetail(ctx context.Context, vulnID string) (*mod
 		return nil, err
 	}
 
+	// Get configurations (CPE matches)
+	nvd.Configurations, err = s.fetchNVDConfigurations(ctx, entryID)
+	if err != nil {
+		return nil, err
+	}
+
 	return nvd, nil
 }
 
@@ -366,6 +372,92 @@ func (s *PostgresStore) fetchNVDReferences(ctx context.Context, entryID int64) (
 		refs = append(refs, r)
 	}
 	return refs, rows.Err()
+}
+
+// fetchNVDConfigurations retrieves CPE match criteria for an NVD entry.
+func (s *PostgresStore) fetchNVDConfigurations(ctx context.Context, entryID int64) ([]model.NVDConfigurationDetail, error) {
+	// Get configurations
+	configRows, err := s.db.QueryContext(ctx,
+		`SELECT id, operator, negate FROM nvd_configurations WHERE nvd_entry_id = $1`, entryID)
+	if err != nil {
+		return nil, fmt.Errorf("query nvd_configurations: %w", err)
+	}
+	defer func() { _ = configRows.Close() }()
+
+	type configInfo struct {
+		id       int64
+		operator string
+		negate   bool
+	}
+	var configs []configInfo
+	for configRows.Next() {
+		var c configInfo
+		var operator sql.NullString
+		if err := configRows.Scan(&c.id, &operator, &c.negate); err != nil {
+			return nil, fmt.Errorf("scan nvd_configuration: %w", err)
+		}
+		c.operator = operator.String
+		configs = append(configs, c)
+	}
+	if err := configRows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(configs) == 0 {
+		return nil, nil
+	}
+
+	// Get all CPE matches for these configurations
+	var configIDs []int64
+	for _, c := range configs {
+		configIDs = append(configIDs, c.id)
+	}
+
+	matchRows, err := s.db.QueryContext(ctx,
+		`SELECT configuration_id, vulnerable, criteria,
+		        version_start_including, version_start_excluding,
+		        version_end_including, version_end_excluding
+		 FROM nvd_cpe_matches
+		 WHERE configuration_id = ANY($1)
+		 ORDER BY configuration_id, criteria`, configIDs)
+	if err != nil {
+		return nil, fmt.Errorf("query nvd_cpe_matches: %w", err)
+	}
+	defer func() { _ = matchRows.Close() }()
+
+	// Group matches by configuration_id
+	matchesByConfig := make(map[int64][]model.NVDCPEMatchDetail)
+	for matchRows.Next() {
+		var configID int64
+		var m model.NVDCPEMatchDetail
+		var vsi, vse, vei, vee sql.NullString
+		if err := matchRows.Scan(&configID, &m.Vulnerable, &m.Criteria, &vsi, &vse, &vei, &vee); err != nil {
+			return nil, fmt.Errorf("scan nvd_cpe_match: %w", err)
+		}
+		m.VersionStartIncluding = vsi.String
+		m.VersionStartExcluding = vse.String
+		m.VersionEndIncluding = vei.String
+		m.VersionEndExcluding = vee.String
+		matchesByConfig[configID] = append(matchesByConfig[configID], m)
+	}
+	if err := matchRows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Build result
+	var result []model.NVDConfigurationDetail
+	for _, c := range configs {
+		matches := matchesByConfig[c.id]
+		if len(matches) == 0 {
+			continue
+		}
+		result = append(result, model.NVDConfigurationDetail{
+			Operator: c.operator,
+			Negate:   c.negate,
+			Matches:  matches,
+		})
+	}
+	return result, nil
 }
 
 // fetchMITREDetail retrieves MITRE CVE Record enrichment data.

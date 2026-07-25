@@ -137,6 +137,9 @@ type NVDDetail struct {
 
 	// References contains NVD-specific references with tags
 	References []NVDReferenceDetail `json:"references,omitempty"`
+
+	// Configurations contains CPE match criteria (affected software)
+	Configurations []NVDConfigurationDetail `json:"configurations,omitempty"`
 }
 
 // NVDMetricDetail represents a single CVSS metric entry from NVD.
@@ -186,6 +189,23 @@ type NVDReferenceDetail struct {
 	URL    string   `json:"url"`
 	Source string   `json:"source,omitempty"`
 	Tags   []string `json:"tags,omitempty"`
+}
+
+// NVDConfigurationDetail represents a CPE configuration node from NVD.
+type NVDConfigurationDetail struct {
+	Operator string              `json:"operator,omitempty"`
+	Negate   bool                `json:"negate,omitempty"`
+	Matches  []NVDCPEMatchDetail `json:"matches,omitempty"`
+}
+
+// NVDCPEMatchDetail represents a single CPE match criteria.
+type NVDCPEMatchDetail struct {
+	Vulnerable            bool   `json:"vulnerable"`
+	Criteria              string `json:"criteria"`
+	VersionStartIncluding string `json:"version_start_including,omitempty"`
+	VersionStartExcluding string `json:"version_start_excluding,omitempty"`
+	VersionEndIncluding   string `json:"version_end_including,omitempty"`
+	VersionEndExcluding   string `json:"version_end_excluding,omitempty"`
 }
 
 // MITREDetail contains MITRE CVE Record enrichment data.
