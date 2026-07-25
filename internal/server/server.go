@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -524,6 +525,11 @@ func (s *Server) handleGetVulnerability(w http.ResponseWriter, r *http.Request) 
 	if id == "" {
 		writeError(w, http.StatusBadRequest, "vulnerability ID is required")
 		return
+	}
+
+	// Decode percent-encoded path parameter (chi uses RawPath when available)
+	if decoded, err := url.PathUnescape(id); err == nil {
+		id = decoded
 	}
 
 	// If ?detail=true, return enriched vulnerability data from all sources
