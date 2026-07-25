@@ -93,6 +93,9 @@ func (m *mockStore) GetIngestJob(ctx context.Context, id int64) (*store.IngestJo
 	}
 	return nil, nil
 }
+func (m *mockStore) GetSeveritiesByIDs(ctx context.Context, ids []string) (map[string]int, error) {
+	return nil, nil
+}
 func (m *mockStore) ListSyncStates(ctx context.Context) ([]store.SyncState, error) {
 	if m.listSyncStatesFunc != nil {
 		return m.listSyncStatesFunc(ctx)

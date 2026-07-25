@@ -50,6 +50,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'webhooks',
+        loadComponent: () =>
+          import('./pages/webhooks/webhooks.component').then(
+            (m) => m.WebhooksComponent,
+          ),
+      },
+      {
+        path: 'webhooks/:id/deliveries',
+        loadComponent: () =>
+          import('./pages/webhooks/webhook-deliveries.component').then(
+            (m) => m.WebhookDeliveriesComponent,
+          ),
+      },
+      {
         path: 'api-keys',
         loadComponent: () =>
           import('./pages/api-keys/api-keys.component').then(

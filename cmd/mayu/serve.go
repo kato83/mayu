@@ -16,6 +16,7 @@ import (
 	"github.com/kato83/mayu/internal/server"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/uiassets"
+	"github.com/kato83/mayu/internal/webhook"
 )
 
 func runServe(args []string, cfg *config.Config) error {
@@ -96,16 +97,22 @@ func runServe(args []string, cfg *config.Config) error {
 		authProvider = auth.NewNoAuthProvider()
 	}
 
+	// Initialize webhook system
+	webhookStore := webhook.NewPostgresWebhookStore(s.DB())
+	webhookEngine := webhook.NewEngine(webhookStore)
+
 	// Create and start server
 	srv := server.New(server.Config{
-		Addr:         *addr,
-		Store:        s,
-		Version:      version,
-		UIDir:        *uiDir,
-		EmbedFS:      uiassets.FS(),
-		Fetcher:      fetcher.New(),
-		AuthProvider: authProvider,
-		APIKeyStore:  apiKeyStore,
+		Addr:          *addr,
+		Store:         s,
+		Version:       version,
+		UIDir:         *uiDir,
+		EmbedFS:       uiassets.FS(),
+		Fetcher:       fetcher.New(),
+		AuthProvider:  authProvider,
+		APIKeyStore:   apiKeyStore,
+		WebhookStore:  webhookStore,
+		WebhookEngine: webhookEngine,
 	})
 
 	// Start periodic session cleanup if auth is enabled

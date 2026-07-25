@@ -421,6 +421,51 @@ mayu apikey create --user-email admin@example.com --name 'CI Pipeline'
 mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90d
 ```
 
+### `mayu webhook create`
+
+Create a new webhook for notifications.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--name` | Webhook name (required) | — |
+| `--url` | Webhook URL (required) | — |
+| `--events` | Comma-separated list of events to subscribe to (required) | — |
+| `--content-type` | Content-Type header for the webhook request | `application/json` |
+| `--body-template` | Go text/template for the request body | — |
+| `--secret` | HMAC secret for webhook signature verification | — |
+| `--enabled` | Whether the webhook is enabled | `true` |
+
+**Examples:**
+
+```bash
+mayu webhook create --name "security-team-slack" --url "https://hooks.slack.com/services/T00/B00/xxxx" --events "new_critical,new_high" --body-template '{"text": "{{.ID}} ({{.Severity}}) - {{.Summary}}"}'
+mayu webhook create --name "all-vulns" --url "https://example.com/webhook" --events "*"
+```
+
+### `mayu webhook list`
+
+List all registered webhooks in table format (ID, Name, URL, Events, Enabled).
+
+**Examples:**
+
+```bash
+mayu webhook list
+```
+
+### `mayu webhook test`
+
+Send a test payload to a webhook to verify connectivity.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--id` | Webhook ID to test (required) | — |
+
+**Examples:**
+
+```bash
+mayu webhook test --id 1
+```
+
 ### `mayu version`
 
 Print version information.
@@ -484,6 +529,36 @@ auth:
       - openid
       - email
       - profile
+```
+
+**Example with webhook notifications:**
+
+```yaml
+database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
+
+webhooks:
+  - name: "security-team-slack"
+    url: "https://hooks.slack.com/services/T00/B00/xxxx"
+    events: ["new_critical", "new_high"]
+    content_type: "application/json"
+    body_template: |
+      {"text": "🚨 {{.ID}} ({{.Severity}}) - {{.Summary}}"}
+
+  - name: "all-vulns-generic"
+    url: "https://my-internal-system.example.com/api/webhook"
+    events: ["*"]
+    content_type: "application/json"
+    body_template: |
+      {
+        "event": "{{.Event}}",
+        "vulnerability": {
+          "id": "{{.ID}}",
+          "severity": "{{.Severity}}",
+          "epss": {{.EPSS}},
+          "lev": {{.LEV}},
+          "summary": "{{.Summary}}"
+        }
+      }
 ```
 
 **Priority order** (highest to lowest):
@@ -655,6 +730,7 @@ See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
 - [ ] EPSS trend graph & LEV visualization
 - [ ] Advanced triage workflows
 - [ ] Dashboard & reporting
-- [ ] Notifications (webhook, email)
+- [x] Notifications (webhook)
+- [ ] Notifications (email)
 - [ ] [endoflife.date](https://endoflife.date/) integration
 - [ ] SBOM features (dependency graph, continuous monitoring)

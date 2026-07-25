@@ -45,12 +45,30 @@ type AuthConfig struct {
 	SessionMaxAge int `yaml:"session_max_age"`
 }
 
+// WebhookConfig holds configuration for a single webhook notification endpoint.
+type WebhookConfig struct {
+	// Name is a human-readable identifier for the webhook.
+	Name string `yaml:"name"`
+	// URL is the HTTP endpoint to POST notifications to.
+	URL string `yaml:"url"`
+	// Events is the list of event types that trigger this webhook (e.g., "new_critical", "*").
+	Events []string `yaml:"events"`
+	// ContentType is the Content-Type header value for the POST request.
+	ContentType string `yaml:"content_type"`
+	// BodyTemplate is a Go text/template string used to render the request body.
+	BodyTemplate string `yaml:"body_template"`
+	// Secret is an optional shared secret for HMAC signature verification.
+	Secret string `yaml:"secret"`
+}
+
 // Config represents the mayu configuration file structure.
 type Config struct {
 	// DatabaseURL is the PostgreSQL connection string.
 	DatabaseURL string `yaml:"database_url"`
 	// Auth holds authentication and session configuration.
 	Auth AuthConfig `yaml:"auth"`
+	// Webhooks holds webhook notification endpoint configurations.
+	Webhooks []WebhookConfig `yaml:"webhooks"`
 }
 
 // Load reads and parses a YAML configuration file from the given path.
