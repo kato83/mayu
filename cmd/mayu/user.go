@@ -18,7 +18,7 @@ import (
 func runUser(args []string, cfg *config.Config) error {
 	if len(args) == 0 {
 		printUserUsage()
-		return fmt.Errorf("no subcommand specified (use 'create' or 'list')")
+		return fmt.Errorf("no subcommand specified (use 'create', 'list', or 'update')")
 	}
 
 	switch args[0] {
@@ -26,12 +26,14 @@ func runUser(args []string, cfg *config.Config) error {
 		return runUserCreate(args[1:], cfg)
 	case "list":
 		return runUserList(args[1:], cfg)
+	case "update":
+		return runUserUpdate(args[1:], cfg)
 	case "help", "-h", "--help":
 		printUserUsage()
 		return nil
 	default:
 		printUserUsage()
-		return fmt.Errorf("unknown user subcommand: %q (use 'create' or 'list')", args[0])
+		return fmt.Errorf("unknown user subcommand: %q (use 'create', 'list', or 'update')", args[0])
 	}
 }
 
@@ -169,6 +171,73 @@ func printUserUsage() {
 	fmt.Println("Subcommands:")
 	fmt.Println("  create    Create a new user")
 	fmt.Println("  list      List all users")
+	fmt.Println("  update    Update an existing user")
 	fmt.Println()
 	fmt.Println("Run 'mayu user <subcommand> --help' for more information.")
+}
+
+func runUserUpdate(args []string, cfg *config.Config) error {
+	fs := flag.NewFlagSet("user update", flag.ContinueOnError)
+
+	email := fs.String("email", "", "User email address to update (required)")
+	role := fs.String("role", "", "New role: admin or viewer (required)")
+
+	fs.Usage = func() {
+		fmt.Println("Usage: mayu user update [options]")
+		fmt.Println()
+		fmt.Println("Update an existing user's role.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fs.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  mayu user update --email user@example.com --role admin")
+		fmt.Println("  mayu user update --email user@example.com --role viewer")
+	}
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// Validate required fields
+	if *email == "" {
+		return fmt.Errorf("--email is required")
+	}
+	if *role == "" {
+		return fmt.Errorf("--role is required")
+	}
+
+	// Validate role
+	*role = strings.ToLower(*role)
+	if *role != auth.RoleAdmin && *role != auth.RoleViewer {
+		return fmt.Errorf("invalid role %q: must be 'admin' or 'viewer'", *role)
+	}
+
+	// Connect to database
+	databaseURL := resolveDatabaseURL(cfg)
+	db, err := sql.Open("pgx", databaseURL)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.PingContext(ctx); err != nil {
+		return fmt.Errorf("connect to database: %w", err)
+	}
+
+	// Update user role
+	store := auth.NewPostgresAuthStore(db)
+	user, err := store.UpdateUserRole(ctx, *email, *role)
+	if err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
+
+	fmt.Println("User updated successfully:")
+	fmt.Printf("  ID:    %d\n", user.ID)
+	fmt.Printf("  Email: %s\n", user.Email)
+	fmt.Printf("  Name:  %s\n", user.Name)
+	fmt.Printf("  Role:  %s\n", user.Role)
+
+	return nil
 }

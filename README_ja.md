@@ -395,6 +395,22 @@ mayu user create --email admin@example.com --name Admin --role admin --password 
 mayu user create --email viewer@example.com --role viewer --password mypass
 ```
 
+### `mayu user update`
+
+既存ユーザーの役割を更新します。
+
+| フラグ | 説明 | デフォルト |
+|--------|------|-----------|
+| `--email` | 更新対象のユーザーメールアドレス（必須） | — |
+| `--role` | 新しい役割: `admin` または `viewer`（必須） | — |
+
+**使用例:**
+
+```bash
+mayu user update --email user@example.com --role admin
+mayu user update --email user@example.com --role viewer
+```
+
 ### `mayu user list`
 
 全ユーザーをテーブル形式で表示します（ID、Email、Name、Role）。
