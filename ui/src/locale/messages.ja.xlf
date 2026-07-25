@@ -214,6 +214,34 @@
         <source>Failed to load vulnerability details.</source>
         <target>脆弱性の詳細の読み込みに失敗しました。</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.riskIndicators" datatype="html">
+        <source>Risk Indicators</source>
+        <target>リスク指標</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.tabOsv" datatype="html">
+        <source>OSV</source>
+        <target>OSV</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.tabNvd" datatype="html">
+        <source>NVD</source>
+        <target>NVD</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.tabMitre" datatype="html">
+        <source>MITRE</source>
+        <target>MITRE</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.mergedScores" datatype="html">
+        <source>CVSS Scores</source>
+        <target>CVSSスコア</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.highestScore" datatype="html">
+        <source>Highest</source>
+        <target>最高</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.source" datatype="html">
+        <source>Source</source>
+        <target>ソース</target>
+      </trans-unit>
       <trans-unit id="pagination.showing" datatype="html">
         <source> Showing <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION" equiv-text="{{ startItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> to <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_1" equiv-text="{{ endItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> of <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_2" equiv-text="{{ total() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/> results </source>
         <target><x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_2" equiv-text="{{ total() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/>件中 <x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION" equiv-text="{{ startItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/>～<x id="START_TAG_SPAN" ctype="x-span" equiv-text="&lt;span class=&quot;font-medium&quot;&gt;"/><x id="INTERPOLATION_1" equiv-text="{{ endItem() }}"/><x id="CLOSE_TAG_SPAN" ctype="x-span" equiv-text="&lt;/span&gt;"/>件を表示</target>
