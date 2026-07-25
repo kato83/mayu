@@ -27,6 +27,7 @@ import (
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/validate"
+	"github.com/kato83/mayu/internal/webhook"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -64,6 +65,14 @@ type Config struct {
 	// APIKeyStore provides API key persistence for user-facing key management.
 	// If nil, API key management endpoints are not registered.
 	APIKeyStore auth.APIKeyStore
+
+	// WebhookStore provides webhook persistence for webhook management endpoints.
+	// If nil, webhook management endpoints are not registered.
+	WebhookStore webhook.WebhookStore
+
+	// WebhookEngine dispatches webhook notifications.
+	// If nil, webhook test endpoint will use a default client.
+	WebhookEngine *webhook.Engine
 }
 
 // Server is the HTTP API server.
@@ -76,6 +85,8 @@ type Server struct {
 	fetcher       *fetcher.Fetcher
 	authProvider  auth.AuthProvider
 	apiKeyStore   auth.APIKeyStore
+	webhookStore  webhook.WebhookStore
+	webhookEngine *webhook.Engine
 	ingestRunning atomic.Bool
 	runners       activeRunners
 }
@@ -88,13 +99,15 @@ func New(cfg Config) *Server {
 	}
 
 	s := &Server{
-		store:        cfg.Store,
-		version:      cfg.Version,
-		uiDir:        cfg.UIDir,
-		embedFS:      cfg.EmbedFS,
-		fetcher:      cfg.Fetcher,
-		authProvider: ap,
-		apiKeyStore:  cfg.APIKeyStore,
+		store:         cfg.Store,
+		version:       cfg.Version,
+		uiDir:         cfg.UIDir,
+		embedFS:       cfg.EmbedFS,
+		fetcher:       cfg.Fetcher,
+		authProvider:  ap,
+		apiKeyStore:   cfg.APIKeyStore,
+		webhookStore:  cfg.WebhookStore,
+		webhookEngine: cfg.WebhookEngine,
 	}
 
 	router := s.routes()
@@ -202,6 +215,21 @@ func (s *Server) routes() http.Handler {
 			r.Get("/", auth.HandleListAPIKeys(s.apiKeyStore))
 			r.Post("/", auth.HandleCreateAPIKey(s.apiKeyStore))
 			r.Delete("/{id}", auth.HandleDeleteAPIKey(s.apiKeyStore))
+		})
+	}
+
+	// Webhook management endpoints
+	if s.webhookStore != nil {
+		r.Route("/api/v1/webhooks", func(r chi.Router) {
+			r.Use(authMW)
+			r.Use(middleware.Timeout(30 * time.Second))
+			r.Get("/", s.handleListWebhooks)
+			r.Post("/", s.handleCreateWebhook)
+			r.Get("/{id}", s.handleGetWebhook)
+			r.Put("/{id}", s.handleUpdateWebhook)
+			r.Delete("/{id}", s.handleDeleteWebhook)
+			r.Get("/{id}/deliveries", s.handleListWebhookDeliveries)
+			r.Post("/{id}/test", s.handleTestWebhook)
 		})
 	}
 
