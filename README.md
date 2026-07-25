@@ -738,7 +738,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding conventions
 
 ## Roadmap
 
-See [docs/PLAN.md](docs/PLAN.md) for the full implementation plan.
+See [.agents/tasks/PLAN.md](.agents/tasks/PLAN.md) for the full implementation plan.
 
 - [x] Phase 1: Data Pipeline (OSV ingestion)
 - [x] Phase 2: CLI (ingest + search)

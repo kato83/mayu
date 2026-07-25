@@ -1,3 +1,6 @@
+---
+title: "Import GHSA JSON"
+---
 # Importing GitHub Security Advisory JSON
 
 How to import vulnerabilities into mayu when they exist only as repository-level GitHub Security Advisories and have not yet reached OSV.

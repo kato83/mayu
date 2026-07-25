@@ -1,3 +1,6 @@
+---
+title: "Webhooks"
+---
 # Webhooks
 
 Mayu can send HTTP POST notifications when new vulnerabilities are ingested. This document describes how to configure webhooks, available events, and template variables.

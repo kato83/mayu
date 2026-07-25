@@ -94,12 +94,12 @@ describe('DocsService', () => {
 
     it('should fetch English version for documents without Japanese variant', () => {
       let result = '';
-      service.getDocument('plan').subscribe((md) => (result = md));
+      service.getDocument('import-ghsa-json').subscribe((md) => (result = md));
 
-      const req = httpTesting.expectOne('docs/docs/PLAN.md');
-      req.flush('# Plan');
+      const req = httpTesting.expectOne('docs/docs/import-ghsa-json.md');
+      req.flush('# Import GHSA JSON');
 
-      expect(result).toBe('# Plan');
+      expect(result).toBe('# Import GHSA JSON');
     });
   });
 });

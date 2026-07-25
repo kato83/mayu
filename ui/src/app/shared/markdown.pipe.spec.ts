@@ -56,6 +56,32 @@ describe('MarkdownPipe', () => {
     expect(result).toContain('Heading');
   });
 
+  it('should render headers with id attribute', () => {
+    const result = pipe.transform('## Hello World');
+    expect(result).toContain('id="hello-world"');
+  });
+
+  it('should slugify heading text for id', () => {
+    const result = pipe.transform('### Hello World');
+    expect(result).toContain('id="hello-world"');
+    expect(result).toContain('<h3');
+  });
+
+  it('should add badge class to shields.io images', () => {
+    const result = pipe.transform('![CI](https://img.shields.io/badge/test-passing-green)');
+    expect(result).toContain('class="badge"');
+  });
+
+  it('should add badge class to github actions badge.svg images', () => {
+    const result = pipe.transform('![CI](https://github.com/owner/repo/actions/workflows/ci.yml/badge.svg)');
+    expect(result).toContain('class="badge"');
+  });
+
+  it('should not add badge class to regular images', () => {
+    const result = pipe.transform('![photo](https://example.com/photo.png)');
+    expect(result).not.toContain('class="badge"');
+  });
+
   it('should render unordered lists', () => {
     const result = pipe.transform('- item 1\n- item 2');
     expect(result).toContain('<li>');

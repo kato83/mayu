@@ -738,7 +738,7 @@ curl "http://localhost:8080/api/v1/vulnerabilities/CVE-2023-38831?detail=true" |
 
 ## ロードマップ
 
-詳細は [docs/PLAN.md](docs/PLAN.md) を参照してください。
+詳細は [.agents/tasks/PLAN.md](.agents/tasks/PLAN.md) を参照してください。
 
 - [x] Phase 1: データパイプライン（OSV 取り込み）
 - [x] Phase 2: CLI（ingest + search）

@@ -50,7 +50,8 @@ describe('DocsComponent', () => {
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
-    const links = el.querySelectorAll('nav a');
+    // Select only the document list links (direct child ul of nav)
+    const links = el.querySelectorAll('nav > ul > li > a');
     expect(links.length).toBe(DOCS_MANIFEST.length);
     expect(links[0].textContent?.trim()).toBe('README');
   });
