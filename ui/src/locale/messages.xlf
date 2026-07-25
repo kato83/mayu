@@ -72,6 +72,13 @@
           <context context-type="linenumber">130,131</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="sidebar.github" datatype="html">
+        <source>GitHub</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/layout/sidebar/sidebar.component.ts</context>
+          <context context-type="linenumber">131</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="sidebar.nav.vulnerabilities" datatype="html">
         <source>Vulnerabilities</source>
         <context-group purpose="location">

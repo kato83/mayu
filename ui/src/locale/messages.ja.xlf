@@ -678,6 +678,10 @@
         <source>Viewer</source>
         <target>閲覧者</target>
       </trans-unit>
+      <trans-unit id="sidebar.github" datatype="html">
+        <source>GitHub</source>
+        <target>GitHub</target>
+      </trans-unit>
       <trans-unit id="login.title" datatype="html">
         <source> Sign In </source>
         <target>ログイン</target>
