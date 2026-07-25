@@ -1,0 +1,7 @@
+{
+  "task_id": "task-display-user-role",
+  "task_description": "Display logged-in user's role (admin/viewer) as a visual badge in the sidebar user info area. Hidden when auth.mode is 'none'. Internationalized with Japanese translations.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null
+}
