@@ -57,12 +57,12 @@ type deliveryLogResponse struct {
 
 // testWebhookResponse is the JSON response for a webhook test.
 type testWebhookResponse struct {
-	Success        bool    `json:"success"`
-	StatusCode     int     `json:"status_code,omitempty"`
-	ResponseBody   string  `json:"response_body,omitempty"`
-	ErrorMessage   string  `json:"error_message,omitempty"`
-	DurationMs     int     `json:"duration_ms"`
-	RenderedBody   string  `json:"rendered_body,omitempty"`
+	Success      bool   `json:"success"`
+	StatusCode   int    `json:"status_code,omitempty"`
+	ResponseBody string `json:"response_body,omitempty"`
+	ErrorMessage string `json:"error_message,omitempty"`
+	DurationMs   int    `json:"duration_ms"`
+	RenderedBody string `json:"rendered_body,omitempty"`
 }
 
 func toWebhookResponse(w *model.Webhook) webhookResponse {
