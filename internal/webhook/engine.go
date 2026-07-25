@@ -266,6 +266,11 @@ func (e *Engine) NotifyNewVulnerabilities(ctx context.Context, vulnIDs []string,
 			e.Dispatch(ctx, event, data)
 		}
 	}
+
+	// Prune old delivery logs (best-effort, keep 1000 per webhook)
+	if err := e.store.PruneDeliveryLogs(ctx, 1000); err != nil {
+		e.logger.Printf("webhook: failed to prune delivery logs: %v", err)
+	}
 }
 
 // severityName converts a numeric severity level to a human-readable string.

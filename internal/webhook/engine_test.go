@@ -120,6 +120,10 @@ func (m *mockWebhookStore) ListDeliveryLogs(_ context.Context, webhookID int64, 
 	return result, nil
 }
 
+func (m *mockWebhookStore) PruneDeliveryLogs(_ context.Context, keepPerWebhook int) error {
+	return nil
+}
+
 func (m *mockWebhookStore) getLogs() []*model.WebhookDeliveryLog {
 	m.mu.Lock()
 	defer m.mu.Unlock()

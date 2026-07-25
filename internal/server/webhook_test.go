@@ -148,6 +148,10 @@ func (m *mockWebhookStore) ListDeliveryLogs(_ context.Context, webhookID int64, 
 	return result, nil
 }
 
+func (m *mockWebhookStore) PruneDeliveryLogs(_ context.Context, keepPerWebhook int) error {
+	return nil
+}
+
 // newTestServerWithWebhook creates a Server with a mock webhook store for testing.
 func newTestServerWithWebhook(ws webhook.WebhookStore) *Server {
 	return New(Config{

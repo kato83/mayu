@@ -106,6 +106,10 @@ type Store interface {
 
 	// GetIngestJob retrieves an ingest job by ID, including its failures.
 	GetIngestJob(ctx context.Context, id int64) (*IngestJob, error)
+
+	// GetSeveritiesByIDs returns a map of vulnerability ID to worst severity level (1-5)
+	// for the given IDs by querying the vulnerability_summary table.
+	GetSeveritiesByIDs(ctx context.Context, ids []string) (map[string]int, error)
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.
