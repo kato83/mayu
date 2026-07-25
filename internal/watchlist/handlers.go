@@ -60,6 +60,12 @@ type matchResponse struct {
 	NotifiedAt      *string `json:"notified_at,omitempty"`
 }
 
+// matchesListResponse wraps match results with a total count.
+type matchesListResponse struct {
+	Matches []matchResponse `json:"matches"`
+	Total   int64           `json:"total"`
+}
+
 // --- Handlers ---
 
 // HandleListWatchlists returns an http.HandlerFunc that lists the current user's watchlists.
@@ -240,6 +246,12 @@ func HandleUpdateWatchlist(store WatchlistStore) http.HandlerFunc {
 			existing.Enabled = *req.Enabled
 		}
 
+		// Validate the final state to ensure match_type/field consistency
+		if err := validateWatchlistState(existing); err != nil {
+			writeWatchlistError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
 		if err := store.UpdateWatchlist(r.Context(), existing); err != nil {
 			writeWatchlistError(w, http.StatusInternalServerError, "failed to update watchlist")
 			return
@@ -325,12 +337,21 @@ func HandleListWatchlistMatches(store WatchlistStore) http.HandlerFunc {
 			return
 		}
 
+		total, err := store.CountMatchesByWatchlist(r.Context(), id)
+		if err != nil {
+			writeWatchlistError(w, http.StatusInternalServerError, "failed to count matches")
+			return
+		}
+
 		resp := make([]matchResponse, 0, len(matches))
 		for _, m := range matches {
 			resp = append(resp, toMatchResponse(m))
 		}
 
-		writeWatchlistJSON(w, http.StatusOK, resp)
+		writeWatchlistJSON(w, http.StatusOK, matchesListResponse{
+			Matches: resp,
+			Total:   total,
+		})
 	}
 }
 
@@ -362,8 +383,10 @@ func HandleListUserMatches(store WatchlistStore) http.HandlerFunc {
 			resp = append(resp, toMatchResponse(m))
 		}
 
-		w.Header().Set("X-Total-Count", strconv.FormatInt(total, 10))
-		writeWatchlistJSON(w, http.StatusOK, resp)
+		writeWatchlistJSON(w, http.StatusOK, matchesListResponse{
+			Matches: resp,
+			Total:   total,
+		})
 	}
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/parser"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/watchlist"
 )
 
 func runIngest(args []string, cfg *config.Config) error {
@@ -208,12 +209,18 @@ func runIngest(args []string, cfg *config.Config) error {
 	f := fetcher.New()
 	p := parser.New()
 
+	// Create watchlist matcher for ingest integration
+	wlStore := watchlist.NewPostgresWatchlistStore(s.DB())
+	vulnDataProvider := watchlist.NewPostgresVulnDataProvider(s.DB())
+	wlMatcher := watchlist.NewIngestMatcherAdapter(watchlist.NewMatcher(wlStore, vulnDataProvider))
+
 	// Create ingester with progress output
 	ing := ingest.New(f, p, s,
 		ingest.WithBatchSize(*batchSize),
 		ingest.WithStoreWorkers(*storeWorkers),
 		ingest.WithProgress(printProgress),
 		ingest.WithJobRecorder(s),
+		ingest.WithWatchlistMatcher(wlMatcher),
 	)
 
 	// Handle --source (converted data sources)
@@ -512,6 +519,7 @@ func runIngest(args []string, cfg *config.Config) error {
 				ingest.WithBatchSize(*batchSize),
 				ingest.WithStoreWorkers(*storeWorkers),
 				ingest.WithJobRecorder(s),
+				ingest.WithWatchlistMatcher(wlMatcher),
 				ingest.WithProgress(func(prog ingest.Progress) {
 					// Prefix progress with ecosystem name for parallel output
 					switch prog.Phase {
