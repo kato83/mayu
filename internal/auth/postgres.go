@@ -119,6 +119,29 @@ func (s *PostgresAuthStore) ListUsers(ctx context.Context) ([]*User, error) {
 	return users, nil
 }
 
+// UpdateUserRole updates the role for a user identified by email.
+func (s *PostgresAuthStore) UpdateUserRole(ctx context.Context, email, role string) (*User, error) {
+	var user User
+	var name sql.NullString
+
+	err := s.db.QueryRowContext(ctx, `
+		UPDATE users SET role = $2, updated_at = NOW()
+		WHERE email = $1
+		RETURNING id, email, name, role`,
+		email, role,
+	).Scan(&user.ID, &user.Email, &name, &user.Role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %s", email)
+		}
+		return nil, fmt.Errorf("update user role: %w", err)
+	}
+	if name.Valid {
+		user.Name = name.String
+	}
+	return &user, nil
+}
+
 // UpdateUserOIDCSubject sets the OIDC subject identifier for a user.
 func (s *PostgresAuthStore) UpdateUserOIDCSubject(ctx context.Context, userID int64, subject string) error {
 	_, err := s.db.ExecContext(ctx, `

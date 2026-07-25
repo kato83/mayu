@@ -16,6 +16,7 @@ type mockUserStore struct {
 	getUserByIDFn       func(ctx context.Context, id int64) (*User, error)
 	createUserFn        func(ctx context.Context, email, name, role, passwordHash string) (*User, error)
 	listUsersFn         func(ctx context.Context) ([]*User, error)
+	updateUserRoleFn    func(ctx context.Context, email, role string) (*User, error)
 	updateUserOIDCFn    func(ctx context.Context, userID int64, subject string) error
 	getUserByOIDCSubjFn func(ctx context.Context, subject string) (*User, error)
 }
@@ -53,6 +54,13 @@ func (m *mockUserStore) UpdateUserOIDCSubject(ctx context.Context, userID int64,
 		return m.updateUserOIDCFn(ctx, userID, subject)
 	}
 	return nil
+}
+
+func (m *mockUserStore) UpdateUserRole(ctx context.Context, email, role string) (*User, error) {
+	if m.updateUserRoleFn != nil {
+		return m.updateUserRoleFn(ctx, email, role)
+	}
+	return nil, nil
 }
 
 func (m *mockUserStore) GetUserByOIDCSubject(ctx context.Context, subject string) (*User, error) {

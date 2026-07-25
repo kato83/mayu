@@ -394,6 +394,22 @@ mayu user create --email admin@example.com --name Admin --role admin --password 
 mayu user create --email viewer@example.com --role viewer --password mypass
 ```
 
+### `mayu user update`
+
+Update an existing user's role.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--email` | User email address to update (required) | — |
+| `--role` | New role: `admin` or `viewer` (required) | — |
+
+**Examples:**
+
+```bash
+mayu user update --email user@example.com --role admin
+mayu user update --email user@example.com --role viewer
+```
+
 ### `mayu user list`
 
 List all users in table format (ID, Email, Name, Role).

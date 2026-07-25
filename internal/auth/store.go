@@ -22,6 +22,10 @@ type UserStore interface {
 	// ListUsers returns all users ordered by ID.
 	ListUsers(ctx context.Context) ([]*User, error)
 
+	// UpdateUserRole updates the role for a user identified by email.
+	// Returns the updated user, or an error if not found.
+	UpdateUserRole(ctx context.Context, email, role string) (*User, error)
+
 	// UpdateUserOIDCSubject sets the OIDC subject identifier for a user.
 	UpdateUserOIDCSubject(ctx context.Context, userID int64, subject string) error
 

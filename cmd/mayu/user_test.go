@@ -87,7 +87,7 @@ func TestRunUser_NoSubcommand(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for no subcommand, got nil")
 	}
-	if want := "no subcommand specified (use 'create' or 'list')"; err.Error() != want {
+	if want := "no subcommand specified (use 'create', 'list', or 'update')"; err.Error() != want {
 		t.Errorf("got error %q, want %q", err.Error(), want)
 	}
 }
@@ -99,7 +99,46 @@ func TestRunUser_UnknownSubcommand(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for unknown subcommand, got nil")
 	}
-	if want := `unknown user subcommand: "delete" (use 'create' or 'list')`; err.Error() != want {
+	if want := `unknown user subcommand: "delete" (use 'create', 'list', or 'update')`; err.Error() != want {
+		t.Errorf("got error %q, want %q", err.Error(), want)
+	}
+}
+
+func TestRunUserUpdate_MissingEmail(t *testing.T) {
+	cfg := makeTestConfig()
+
+	err := runUserUpdate([]string{"--role", "admin"}, cfg)
+	if err == nil {
+		t.Fatal("expected error for missing --email, got nil")
+	}
+	if want := "--email is required"; err.Error() != want {
+		t.Errorf("got error %q, want %q", err.Error(), want)
+	}
+}
+
+func TestRunUserUpdate_MissingRole(t *testing.T) {
+	cfg := makeTestConfig()
+
+	err := runUserUpdate([]string{"--email", "test@example.com"}, cfg)
+	if err == nil {
+		t.Fatal("expected error for missing --role, got nil")
+	}
+	if want := "--role is required"; err.Error() != want {
+		t.Errorf("got error %q, want %q", err.Error(), want)
+	}
+}
+
+func TestRunUserUpdate_InvalidRole(t *testing.T) {
+	cfg := makeTestConfig()
+
+	err := runUserUpdate([]string{
+		"--email", "test@example.com",
+		"--role", "superuser",
+	}, cfg)
+	if err == nil {
+		t.Fatal("expected error for invalid role, got nil")
+	}
+	if want := `invalid role "superuser": must be 'admin' or 'viewer'`; err.Error() != want {
 		t.Errorf("got error %q, want %q", err.Error(), want)
 	}
 }
