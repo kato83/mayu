@@ -320,6 +320,137 @@ func (s *PostgresWatchlistStore) GetActiveWatchlists(ctx context.Context) ([]*Wa
 	return watchlists, nil
 }
 
+// FindMatchingVulnerabilities finds vulnerability IDs that match a given watchlist's
+// conditions but have not yet been recorded in watchlist_matches.
+// This enables periodic full-scan matching (e.g., for cron-based watch check).
+func (s *PostgresWatchlistStore) FindMatchingVulnerabilities(ctx context.Context, wl *Watchlist) ([]string, error) {
+	// Build dynamic WHERE conditions based on the watchlist type
+	var conditions []string
+	var args []interface{}
+	argN := 1
+
+	// Always exclude already-matched vulnerabilities
+	conditions = append(conditions, fmt.Sprintf(
+		`vs.vulnerability_id NOT IN (SELECT vulnerability_id FROM watchlist_matches WHERE watchlist_id = $%d)`, argN))
+	args = append(args, wl.ID)
+	argN++
+
+	// Severity filter
+	if wl.SeverityMin != nil {
+		conditions = append(conditions, fmt.Sprintf(`vs.severity_worst >= $%d`, argN))
+		args = append(args, *wl.SeverityMin)
+		argN++
+	}
+
+	// EPSS threshold filter
+	if wl.EpssThreshold != nil {
+		conditions = append(conditions, fmt.Sprintf(`vs.epss_score >= $%d`, argN))
+		args = append(args, *wl.EpssThreshold)
+		argN++
+	}
+
+	// Type-specific matching
+	var query string
+	switch wl.MatchType {
+	case MatchTypeEcosystem:
+		if wl.Ecosystem == nil {
+			return nil, nil
+		}
+		// ecosystem_list is a comma-separated text column in vulnerability_summary
+		// Use ILIKE for case-insensitive matching of ecosystem within the list
+		conditions = append(conditions, fmt.Sprintf(
+			`(vs.ecosystem_list ILIKE '%%' || $%d || '%%')`, argN))
+		args = append(args, *wl.Ecosystem)
+
+		query = fmt.Sprintf(`
+			SELECT vs.vulnerability_id
+			FROM vulnerability_summary vs
+			WHERE %s
+			LIMIT 10000`, joinConditions(conditions))
+
+	case MatchTypePackage:
+		if wl.Ecosystem == nil || wl.PackageName == nil {
+			return nil, nil
+		}
+		conditions = append(conditions, fmt.Sprintf(`LOWER(pi.ecosystem) = LOWER($%d)`, argN))
+		args = append(args, *wl.Ecosystem)
+		argN++
+		conditions = append(conditions, fmt.Sprintf(`LOWER(pi.name) = LOWER($%d)`, argN))
+		args = append(args, *wl.PackageName)
+
+		query = fmt.Sprintf(`
+			SELECT DISTINCT vs.vulnerability_id
+			FROM vulnerability_summary vs
+			JOIN product_identifiers pi ON pi.vulnerability_id = vs.vulnerability_id
+			WHERE %s
+			LIMIT 10000`, joinConditions(conditions))
+
+	case MatchTypePurl:
+		if wl.PurlPattern == nil {
+			return nil, nil
+		}
+		// Reconstruct purl and do prefix match
+		conditions = append(conditions, fmt.Sprintf(
+			`LOWER(CONCAT('pkg:', pi.purl_type, '/', COALESCE(NULLIF(pi.purl_namespace, '') || '/', ''), pi.purl_name)) LIKE LOWER($%d) || '%%'`, argN))
+		args = append(args, *wl.PurlPattern)
+
+		query = fmt.Sprintf(`
+			SELECT DISTINCT vs.vulnerability_id
+			FROM vulnerability_summary vs
+			JOIN product_identifiers pi ON pi.vulnerability_id = vs.vulnerability_id
+			WHERE %s
+			LIMIT 10000`, joinConditions(conditions))
+
+	case MatchTypeCPE:
+		if wl.CpePattern == nil {
+			return nil, nil
+		}
+		// Reconstruct CPE 2.3 and do prefix match
+		conditions = append(conditions, fmt.Sprintf(
+			`LOWER(CONCAT('cpe:2.3:', pi.cpe_part, ':', pi.cpe_vendor, ':', pi.cpe_product)) LIKE LOWER($%d) || '%%'`, argN))
+		args = append(args, *wl.CpePattern)
+
+		query = fmt.Sprintf(`
+			SELECT DISTINCT vs.vulnerability_id
+			FROM vulnerability_summary vs
+			JOIN product_identifiers pi ON pi.vulnerability_id = vs.vulnerability_id
+			WHERE %s
+			LIMIT 10000`, joinConditions(conditions))
+
+	default:
+		return nil, nil
+	}
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("find matching vulnerabilities for watchlist %d: %w", wl.ID, err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var vulnIDs []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan matching vulnerability: %w", err)
+		}
+		vulnIDs = append(vulnIDs, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate matching vulnerabilities: %w", err)
+	}
+
+	return vulnIDs, nil
+}
+
+// joinConditions joins SQL conditions with AND.
+func joinConditions(conditions []string) string {
+	result := conditions[0]
+	for _, c := range conditions[1:] {
+		result += " AND " + c
+	}
+	return result
+}
+
 // --- Helper functions ---
 
 func scanMatches(rows *sql.Rows) ([]*WatchlistMatch, error) {

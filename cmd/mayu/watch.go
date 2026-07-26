@@ -19,7 +19,7 @@ import (
 func runWatch(args []string, cfg *config.Config) error {
 	if len(args) == 0 {
 		printWatchUsage()
-		return fmt.Errorf("no subcommand specified (use 'add', 'list', or 'remove')")
+		return fmt.Errorf("no subcommand specified (use 'add', 'list', 'remove', or 'check')")
 	}
 
 	switch args[0] {
@@ -29,12 +29,14 @@ func runWatch(args []string, cfg *config.Config) error {
 		return runWatchList(args[1:], cfg)
 	case "remove":
 		return runWatchRemove(args[1:], cfg)
+	case "check":
+		return runWatchCheck(args[1:], cfg)
 	case "help", "-h", "--help":
 		printWatchUsage()
 		return nil
 	default:
 		printWatchUsage()
-		return fmt.Errorf("unknown watch subcommand: %q (use 'add', 'list', or 'remove')", args[0])
+		return fmt.Errorf("unknown watch subcommand: %q (use 'add', 'list', 'remove', or 'check')", args[0])
 	}
 }
 
@@ -331,6 +333,133 @@ func runWatchRemove(args []string, cfg *config.Config) error {
 	return nil
 }
 
+func runWatchCheck(args []string, cfg *config.Config) error {
+	fs := flag.NewFlagSet("watch check", flag.ContinueOnError)
+
+	dryRun := fs.Bool("dry-run", false, "Show matches without recording or notifying")
+
+	fs.Usage = func() {
+		fmt.Println("Usage: mayu watch check [options]")
+		fmt.Println()
+		fmt.Println("Check all active watchlists against the vulnerability database.")
+		fmt.Println("Finds new matches that haven't been recorded yet (e.g., EPSS score")
+		fmt.Println("crossed threshold since last check). Designed for cron/periodic execution.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fs.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  mayu watch check                # Run full check, record & notify")
+		fmt.Println("  mayu watch check --dry-run      # Preview matches without recording")
+		fmt.Println()
+		fmt.Println("Cron example (check every hour):")
+		fmt.Println("  0 * * * * /usr/local/bin/mayu watch check")
+	}
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// Connect to database
+	databaseURL := resolveDatabaseURL(cfg)
+	db, err := sql.Open("pgx", databaseURL)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.PingContext(ctx); err != nil {
+		return fmt.Errorf("connect to database: %w", err)
+	}
+
+	// Create watchlist store and matcher
+	wlStore := watchlist.NewPostgresWatchlistStore(db)
+
+	if *dryRun {
+		return runWatchCheckDryRun(ctx, wlStore)
+	}
+
+	// Create matcher with the full store (supports FindMatchingVulnerabilities)
+	vulnDataProvider := watchlist.NewPostgresVulnDataProvider(db)
+	matcher := watchlist.NewMatcher(wlStore, vulnDataProvider)
+
+	// TODO: wire webhook NotifyFunc if configured
+
+	results, err := matcher.CheckAll(ctx)
+	if err != nil {
+		return fmt.Errorf("watch check: %w", err)
+	}
+
+	if len(results) == 0 {
+		fmt.Println("No new matches found.")
+		return nil
+	}
+
+	// Print results
+	totalMatches := 0
+	for _, r := range results {
+		totalMatches += len(r.NewMatches)
+		fmt.Printf("  [%s] %d new match(es)\n", r.WatchlistName, len(r.NewMatches))
+		for _, id := range r.NewMatches {
+			if len(r.NewMatches) <= 10 {
+				fmt.Printf("    - %s\n", id)
+			}
+		}
+		if len(r.NewMatches) > 10 {
+			fmt.Printf("    ... and %d more\n", len(r.NewMatches)-10)
+		}
+	}
+	fmt.Printf("\nTotal: %d new match(es) across %d watchlist(s).\n", totalMatches, len(results))
+
+	return nil
+}
+
+func runWatchCheckDryRun(ctx context.Context, wlStore *watchlist.PostgresWatchlistStore) error {
+	// Get all active watchlists
+	watchlists, err := wlStore.GetActiveWatchlists(ctx)
+	if err != nil {
+		return fmt.Errorf("get active watchlists: %w", err)
+	}
+
+	if len(watchlists) == 0 {
+		fmt.Println("No active watchlists found.")
+		return nil
+	}
+
+	fmt.Printf("Checking %d active watchlist(s) (dry-run)...\n\n", len(watchlists))
+
+	totalMatches := 0
+	for _, wl := range watchlists {
+		vulnIDs, err := wlStore.FindMatchingVulnerabilities(ctx, wl)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  ✗ [%s] error: %v\n", wl.Name, err)
+			continue
+		}
+
+		if len(vulnIDs) == 0 {
+			fmt.Printf("  [%s] no new matches\n", wl.Name)
+			continue
+		}
+
+		totalMatches += len(vulnIDs)
+		fmt.Printf("  [%s] %d new match(es) (would be recorded)\n", wl.Name, len(vulnIDs))
+		limit := 10
+		if len(vulnIDs) < limit {
+			limit = len(vulnIDs)
+		}
+		for _, id := range vulnIDs[:limit] {
+			fmt.Printf("    - %s\n", id)
+		}
+		if len(vulnIDs) > 10 {
+			fmt.Printf("    ... and %d more\n", len(vulnIDs)-10)
+		}
+	}
+
+	fmt.Printf("\nTotal: %d new match(es) would be recorded (dry-run, no changes made).\n", totalMatches)
+	return nil
+}
+
 // parseSeverityLabel converts severity label strings to the 1-5 numeric scale.
 func parseSeverityLabel(label string) (int16, error) {
 	switch strings.ToLower(strings.TrimSpace(label)) {
@@ -408,6 +537,7 @@ func printWatchUsage() {
 	fmt.Println("  add       Add a new watchlist entry")
 	fmt.Println("  list      List watchlist entries for a user")
 	fmt.Println("  remove    Remove a watchlist entry")
+	fmt.Println("  check     Check all active watchlists against the database (cron-friendly)")
 	fmt.Println()
 	fmt.Println("Run 'mayu watch <subcommand> --help' for more information.")
 }

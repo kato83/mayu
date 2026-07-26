@@ -545,3 +545,174 @@ func TestMatcher_EmptyVulnIDs(t *testing.T) {
 		t.Fatalf("expected nil, got %v", matches)
 	}
 }
+
+// --- CheckAll tests ---
+
+// mockCheckAllStore implements CheckAllStore (WatchlistStore + FindMatchingVulnerabilities).
+type mockCheckAllStore struct {
+	mockWatchlistStore
+	// findResults maps watchlist ID → vulnerability IDs
+	findResults map[int64][]string
+}
+
+func (m *mockCheckAllStore) FindMatchingVulnerabilities(_ context.Context, wl *Watchlist) ([]string, error) {
+	if m.findResults == nil {
+		return nil, nil
+	}
+	return m.findResults[wl.ID], nil
+}
+
+func TestMatcher_CheckAll_BasicMatch(t *testing.T) {
+	store := &mockCheckAllStore{
+		mockWatchlistStore: mockWatchlistStore{
+			watchlists: []*Watchlist{
+				{
+					ID:        1,
+					UserID:    1,
+					Name:      "npm critical",
+					MatchType: MatchTypeEcosystem,
+					Ecosystem: strPtr("npm"),
+					Enabled:   true,
+				},
+			},
+		},
+		findResults: map[int64][]string{
+			1: {"CVE-2024-0001", "CVE-2024-0002"},
+		},
+	}
+
+	provider := &mockVulnDataProvider{}
+	matcher := NewMatcher(store, provider)
+
+	results, err := matcher.CheckAll(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].WatchlistName != "npm critical" {
+		t.Errorf("expected watchlist name 'npm critical', got %q", results[0].WatchlistName)
+	}
+	if len(results[0].NewMatches) != 2 {
+		t.Errorf("expected 2 new matches, got %d", len(results[0].NewMatches))
+	}
+	// Verify matches were recorded
+	if len(store.matches) != 2 {
+		t.Errorf("expected 2 recorded matches, got %d", len(store.matches))
+	}
+}
+
+func TestMatcher_CheckAll_NoMatches(t *testing.T) {
+	store := &mockCheckAllStore{
+		mockWatchlistStore: mockWatchlistStore{
+			watchlists: []*Watchlist{
+				{
+					ID:        1,
+					UserID:    1,
+					Name:      "Go packages",
+					MatchType: MatchTypeEcosystem,
+					Ecosystem: strPtr("Go"),
+					Enabled:   true,
+				},
+			},
+		},
+		findResults: map[int64][]string{
+			1: {}, // no matches
+		},
+	}
+
+	provider := &mockVulnDataProvider{}
+	matcher := NewMatcher(store, provider)
+
+	results, err := matcher.CheckAll(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("expected 0 results, got %d", len(results))
+	}
+}
+
+func TestMatcher_CheckAll_NoActiveWatchlists(t *testing.T) {
+	store := &mockCheckAllStore{
+		mockWatchlistStore: mockWatchlistStore{
+			watchlists: []*Watchlist{},
+		},
+	}
+
+	provider := &mockVulnDataProvider{}
+	matcher := NewMatcher(store, provider)
+
+	results, err := matcher.CheckAll(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if results != nil {
+		t.Fatalf("expected nil results, got %d", len(results))
+	}
+}
+
+func TestMatcher_CheckAll_NotifyCalled(t *testing.T) {
+	store := &mockCheckAllStore{
+		mockWatchlistStore: mockWatchlistStore{
+			watchlists: []*Watchlist{
+				{
+					ID:        1,
+					UserID:    1,
+					Name:      "alert",
+					MatchType: MatchTypeEcosystem,
+					Ecosystem: strPtr("Go"),
+					Enabled:   true,
+				},
+			},
+		},
+		findResults: map[int64][]string{
+			1: {"CVE-2024-9999"},
+		},
+	}
+
+	provider := &mockVulnDataProvider{}
+	matcher := NewMatcher(store, provider)
+
+	var notified []WatchlistMatch
+	matcher.NotifyFunc = func(_ context.Context, matches []WatchlistMatch) error {
+		notified = append(notified, matches...)
+		return nil
+	}
+
+	_, err := matcher.CheckAll(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(notified) != 1 {
+		t.Fatalf("expected 1 notification, got %d", len(notified))
+	}
+	if notified[0].VulnerabilityID != "CVE-2024-9999" {
+		t.Errorf("expected CVE-2024-9999, got %s", notified[0].VulnerabilityID)
+	}
+}
+
+func TestMatcher_CheckAll_StoreWithoutFindMethod(t *testing.T) {
+	// Regular mockWatchlistStore does NOT implement CheckAllStore
+	store := &mockWatchlistStore{
+		watchlists: []*Watchlist{
+			{
+				ID:        1,
+				UserID:    1,
+				Name:      "test",
+				MatchType: MatchTypeEcosystem,
+				Ecosystem: strPtr("Go"),
+				Enabled:   true,
+			},
+		},
+	}
+
+	provider := &mockVulnDataProvider{}
+	matcher := NewMatcher(store, provider)
+
+	_, err := matcher.CheckAll(context.Background())
+	if err == nil {
+		t.Fatal("expected error for store without FindMatchingVulnerabilities, got nil")
+	}
+}

@@ -2,6 +2,7 @@ package watchlist
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -111,6 +112,96 @@ func (m *Matcher) MatchNewVulnerabilities(ctx context.Context, vulnIDs []string)
 	}
 
 	return matches, nil
+}
+
+// CheckAllResult holds the result of a full watchlist check.
+type CheckAllResult struct {
+	WatchlistID   int64
+	WatchlistName string
+	NewMatches    []string // vulnerability IDs that are newly matched
+}
+
+// CheckAllStore defines the interface required for CheckAll.
+// It extends WatchlistStore with the SQL-based vulnerability finder.
+type CheckAllStore interface {
+	WatchlistStore
+	FindMatchingVulnerabilities(ctx context.Context, wl *Watchlist) ([]string, error)
+}
+
+// CheckAll scans all active watchlists against the entire vulnerability database,
+// records new matches, and optionally notifies. This is designed for periodic
+// cron execution (e.g., "mayu watch check").
+//
+// Unlike MatchNewVulnerabilities (which checks new vulns against watchlists),
+// CheckAll checks all vulns against watchlists — catching cases where a
+// vulnerability's EPSS score has risen above the threshold since initial ingest.
+func (m *Matcher) CheckAll(ctx context.Context) ([]CheckAllResult, error) {
+	// CheckAll requires the store to support FindMatchingVulnerabilities
+	checkStore, ok := m.store.(CheckAllStore)
+	if !ok {
+		return nil, fmt.Errorf("store does not support FindMatchingVulnerabilities (required for CheckAll)")
+	}
+
+	// Fetch all enabled watchlists
+	watchlists, err := m.store.GetActiveWatchlists(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(watchlists) == 0 {
+		return nil, nil
+	}
+
+	now := time.Now()
+	var results []CheckAllResult
+
+	for _, wl := range watchlists {
+		select {
+		case <-ctx.Done():
+			return results, ctx.Err()
+		default:
+		}
+
+		// Use SQL-based search to find matching vulnerabilities
+		vulnIDs, err := checkStore.FindMatchingVulnerabilities(ctx, wl)
+		if err != nil {
+			return results, fmt.Errorf("check watchlist %d (%s): %w", wl.ID, wl.Name, err)
+		}
+
+		if len(vulnIDs) == 0 {
+			continue
+		}
+
+		// Build matches
+		matches := make([]WatchlistMatch, len(vulnIDs))
+		for i, id := range vulnIDs {
+			matches[i] = WatchlistMatch{
+				WatchlistID:     wl.ID,
+				VulnerabilityID: id,
+				MatchedAt:       now,
+			}
+		}
+
+		// Record matches (ON CONFLICT DO NOTHING)
+		if err := m.store.RecordMatches(ctx, matches); err != nil {
+			return results, fmt.Errorf("record matches for watchlist %d: %w", wl.ID, err)
+		}
+
+		results = append(results, CheckAllResult{
+			WatchlistID:   wl.ID,
+			WatchlistName: wl.Name,
+			NewMatches:    vulnIDs,
+		})
+
+		// Notify if configured
+		if m.NotifyFunc != nil && len(matches) > 0 {
+			if err := m.NotifyFunc(ctx, matches); err != nil {
+				// Log but don't fail
+				continue
+			}
+		}
+	}
+
+	return results, nil
 }
 
 // matchesWatchlist checks whether a vulnerability matches a watchlist entry.
