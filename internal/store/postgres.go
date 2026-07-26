@@ -1027,16 +1027,31 @@ func (s *PostgresStore) ListSyncStates(ctx context.Context) ([]SyncState, error)
 
 // --- Helper functions ---
 
-// sanitizeJSONB removes Unicode escape sequences unsupported by PostgreSQL's JSONB type.
-// PostgreSQL rejects \u0000 (NULL byte) in JSONB. This function strips such sequences
-// from the raw JSON bytes before storage.
+// sanitizeJSONB removes characters unsupported by PostgreSQL's JSONB type.
+// PostgreSQL rejects:
+//   - \u0000 escape sequences in JSON (Unicode NULL)
+//   - Literal NUL bytes (0x00)
+//
+// This function carefully removes only actual \u0000 escapes (JSON NULL byte)
+// while preserving \\u0000 (an escaped backslash followed by text "u0000",
+// which represents the literal string "\u0000" and is valid in PostgreSQL).
 func sanitizeJSONB(data []byte) []byte {
 	if len(data) == 0 {
 		return data
 	}
-	// Replace literal \u0000 sequences (6 bytes: \, u, 0, 0, 0, 0) with empty string.
-	// This handles the most common case. PostgreSQL only rejects \u0000 specifically.
-	return []byte(strings.ReplaceAll(string(data), `\u0000`, ""))
+	s := string(data)
+
+	// Remove literal NUL bytes (0x00).
+	s = strings.ReplaceAll(s, "\x00", "")
+
+	// Remove \u0000 JSON escape sequences, but NOT \\u0000.
+	// Strategy: temporarily replace \\u0000 with a placeholder, remove \u0000, restore.
+	const placeholder = "\x01ESCAPED_BACKSLASH_U0000\x01"
+	s = strings.ReplaceAll(s, `\\u0000`, placeholder)
+	s = strings.ReplaceAll(s, `\u0000`, "")
+	s = strings.ReplaceAll(s, placeholder, `\\u0000`)
+
+	return []byte(s)
 }
 
 // nullIfEmpty returns nil if the string is empty, otherwise returns the string.

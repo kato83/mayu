@@ -40,6 +40,26 @@ func TestSanitizeJSONB(t *testing.T) {
 			input: `\u0000{"key": "val"}`,
 			want:  `{"key": "val"}`,
 		},
+		{
+			name:  "escaped backslash u0000 preserved",
+			input: `{"key": "text\\u0000more"}`,
+			want:  `{"key": "text\\u0000more"}`,
+		},
+		{
+			name:  "mixed escaped and unescaped",
+			input: `{"a": "\\u0000", "b": "\u0000"}`,
+			want:  `{"a": "\\u0000", "b": ""}`,
+		},
+		{
+			name:  "multiple escaped backslash u0000",
+			input: `{"v": "a\\u0000b\\u0000c"}`,
+			want:  `{"v": "a\\u0000b\\u0000c"}`,
+		},
+		{
+			name:  "literal NUL byte removed",
+			input: "{\"key\": \"before\x00after\"}",
+			want:  `{"key": "beforeafter"}`,
+		},
 	}
 
 	for _, tt := range tests {
