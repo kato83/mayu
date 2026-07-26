@@ -46,8 +46,8 @@ interface TocEntry {
                 <li [style.padding-left.rem]="(entry.depth - 1) * 0.75">
                   <a
                     (click)="scrollToFragment(entry.id, $event)"
-                    href="javascript:void(0)"
-                    class="block py-1 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate cursor-pointer"
+                    [href]="currentPath() + '#' + entry.id"
+                    class="block py-1 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate"
                   >
                     {{ entry.text }}
                   </a>
