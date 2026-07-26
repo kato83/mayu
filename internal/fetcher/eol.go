@@ -103,18 +103,19 @@ func FetchEOLProducts(ctx context.Context) ([]EOLProductSummary, error) {
 }
 
 // FetchEOLProductDetail fetches detailed product info including releases.
-func FetchEOLProductDetail(ctx context.Context, product string) (*EOLProductDetailResponse, error) {
+// Returns the parsed response and the raw JSON body for storage.
+func FetchEOLProductDetail(ctx context.Context, product string) (*EOLProductDetailResponse, []byte, error) {
 	url := eolBaseURL + "/products/" + product
 	body, err := eolGet(ctx, url)
 	if err != nil {
-		return nil, fmt.Errorf("fetch EOL product %s: %w", product, err)
+		return nil, nil, fmt.Errorf("fetch EOL product %s: %w", product, err)
 	}
 
 	var resp EOLProductDetailResponse
 	if err := json.Unmarshal(body, &resp); err != nil {
-		return nil, fmt.Errorf("parse EOL product %s: %w", product, err)
+		return nil, nil, fmt.Errorf("parse EOL product %s: %w", product, err)
 	}
-	return &resp, nil
+	return &resp, body, nil
 }
 
 // eolGet performs a GET request to the endoflife.date API with rate limiting.

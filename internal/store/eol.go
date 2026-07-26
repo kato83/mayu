@@ -11,17 +11,18 @@ import (
 // UpsertEOLProduct upserts a product from endoflife.date.
 func (s *PostgresStore) UpsertEOLProduct(ctx context.Context, product EOLProduct) error {
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO eol_products (name, label, category, tags, version_command, last_modified_at, last_synced_at)
-		VALUES ($1, $2, $3, $4, $5, $6, NOW())
+		INSERT INTO eol_products (name, label, category, tags, version_command, last_modified_at, raw_json, last_synced_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
 		ON CONFLICT (name) DO UPDATE SET
 			label = EXCLUDED.label,
 			category = EXCLUDED.category,
 			tags = EXCLUDED.tags,
 			version_command = EXCLUDED.version_command,
 			last_modified_at = EXCLUDED.last_modified_at,
+			raw_json = EXCLUDED.raw_json,
 			last_synced_at = NOW()`,
 		product.Name, product.Label, product.Category,
-		pq.Array(product.Tags), product.VersionCommand, product.LastModifiedAt)
+		pq.Array(product.Tags), product.VersionCommand, product.LastModifiedAt, product.RawJSON)
 	if err != nil {
 		return fmt.Errorf("upsert eol_product %s: %w", product.Name, err)
 	}

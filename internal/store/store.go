@@ -223,6 +223,7 @@ type EOLProduct struct {
 	Tags           []string
 	VersionCommand string
 	LastModifiedAt *time.Time
+	RawJSON        []byte
 }
 
 // EOLRelease represents a release cycle for storage.

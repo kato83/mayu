@@ -80,7 +80,7 @@ func ImportEOL(ctx context.Context, s store.Store, update bool) error {
 
 // importEOLProduct fetches and stores a single product's detail.
 func importEOLProduct(ctx context.Context, s store.Store, productName string) error {
-	detail, err := fetcher.FetchEOLProductDetail(ctx, productName)
+	detail, rawJSON, err := fetcher.FetchEOLProductDetail(ctx, productName)
 	if err != nil {
 		return err
 	}
@@ -104,6 +104,7 @@ func importEOLProduct(ctx context.Context, s store.Store, productName string) er
 		Tags:           product.Tags,
 		VersionCommand: product.VersionCommand,
 		LastModifiedAt: lastModified,
+		RawJSON:        rawJSON,
 	}
 	if err := s.UpsertEOLProduct(ctx, ep); err != nil {
 		return fmt.Errorf("upsert product: %w", err)
