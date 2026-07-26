@@ -251,8 +251,8 @@
         <target>MITRE 参照</target>
       </trans-unit>
       <trans-unit id="vulnDetail.notFound" datatype="html">
-        <source>Vulnerability &quot;<x id="PH" equiv-text="id"/>&quot; not found.</source>
-        <target>脆弱性「<x id="PH" equiv-text="id"/>」が見つかりません。</target>
+        <source>Vulnerability not found.</source>
+        <target>脆弱性が見つかりません。</target>
       </trans-unit>
       <trans-unit id="vulnDetail.notFoundReason1" datatype="html">
         <source>The vulnerability data for this ID may not have been ingested yet.</source>
@@ -1369,6 +1369,14 @@
       <trans-unit id="sidebar.version" datatype="html">
         <source>Mayu v<x id="INTERPOLATION" equiv-text="{{ version() }}"/></source>
         <target>Mayu v<x id="INTERPOLATION" equiv-text="{{ version() }}"/></target>
+      </trans-unit>
+      <trans-unit id="toast.close" datatype="html">
+        <source>Close</source>
+        <target>閉じる</target>
+      </trans-unit>
+      <trans-unit id="httpError.networkError" datatype="html">
+        <source>Network error — please check your connection.</source>
+        <target>ネットワークエラー — 接続を確認してください。</target>
       </trans-unit>
     </body>
   </file>
