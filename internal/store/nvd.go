@@ -534,3 +534,16 @@ func insertSingleProductIdentifierNVD(ctx context.Context, tx *sql.Tx, pi *model
 	)
 	return err
 }
+
+// CountNVDEntriesByYear returns the number of NVD entries whose cve_id matches
+// the given year (e.g., year=2024 counts all "CVE-2024-%" entries).
+func (s *PostgresStore) CountNVDEntriesByYear(ctx context.Context, year int) (int64, error) {
+	prefix := fmt.Sprintf("CVE-%d-%%", year)
+	var count int64
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM nvd_entries WHERE cve_id LIKE $1`, prefix).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count NVD entries for year %d: %w", year, err)
+	}
+	return count, nil
+}

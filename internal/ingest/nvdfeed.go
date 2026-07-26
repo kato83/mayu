@@ -14,6 +14,12 @@ import (
 
 const nvdNativeSource = "NVD-native"
 
+// nvdEntryCounter is an optional interface for counting NVD entries by year.
+// Used to get accurate record counts after delta updates.
+type nvdEntryCounter interface {
+	CountNVDEntriesByYear(ctx context.Context, year int) (int64, error)
+}
+
 // nvdYearSource returns the sync_state source key for a specific NVD year feed.
 func nvdYearSource(year int) string {
 	return fmt.Sprintf("NVD-native:%d", year)
@@ -217,6 +223,21 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 			SourceType:     "nvd",
 			LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
 			RecordCount:    int64(inserted),
+		}
+		// For delta updates, the modified feed may contain both new and updated CVEs,
+		// so we query the actual DB count for an accurate record_count.
+		if plan.Strategy == "delta" {
+			if counter, ok := ing.store.(nvdEntryCounter); ok {
+				if count, err := counter.CountNVDEntriesByYear(ctx, plan.Year); err == nil {
+					yearState.RecordCount = count
+				} else {
+					ing.logger.Printf("warning: failed to count NVD entries for year %d: %v", plan.Year, err)
+					// Fall back to existing state record count
+					if existingState, _ := ing.store.GetSyncState(ctx, nvdYearSource(plan.Year)); existingState != nil {
+						yearState.RecordCount = existingState.RecordCount
+					}
+				}
+			}
 		}
 		if err := ing.store.UpdateSyncState(ctx, yearState); err != nil {
 			ing.logger.Printf("warning: failed to update sync state for NVD year %d: %v", plan.Year, err)
