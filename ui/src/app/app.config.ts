@@ -14,7 +14,7 @@ class MayuTitleStrategy extends TitleStrategy {
 
   override updateTitle(snapshot: RouterStateSnapshot): void {
     const pageTitle = this.buildTitle(snapshot);
-    this.title.setTitle(pageTitle ? `Mayu - ${pageTitle}` : 'Mayu');
+    this.title.setTitle(pageTitle ? `${pageTitle} | Mayu` : 'Mayu');
   }
 }
 
