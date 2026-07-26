@@ -22,7 +22,7 @@ interface NavItem {
     >
       <!-- Logo / App name -->
       <div class="flex items-center justify-between h-16 px-6 border-b border-slate-700">
-        <span class="text-xl font-bold tracking-wide" i18n="@@sidebar.appName">Mayu</span>
+        <a routerLink="/dashboard" (click)="closed.emit()" class="text-xl font-bold tracking-wide hover:text-indigo-300 transition-colors cursor-pointer" i18n="@@sidebar.appName">Mayu</a>
         <!-- Close button (mobile only) -->
         <button
           class="md:hidden text-slate-400 hover:text-white"
@@ -196,7 +196,7 @@ export class SidebarComponent implements OnInit {
         { label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`, route: '/ingest/jobs', icon: '📋' },
       ],
     },
-    { label: $localize`:@@sidebar.nav.status:Status`, route: '/status', icon: '📊' },
+    { label: $localize`:@@sidebar.nav.status:Status`, route: '/status', icon: '⚙️' },
     { label: $localize`:@@sidebar.nav.webhooks:Webhooks`, route: '/webhooks', icon: '🔔' },
     { label: $localize`:@@sidebar.nav.watchlists:Watchlists`, route: '/watchlists', icon: '🏷️' },
     { label: $localize`:@@sidebar.nav.apiKeys:API Keys`, route: '/api-keys', icon: '🔑' },

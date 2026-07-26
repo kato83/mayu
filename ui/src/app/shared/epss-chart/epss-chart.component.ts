@@ -7,8 +7,12 @@ import {
   SimpleChanges,
   ViewChild,
   AfterViewInit,
+  inject,
+  effect,
 } from '@angular/core';
 import { Chart, registerables } from 'chart.js';
+
+import { ThemeService } from '../../services/theme.service';
 
 Chart.register(...registerables);
 
@@ -28,12 +32,27 @@ export interface EPSSHistoryPoint {
   `,
 })
 export class EpssChartComponent implements AfterViewInit, OnChanges, OnDestroy {
+  private readonly themeService = inject(ThemeService);
+
   @Input() history: EPSSHistoryPoint[] = [];
   @ViewChild('chartCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private chart: Chart | null = null;
+  private initialized = false;
+
+  constructor() {
+    effect(() => {
+      // Track theme mode signal to trigger re-render on theme change
+      this.themeService.mode();
+      if (this.initialized) {
+        // Small delay to let the DOM class toggle apply
+        setTimeout(() => this.renderChart(), 50);
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
+    this.initialized = true;
     this.renderChart();
   }
 

@@ -127,6 +127,23 @@ func (m *mockStore) GetEOLByProduct(ctx context.Context, productName string) (*s
 func (m *mockStore) GetEOLByIdentifier(ctx context.Context, identifierType, identifier string) (*store.EOLProductDetail, error) {
 	return nil, nil
 }
+func (m *mockStore) GetDashboardSummary(ctx context.Context) (*store.DashboardSummary, error) {
+	return &store.DashboardSummary{}, nil
+}
+func (m *mockStore) GetDashboardTrends(ctx context.Context, days int) (*store.DashboardTrends, error) {
+	return &store.DashboardTrends{DailyNewVulns: []store.TrendDataPoint{}}, nil
+}
+func (m *mockStore) GetDashboardDistributions(ctx context.Context) (*store.DashboardDistributions, error) {
+	return &store.DashboardDistributions{
+		Severity:      []store.DistributionItem{},
+		Ecosystems:    []store.DistributionItem{},
+		EPSSHistogram: []store.HistogramBucket{},
+		LEVHistogram:  []store.HistogramBucket{},
+	}, nil
+}
+func (m *mockStore) GetDashboardTopRisks(ctx context.Context, limit int) (*store.DashboardTopRisks, error) {
+	return &store.DashboardTopRisks{TopEPSS: []store.RiskEntry{}, TopLEV: []store.RiskEntry{}}, nil
+}
 
 // newTestServer creates a Server with the given mock store for testing.
 // By default it uses NoAuthProvider so existing tests don't need auth.

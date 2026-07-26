@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, signal, inject, computed } from '@angular/core';
+import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { HeaderComponent } from './header/header.component';
@@ -28,7 +29,7 @@ import { HeaderComponent } from './header/header.component';
       <div class="md:ml-64 flex flex-col min-h-screen">
         <!-- Header -->
         <app-header
-          [pageTitle]="'Vulnerabilities'"
+          [pageTitle]="pageTitle()"
           (menuToggle)="toggleSidebar()"
         />
 
@@ -41,7 +42,47 @@ import { HeaderComponent } from './header/header.component';
   `,
 })
 export class LayoutComponent {
+  private readonly router = inject(Router);
   readonly sidebarOpen = signal(false);
+  readonly pageTitle = signal($localize`:@@layout.title.dashboard:Dashboard`);
+
+  private readonly titleMap: Record<string, string> = {
+    '/dashboard': $localize`:@@layout.title.dashboard:Dashboard`,
+    '/vulnerabilities': $localize`:@@layout.title.vulnerabilities:Vulnerabilities`,
+    '/ingest': $localize`:@@layout.title.ingest:Ingest`,
+    '/ingest/jobs': $localize`:@@layout.title.ingestJobs:Ingest Jobs`,
+    '/status': $localize`:@@layout.title.status:Status`,
+    '/webhooks': $localize`:@@layout.title.webhooks:Webhooks`,
+    '/watchlists': $localize`:@@layout.title.watchlists:Watchlists`,
+    '/api-keys': $localize`:@@layout.title.apiKeys:API Keys`,
+    '/docs': $localize`:@@layout.title.docs:Docs`,
+  };
+
+  constructor() {
+    this.router.events
+      .pipe(filter((e) => e instanceof NavigationEnd))
+      .subscribe((e) => {
+        const url = (e as NavigationEnd).urlAfterRedirects || (e as NavigationEnd).url;
+        this.updateTitle(url);
+      });
+  }
+
+  private updateTitle(url: string): void {
+    // Try exact match first, then prefix match
+    if (this.titleMap[url]) {
+      this.pageTitle.set(this.titleMap[url]);
+      return;
+    }
+    // Find longest prefix match
+    const match = Object.keys(this.titleMap)
+      .filter((key) => url.startsWith(key))
+      .sort((a, b) => b.length - a.length)[0];
+    if (match) {
+      this.pageTitle.set(this.titleMap[match]);
+    } else {
+      this.pageTitle.set(this.titleMap['/dashboard']);
+    }
+  }
 
   toggleSidebar(): void {
     this.sidebarOpen.update((v) => !v);

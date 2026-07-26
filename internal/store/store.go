@@ -131,6 +131,20 @@ type Store interface {
 
 	// GetEOLByIdentifier finds EOL info by a purl or cpe identifier.
 	GetEOLByIdentifier(ctx context.Context, identifierType, identifier string) (*EOLProductDetail, error)
+
+	// GetDashboardSummary returns summary counts for the dashboard overview cards.
+	GetDashboardSummary(ctx context.Context) (*DashboardSummary, error)
+
+	// GetDashboardTrends returns time-series data for dashboard trend charts.
+	// days specifies how many days of history to return (e.g., 30, 90).
+	GetDashboardTrends(ctx context.Context, days int) (*DashboardTrends, error)
+
+	// GetDashboardDistributions returns distribution data for dashboard charts
+	// (severity, ecosystem, EPSS histogram, LEV histogram).
+	GetDashboardDistributions(ctx context.Context) (*DashboardDistributions, error)
+
+	// GetDashboardTopRisks returns top risky CVEs by EPSS and LEV scores.
+	GetDashboardTopRisks(ctx context.Context, limit int) (*DashboardTopRisks, error)
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.
@@ -277,4 +291,69 @@ type EOLReleaseInfo struct {
 	EoasFrom      string `json:"eoas_from,omitempty"`
 	IsMaintained  *bool  `json:"is_maintained,omitempty"`
 	LatestVersion string `json:"latest_version,omitempty"`
+}
+
+// DashboardSummary holds overview counts for the dashboard.
+type DashboardSummary struct {
+	TotalVulnerabilities int64 `json:"total_vulnerabilities"`
+	Last7Days            int64 `json:"last_7_days"`
+	Last30Days           int64 `json:"last_30_days"`
+	CriticalCount        int64 `json:"critical_count"`
+	HighCount            int64 `json:"high_count"`
+	InKEVCount           int64 `json:"in_kev_count"`
+}
+
+// DashboardTrends holds time-series data for trend charts.
+type DashboardTrends struct {
+	// Daily new vulnerability counts
+	DailyNewVulns []TrendDataPoint `json:"daily_new_vulns"`
+}
+
+// TrendDataPoint is a single date+count data point.
+type TrendDataPoint struct {
+	Date  string `json:"date"`
+	Count int64  `json:"count"`
+}
+
+// DashboardDistributions holds distribution data for charts.
+type DashboardDistributions struct {
+	// Severity distribution (severity_worst counts) — pessimistic view
+	Severity []DistributionItem `json:"severity"`
+	// Severity distribution (severity_best counts) — optimistic view
+	SeverityBest []DistributionItem `json:"severity_best"`
+	// Top ecosystems by vulnerability count
+	Ecosystems []DistributionItem `json:"ecosystems"`
+	// EPSS score distribution (histogram buckets)
+	EPSSHistogram []HistogramBucket `json:"epss_histogram"`
+	// LEV score distribution (histogram buckets)
+	LEVHistogram []HistogramBucket `json:"lev_histogram"`
+}
+
+// DistributionItem is a label+count pair for pie/bar charts.
+type DistributionItem struct {
+	Label string `json:"label"`
+	Count int64  `json:"count"`
+}
+
+// HistogramBucket is a range+count pair for histogram charts.
+type HistogramBucket struct {
+	RangeLabel string  `json:"range_label"`
+	Min        float64 `json:"min"`
+	Max        float64 `json:"max"`
+	Count      int64   `json:"count"`
+}
+
+// DashboardTopRisks holds top risky CVEs.
+type DashboardTopRisks struct {
+	TopEPSS []RiskEntry `json:"top_epss"`
+	TopLEV  []RiskEntry `json:"top_lev"`
+}
+
+// RiskEntry represents a single high-risk vulnerability.
+type RiskEntry struct {
+	VulnerabilityID string  `json:"vulnerability_id"`
+	Summary         string  `json:"summary"`
+	Score           float64 `json:"score"`
+	Percentile      float64 `json:"percentile,omitempty"`
+	Severity        string  `json:"severity,omitempty"`
 }

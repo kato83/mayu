@@ -1378,6 +1378,122 @@
         <source>Network error — please check your connection.</source>
         <target>ネットワークエラー — 接続を確認してください。</target>
       </trans-unit>
+      <trans-unit id="dashboard.totalVulnerabilities" datatype="html">
+        <source>Total Vulnerabilities</source>
+        <target>総脆弱性数</target>
+      </trans-unit>
+      <trans-unit id="dashboard.last7Days" datatype="html">
+        <source>Last 7 Days</source>
+        <target>直近7日</target>
+      </trans-unit>
+      <trans-unit id="dashboard.last30Days" datatype="html">
+        <source>Last 30 Days</source>
+        <target>直近30日</target>
+      </trans-unit>
+      <trans-unit id="dashboard.critical" datatype="html">
+        <source>Critical</source>
+        <target>Critical</target>
+      </trans-unit>
+      <trans-unit id="dashboard.high" datatype="html">
+        <source>High</source>
+        <target>High</target>
+      </trans-unit>
+      <trans-unit id="dashboard.inKev" datatype="html">
+        <source>In KEV</source>
+        <target>KEV 登録</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendTitle" datatype="html">
+        <source>New Vulnerabilities (Last 30 Days)</source>
+        <target>新規脆弱性（直近30日）</target>
+      </trans-unit>
+      <trans-unit id="dashboard.severityWorst" datatype="html">
+        <source>Severity (Worst Case)</source>
+        <target>深刻度（最悪ケース）</target>
+      </trans-unit>
+      <trans-unit id="dashboard.severityBest" datatype="html">
+        <source>Severity (Best Case)</source>
+        <target>深刻度（最良ケース）</target>
+      </trans-unit>
+      <trans-unit id="dashboard.topEcosystems" datatype="html">
+        <source>Top Ecosystems</source>
+        <target>エコシステム別脆弱性数</target>
+      </trans-unit>
+      <trans-unit id="dashboard.epssDistribution" datatype="html">
+        <source>EPSS Score Distribution</source>
+        <target>EPSS スコア分布</target>
+      </trans-unit>
+      <trans-unit id="dashboard.levDistribution" datatype="html">
+        <source>LEV Score Distribution</source>
+        <target>LEV スコア分布</target>
+      </trans-unit>
+      <trans-unit id="dashboard.topEpss" datatype="html">
+        <source>Top EPSS Vulnerabilities</source>
+        <target>EPSS 上位脆弱性</target>
+      </trans-unit>
+      <trans-unit id="dashboard.tableId" datatype="html">
+        <source>ID</source>
+        <target>ID</target>
+      </trans-unit>
+      <trans-unit id="dashboard.tableEpss" datatype="html">
+        <source>EPSS</source>
+        <target>EPSS</target>
+      </trans-unit>
+      <trans-unit id="dashboard.tableSeverity" datatype="html">
+        <source>Severity</source>
+        <target>深刻度</target>
+      </trans-unit>
+      <trans-unit id="dashboard.topLev" datatype="html">
+        <source>Top LEV Vulnerabilities</source>
+        <target>LEV 上位脆弱性</target>
+      </trans-unit>
+      <trans-unit id="dashboard.tableLev" datatype="html">
+        <source>LEV</source>
+        <target>LEV</target>
+      </trans-unit>
+      <trans-unit id="dashboard.chartNewVulns" datatype="html">
+        <source>New Vulnerabilities</source>
+        <target>新規脆弱性</target>
+      </trans-unit>
+      <trans-unit id="dashboard.chartVulnCount" datatype="html">
+        <source>Vulnerabilities</source>
+        <target>脆弱性数</target>
+      </trans-unit>
+      <trans-unit id="layout.title.dashboard" datatype="html">
+        <source>Dashboard</source>
+        <target>ダッシュボード</target>
+      </trans-unit>
+      <trans-unit id="layout.title.vulnerabilities" datatype="html">
+        <source>Vulnerabilities</source>
+        <target>脆弱性一覧</target>
+      </trans-unit>
+      <trans-unit id="layout.title.ingest" datatype="html">
+        <source>Ingest</source>
+        <target>データ取込</target>
+      </trans-unit>
+      <trans-unit id="layout.title.ingestJobs" datatype="html">
+        <source>Ingest Jobs</source>
+        <target>取込ジョブ</target>
+      </trans-unit>
+      <trans-unit id="layout.title.status" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
+      <trans-unit id="layout.title.webhooks" datatype="html">
+        <source>Webhooks</source>
+        <target>Webhook</target>
+      </trans-unit>
+      <trans-unit id="layout.title.watchlists" datatype="html">
+        <source>Watchlists</source>
+        <target>ウォッチリスト</target>
+      </trans-unit>
+      <trans-unit id="layout.title.apiKeys" datatype="html">
+        <source>API Keys</source>
+        <target>API キー</target>
+      </trans-unit>
+      <trans-unit id="layout.title.docs" datatype="html">
+        <source>Docs</source>
+        <target>ドキュメント</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

@@ -274,6 +274,16 @@ func (s *Server) routes() http.Handler {
 		})
 	}
 
+	// Dashboard endpoints
+	r.Route("/api/v1/dashboard", func(r chi.Router) {
+		r.Use(authMW)
+		r.Use(middleware.Timeout(30 * time.Second))
+		r.Get("/summary", s.handleDashboardSummary)
+		r.Get("/trends", s.handleDashboardTrends)
+		r.Get("/distributions", s.handleDashboardDistributions)
+		r.Get("/top-risks", s.handleDashboardTopRisks)
+	})
+
 	// SPA static file serving with fallback to index.html
 	if s.uiDir != "" || s.embedFS != nil {
 		r.Get("/*", s.handleSPA)
