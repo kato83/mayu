@@ -390,42 +390,56 @@ func (s *PostgresStore) insertNVDConfigurations(ctx context.Context, tx *sql.Tx,
 			continue
 		}
 
-		matchQuery := "INSERT INTO nvd_cpe_matches (configuration_id, vulnerable, criteria, match_criteria_id, version_start_including, version_start_excluding, version_end_including, version_end_excluding, cpe_part, cpe_vendor, cpe_product, cpe_version, cpe_update, cpe_edition, cpe_language, cpe_sw_edition, cpe_target_sw, cpe_target_hw, cpe_other) VALUES "
-		matchArgs := make([]interface{}, 0, len(matches)*18+1)
-		matchArgs = append(matchArgs, configID)
-		for i, m := range matches {
-			if i > 0 {
-				matchQuery += ", "
-			}
-			base := i*18 + 2
-			matchQuery += fmt.Sprintf("($1, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
-				base, base+1, base+2, base+3, base+4, base+5, base+6,
-				base+7, base+8, base+9, base+10, base+11, base+12, base+13, base+14, base+15, base+16, base+17)
+		// PostgreSQL extended protocol is limited to 65535 parameters.
+		// Each CPE match uses 18 params + 1 for configID.
+		// Batch inserts to stay well under the limit.
+		const paramsPerMatch = 18
+		const maxMatchesPerBatch = 3000 // 3000 * 18 + 1 = 54001 params (safe margin)
 
-			// Decompose CPE 2.3 URI into fields
-			cpeFields := model.ParseCPE23(m.Criteria)
-			var cpePart, cpeVendor, cpeProduct, cpeVersion, cpeUpdate, cpeEdition, cpeLang, cpeSWEd, cpeTgtSW, cpeTgtHW, cpeOther interface{}
-			if cpeFields != nil {
-				cpePart = nullIfEmpty(cpeFields.Part)
-				cpeVendor = nullIfEmpty(cpeFields.Vendor)
-				cpeProduct = nullIfEmpty(cpeFields.Product)
-				cpeVersion = nullIfEmpty(cpeFields.Version)
-				cpeUpdate = nullIfEmpty(cpeFields.Update)
-				cpeEdition = nullIfEmpty(cpeFields.Edition)
-				cpeLang = nullIfEmpty(cpeFields.Language)
-				cpeSWEd = nullIfEmpty(cpeFields.SWEdition)
-				cpeTgtSW = nullIfEmpty(cpeFields.TargetSW)
-				cpeTgtHW = nullIfEmpty(cpeFields.TargetHW)
-				cpeOther = nullIfEmpty(cpeFields.Other)
+		for batchStart := 0; batchStart < len(matches); batchStart += maxMatchesPerBatch {
+			batchEnd := batchStart + maxMatchesPerBatch
+			if batchEnd > len(matches) {
+				batchEnd = len(matches)
 			}
+			batch := matches[batchStart:batchEnd]
 
-			matchArgs = append(matchArgs, m.Vulnerable, m.Criteria, m.MatchCriteriaId,
-				nullIfEmpty(m.VersionStartIncluding), nullIfEmpty(m.VersionStartExcluding),
-				nullIfEmpty(m.VersionEndIncluding), nullIfEmpty(m.VersionEndExcluding),
-				cpePart, cpeVendor, cpeProduct, cpeVersion, cpeUpdate, cpeEdition, cpeLang, cpeSWEd, cpeTgtSW, cpeTgtHW, cpeOther)
-		}
-		if _, err := tx.ExecContext(ctx, matchQuery, matchArgs...); err != nil {
-			return fmt.Errorf("insert nvd_cpe_matches: %w", err)
+			matchQuery := "INSERT INTO nvd_cpe_matches (configuration_id, vulnerable, criteria, match_criteria_id, version_start_including, version_start_excluding, version_end_including, version_end_excluding, cpe_part, cpe_vendor, cpe_product, cpe_version, cpe_update, cpe_edition, cpe_language, cpe_sw_edition, cpe_target_sw, cpe_target_hw, cpe_other) VALUES "
+			matchArgs := make([]interface{}, 0, len(batch)*paramsPerMatch+1)
+			matchArgs = append(matchArgs, configID)
+			for i, m := range batch {
+				if i > 0 {
+					matchQuery += ", "
+				}
+				base := i*paramsPerMatch + 2
+				matchQuery += fmt.Sprintf("($1, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)",
+					base, base+1, base+2, base+3, base+4, base+5, base+6,
+					base+7, base+8, base+9, base+10, base+11, base+12, base+13, base+14, base+15, base+16, base+17)
+
+				// Decompose CPE 2.3 URI into fields
+				cpeFields := model.ParseCPE23(m.Criteria)
+				var cpePart, cpeVendor, cpeProduct, cpeVersion, cpeUpdate, cpeEdition, cpeLang, cpeSWEd, cpeTgtSW, cpeTgtHW, cpeOther interface{}
+				if cpeFields != nil {
+					cpePart = nullIfEmpty(cpeFields.Part)
+					cpeVendor = nullIfEmpty(cpeFields.Vendor)
+					cpeProduct = nullIfEmpty(cpeFields.Product)
+					cpeVersion = nullIfEmpty(cpeFields.Version)
+					cpeUpdate = nullIfEmpty(cpeFields.Update)
+					cpeEdition = nullIfEmpty(cpeFields.Edition)
+					cpeLang = nullIfEmpty(cpeFields.Language)
+					cpeSWEd = nullIfEmpty(cpeFields.SWEdition)
+					cpeTgtSW = nullIfEmpty(cpeFields.TargetSW)
+					cpeTgtHW = nullIfEmpty(cpeFields.TargetHW)
+					cpeOther = nullIfEmpty(cpeFields.Other)
+				}
+
+				matchArgs = append(matchArgs, m.Vulnerable, m.Criteria, m.MatchCriteriaId,
+					nullIfEmpty(m.VersionStartIncluding), nullIfEmpty(m.VersionStartExcluding),
+					nullIfEmpty(m.VersionEndIncluding), nullIfEmpty(m.VersionEndExcluding),
+					cpePart, cpeVendor, cpeProduct, cpeVersion, cpeUpdate, cpeEdition, cpeLang, cpeSWEd, cpeTgtSW, cpeTgtHW, cpeOther)
+			}
+			if _, err := tx.ExecContext(ctx, matchQuery, matchArgs...); err != nil {
+				return fmt.Errorf("insert nvd_cpe_matches: %w", err)
+			}
 		}
 	}
 	return nil
