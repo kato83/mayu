@@ -1,11 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { VulnerabilitiesComponent } from './vulnerabilities.component';
 import { SearchResponse } from '../../models/vulnerability.model';
+import { ToastService } from '../../shared/toast/toast.service';
+import { httpErrorInterceptor } from '../../interceptors/http-error.interceptor';
 
 describe('VulnerabilitiesComponent', () => {
   let fixture: ComponentFixture<VulnerabilitiesComponent>;
@@ -50,7 +52,7 @@ describe('VulnerabilitiesComponent', () => {
           { path: 'vulnerabilities', component: VulnerabilitiesComponent },
           { path: 'vulnerabilities/:id', component: VulnerabilitiesComponent },
         ]),
-        provideHttpClient(),
+        provideHttpClient(withInterceptors([httpErrorInterceptor])),
         provideHttpClientTesting(),
       ],
     }).compileComponents();
@@ -118,8 +120,10 @@ describe('VulnerabilitiesComponent', () => {
     req.flush({ error: 'internal server error' }, { status: 500, statusText: 'Internal Server Error' });
     fixture.detectChanges();
 
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('internal server error');
+    const toastService = TestBed.inject(ToastService);
+    expect(toastService.messages().length).toBe(1);
+    expect(toastService.messages()[0].type).toBe('error');
+    expect(toastService.messages()[0].message).toContain('internal server error');
   });
 
   it('should show empty state when no results', () => {

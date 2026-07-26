@@ -175,15 +175,8 @@ function emptyFilters(): FilterState {
         </div>
       }
 
-      <!-- Error state -->
-      @if (error()) {
-        <div class="rounded-md bg-red-50 border border-red-200 p-4">
-          <p class="text-sm text-red-700">{{ error() }}</p>
-        </div>
-      }
-
       <!-- Data table -->
-      @if (!loading() && !error()) {
+      @if (!loading()) {
         @if (vulnerabilities().length === 0) {
           <div class="text-center py-12">
             <div class="text-4xl mb-3">🔍</div>
@@ -287,7 +280,6 @@ export class VulnerabilitiesComponent implements OnInit {
   readonly limit = signal(20);
   readonly currentPage = signal(1);
   readonly loading = signal(false);
-  readonly error = signal<string | null>(null);
 
   /** Whether a next page is available (API returned next_cursor) */
   readonly hasNextPage = signal(false);
@@ -499,7 +491,6 @@ export class VulnerabilitiesComponent implements OnInit {
 
   private loadData(): void {
     this.loading.set(true);
-    this.error.set(null);
 
     const params: SearchParams = {
       limit: this.limit(),
@@ -540,8 +531,7 @@ export class VulnerabilitiesComponent implements OnInit {
           this.hasPreviousPage.set(this.cursorStack.length > 0);
           this.loading.set(false);
         },
-        error: (err) => {
-          this.error.set(err.error?.error || 'Failed to load vulnerabilities');
+        error: () => {
           this.loading.set(false);
         },
       });

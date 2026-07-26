@@ -2,15 +2,17 @@ import { Component, HostListener, viewChild, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { ExternalLinkDialogComponent } from './shared/external-link-dialog/external-link-dialog.component';
+import { ToastComponent } from './shared/toast/toast.component';
 import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, ExternalLinkDialogComponent],
+  imports: [RouterOutlet, ExternalLinkDialogComponent, ToastComponent],
   template: `
     <router-outlet />
     <app-external-link-dialog />
+    <app-toast />
   `,
 })
 export class App {
