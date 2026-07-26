@@ -1217,9 +1217,11 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 			vs.severity_worst, vs.severity_best, vs.scores_detail, vs.ecosystem_list
 		FROM vulnerabilities v
 		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id
-		WHERE (v.id = $%d OR v.id IN (
+		WHERE v.id IN (
+			SELECT $%d
+			UNION
 			SELECT va.vulnerability_id FROM vulnerability_aliases va WHERE va.alias = $%d
-		))`, argIdx, argIdx)
+		)`, argIdx, argIdx)
 		args = append(args, query.ID)
 
 	case query.Purl != "":
