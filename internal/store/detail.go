@@ -800,10 +800,18 @@ func (s *PostgresStore) fetchMITREReferences(ctx context.Context, containerIDs [
 }
 
 // fetchEOLEnrichment retrieves end-of-life information for affected packages of a vulnerability.
-// It matches product_identifiers (purl) against eol_identifiers to find relevant EOL products,
+// It matches product_identifiers against eol_identifiers via purl and CPE to find relevant EOL products,
 // then fetches their release cycles with maintenance/EOL status.
 func (s *PostgresStore) fetchEOLEnrichment(ctx context.Context, vulnID string) ([]model.EOLEnrichment, error) {
-	// Query: match vulnerability's packages to EOL products via purl identifiers
+	type eolMatch struct {
+		productName       string
+		productLabel      string
+		category          string
+		matchedIdentifier string
+		matchedPackage    string
+	}
+
+	// Strategy 1: Match via purl identifiers
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT DISTINCT ON (ep.name)
 			ep.name, ep.label, ep.category,
@@ -814,29 +822,58 @@ func (s *PostgresStore) fetchEOLEnrichment(ctx context.Context, vulnID string) (
 		JOIN eol_products ep ON ep.name = ei.product_name
 		WHERE pi.vulnerability_id = $1 AND pi.purl_type IS NOT NULL`, vulnID)
 	if err != nil {
-		return nil, fmt.Errorf("query eol enrichment: %w", err)
+		return nil, fmt.Errorf("query eol enrichment (purl): %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
-	type eolMatch struct {
-		productName       string
-		productLabel      string
-		category          string
-		matchedIdentifier string
-		matchedPackage    string
-	}
+	matchedProducts := make(map[string]bool)
 	var matches []eolMatch
 	for rows.Next() {
 		var m eolMatch
 		var category, pkgName sql.NullString
 		if err := rows.Scan(&m.productName, &m.productLabel, &category, &m.matchedIdentifier, &pkgName); err != nil {
-			return nil, fmt.Errorf("scan eol match: %w", err)
+			return nil, fmt.Errorf("scan eol match (purl): %w", err)
 		}
 		m.category = category.String
 		m.matchedPackage = pkgName.String
 		matches = append(matches, m)
+		matchedProducts[m.productName] = true
 	}
 	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Strategy 2: Match via CPE identifiers (fallback for entries without purl)
+	cpeRows, err := s.db.QueryContext(ctx, `
+		SELECT DISTINCT ON (ep.name)
+			ep.name, ep.label, ep.category,
+			ei.identifier, pi.name as pkg_name
+		FROM product_identifiers pi
+		JOIN eol_identifiers ei ON ei.identifier_type = 'cpe'
+			AND ei.identifier LIKE 'cpe:2.3:_:' || pi.cpe_vendor || ':' || pi.cpe_product || '%'
+		JOIN eol_products ep ON ep.name = ei.product_name
+		WHERE pi.vulnerability_id = $1 AND pi.cpe_vendor IS NOT NULL`, vulnID)
+	if err != nil {
+		return nil, fmt.Errorf("query eol enrichment (cpe): %w", err)
+	}
+	defer func() { _ = cpeRows.Close() }()
+
+	for cpeRows.Next() {
+		var m eolMatch
+		var category, pkgName sql.NullString
+		if err := cpeRows.Scan(&m.productName, &m.productLabel, &category, &m.matchedIdentifier, &pkgName); err != nil {
+			return nil, fmt.Errorf("scan eol match (cpe): %w", err)
+		}
+		// Skip if already matched via purl
+		if matchedProducts[m.productName] {
+			continue
+		}
+		m.category = category.String
+		m.matchedPackage = pkgName.String
+		matches = append(matches, m)
+		matchedProducts[m.productName] = true
+	}
+	if err := cpeRows.Err(); err != nil {
 		return nil, err
 	}
 
