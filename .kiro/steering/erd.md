@@ -301,6 +301,44 @@ erDiagram
         TIMESTAMPTZ created_at
     }
 
+    eol_products {
+        TEXT name PK "endoflife.date product name (e.g. nodejs, python)"
+        TEXT label "NOT NULL, human-readable (e.g. Node.js)"
+        TEXT category "framework, lang, os, server-app, etc."
+        TEXT_ARRAY tags
+        TEXT version_command "e.g. node --version"
+        TIMESTAMPTZ last_modified_at
+        TIMESTAMPTZ last_synced_at "DEFAULT NOW()"
+    }
+
+    eol_releases {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT product_name FK "→ eol_products(name) CASCADE"
+        TEXT release_name "e.g. 22, 3.12, 24.04"
+        TEXT label "e.g. 22 (LTS)"
+        TEXT codename "e.g. Noble Numbat"
+        DATE release_date
+        BOOLEAN is_lts
+        DATE lts_from
+        BOOLEAN is_eoas "active support ended"
+        DATE eoas_from
+        BOOLEAN is_eol "end of life"
+        DATE eol_from
+        BOOLEAN is_eoes "extended support ended"
+        DATE eoes_from
+        BOOLEAN is_maintained
+        TEXT latest_version
+        DATE latest_version_date
+        TEXT latest_version_link
+    }
+
+    eol_identifiers {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT product_name FK "→ eol_products(name) CASCADE"
+        TEXT identifier_type "purl or cpe"
+        TEXT identifier "e.g. pkg:npm/node, cpe:2.3:a:nodejs:node.js"
+    }
+
     ingest_jobs {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         JSONB command_args "e.g. {ecosystem:Go, update:true}"
@@ -439,6 +477,8 @@ erDiagram
     users ||--o{ watchlists : "has"
     watchlists ||--o{ watchlist_matches : "has"
     vulnerabilities ||--o{ watchlist_matches : "has"
+    eol_products ||--o{ eol_releases : "has"
+    eol_products ||--o{ eol_identifiers : "has"
 ```
 
 ## Design Principles
@@ -540,6 +580,16 @@ CISA KEV catalog entries.
 
 ### `sync_state`
 Per-source delta synchronization tracking. No FK relationships.
+
+### `eol_products` + `eol_releases` + `eol_identifiers` Tables
+Product lifecycle data from [endoflife.date](https://endoflife.date/) API v1.
+
+- **eol_products**: One row per product (461+ products). Keyed by endoflife.date product slug (e.g., "nodejs", "angular").
+- **eol_releases**: Release cycles with EOL dates, LTS status, maintenance status. UNIQUE on `(product_name, release_name)`.
+- **eol_identifiers**: Maps purl and CPE identifiers to products. UNIQUE on `(identifier_type, identifier)`. Enables lookup from vulnerability package info to EOL status.
+- Upsert strategy: ON CONFLICT DO UPDATE for all three tables.
+- Sync: `mayu ingest --source eol` fetches all products; `--update` skips if synced within 24h.
+- No FK to vulnerabilities: EOL data is linked at query time via purl/CPE matching against `product_identifiers` or `eol_identifiers`.
 
 ### CVE Canonicalization Logic
 1. On ingest, the first `CVE-*` alias is extracted as the canonical ID.
