@@ -147,6 +147,9 @@ type NVDDetail struct {
 	// Configurations contains CPE match criteria (affected software)
 	Configurations []NVDConfigurationDetail `json:"configurations,omitempty"`
 
+	// SSVC contains CISA SSVC assessment data from NVD (if available)
+	SSVC *SSVCDetail `json:"ssvc,omitempty"`
+
 	// RawJSON is the original NVD JSON for raw display
 	RawJSON json.RawMessage `json:"raw_json,omitempty"`
 }
@@ -305,6 +308,11 @@ type SSVCDetail struct {
 
 	// Options contains the SSVC decision points
 	Options []SSVCOption `json:"options,omitempty"`
+
+	// Decision is the computed CISA Coordinator decision tree outcome
+	// (Track, Track*, Attend, Act). Computed from Options using worst-case
+	// Mission & Well-Being assumption.
+	Decision string `json:"decision,omitempty"`
 }
 
 // SSVCOption represents a single SSVC decision point (e.g., Exploitation: none).

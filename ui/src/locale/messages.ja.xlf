@@ -230,6 +230,18 @@
         <source>SSVC Assessment</source>
         <target>SSVC 評価</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.ssvcDecision" datatype="html">
+        <source>Decision (CISA Coordinator)</source>
+        <target>判定 (CISA Coordinator)</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.nvdSsvc" datatype="html">
+        <source>SSVC Assessment</source>
+        <target>SSVC 評価</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.ssvcDecisionNvd" datatype="html">
+        <source>Decision (CISA Coordinator)</source>
+        <target>判定 (CISA Coordinator)</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.mitreCredits" datatype="html">
         <source>Credits</source>
         <target>クレジット</target>

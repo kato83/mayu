@@ -8,6 +8,7 @@ import (
 
 	"github.com/kato83/mayu/internal/cvss"
 	"github.com/kato83/mayu/internal/model"
+	"github.com/kato83/mayu/internal/ssvc"
 )
 
 // GetVulnerabilityDetail retrieves enriched vulnerability information by ID,
@@ -292,6 +293,9 @@ func (s *PostgresStore) fetchNVDDetail(ctx context.Context, vulnID string) (*mod
 	if err != nil {
 		return nil, err
 	}
+
+	// Extract SSVC data from raw_json metrics.ssvcV203
+	nvd.SSVC = parseNVDSSVC(rawJSON)
 
 	return nvd, nil
 }
@@ -632,17 +636,73 @@ func parseSSVC(data []byte) *model.SSVCDetail {
 		return nil
 	}
 
-	ssvc := &model.SSVCDetail{
+	detail := &model.SSVCDetail{
 		Version:   raw.Content.Version,
 		Role:      raw.Content.Role,
 		Timestamp: raw.Content.Timestamp,
 	}
+	optionsMap := make(map[string]string)
 	for _, opt := range raw.Content.Options {
 		for k, v := range opt {
-			ssvc.Options = append(ssvc.Options, model.SSVCOption{Key: k, Value: v})
+			detail.Options = append(detail.Options, model.SSVCOption{Key: k, Value: v})
+			optionsMap[k] = v
 		}
 	}
-	return ssvc
+
+	// Compute CISA Coordinator decision tree result
+	if decision, ok := ssvc.EvaluateFromOptions(optionsMap); ok {
+		detail.Decision = string(decision)
+	}
+
+	return detail
+}
+
+// parseNVDSSVC extracts SSVC data from the NVD raw_json metrics.ssvcV203 field.
+// NVD format: {"metrics": {"ssvcV203": [{"source": "...", "ssvcData": {"id": "...", "role": "...", "options": [...], "version": "...", "timestamp": "..."}}]}}
+func parseNVDSSVC(rawJSON []byte) *model.SSVCDetail {
+	if rawJSON == nil {
+		return nil
+	}
+	var nvdRaw struct {
+		Metrics struct {
+			SSVC []struct {
+				Source   string `json:"source"`
+				SSVCData struct {
+					Version   string              `json:"version"`
+					Role      string              `json:"role"`
+					Timestamp string              `json:"timestamp"`
+					Options   []map[string]string `json:"options"`
+				} `json:"ssvcData"`
+			} `json:"ssvcV203"`
+		} `json:"metrics"`
+	}
+	if err := json.Unmarshal(rawJSON, &nvdRaw); err != nil {
+		return nil
+	}
+	if len(nvdRaw.Metrics.SSVC) == 0 {
+		return nil
+	}
+
+	ssvcEntry := nvdRaw.Metrics.SSVC[0]
+	detail := &model.SSVCDetail{
+		Version:   ssvcEntry.SSVCData.Version,
+		Role:      ssvcEntry.SSVCData.Role,
+		Timestamp: ssvcEntry.SSVCData.Timestamp,
+	}
+	optionsMap := make(map[string]string)
+	for _, opt := range ssvcEntry.SSVCData.Options {
+		for k, v := range opt {
+			detail.Options = append(detail.Options, model.SSVCOption{Key: k, Value: v})
+			optionsMap[k] = v
+		}
+	}
+
+	// Compute CISA Coordinator decision tree result
+	if decision, ok := ssvc.EvaluateFromOptions(optionsMap); ok {
+		detail.Decision = string(decision)
+	}
+
+	return detail
 }
 
 // fetchMITREProblemTypes retrieves CWE classifications from MITRE containers.
