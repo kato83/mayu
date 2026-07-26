@@ -159,6 +159,10 @@ mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
 mayu ingest --source kev
 # Update KEV catalog (refresh if outdated)
 mayu ingest --source kev --update
+# Import endoflife.date product lifecycle data (EOL dates, LTS status)
+mayu ingest --source eol
+# Update endoflife.date data (refresh if last sync > 24h ago)
+mayu ingest --source eol --update
 # Import local OSV JSON files (e.g., manually constructed GHSA advisories)
 mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
 # Import GitHub repository security advisories via API
@@ -246,7 +250,7 @@ Import vulnerability data from OSV into the local database.
 | `--backfill` | Backfill historical data (with `--source epss`) | `false` |
 | `--from` | Start date for backfill (YYYY-MM-DD) | `2023-03-07` (EPSS v3) |
 | `--to` | End date for backfill (YYYY-MM-DD) | today |
-| `--source` | Import from source (nvd, debian, mitre, epss, kev, ghsa) | — |
+| `--source` | Import from source (nvd, debian, mitre, epss, kev, eol, ghsa) | — |
 | `--repo` | GitHub repository (owner/repo) for `--source ghsa` | — |
 | `--native` | Use native data source feed (with `--source nvd`) | `false` |
 | `--year` | Import only a specific year's NVD feed (with `--source nvd --native`) | — |
@@ -623,6 +627,7 @@ webhooks:
 | KEV | ✅ Supported | `mayu ingest --source kev` |
 | EPSS | ✅ Supported | `mayu ingest --source epss` |
 | LEV | ✅ Supported | Computed from EPSS + KEV (see below) |
+| [endoflife.date](https://endoflife.date/) | ✅ Supported | `mayu ingest --source eol` |
 
 ## LEV (Likely Exploited Vulnerabilities)
 
@@ -751,5 +756,5 @@ See [.agents/tasks/PLAN.md](.agents/tasks/PLAN.md) for the full implementation p
 - [ ] Dashboard & reporting
 - [x] Notifications (webhook)
 - [ ] Notifications (email)
-- [ ] [endoflife.date](https://endoflife.date/) integration
+- [x] [endoflife.date](https://endoflife.date/) integration
 - [ ] SBOM features (dependency graph, continuous monitoring)

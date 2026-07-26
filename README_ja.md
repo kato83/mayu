@@ -160,6 +160,10 @@ mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
 mayu ingest --source kev
 # KEV カタログを更新（未更新時のみ）
 mayu ingest --source kev --update
+# endoflife.date 製品ライフサイクルデータをインポート（EOL日付、LTSステータス）
+mayu ingest --source eol
+# endoflife.date データを更新（前回同期から24時間以上経過時のみ）
+mayu ingest --source eol --update
 # ローカルの OSV JSON ファイルを直接取り込み（手動構築した GHSA 等）
 mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
 # GitHub リポジトリのセキュリティアドバイザリーを API 経由でインポート
@@ -247,7 +251,7 @@ OSV から脆弱性データをローカルデータベースにインポート�
 | `--backfill` | ヒストリカルデータをバックフィル（`--source epss` と併用） | `false` |
 | `--from` | バックフィルの開始日（YYYY-MM-DD） | `2023-03-07`（EPSS v3） |
 | `--to` | バックフィルの終了日（YYYY-MM-DD） | 本日 |
-| `--source` | ソースからインポート（nvd, debian, mitre, epss, kev, ghsa） | — |
+| `--source` | ソースからインポート（nvd, debian, mitre, epss, kev, eol, ghsa） | — |
 | `--native` | ネイティブデータソースフィードを使用（`--source nvd` と併用） | `false` |
 | `--year` | 特定の年度のNVDフィードのみインポート（`--source nvd --native` と併用） | — |
 | `--file` | ローカルの OSV JSON ファイルを取り込み（パスを位置引数で指定） | `false` |
@@ -623,6 +627,7 @@ webhooks:
 | KEV | ✅ 対応済み | `mayu ingest --source kev` |
 | EPSS | ✅ 対応済み | `mayu ingest --source epss` |
 | LEV | ✅ 対応済み | EPSS + KEV から自動計算（後述） |
+| [endoflife.date](https://endoflife.date/) | ✅ 対応済み | `mayu ingest --source eol` |
 
 ## LEV（Likely Exploited Vulnerabilities：悪用推定確率）
 
@@ -751,5 +756,5 @@ curl "http://localhost:8080/api/v1/vulnerabilities/CVE-2023-38831?detail=true" |
 - [ ] ダッシュボード・レポート機能
 - [x] 通知機能（Webhook）
 - [ ] 通知機能（メール）
-- [ ] [endoflife.date](https://endoflife.date/) 連携
+- [x] [endoflife.date](https://endoflife.date/) 連携
 - [ ] SBOM 機能拡張（依存グラフ、継続的モニタリング）
