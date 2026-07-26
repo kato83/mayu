@@ -125,8 +125,8 @@ export class DocsComponent implements OnInit, OnDestroy {
           const withLinks = this.rewriteDocLinks(rewritten);
           this.content.set(withLinks);
 
-          // Update current path for ToC links
-          this.currentPath.set(this.router.url.split('#')[0]);
+          // Update current path for ToC links (use browser's actual path including locale prefix)
+          this.currentPath.set(location.pathname);
 
           // Generate TOC from the rendered HTML
           const html = this.markdownPipe.toHtml(withLinks);
