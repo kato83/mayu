@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -52,9 +53,8 @@ func runIngest(args []string, cfg *config.Config) error {
 		fmt.Println("  mayu ingest --ecosystem Go --update")
 		fmt.Println("  mayu ingest --all")
 		fmt.Println("  mayu ingest --source nvd")
-		fmt.Println("  mayu ingest --source nvd --native        # Import directly from NVD JSON Feed 2.0")
-		fmt.Println("  mayu ingest --source nvd --native --year 2024  # Import only 2024 NVD data")
-		fmt.Println("  mayu ingest --source nvd --native --update  # Delta update from NVD modified feed")
+		fmt.Println("  mayu ingest --source nvd --native        # Import NVD (auto: full for new, delta for recent)")
+		fmt.Println("  mayu ingest --source nvd --native --year 2024  # Force full import of a specific year")
 		fmt.Println("  mayu ingest --source debian")
 		fmt.Println("  mayu ingest --source mitre              # Import MITRE CVE from cvelistV5")
 		fmt.Println("  mayu ingest --source mitre --update     # Delta update from hourly releases")
@@ -231,21 +231,12 @@ func runIngest(args []string, cfg *config.Config) error {
 				return fmt.Errorf("--native flag is only supported with --source nvd")
 			}
 			fmt.Println("\n=== Importing NVD (native JSON Feed 2.0) ===")
-			var stats *ingest.Stats
-			var err error
-			if *update {
-				if *year != 0 {
-					return fmt.Errorf("--year cannot be used with --update (delta update covers all modified CVEs)")
-				}
-				stats, err = ing.UpdateNVDNative(ctx)
-			} else {
-				var years []int
-				if *year != 0 {
-					years = []int{*year}
-					fmt.Printf("  Filtering to year: %d\n", *year)
-				}
-				stats, err = ing.ImportNVDNativeYears(ctx, years)
+			var years []int
+			if *year != 0 {
+				years = []int{*year}
+				fmt.Printf("  Targeting year: %d\n", *year)
 			}
+			stats, err := ing.ImportNVDNativeYears(ctx, years)
 			if err != nil {
 				if ctx.Err() != nil {
 					fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
@@ -488,7 +479,10 @@ func runIngest(args []string, cfg *config.Config) error {
 		return err
 	}
 
-	// Run import for each ecosystem (parallel with semaphore)
+	// Run import for each ecosystem (parallel with semaphore).
+	// When --all is used, individual ecosystem failures do NOT stop the entire run.
+	// Each ecosystem's FullImport already updates sync_state on success, so
+	// re-running with --all --update will skip already-imported ecosystems.
 	maxConcurrency := *concurrency
 	if maxConcurrency < 1 {
 		maxConcurrency = 1
@@ -498,6 +492,16 @@ func runIngest(args []string, cfg *config.Config) error {
 	}
 
 	sem := make(chan struct{}, maxConcurrency)
+
+	type ecoResult struct {
+		Ecosystem string
+		Stats     *ingest.Stats
+		Err       error
+	}
+
+	var resultsMu sync.Mutex
+	var results []ecoResult
+
 	g, gCtx := errgroup.WithContext(ctx)
 
 	for _, eco := range ecosystems {
@@ -550,19 +554,36 @@ func runIngest(args []string, cfg *config.Config) error {
 			)
 
 			var stats *ingest.Stats
-			var err error
+			var importErr error
 			if *update {
-				stats, err = ecoIng.DeltaImport(gCtx, eco)
+				stats, importErr = ecoIng.DeltaImport(gCtx, eco)
 			} else {
-				stats, err = ecoIng.FullImport(gCtx, eco)
+				stats, importErr = ecoIng.FullImport(gCtx, eco)
 			}
 
-			if err != nil {
+			if importErr != nil {
+				// If the parent context was cancelled (SIGINT/SIGTERM), propagate
+				// the error to stop all goroutines via errgroup.
 				if gCtx.Err() != nil {
 					return gCtx.Err()
 				}
-				return fmt.Errorf("import %s: %w", eco, err)
+
+				// For --all mode, record the failure and continue with other ecosystems.
+				// The ecosystem's sync_state is NOT updated on failure, so the next
+				// run with --all --update will retry it via full import (no sync_state = full).
+				if *all {
+					fmt.Fprintf(os.Stderr, "\n  ✗ %s failed: %v\n", eco, importErr)
+					resultsMu.Lock()
+					results = append(results, ecoResult{Ecosystem: eco, Err: importErr})
+					resultsMu.Unlock()
+					return nil
+				}
+				return fmt.Errorf("import %s: %w", eco, importErr)
 			}
+
+			resultsMu.Lock()
+			results = append(results, ecoResult{Ecosystem: eco, Stats: stats})
+			resultsMu.Unlock()
 
 			printStats(stats)
 			return nil
@@ -575,6 +596,30 @@ func runIngest(args []string, cfg *config.Config) error {
 			return nil
 		}
 		return err
+	}
+
+	// When --all is used, report summary of successes and failures.
+	if *all && len(results) > 0 {
+		var succeeded, failed int
+		for _, r := range results {
+			if r.Err != nil {
+				failed++
+			} else {
+				succeeded++
+			}
+		}
+		if failed > 0 {
+			fmt.Fprintf(os.Stderr, "\n=== Summary: %d/%d ecosystems succeeded, %d failed ===\n",
+				succeeded, len(ecosystems), failed)
+			fmt.Fprintf(os.Stderr, "  Tip: re-run with 'mayu ingest --all --update' to retry failed ecosystems.\n")
+			fmt.Fprintf(os.Stderr, "  (Successfully imported ecosystems will use delta update; failed ones will be re-imported.)\n\n")
+			for _, r := range results {
+				if r.Err != nil {
+					fmt.Fprintf(os.Stderr, "  ✗ %s: %v\n", r.Ecosystem, r.Err)
+				}
+			}
+			return fmt.Errorf("%d ecosystem(s) failed to import", failed)
+		}
 	}
 
 	return nil

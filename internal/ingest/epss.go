@@ -369,6 +369,22 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 	for d := fromDate; !d.After(toDate); d = d.AddDate(0, 0, 1) {
 		select {
 		case <-ctx.Done():
+			// Context cancelled (e.g., SIGINT). Update sync_state with progress so far
+			// so that subsequent runs correctly detect already-imported dates via
+			// GetEPSSImportedDates (which reads from epss_scores table directly).
+			if totalInserted > 0 {
+				partialState := &store.SyncState{
+					Source:         epssSource,
+					SourceType:     "epss",
+					LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
+					RecordCount:    int64(totalInserted),
+				}
+				// Use context.Background since original ctx is done
+				if err := ing.store.UpdateSyncState(context.Background(), partialState); err != nil {
+					ing.logger.Printf("warning: failed to update sync state on interruption: %v", err)
+				}
+			}
+
 			stats.Duration = time.Since(start)
 			stats.Total = processedDays
 			stats.Inserted = totalInserted

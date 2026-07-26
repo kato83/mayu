@@ -223,7 +223,8 @@ func (s *Server) runIngestJob(runner *ingestRunner, job *store.IngestJob, req in
 	case "nvd":
 		stats, ingestErr = ing.ImportNVDNative(ctx)
 	case "nvd_update":
-		stats, ingestErr = ing.UpdateNVDNative(ctx)
+		// UpdateNVDNative is removed; ImportNVDNative auto-selects full/delta per year.
+		stats, ingestErr = ing.ImportNVDNative(ctx)
 	case "nvd_converted":
 		stats, ingestErr = ing.ImportConvertedSource(ctx, fetcher.SourceNVD)
 	case "mitre":

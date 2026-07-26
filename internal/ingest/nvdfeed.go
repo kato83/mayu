@@ -3,6 +3,8 @@ package ingest
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kato83/mayu/internal/fetcher"
@@ -12,15 +14,31 @@ import (
 
 const nvdNativeSource = "NVD-native"
 
-// ImportNVDNative performs a full import of all NVD CVE data via JSON Feed 2.0.
-// It downloads yearly feed files (2002 to current year), parses them, and stores
-// each year's data in batches. Uses META file sha256 to skip unchanged feeds.
+// nvdYearSource returns the sync_state source key for a specific NVD year feed.
+func nvdYearSource(year int) string {
+	return fmt.Sprintf("NVD-native:%d", year)
+}
+
+// nvdModifiedFeedWindow is the maximum age of a year's sync_state before
+// we consider the modified feed insufficient and fall back to a full year
+// feed download. NVD's modified feed covers the last 8 days.
+const nvdModifiedFeedWindow = 8 * 24 * time.Hour
+
+// ImportNVDNative performs an intelligent import of NVD CVE data.
+// For each year (2002 to current), it checks the year-level sync_state
+// and automatically selects the optimal strategy:
+//   - No sync_state or >8 days stale → download the full year feed
+//   - ≤8 days since last sync → apply only modified CVEs from the modified feed
+//
+// This eliminates the need for a separate --update flag.
 func (ing *Ingester) ImportNVDNative(ctx context.Context) (*Stats, error) {
 	return ing.ImportNVDNativeYears(ctx, nil)
 }
 
-// ImportNVDNativeYears performs a full import of NVD CVE data for the specified years.
-// If years is nil or empty, all available years (2002 to current year) are imported.
+// ImportNVDNativeYears performs NVD import for the specified years.
+// If years is nil or empty, all available years (2002 to current) are imported.
+// When a single explicit year is given (--year flag), the full year feed is
+// always downloaded regardless of sync_state (force refresh behavior).
 func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*Stats, error) {
 	start := time.Now()
 	stats := &Stats{
@@ -28,14 +46,16 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 		IsFullSync: true,
 	}
 
+	explicitYear := len(years) == 1
 	if len(years) == 0 {
 		years = fetcher.NVDFeedYears()
 	}
 
 	// Start job recording
 	recorder := ing.startJob(ctx, "nvd", map[string]interface{}{
-		"native": true,
-		"years":  years,
+		"native":        true,
+		"years":         years,
+		"explicit_year": explicitYear,
 	})
 	defer func() {
 		if recorder != nil {
@@ -54,32 +74,153 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 		}
 	}()
 
-	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Starting NVD native import (%d yearly feeds)...", len(years))})
+	// For explicit --year, skip modified feed and just do full year import.
+	if explicitYear {
+		year := years[0]
+		ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Importing NVD year %d (full feed)...", year)})
 
-	var totalInserted int
-	var totalErrors int
+		inserted, errors, err := ing.importNVDYear(ctx, year)
+		if err != nil {
+			return nil, fmt.Errorf("import NVD year %d: %w", year, err)
+		}
 
-	for i, year := range years {
+		// Update year checkpoint
+		yearState := &store.SyncState{
+			Source:         nvdYearSource(year),
+			SourceType:     "nvd",
+			LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
+			RecordCount:    int64(inserted),
+		}
+		if err := ing.store.UpdateSyncState(ctx, yearState); err != nil {
+			ing.logger.Printf("warning: failed to update sync state for NVD year %d: %v", year, err)
+		}
+
+		stats.Inserted = inserted
+		stats.Errors = errors
+		stats.Total = inserted + errors
+		stats.Duration = time.Since(start)
+
+		ing.progress(Progress{Phase: "store", Current: inserted, Total: stats.Total,
+			Message: fmt.Sprintf("Done: %d CVEs imported for %d in %s", inserted, year, stats.Duration.Round(time.Millisecond))})
+		return stats, nil
+	}
+
+	// Multi-year flow: download modified feed first, then process each year.
+	ing.progress(Progress{Phase: "download", Message: "Downloading NVD modified feed (last 8 days)..."})
+
+	var modifiedEntries []*model.NVDCVE
+	modifiedData, modFetchErr := ing.fetcher.FetchNVDModifiedFeed(ctx)
+	if modFetchErr != nil {
+		// Modified feed failure is non-fatal; we'll fall back to full year feeds for all years.
+		ing.logger.Printf("warning: failed to fetch NVD modified feed: %v (all years will use full feed)", modFetchErr)
+	} else {
+		result, parseErr := ing.parser.ParseNVDFeed(modifiedData)
+		if parseErr != nil {
+			ing.logger.Printf("warning: failed to parse NVD modified feed: %v (all years will use full feed)", parseErr)
+		} else {
+			modifiedEntries = result.Entries
+			ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Modified feed: %d CVEs available for delta updates", len(modifiedEntries))})
+		}
+	}
+
+	// Build a map of modified CVEs grouped by year for quick lookup.
+	modifiedByYear := groupCVEsByYear(modifiedEntries)
+
+	// Classify each year's strategy based on its sync_state.
+	type yearPlan struct {
+		Year     int
+		Strategy string // "full" or "delta"
+	}
+	var plans []yearPlan
+	var fullCount, deltaCount int
+
+	for _, y := range years {
+		state, err := ing.store.GetSyncState(ctx, nvdYearSource(y))
+		if err != nil {
+			ing.logger.Printf("warning: failed to check sync state for NVD year %d: %v (will do full import)", y, err)
+			plans = append(plans, yearPlan{Year: y, Strategy: "full"})
+			fullCount++
+			continue
+		}
+
+		if needsFullYearImport(state) || modifiedEntries == nil {
+			plans = append(plans, yearPlan{Year: y, Strategy: "full"})
+			fullCount++
+		} else {
+			plans = append(plans, yearPlan{Year: y, Strategy: "delta"})
+			deltaCount++
+		}
+	}
+
+	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf(
+		"Plan: %d year(s) full import, %d year(s) delta update", fullCount, deltaCount)})
+
+	// Execute plans
+	var totalInserted, totalErrors int
+
+	for i, plan := range plans {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
 		}
 
-		ing.progress(Progress{Phase: "download", Current: i, Total: len(years), Message: fmt.Sprintf("Processing feed %d...", year)})
+		ing.progress(Progress{Phase: "download", Current: i + 1, Total: len(plans),
+			Message: fmt.Sprintf("[%d/%d] Year %d (%s)...", i+1, len(plans), plan.Year, plan.Strategy)})
 
-		inserted, errors, err := ing.importNVDYear(ctx, year)
+		var inserted, errors int
+		var err error
+
+		switch plan.Strategy {
+		case "full":
+			inserted, errors, err = ing.importNVDYear(ctx, plan.Year)
+		case "delta":
+			yearCVEs := modifiedByYear[plan.Year]
+			if len(yearCVEs) == 0 {
+				// No modifications for this year — just update timestamp.
+				ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("  Year %d: no modifications in feed, skipping", plan.Year)})
+				yearState := &store.SyncState{
+					Source:         nvdYearSource(plan.Year),
+					SourceType:     "nvd",
+					LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
+					RecordCount:    0, // keep existing count by using the state directly
+				}
+				// Preserve existing record count
+				existingState, _ := ing.store.GetSyncState(ctx, nvdYearSource(plan.Year))
+				if existingState != nil {
+					yearState.RecordCount = existingState.RecordCount
+				}
+				if stateErr := ing.store.UpdateSyncState(ctx, yearState); stateErr != nil {
+					ing.logger.Printf("warning: failed to update sync state for NVD year %d: %v", plan.Year, stateErr)
+				}
+				continue
+			}
+			inserted, err = ing.storeNVDBatches(ctx, yearCVEs)
+			errors = 0
+		}
+
 		if err != nil {
-			// Log error but continue with other years
-			ing.logger.Printf("error importing NVD year %d: %v", year, err)
+			ing.logger.Printf("error importing NVD year %d (%s): %v", plan.Year, plan.Strategy, err)
 			if recorder != nil {
-				recorder.RecordFailure(fmt.Sprintf("NVD-feed-%d", year), "fetch_error", err)
+				recorder.RecordFailure(fmt.Sprintf("NVD-feed-%d", plan.Year), "import_error", err)
 			}
 			totalErrors++
 			continue
 		}
+
 		totalInserted += inserted
 		totalErrors += errors
+
+		// Checkpoint: record this year as successfully imported.
+		yearState := &store.SyncState{
+			Source:         nvdYearSource(plan.Year),
+			SourceType:     "nvd",
+			LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
+			RecordCount:    int64(inserted),
+		}
+		if err := ing.store.UpdateSyncState(ctx, yearState); err != nil {
+			ing.logger.Printf("warning: failed to update sync state for NVD year %d: %v", plan.Year, err)
+		}
 	}
 
 	stats.Inserted = totalInserted
@@ -87,118 +228,17 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 	stats.Errors = totalErrors
 	stats.Duration = time.Since(start)
 
-	// Update sync state
-	syncState := &store.SyncState{
-		Source:         nvdNativeSource,
-		SourceType:     "nvd",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-		RecordCount:    int64(totalInserted),
-	}
-	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
-		ing.logger.Printf("warning: failed to update sync state: %v", err)
-	}
-
-	ing.progress(Progress{Phase: "store", Current: totalInserted, Total: stats.Total, Message: fmt.Sprintf("Done: %d CVEs imported in %s", totalInserted, stats.Duration.Round(time.Millisecond))})
+	ing.progress(Progress{Phase: "store", Current: totalInserted, Total: stats.Total,
+		Message: fmt.Sprintf("Done: %d CVEs imported in %s (%d full, %d delta)",
+			totalInserted, stats.Duration.Round(time.Millisecond), fullCount, deltaCount)})
 
 	return stats, nil
 }
 
-// UpdateNVDNative performs a delta update using the NVD modified feed.
-// If the last sync was more than 8 days ago, falls back to full import.
-func (ing *Ingester) UpdateNVDNative(ctx context.Context) (*Stats, error) {
-	// Check last sync time
-	syncState, err := ing.store.GetSyncState(ctx, nvdNativeSource)
-	if err != nil {
-		return nil, fmt.Errorf("get sync state: %w", err)
-	}
-
-	// If never synced or last sync > 8 days ago, do full import
-	if shouldFallbackToFullImport(syncState) {
-		msg := "No previous sync found, performing full import..."
-		if syncState != nil {
-			msg = "Last sync > 8 days ago or invalid, performing full import..."
-		}
-		ing.progress(Progress{Phase: "download", Message: msg})
-		return ing.ImportNVDNative(ctx)
-	}
-
-	// Delta update using modified feed
-	start := time.Now()
-	stats := &Stats{
-		Ecosystem:  nvdNativeSource,
-		IsFullSync: false,
-	}
-
-	// Start job recording
-	recorder := ing.startJob(ctx, "nvd", map[string]interface{}{
-		"native": true,
-		"update": true,
-	})
-	defer func() {
-		if recorder != nil {
-			status := "success"
-			var jobErr error
-			if stats.Errors > 0 && stats.Inserted > 0 {
-				status = "partial"
-			} else if stats.Inserted == 0 && stats.Errors > 0 {
-				status = "failed"
-			}
-			if ctx.Err() != nil {
-				status = "failed"
-				jobErr = ctx.Err()
-			}
-			recorder.Finish(ctx, status, stats.Total, stats.Inserted, stats.Errors, jobErr)
-		}
-	}()
-
-	ing.progress(Progress{Phase: "download", Message: "Downloading NVD modified feed..."})
-
-	data, err := ing.fetcher.FetchNVDModifiedFeed(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("fetch NVD modified feed: %w", err)
-	}
-
-	ing.progress(Progress{Phase: "parse", Message: "Parsing modified feed..."})
-
-	result, err := ing.parser.ParseNVDFeed(data)
-	if err != nil {
-		return nil, fmt.Errorf("parse NVD modified feed: %w", err)
-	}
-
-	stats.Total = len(result.Entries) + len(result.Errors)
-	stats.Errors = len(result.Errors)
-
-	ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Storing %d modified CVEs...", len(result.Entries))})
-
-	inserted, err := ing.storeNVDBatches(ctx, result.Entries)
-	if err != nil {
-		return nil, fmt.Errorf("store NVD entries: %w", err)
-	}
-	stats.Inserted = inserted
-
-	// Update sync state
-	newSyncState := &store.SyncState{
-		Source:         nvdNativeSource,
-		SourceType:     "nvd",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-		RecordCount:    syncState.RecordCount + int64(inserted),
-	}
-	if err := ing.store.UpdateSyncState(ctx, newSyncState); err != nil {
-		ing.logger.Printf("warning: failed to update sync state: %v", err)
-	}
-
-	stats.Duration = time.Since(start)
-	ing.progress(Progress{Phase: "store", Current: inserted, Total: stats.Total, Message: fmt.Sprintf("Done: %d CVEs updated in %s", inserted, stats.Duration.Round(time.Millisecond))})
-
-	return stats, nil
-}
-
-// shouldFallbackToFullImport determines whether the NVD update should fall back
-// to a full import based on the sync state. Returns true if:
-//   - sync state is nil (never synced)
-//   - last modified timestamp is empty or unparseable
-//   - last sync was more than 8 days ago
-func shouldFallbackToFullImport(state *store.SyncState) bool {
+// needsFullYearImport determines whether a year requires a full feed download.
+// Returns true if the sync_state is nil, has an invalid timestamp, or is older
+// than nvdModifiedFeedWindow (8 days).
+func needsFullYearImport(state *store.SyncState) bool {
 	if state == nil {
 		return true
 	}
@@ -209,7 +249,38 @@ func shouldFallbackToFullImport(state *store.SyncState) bool {
 	if err != nil {
 		return true
 	}
-	return time.Since(lastSync) > 8*24*time.Hour
+	return time.Since(lastSync) > nvdModifiedFeedWindow
+}
+
+// groupCVEsByYear groups NVD CVE entries by the year in their CVE ID.
+// CVE IDs follow the format "CVE-YYYY-NNNNN".
+func groupCVEsByYear(entries []*model.NVDCVE) map[int][]*model.NVDCVE {
+	m := make(map[int][]*model.NVDCVE)
+	for _, e := range entries {
+		year := extractCVEYear(e.ID)
+		if year > 0 {
+			m[year] = append(m[year], e)
+		}
+	}
+	return m
+}
+
+// extractCVEYear extracts the year from a CVE ID (e.g., "CVE-2017-6770" → 2017).
+// Returns 0 if the ID doesn't match the expected format.
+func extractCVEYear(cveID string) int {
+	// CVE-YYYY-NNNNN
+	if !strings.HasPrefix(cveID, "CVE-") {
+		return 0
+	}
+	parts := strings.SplitN(cveID, "-", 4)
+	if len(parts) < 3 {
+		return 0
+	}
+	year, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0
+	}
+	return year
 }
 
 // importNVDYear downloads, parses, and stores a single year's NVD feed.

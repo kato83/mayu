@@ -27,9 +27,9 @@ func TestShouldFallbackToFullMITREImport(t *testing.T) {
 		{"nil state", nil, true},
 		{"empty last modified", &store.SyncState{Source: mitreSource, LastModifiedAt: ""}, true},
 		{"invalid date", &store.SyncState{Source: mitreSource, LastModifiedAt: "not-a-date"}, true},
-		{"25 hours ago", &store.SyncState{Source: mitreSource, LastModifiedAt: now.Add(-25 * time.Hour).Format(time.RFC3339)}, true},
-		{"48 hours ago", &store.SyncState{Source: mitreSource, LastModifiedAt: now.Add(-48 * time.Hour).Format(time.RFC3339)}, true},
-		{"23 hours ago", &store.SyncState{Source: mitreSource, LastModifiedAt: now.Add(-23 * time.Hour).Format(time.RFC3339)}, false},
+		{"8 days ago", &store.SyncState{Source: mitreSource, LastModifiedAt: now.Add(-8 * 24 * time.Hour).Format(time.RFC3339)}, true},
+		{"7 days 1 hour ago", &store.SyncState{Source: mitreSource, LastModifiedAt: now.Add(-7*24*time.Hour - time.Hour).Format(time.RFC3339)}, true},
+		{"6 days ago", &store.SyncState{Source: mitreSource, LastModifiedAt: now.Add(-6 * 24 * time.Hour).Format(time.RFC3339)}, false},
 		{"1 hour ago", &store.SyncState{Source: mitreSource, LastModifiedAt: now.Add(-1 * time.Hour).Format(time.RFC3339)}, false},
 		{"just now", &store.SyncState{Source: mitreSource, LastModifiedAt: now.Format(time.RFC3339)}, false},
 	}

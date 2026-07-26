@@ -101,7 +101,7 @@ func (ing *Ingester) UpdateMITRE(ctx context.Context) (*Stats, error) {
 	if shouldFallbackToFullMITREImport(syncState) {
 		msg := "No previous sync found, performing full import..."
 		if syncState != nil {
-			msg = "Last sync > 24h ago or invalid, performing full import..."
+			msg = "Last sync > 7 days ago or invalid, performing full import..."
 		}
 		ing.progress(Progress{Phase: "download", Message: msg})
 		return ing.ImportMITRE(ctx)
@@ -323,7 +323,9 @@ func (ing *Ingester) storeMITREBatches(ctx context.Context, entries []*model.MIT
 // fall back to a full import based on the sync state. Returns true if:
 //   - sync state is nil (never synced)
 //   - last modified timestamp is empty or unparseable
-//   - last sync was more than 24 hours ago (MITRE publishes hourly deltas)
+//   - last sync was more than 7 days ago (MITRE publishes hourly deltas,
+//     but we allow a wider window to avoid unnecessary full reimports after
+//     a transient failure)
 func shouldFallbackToFullMITREImport(state *store.SyncState) bool {
 	if state == nil {
 		return true
@@ -335,5 +337,5 @@ func shouldFallbackToFullMITREImport(state *store.SyncState) bool {
 	if err != nil {
 		return true
 	}
-	return time.Since(lastSync) > 24*time.Hour
+	return time.Since(lastSync) > 7*24*time.Hour
 }
