@@ -221,6 +221,7 @@ func runIngest(args []string, cfg *config.Config) error {
 		ingest.WithProgress(printProgress),
 		ingest.WithJobRecorder(s),
 		ingest.WithWatchlistMatcher(wlMatcher),
+		ingest.WithUpdateMode(*update),
 	)
 
 	// Handle --source (converted data sources)
@@ -538,6 +539,7 @@ func runIngest(args []string, cfg *config.Config) error {
 				ingest.WithStoreWorkers(*storeWorkers),
 				ingest.WithJobRecorder(s),
 				ingest.WithWatchlistMatcher(wlMatcher),
+				ingest.WithUpdateMode(*update),
 				ingest.WithProgress(func(prog ingest.Progress) {
 					// Prefix progress with ecosystem name for parallel output
 					switch prog.Phase {

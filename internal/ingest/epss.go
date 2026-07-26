@@ -233,6 +233,10 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 			summaryUpdated += len(batchIDs)
 		}
 
+		// Run watchlist matching after summary is refreshed (only fires in update mode).
+		// This detects vulnerabilities that newly cross the EPSS threshold.
+		ing.matchWatchlists(ctx, batchIDs)
+
 		inserted += len(batch)
 		ing.progress(Progress{Phase: "store", Current: inserted, Total: total})
 	}

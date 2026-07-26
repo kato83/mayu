@@ -87,6 +87,16 @@ func WithWebhookNotifier(fn func(ctx context.Context, vulnIDs []string)) Option 
 	}
 }
 
+// WithUpdateMode marks this ingester as running in delta/update mode.
+// When set, watchlist matching is enabled after ingestion.
+// Full imports (initial bulk loads) skip watchlist matching to avoid
+// flooding users with notifications for historical data.
+func WithUpdateMode(enabled bool) Option {
+	return func(ing *Ingester) {
+		ing.isUpdateMode = enabled
+	}
+}
+
 // WithWatchlistMatcher sets a watchlist matcher that runs after each batch is processed.
 func WithWatchlistMatcher(m WatchlistMatcher) Option {
 	return func(ing *Ingester) {
@@ -112,6 +122,7 @@ type Ingester struct {
 	jobStore         store.Store // optional: enables ingest job recording
 	webhookNotifier  func(ctx context.Context, vulnIDs []string)
 	watchlistMatcher WatchlistMatcher
+	isUpdateMode     bool // when true, watchlist matching fires after ingest
 }
 
 // DefaultStoreWorkers returns the default number of parallel store workers
@@ -639,9 +650,11 @@ func (ing *Ingester) startJob(ctx context.Context, source string, args map[strin
 }
 
 // matchWatchlists runs the watchlist matcher against newly ingested vulnerability IDs.
+// It only fires in update mode (--update flag) to avoid flooding users with
+// notifications during initial bulk imports of historical data.
 // It logs warnings on failure but does not fail the import.
 func (ing *Ingester) matchWatchlists(ctx context.Context, vulnIDs []string) {
-	if ing.watchlistMatcher == nil || len(vulnIDs) == 0 {
+	if !ing.isUpdateMode || ing.watchlistMatcher == nil || len(vulnIDs) == 0 {
 		return
 	}
 

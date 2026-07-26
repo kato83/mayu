@@ -377,6 +377,9 @@ func (ing *Ingester) storeNVDBatches(ctx context.Context, entries []*model.NVDCV
 		}
 		ing.refreshSummary(ctx, batchIDs)
 
+		// Run watchlist matching for this batch (only fires in update mode).
+		ing.matchWatchlists(ctx, batchIDs)
+
 		// Release references to processed entries so GC can reclaim the memory
 		// (raw JSON, configurations, etc. of each entry are large).
 		for j := i; j < end; j++ {

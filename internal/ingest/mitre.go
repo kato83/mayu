@@ -316,6 +316,9 @@ func (ing *Ingester) storeMITREBatches(ctx context.Context, entries []*model.MIT
 	// Refresh vulnerability_summary for all imported CVEs
 	ing.refreshSummary(ctx, allCVEIDs)
 
+	// Run watchlist matching (only fires in update mode)
+	ing.matchWatchlists(ctx, allCVEIDs)
+
 	return inserted, nil
 }
 

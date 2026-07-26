@@ -211,5 +211,8 @@ func (ing *Ingester) storeKEVBatches(ctx context.Context, records []*model.KEVRe
 	// Refresh vulnerability_summary for all imported CVEs
 	ing.refreshSummary(ctx, allCVEIDs)
 
+	// Run watchlist matching (only fires in update mode)
+	ing.matchWatchlists(ctx, allCVEIDs)
+
 	return inserted, nil
 }

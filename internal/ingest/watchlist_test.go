@@ -28,7 +28,7 @@ func TestWithWatchlistMatcher_ConfiguredOnIngester(t *testing.T) {
 
 func TestMatchWatchlists_CalledWhenConfigured(t *testing.T) {
 	mock := &mockWatchlistMatcher{}
-	ing := New(nil, nil, nil, WithWatchlistMatcher(mock))
+	ing := New(nil, nil, nil, WithWatchlistMatcher(mock), WithUpdateMode(true))
 
 	ctx := context.Background()
 	ing.matchWatchlists(ctx, []string{"CVE-2024-0001", "CVE-2024-0002"})
@@ -51,7 +51,7 @@ func TestMatchWatchlists_NotCalledWhenNil(t *testing.T) {
 
 func TestMatchWatchlists_DeduplicatesIDs(t *testing.T) {
 	mock := &mockWatchlistMatcher{}
-	ing := New(nil, nil, nil, WithWatchlistMatcher(mock))
+	ing := New(nil, nil, nil, WithWatchlistMatcher(mock), WithUpdateMode(true))
 
 	ctx := context.Background()
 	ing.matchWatchlists(ctx, []string{"CVE-2024-0001", "CVE-2024-0001", "CVE-2024-0002"})
@@ -63,12 +63,24 @@ func TestMatchWatchlists_DeduplicatesIDs(t *testing.T) {
 
 func TestMatchWatchlists_EmptyIDs(t *testing.T) {
 	mock := &mockWatchlistMatcher{}
-	ing := New(nil, nil, nil, WithWatchlistMatcher(mock))
+	ing := New(nil, nil, nil, WithWatchlistMatcher(mock), WithUpdateMode(true))
 
 	ctx := context.Background()
 	ing.matchWatchlists(ctx, nil)
 
 	if mock.called {
 		t.Fatal("expected watchlistMatcher.MatchNewVulnerabilities NOT to be called for nil IDs")
+	}
+}
+
+func TestMatchWatchlists_NotCalledWithoutUpdateMode(t *testing.T) {
+	mock := &mockWatchlistMatcher{}
+	ing := New(nil, nil, nil, WithWatchlistMatcher(mock)) // no WithUpdateMode
+
+	ctx := context.Background()
+	ing.matchWatchlists(ctx, []string{"CVE-2024-0001", "CVE-2024-0002"})
+
+	if mock.called {
+		t.Fatal("expected watchlistMatcher.MatchNewVulnerabilities NOT to be called without update mode")
 	}
 }
