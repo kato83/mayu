@@ -1494,6 +1494,54 @@
         <source>Docs</source>
         <target>ドキュメント</target>
       </trans-unit>
+      <trans-unit id="route.title.login" datatype="html">
+        <source>Sign In</source>
+        <target>ログイン</target>
+      </trans-unit>
+      <trans-unit id="route.title.dashboard" datatype="html">
+        <source>Dashboard</source>
+        <target>ダッシュボード</target>
+      </trans-unit>
+      <trans-unit id="route.title.vulnerabilities" datatype="html">
+        <source>Vulnerabilities</source>
+        <target>脆弱性一覧</target>
+      </trans-unit>
+      <trans-unit id="route.title.vulnerabilityDetail" datatype="html">
+        <source>Vulnerability Detail</source>
+        <target>脆弱性詳細</target>
+      </trans-unit>
+      <trans-unit id="route.title.ingest" datatype="html">
+        <source>Ingest</source>
+        <target>データ取込</target>
+      </trans-unit>
+      <trans-unit id="route.title.ingestJobs" datatype="html">
+        <source>Ingest Jobs</source>
+        <target>取込ジョブ</target>
+      </trans-unit>
+      <trans-unit id="route.title.status" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
+      <trans-unit id="route.title.webhooks" datatype="html">
+        <source>Webhooks</source>
+        <target>Webhook</target>
+      </trans-unit>
+      <trans-unit id="route.title.webhookDeliveries" datatype="html">
+        <source>Webhook Deliveries</source>
+        <target>Webhook 配信履歴</target>
+      </trans-unit>
+      <trans-unit id="route.title.watchlists" datatype="html">
+        <source>Watchlists</source>
+        <target>ウォッチリスト</target>
+      </trans-unit>
+      <trans-unit id="route.title.apiKeys" datatype="html">
+        <source>API Keys</source>
+        <target>API キー</target>
+      </trans-unit>
+      <trans-unit id="route.title.docs" datatype="html">
+        <source>Docs</source>
+        <target>ドキュメント</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

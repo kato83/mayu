@@ -1,11 +1,22 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, APP_INITIALIZER, inject } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners, APP_INITIALIZER, inject, Injectable } from '@angular/core';
+import { provideRouter, TitleStrategy, RouterStateSnapshot } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 import { routes } from './app.routes';
 import { AuthService } from './services/auth.service';
 import { httpErrorInterceptor } from './interceptors/http-error.interceptor';
+
+@Injectable()
+class MayuTitleStrategy extends TitleStrategy {
+  private readonly title = inject(Title);
+
+  override updateTitle(snapshot: RouterStateSnapshot): void {
+    const pageTitle = this.buildTitle(snapshot);
+    this.title.setTitle(pageTitle ? `Mayu - ${pageTitle}` : 'Mayu');
+  }
+}
 
 function initializeAuth(): () => Promise<void> {
   const authService = inject(AuthService);
@@ -16,6 +27,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
+    { provide: TitleStrategy, useClass: MayuTitleStrategy },
     provideHttpClient(withInterceptors([httpErrorInterceptor])),
     {
       provide: APP_INITIALIZER,

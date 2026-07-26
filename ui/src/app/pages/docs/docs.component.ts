@@ -46,8 +46,8 @@ interface TocEntry {
                 <li [style.padding-left.rem]="(entry.depth - 1) * 0.75">
                   <a
                     (click)="scrollToFragment(entry.id, $event)"
-                    [attr.href]="'#' + entry.id"
-                    class="block py-1 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate"
+                    href="javascript:void(0)"
+                    class="block py-1 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate cursor-pointer"
                   >
                     {{ entry.text }}
                   </a>
@@ -145,8 +145,8 @@ export class DocsComponent implements OnInit, OnDestroy {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
-      // Update URL fragment without triggering navigation
-      history.replaceState(null, '', this.currentPath() + '#' + id);
+      // Update URL fragment using the actual browser path (unaffected by <base>)
+      history.replaceState(null, '', location.pathname + '#' + id);
     }
   }
 

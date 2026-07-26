@@ -2,6 +2,90 @@
 <xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
   <file source-language="en" datatype="plaintext" original="ng2.template">
     <body>
+      <trans-unit id="route.title.login" datatype="html">
+        <source>Sign In</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">8</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.dashboard" datatype="html">
+        <source>Dashboard</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">20</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.vulnerabilities" datatype="html">
+        <source>Vulnerabilities</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">28</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.vulnerabilityDetail" datatype="html">
+        <source>Vulnerability Detail</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">36</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.ingestJobs" datatype="html">
+        <source>Ingest Jobs</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.ingest" datatype="html">
+        <source>Ingest</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">52</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.status" datatype="html">
+        <source>Status</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">60</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.webhooks" datatype="html">
+        <source>Webhooks</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">68</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.webhookDeliveries" datatype="html">
+        <source>Webhook Deliveries</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">76</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.watchlists" datatype="html">
+        <source>Watchlists</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">84</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.apiKeys" datatype="html">
+        <source>API Keys</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">92</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="route.title.docs" datatype="html">
+        <source>Docs</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/app.routes.ts</context>
+          <context context-type="linenumber">105</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="httpError.networkError" datatype="html">
         <source>Network error — please check your connection.</source>
         <context-group purpose="location">
@@ -388,148 +472,148 @@
         <source>Total Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">39,40</context>
+          <context context-type="linenumber">41,42</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.last7Days" datatype="html">
         <source>Last 7 Days</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">43,44</context>
+          <context context-type="linenumber">45,46</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.last30Days" datatype="html">
         <source>Last 30 Days</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">47,48</context>
+          <context context-type="linenumber">49,50</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.critical" datatype="html">
         <source>Critical</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">51,52</context>
+          <context context-type="linenumber">53,54</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.high" datatype="html">
         <source>High</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">56</context>
+          <context context-type="linenumber">58</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.inKev" datatype="html">
         <source>In KEV</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">59,60</context>
+          <context context-type="linenumber">61,62</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendTitle" datatype="html">
         <source>New Vulnerabilities (Last 30 Days)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">66,67</context>
+          <context context-type="linenumber">68,69</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.severityWorst" datatype="html">
         <source>Severity (Worst Case)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">75,76</context>
+          <context context-type="linenumber">77,78</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.severityBest" datatype="html">
         <source>Severity (Best Case)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">81,82</context>
+          <context context-type="linenumber">83,84</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.topEcosystems" datatype="html">
         <source>Top Ecosystems</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">87,88</context>
+          <context context-type="linenumber">89,90</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.epssDistribution" datatype="html">
         <source>EPSS Score Distribution</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">97,98</context>
+          <context context-type="linenumber">99,100</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.levDistribution" datatype="html">
         <source>LEV Score Distribution</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">103,104</context>
+          <context context-type="linenumber">105,106</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.topEpss" datatype="html">
         <source>Top EPSS Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">114,115</context>
+          <context context-type="linenumber">116,117</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.tableId" datatype="html">
         <source>ID</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">120</context>
+          <context context-type="linenumber">122</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">152</context>
+          <context context-type="linenumber">154</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.tableEpss" datatype="html">
         <source>EPSS</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">120,121</context>
+          <context context-type="linenumber">122,123</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.tableSeverity" datatype="html">
         <source>Severity</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">121,123</context>
+          <context context-type="linenumber">123,125</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">153,155</context>
+          <context context-type="linenumber">155,157</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.topLev" datatype="html">
         <source>Top LEV Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">146,147</context>
+          <context context-type="linenumber">148,149</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.tableLev" datatype="html">
         <source>LEV</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">153</context>
+          <context context-type="linenumber">155</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.chartNewVulns" datatype="html">
         <source>New Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">269</context>
+          <context context-type="linenumber">286</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.chartVulnCount" datatype="html">
         <source>Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">400</context>
+          <context context-type="linenumber">417</context>
         </context-group>
       </trans-unit>
       <trans-unit id="docs.title" datatype="html">

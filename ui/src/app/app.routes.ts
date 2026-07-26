@@ -5,6 +5,7 @@ import { authGuard } from './guards/auth.guard';
 export const routes: Routes = [
   {
     path: 'login',
+    title: $localize`:@@route.title.login:Sign In`,
     loadComponent: () =>
       import('./pages/login/login.component').then((m) => m.LoginComponent),
   },
@@ -16,6 +17,7 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
         path: 'dashboard',
+        title: $localize`:@@route.title.dashboard:Dashboard`,
         loadComponent: () =>
           import('./pages/dashboard/dashboard.component').then(
             (m) => m.DashboardComponent,
@@ -23,6 +25,7 @@ export const routes: Routes = [
       },
       {
         path: 'vulnerabilities',
+        title: $localize`:@@route.title.vulnerabilities:Vulnerabilities`,
         loadComponent: () =>
           import('./pages/vulnerabilities/vulnerabilities.component').then(
             (m) => m.VulnerabilitiesComponent,
@@ -30,6 +33,7 @@ export const routes: Routes = [
       },
       {
         path: 'vulnerabilities/:id',
+        title: $localize`:@@route.title.vulnerabilityDetail:Vulnerability Detail`,
         loadComponent: () =>
           import('./pages/vulnerability-detail/vulnerability-detail.component').then(
             (m) => m.VulnerabilityDetailComponent,
@@ -37,6 +41,7 @@ export const routes: Routes = [
       },
       {
         path: 'ingest/jobs',
+        title: $localize`:@@route.title.ingestJobs:Ingest Jobs`,
         loadComponent: () =>
           import('./pages/ingest-jobs/ingest-jobs.component').then(
             (m) => m.IngestJobsComponent,
@@ -44,6 +49,7 @@ export const routes: Routes = [
       },
       {
         path: 'ingest',
+        title: $localize`:@@route.title.ingest:Ingest`,
         loadComponent: () =>
           import('./pages/ingest/ingest.component').then(
             (m) => m.IngestComponent,
@@ -51,6 +57,7 @@ export const routes: Routes = [
       },
       {
         path: 'status',
+        title: $localize`:@@route.title.status:Status`,
         loadComponent: () =>
           import('./pages/status/status.component').then(
             (m) => m.StatusComponent,
@@ -58,6 +65,7 @@ export const routes: Routes = [
       },
       {
         path: 'webhooks',
+        title: $localize`:@@route.title.webhooks:Webhooks`,
         loadComponent: () =>
           import('./pages/webhooks/webhooks.component').then(
             (m) => m.WebhooksComponent,
@@ -65,6 +73,7 @@ export const routes: Routes = [
       },
       {
         path: 'webhooks/:id/deliveries',
+        title: $localize`:@@route.title.webhookDeliveries:Webhook Deliveries`,
         loadComponent: () =>
           import('./pages/webhooks/webhook-deliveries.component').then(
             (m) => m.WebhookDeliveriesComponent,
@@ -72,6 +81,7 @@ export const routes: Routes = [
       },
       {
         path: 'watchlists',
+        title: $localize`:@@route.title.watchlists:Watchlists`,
         loadComponent: () =>
           import('./pages/watchlists/watchlists.component').then(
             (m) => m.WatchlistsComponent,
@@ -79,6 +89,7 @@ export const routes: Routes = [
       },
       {
         path: 'api-keys',
+        title: $localize`:@@route.title.apiKeys:API Keys`,
         loadComponent: () =>
           import('./pages/api-keys/api-keys.component').then(
             (m) => m.ApiKeysComponent,
@@ -91,6 +102,7 @@ export const routes: Routes = [
       },
       {
         path: 'docs/:slug',
+        title: $localize`:@@route.title.docs:Docs`,
         loadComponent: () =>
           import('./pages/docs/docs.component').then(
             (m) => m.DocsComponent,

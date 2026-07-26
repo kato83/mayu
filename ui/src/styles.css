@@ -10,17 +10,16 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Badge images: Display inline with minimal spacing.
+ * Badge images: Display inline-block with minimal spacing.
  * Applies to shields.io and GitHub Actions badge images rendered via MarkdownPipe.
  */
 .prose img.badge {
-  display: inline;
+  display: inline-block;
   margin: 0;
+  vertical-align: middle;
 }
 
-.prose > p:first-child:has(img.badge) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  align-items: center;
+.prose a:has(> img.badge) {
+  display: inline-block;
+  margin-right: 0.25rem;
 }
