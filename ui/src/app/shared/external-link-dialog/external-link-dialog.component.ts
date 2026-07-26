@@ -10,7 +10,7 @@ import { Component, ElementRef, viewChild, signal } from '@angular/core';
   template: `
     <dialog
       #dialog
-      class="fixed inset-0 m-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl p-0 w-full max-w-md max-h-fit backdrop:bg-black/50"
+      class="fixed inset-0 m-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl p-0 w-[calc(100%-2rem)] max-w-md max-h-fit backdrop:bg-black/50"
       (close)="onClose()"
     >
       <div class="p-6">
