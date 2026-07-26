@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal, DestroyRef } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, DestroyRef, LOCALE_ID } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -46,7 +46,7 @@ interface TocEntry {
                 <li [style.padding-left.rem]="(entry.depth - 1) * 0.75">
                   <a
                     (click)="scrollToFragment(entry.id, $event)"
-                    [href]="currentPath() + '#' + entry.id"
+                    [attr.href]="'#' + entry.id"
                     class="block py-1 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate"
                   >
                     {{ entry.text }}
@@ -82,6 +82,7 @@ export class DocsComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly titleService = inject(Title);
   private readonly markdownPipe = inject(MarkdownPipe);
+  private readonly locale = inject(LOCALE_ID);
 
   readonly documents: DocEntry[] = DOCS_MANIFEST;
 
@@ -221,20 +222,28 @@ export class DocsComponent implements OnInit, OnDestroy {
   /**
    * Rewrite Markdown links pointing to .md / .ja.md files into internal /docs/:slug links.
    * Matches patterns like [text](path/to/file.md) or [text](file.ja.md).
+   *
+   * For cross-locale links (e.g., README.md → README_ja.md or vice versa),
+   * generates absolute paths with the target locale prefix (e.g., /en/docs/readme)
+   * since different locales are served from different base paths in the i18n build.
    */
   private rewriteDocLinks(markdown: string): string {
-    // Build a mapping from filename (without directory prefix and extension) to slug
+    // Build mappings from filename to slug and locale info
     const fileToSlug = new Map<string, string>();
+    const fileToLocale = new Map<string, string>(); // filename → 'en' or 'ja'
     for (const doc of this.documents) {
-      // Extract base name without extension from filename
+      // English filename
       const fname = doc.filename.split('/').pop() || '';
       const baseName = fname.replace(/\.md$/, '');
       fileToSlug.set(baseName.toLowerCase(), doc.slug);
+      fileToLocale.set(baseName.toLowerCase(), 'en');
 
+      // Japanese filename
       if (doc.filenameJa) {
         const fnameJa = doc.filenameJa.split('/').pop() || '';
         const baseNameJa = fnameJa.replace(/\.md$/, '');
         fileToSlug.set(baseNameJa.toLowerCase(), doc.slug);
+        fileToLocale.set(baseNameJa.toLowerCase(), 'ja');
       }
     }
 
@@ -249,7 +258,16 @@ export class DocsComponent implements OnInit, OnDestroy {
         const slug = fileToSlug.get(baseName);
 
         if (slug) {
-          return `[${text}](/docs/${slug})`;
+          const targetLocale = fileToLocale.get(baseName) || 'en';
+
+          if (targetLocale === this.locale) {
+            // Same locale — use relative router link
+            return `[${text}](/docs/${slug})`;
+          } else {
+            // Cross-locale — use absolute path with locale prefix
+            // This triggers a full page navigation to the other locale's app
+            return `[${text}](/${targetLocale}/docs/${slug})`;
+          }
         }
         // If no matching slug found, leave the link unchanged
         return match;
