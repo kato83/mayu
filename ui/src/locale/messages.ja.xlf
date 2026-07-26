@@ -402,6 +402,38 @@
         <source> Based on NIST CSWP 41. LEV estimates the probability of past exploitation using historical EPSS data and KEV status. </source>
         <target>NIST CSWP 41に基づく。LEVは過去のEPSSデータとKEVステータスを使用して、過去に悪用された確率を推定します。</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.eolTitle" datatype="html">
+        <source>Product Lifecycle (endoflife.date)</source>
+        <target>製品ライフサイクル (endoflife.date)</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.eolMatchedVia" datatype="html">
+        <source>Matched via: <x id="INTERPOLATION" equiv-text="{{ eol.matched_identifier }}"/></source>
+        <target>マッチ元: <x id="INTERPOLATION" equiv-text="{{ eol.matched_identifier }}"/></target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.eolRelease" datatype="html">
+        <source>Release</source>
+        <target>リリース</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.eolStatus" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.eolDate" datatype="html">
+        <source>EOL Date</source>
+        <target>EOL日</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.eolLatest" datatype="html">
+        <source>Latest</source>
+        <target>最新版</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.eolStatusEol" datatype="html">
+        <source>EOL</source>
+        <target>サポート終了</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.eolStatusMaintained" datatype="html">
+        <source>Maintained</source>
+        <target>メンテナンス中</target>
+      </trans-unit>
       <trans-unit id="externalLink.title" datatype="html">
         <source>Leaving this site</source>
         <target>外部サイトへ移動します</target>
