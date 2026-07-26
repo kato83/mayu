@@ -15,6 +15,8 @@ package store
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/kato83/mayu/internal/model"
 )
@@ -114,6 +116,21 @@ type Store interface {
 	// GetEPSSHistory returns the full EPSS score history for a vulnerability.
 	// Results are ordered by date ascending.
 	GetEPSSHistory(ctx context.Context, vulnID string) ([]EPSSHistoryEntry, error)
+
+	// UpsertEOLProduct upserts a product from endoflife.date.
+	UpsertEOLProduct(ctx context.Context, product EOLProduct) error
+
+	// UpsertEOLRelease upserts a release cycle from endoflife.date.
+	UpsertEOLRelease(ctx context.Context, release EOLRelease) error
+
+	// UpsertEOLIdentifier upserts a product identifier (purl/cpe) mapping.
+	UpsertEOLIdentifier(ctx context.Context, ident EOLIdentifier) error
+
+	// GetEOLByProduct returns EOL info for a product name.
+	GetEOLByProduct(ctx context.Context, productName string) (*EOLProductDetail, error)
+
+	// GetEOLByIdentifier finds EOL info by a purl or cpe identifier.
+	GetEOLByIdentifier(ctx context.Context, identifierType, identifier string) (*EOLProductDetail, error)
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.
@@ -196,4 +213,67 @@ type EPSSHistoryEntry struct {
 	Date       string  `json:"date"`
 	EPSS       float64 `json:"epss"`
 	Percentile float64 `json:"percentile"`
+}
+
+// EOLProduct represents a product for storage.
+type EOLProduct struct {
+	Name           string
+	Label          string
+	Category       string
+	Tags           []string
+	VersionCommand string
+	LastModifiedAt *time.Time
+}
+
+// EOLRelease represents a release cycle for storage.
+type EOLRelease struct {
+	ProductName       string
+	ReleaseName       string
+	Label             string
+	Codename          sql.NullString
+	ReleaseDate       *time.Time
+	IsLts             *bool
+	LtsFrom           *time.Time
+	IsEoas            *bool
+	EoasFrom          *time.Time
+	IsEol             *bool
+	EolFrom           *time.Time
+	IsEoes            *bool
+	EoesFrom          *time.Time
+	IsMaintained      *bool
+	LatestVersion     string
+	LatestVersionDate *time.Time
+	LatestVersionLink string
+}
+
+// EOLIdentifier represents a product identifier mapping for storage.
+type EOLIdentifier struct {
+	ProductName    string
+	IdentifierType string
+	Identifier     string
+}
+
+// EOLProductDetail is the enriched view of an EOL product with its releases.
+type EOLProductDetail struct {
+	Name           string           `json:"name"`
+	Label          string           `json:"label"`
+	Category       string           `json:"category,omitempty"`
+	Tags           []string         `json:"tags,omitempty"`
+	VersionCommand string           `json:"version_command,omitempty"`
+	Releases       []EOLReleaseInfo `json:"releases,omitempty"`
+}
+
+// EOLReleaseInfo is the API-facing release information.
+type EOLReleaseInfo struct {
+	Name          string `json:"name"`
+	Label         string `json:"label,omitempty"`
+	Codename      string `json:"codename,omitempty"`
+	ReleaseDate   string `json:"release_date,omitempty"`
+	IsLts         *bool  `json:"is_lts,omitempty"`
+	IsEol         *bool  `json:"is_eol,omitempty"`
+	EolFrom       string `json:"eol_from,omitempty"`
+	IsEoas        *bool  `json:"is_eoas,omitempty"`
+	EoasFrom      string `json:"eoas_from,omitempty"`
+	IsMaintained  *bool  `json:"is_maintained,omitempty"`
+	LatestVersion string `json:"latest_version,omitempty"`
 }

@@ -211,6 +211,8 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/vulnerabilities/{id}/epss-history", s.handleGetEPSSHistory)
 		r.Get("/ecosystems", s.handleListEcosystems)
+		r.Get("/eol/{product}", s.handleGetEOLProduct)
+		r.Get("/eol/lookup", s.handleLookupEOL)
 		r.Get("/status", s.handleStatus)
 		r.Get("/version", s.handleVersion)
 	})
@@ -814,4 +816,89 @@ func (s *Server) handleListEcosystems(w http.ResponseWriter, r *http.Request) {
 		ecosystems = []string{}
 	}
 	writeJSON(w, http.StatusOK, map[string][]string{"ecosystems": ecosystems})
+}
+
+// handleGetEOLProduct returns product lifecycle data for a given product name.
+// GET /api/v1/eol/{product}
+func (s *Server) handleGetEOLProduct(w http.ResponseWriter, r *http.Request) {
+	product := chi.URLParam(r, "product")
+	if product == "" {
+		writeError(w, http.StatusBadRequest, "product name is required")
+		return
+	}
+
+	detail, err := s.store.GetEOLByProduct(r.Context(), product)
+	if err != nil {
+		slog.Error("failed to get EOL product", "product", product, "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	if detail == nil {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("product %q not found", product))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, detail)
+}
+
+// handleLookupEOL looks up EOL information by purl or cpe identifier.
+// GET /api/v1/eol/lookup?purl=pkg:npm/@angular/core
+// GET /api/v1/eol/lookup?cpe=cpe:2.3:a:angular:angular
+func (s *Server) handleLookupEOL(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	purl := q.Get("purl")
+	cpe := q.Get("cpe")
+
+	if purl == "" && cpe == "" {
+		writeError(w, http.StatusBadRequest, "purl or cpe query parameter is required")
+		return
+	}
+
+	var identType, identifier string
+	if purl != "" {
+		identType = "purl"
+		identifier = purl
+	} else {
+		identType = "cpe"
+		identifier = cpe
+	}
+
+	detail, err := s.store.GetEOLByIdentifier(r.Context(), identType, identifier)
+	if err != nil {
+		slog.Error("failed to lookup EOL", "type", identType, "identifier", identifier, "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	// If not found, try URL-encoded version (endoflife.date stores some identifiers URL-encoded)
+	if detail == nil && identType == "purl" {
+		encoded := url.PathEscape(identifier)
+		if encoded != identifier {
+			detail, err = s.store.GetEOLByIdentifier(r.Context(), identType, encoded)
+			if err != nil {
+				slog.Error("failed to lookup EOL (encoded)", "type", identType, "identifier", encoded, "error", err)
+				writeError(w, http.StatusInternalServerError, "internal server error")
+				return
+			}
+		}
+		// Also try with @ → %40 specifically (common in purl)
+		if detail == nil {
+			encodedAt := strings.ReplaceAll(identifier, "@", "%40")
+			if encodedAt != identifier {
+				detail, err = s.store.GetEOLByIdentifier(r.Context(), identType, encodedAt)
+				if err != nil {
+					slog.Error("failed to lookup EOL (%40)", "type", identType, "identifier", encodedAt, "error", err)
+					writeError(w, http.StatusInternalServerError, "internal server error")
+					return
+				}
+			}
+		}
+	}
+
+	if detail == nil {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("no EOL data found for %s=%s", identType, identifier))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, detail)
 }

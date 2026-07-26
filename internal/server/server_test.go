@@ -112,6 +112,21 @@ func (m *mockStore) GetEPSSCoverage(ctx context.Context) (*store.EPSSCoverage, e
 func (m *mockStore) GetEPSSHistory(ctx context.Context, vulnID string) ([]store.EPSSHistoryEntry, error) {
 	return nil, nil
 }
+func (m *mockStore) UpsertEOLProduct(ctx context.Context, product store.EOLProduct) error {
+	return nil
+}
+func (m *mockStore) UpsertEOLRelease(ctx context.Context, release store.EOLRelease) error {
+	return nil
+}
+func (m *mockStore) UpsertEOLIdentifier(ctx context.Context, ident store.EOLIdentifier) error {
+	return nil
+}
+func (m *mockStore) GetEOLByProduct(ctx context.Context, productName string) (*store.EOLProductDetail, error) {
+	return nil, nil
+}
+func (m *mockStore) GetEOLByIdentifier(ctx context.Context, identifierType, identifier string) (*store.EOLProductDetail, error) {
+	return nil, nil
+}
 
 // newTestServer creates a Server with the given mock store for testing.
 // By default it uses NoAuthProvider so existing tests don't need auth.

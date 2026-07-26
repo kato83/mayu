@@ -26,7 +26,7 @@ func runIngest(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("ingest", flag.ExitOnError)
 
 	ecosystem := fs.String("ecosystem", "", "Ecosystem to import (e.g., Go, PyPI, npm)")
-	source := fs.String("source", "", "Import from source (nvd, debian, mitre, epss, kev, ghsa)")
+	source := fs.String("source", "", "Import from source (nvd, debian, mitre, epss, kev, eol, ghsa)")
 	all := fs.Bool("all", false, "Import all ecosystems")
 	update := fs.Bool("update", false, "Perform delta update instead of full import")
 	backfill := fs.Bool("backfill", false, "Backfill historical data (with --source epss)")
@@ -324,6 +324,20 @@ func runIngest(args []string, cfg *config.Config) error {
 			return nil
 		}
 
+		// endoflife.date import
+		if strings.ToLower(*source) == "eol" {
+			fmt.Println("\n=== Importing endoflife.date product lifecycle data ===")
+			err := ingest.ImportEOL(ctx, s, *update)
+			if err != nil {
+				if ctx.Err() != nil {
+					fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+					return nil
+				}
+				return fmt.Errorf("EOL import: %w", err)
+			}
+			return nil
+		}
+
 		// GitHub repository security advisories import
 		if strings.ToLower(*source) == "ghsa" {
 			if *ghsaRepo == "" {
@@ -458,7 +472,7 @@ func runIngest(args []string, cfg *config.Config) error {
 		// Existing converted source logic
 		src := ingest.GetConvertedSource(*source)
 		if src == nil {
-			return fmt.Errorf("unknown source: %q (supported: nvd, debian, mitre, epss, kev, ghsa)", *source)
+			return fmt.Errorf("unknown source: %q (supported: nvd, debian, mitre, epss, kev, eol, ghsa)", *source)
 		}
 		fmt.Printf("\n=== Importing %s (converted source: gs://%s/%s) ===\n", src.Name, src.Bucket, src.Prefix)
 		stats, err := ing.ImportConvertedSource(ctx, *src)
