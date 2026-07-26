@@ -56,6 +56,9 @@ type VulnerabilityDetail struct {
 	// LEV (Likely Exploited Vulnerabilities) computed score
 	// Based on NIST CSWP 41: probability of past exploitation
 	LEV *LEVDetail `json:"lev,omitempty"`
+
+	// EOL enrichment: lifecycle status of affected products
+	EOL []EOLEnrichment `json:"eol,omitempty"`
 }
 
 // EPSSDetail contains EPSS enrichment data for a vulnerability.
@@ -319,4 +322,52 @@ type SSVCDetail struct {
 type SSVCOption struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+}
+
+// EOLEnrichment contains lifecycle status for an affected product/package.
+type EOLEnrichment struct {
+	// ProductName is the endoflife.date product identifier (e.g., "nodejs", "angular")
+	ProductName string `json:"product_name"`
+
+	// ProductLabel is the human-readable product name (e.g., "Node.js", "Angular")
+	ProductLabel string `json:"product_label"`
+
+	// Category is the product category (e.g., "framework", "lang", "os")
+	Category string `json:"category,omitempty"`
+
+	// MatchedIdentifier is the purl/cpe that matched this product to the vulnerability
+	MatchedIdentifier string `json:"matched_identifier"`
+
+	// MatchedPackage is the package name from the vulnerability's affected list
+	MatchedPackage string `json:"matched_package,omitempty"`
+
+	// LatestRelease is the most recent release cycle information
+	LatestRelease *EOLReleaseStatus `json:"latest_release,omitempty"`
+
+	// AllReleases lists all release cycles with their EOL status
+	AllReleases []EOLReleaseStatus `json:"all_releases,omitempty"`
+}
+
+// EOLReleaseStatus represents the lifecycle status of a single release cycle.
+type EOLReleaseStatus struct {
+	// Name is the release cycle name (e.g., "22", "3.12")
+	Name string `json:"name"`
+
+	// Label is the human-readable release label (e.g., "22 (LTS)")
+	Label string `json:"label,omitempty"`
+
+	// IsEol indicates whether this release has reached end of life
+	IsEol *bool `json:"is_eol,omitempty"`
+
+	// EolFrom is the date when EOL status begins (YYYY-MM-DD)
+	EolFrom string `json:"eol_from,omitempty"`
+
+	// IsMaintained indicates whether this release is currently maintained
+	IsMaintained *bool `json:"is_maintained,omitempty"`
+
+	// IsLts indicates whether this is an LTS release
+	IsLts *bool `json:"is_lts,omitempty"`
+
+	// LatestVersion is the latest patch version in this cycle
+	LatestVersion string `json:"latest_version,omitempty"`
 }

@@ -97,6 +97,15 @@ func (s *PostgresStore) GetVulnerabilityDetail(ctx context.Context, id string) (
 		}
 	}
 
+	// Step 9: Enrich with EOL (end-of-life) data from endoflife.date
+	eolEnrichment, err := s.fetchEOLEnrichment(ctx, vulnID)
+	if err != nil {
+		// Non-fatal: log and continue without EOL data
+		_ = err
+	} else if len(eolEnrichment) > 0 {
+		detail.EOL = eolEnrichment
+	}
+
 	return detail, nil
 }
 
@@ -788,6 +797,114 @@ func (s *PostgresStore) fetchMITREReferences(ctx context.Context, containerIDs [
 		refs = append(refs, r)
 	}
 	return refs, rows.Err()
+}
+
+// fetchEOLEnrichment retrieves end-of-life information for affected packages of a vulnerability.
+// It matches product_identifiers (purl) against eol_identifiers to find relevant EOL products,
+// then fetches their release cycles with maintenance/EOL status.
+func (s *PostgresStore) fetchEOLEnrichment(ctx context.Context, vulnID string) ([]model.EOLEnrichment, error) {
+	// Query: match vulnerability's packages to EOL products via purl identifiers
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT DISTINCT ON (ep.name)
+			ep.name, ep.label, ep.category,
+			ei.identifier, pi.name as pkg_name
+		FROM product_identifiers pi
+		JOIN eol_identifiers ei ON ei.identifier_type = 'purl'
+			AND ei.identifier = 'pkg:' || pi.purl_type || '/' || COALESCE(pi.purl_namespace || '/', '') || pi.purl_name
+		JOIN eol_products ep ON ep.name = ei.product_name
+		WHERE pi.vulnerability_id = $1 AND pi.purl_type IS NOT NULL`, vulnID)
+	if err != nil {
+		return nil, fmt.Errorf("query eol enrichment: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	type eolMatch struct {
+		productName       string
+		productLabel      string
+		category          string
+		matchedIdentifier string
+		matchedPackage    string
+	}
+	var matches []eolMatch
+	for rows.Next() {
+		var m eolMatch
+		var category, pkgName sql.NullString
+		if err := rows.Scan(&m.productName, &m.productLabel, &category, &m.matchedIdentifier, &pkgName); err != nil {
+			return nil, fmt.Errorf("scan eol match: %w", err)
+		}
+		m.category = category.String
+		m.matchedPackage = pkgName.String
+		matches = append(matches, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(matches) == 0 {
+		return nil, nil
+	}
+
+	// For each matched product, fetch release cycles
+	var enrichments []model.EOLEnrichment
+	for _, m := range matches {
+		releases, err := s.fetchEOLReleasesForEnrichment(ctx, m.productName)
+		if err != nil {
+			continue
+		}
+
+		e := model.EOLEnrichment{
+			ProductName:       m.productName,
+			ProductLabel:      m.productLabel,
+			Category:          m.category,
+			MatchedIdentifier: m.matchedIdentifier,
+			MatchedPackage:    m.matchedPackage,
+			AllReleases:       releases,
+		}
+		if len(releases) > 0 {
+			e.LatestRelease = &releases[0]
+		}
+		enrichments = append(enrichments, e)
+	}
+
+	return enrichments, nil
+}
+
+// fetchEOLReleasesForEnrichment returns release status info for a product (latest 5 releases).
+func (s *PostgresStore) fetchEOLReleasesForEnrichment(ctx context.Context, productName string) ([]model.EOLReleaseStatus, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT release_name, label, is_eol, eol_from::text, is_maintained, is_lts, latest_version
+		FROM eol_releases
+		WHERE product_name = $1
+		ORDER BY release_date DESC NULLS LAST
+		LIMIT 5`, productName)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var releases []model.EOLReleaseStatus
+	for rows.Next() {
+		var r model.EOLReleaseStatus
+		var label, eolFrom, latestVersion sql.NullString
+		var isEol, isMaintained, isLts sql.NullBool
+		if err := rows.Scan(&r.Name, &label, &isEol, &eolFrom, &isMaintained, &isLts, &latestVersion); err != nil {
+			return nil, err
+		}
+		r.Label = label.String
+		if isEol.Valid {
+			r.IsEol = &isEol.Bool
+		}
+		r.EolFrom = eolFrom.String
+		if isMaintained.Valid {
+			r.IsMaintained = &isMaintained.Bool
+		}
+		if isLts.Valid {
+			r.IsLts = &isLts.Bool
+		}
+		r.LatestVersion = latestVersion.String
+		releases = append(releases, r)
+	}
+	return releases, rows.Err()
 }
 
 // fetchEPSSDetail retrieves the latest EPSS score for a vulnerability.
