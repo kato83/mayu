@@ -112,6 +112,54 @@ translation:
 | `temperature` | float | `0.3` | Randomness control (0.0–2.0) |
 | `timeout` | int | `120` | HTTP request timeout in seconds |
 | `system_prompt` | string | *(built-in)* | Override the default translation system prompt |
+| `chunking.enabled` | bool | `false` | Enable text chunking for small models |
+| `chunking.strategy` | string | `"auto"` | Chunking strategy: `auto`, `sentence`, or `markdown` |
+| `chunking.max_chars` | int | `500` | Target maximum characters per chunk |
+
+## Chunking (for Small/Local Models)
+
+Small or local LLMs (e.g., models under 1B parameters) may time out or produce poor translations on long texts. The chunking feature splits input into smaller pieces before sending to the LLM.
+
+### Configuration
+
+```yaml
+translation:
+  enabled: true
+  provider: ollama
+  endpoint: http://192.168.1.100:11434/v1
+  model: "hf.co/LiquidAI/LFM2-350M-ENJP-MT-GGUF:Q4_K_M"
+  timeout: 120
+  chunking:
+    enabled: true
+    strategy: auto     # auto | sentence | markdown
+    max_chars: 500     # target max characters per chunk
+```
+
+### Strategies
+
+| Strategy | Behavior |
+|----------|----------|
+| `auto` (default) | Detects if text is markdown (headings, code blocks, lists, etc.) and uses markdown splitting; otherwise falls back to sentence splitting |
+| `sentence` | Always splits on sentence boundaries (`. ` followed by uppercase, paragraph breaks) |
+| `markdown` | Always parses as markdown — splits on block boundaries (paragraphs, headings, list groups); fenced code blocks are preserved untranslated |
+
+### How It Works
+
+1. Input text is split into chunks based on the chosen strategy
+2. Code blocks (` ``` `) are marked as non-translatable and passed through unchanged
+3. Each translatable chunk is sent to the LLM individually (shorter input = faster response, less chance of timeout)
+4. Translated chunks are reassembled in order, preserving the original document structure
+
+### When to Use
+
+- Your model times out on long vulnerability descriptions (details fields can be 2000+ characters)
+- You're using a small model (< 1B parameters) that produces degraded output on long inputs
+- You want to reduce per-request latency even at the cost of more API calls
+
+> [!NOTE]
+> Chunking increases the total number of LLM API calls (one per chunk instead of one per field).
+> For cloud-hosted APIs with per-request pricing, this may increase costs. For local models, it
+> trades total throughput for per-chunk reliability.
 
 ## API Endpoint
 

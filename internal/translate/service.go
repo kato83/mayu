@@ -73,12 +73,29 @@ type OSVEntryTranslationResult struct {
 
 // Service orchestrates translating vulnerability text fields using an LLM client.
 type Service struct {
-	client *Client
+	client  *Client
+	chunker *Chunker // nil if chunking is disabled
 }
 
 // NewService creates a new translation service.
 func NewService(client *Client) *Service {
 	return &Service{client: client}
+}
+
+// NewServiceWithChunking creates a new translation service with chunking enabled.
+func NewServiceWithChunking(client *Client, chunker *Chunker) *Service {
+	return &Service{client: client, chunker: chunker}
+}
+
+// translate is a helper that uses chunked or direct translation depending on configuration.
+func (s *Service) translate(ctx context.Context, text, targetLocale string) (string, error) {
+	if text == "" {
+		return "", nil
+	}
+	if s.chunker != nil {
+		return s.client.TranslateChunked(ctx, text, targetLocale, s.chunker)
+	}
+	return s.client.Translate(ctx, text, targetLocale)
 }
 
 // TranslateVulnerability translates all non-empty text fields of a vulnerability
@@ -97,7 +114,7 @@ func (s *Service) TranslateVulnerability(ctx context.Context, texts Vulnerabilit
 
 	// Translate vulnerability summary
 	if texts.Summary != "" {
-		translated, err := s.client.Translate(ctx, texts.Summary, targetLocale)
+		translated, err := s.translate(ctx, texts.Summary, targetLocale)
 		if err != nil {
 			return nil, fmt.Errorf("translate summary: %w", err)
 		}
@@ -106,7 +123,7 @@ func (s *Service) TranslateVulnerability(ctx context.Context, texts Vulnerabilit
 
 	// Translate vulnerability details
 	if texts.Details != "" {
-		translated, err := s.client.Translate(ctx, texts.Details, targetLocale)
+		translated, err := s.translate(ctx, texts.Details, targetLocale)
 		if err != nil {
 			return nil, fmt.Errorf("translate details: %w", err)
 		}
@@ -115,7 +132,7 @@ func (s *Service) TranslateVulnerability(ctx context.Context, texts Vulnerabilit
 
 	// Translate NVD description
 	if texts.NVDDescription != "" {
-		translated, err := s.client.Translate(ctx, texts.NVDDescription, targetLocale)
+		translated, err := s.translate(ctx, texts.NVDDescription, targetLocale)
 		if err != nil {
 			return nil, fmt.Errorf("translate NVD description: %w", err)
 		}
@@ -125,9 +142,24 @@ func (s *Service) TranslateVulnerability(ctx context.Context, texts Vulnerabilit
 	// Translate KEV fields (batch them together if all present)
 	if texts.KEVVulnerabilityName != "" || texts.KEVShortDescription != "" || texts.KEVRequiredAction != "" || texts.KEVNotes != "" {
 		kevTexts := []string{texts.KEVVulnerabilityName, texts.KEVShortDescription, texts.KEVRequiredAction, texts.KEVNotes}
-		translations, err := s.client.TranslateBatch(ctx, kevTexts, targetLocale)
-		if err != nil {
-			return nil, fmt.Errorf("translate KEV fields: %w", err)
+		var translations []string
+		var err error
+		if s.chunker != nil {
+			translations = make([]string, len(kevTexts))
+			for i, t := range kevTexts {
+				if t == "" {
+					continue
+				}
+				translations[i], err = s.translate(ctx, t, targetLocale)
+				if err != nil {
+					return nil, fmt.Errorf("translate KEV field %d: %w", i, err)
+				}
+			}
+		} else {
+			translations, err = s.client.TranslateBatch(ctx, kevTexts, targetLocale)
+			if err != nil {
+				return nil, fmt.Errorf("translate KEV fields: %w", err)
+			}
 		}
 		result.KEVVulnName = translations[0]
 		result.KEVShortDesc = translations[1]
@@ -141,7 +173,7 @@ func (s *Service) TranslateVulnerability(ctx context.Context, texts Vulnerabilit
 		entryResult.OsvID = entry.OsvID
 
 		if entry.Summary != "" {
-			translated, err := s.client.Translate(ctx, entry.Summary, targetLocale)
+			translated, err := s.translate(ctx, entry.Summary, targetLocale)
 			if err != nil {
 				return nil, fmt.Errorf("translate OSV entry %s summary: %w", entry.OsvID, err)
 			}
@@ -149,7 +181,7 @@ func (s *Service) TranslateVulnerability(ctx context.Context, texts Vulnerabilit
 		}
 
 		if entry.Details != "" {
-			translated, err := s.client.Translate(ctx, entry.Details, targetLocale)
+			translated, err := s.translate(ctx, entry.Details, targetLocale)
 			if err != nil {
 				return nil, fmt.Errorf("translate OSV entry %s details: %w", entry.OsvID, err)
 			}

@@ -95,6 +95,27 @@ type TranslationConfig struct {
 	// SystemPrompt allows overriding the default translation system prompt.
 	// If empty, a built-in prompt optimized for vulnerability text translation is used.
 	SystemPrompt string `yaml:"system_prompt"`
+
+	// Chunking configures text splitting for small models that struggle with long inputs.
+	// When enabled, texts are split into smaller chunks before being sent to the LLM.
+	Chunking ChunkingConfig `yaml:"chunking"`
+}
+
+// ChunkingConfig controls how translation input texts are split into smaller pieces.
+// This is useful for small/local models that time out or produce poor results on long texts.
+type ChunkingConfig struct {
+	// Enabled controls whether chunking is active. Default: false.
+	Enabled bool `yaml:"enabled"`
+
+	// Strategy determines how text is split into chunks.
+	// "auto" (default): detect markdown and use markdown splitting, otherwise sentence splitting.
+	// "sentence": always split on sentence boundaries (period + space/newline).
+	// "markdown": always parse as markdown and split on block boundaries.
+	Strategy string `yaml:"strategy"`
+
+	// MaxChars is the target maximum character count per chunk (default: 500).
+	// Chunks may exceed this slightly to avoid splitting mid-sentence.
+	MaxChars int `yaml:"max_chars"`
 }
 
 // Config represents the mayu configuration file structure.

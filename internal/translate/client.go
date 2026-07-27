@@ -223,6 +223,45 @@ func (c *Client) TranslateBatch(ctx context.Context, texts []string, targetLocal
 	return results, nil
 }
 
+// TranslateChunked translates text by splitting it into chunks using the provided Chunker,
+// translating each translatable chunk individually, and reassembling the result.
+// This is designed for small/local models that struggle with long inputs.
+func (c *Client) TranslateChunked(ctx context.Context, text, targetLocale string, chunker *Chunker) (string, error) {
+	if text == "" {
+		return "", nil
+	}
+
+	chunks := chunker.Split(text)
+	if len(chunks) == 0 {
+		return "", nil
+	}
+
+	// If only one translatable chunk, just translate directly
+	translatableCount := 0
+	for i := range chunks {
+		if chunks[i].Translatable {
+			translatableCount++
+		}
+	}
+	if translatableCount <= 1 && len(text) <= chunker.maxChars {
+		return c.Translate(ctx, text, targetLocale)
+	}
+
+	// Translate each chunk individually
+	for i := range chunks {
+		if !chunks[i].Translatable {
+			continue
+		}
+		translated, err := c.Translate(ctx, chunks[i].Text, targetLocale)
+		if err != nil {
+			return "", fmt.Errorf("translate chunk %d: %w", i, err)
+		}
+		chunks[i].Text = translated
+	}
+
+	return Join(chunks), nil
+}
+
 // localeToLanguageName converts a BCP 47 locale tag to a human-readable language name
 // for use in prompts. This helps the LLM understand the target language clearly.
 func localeToLanguageName(locale string) string {

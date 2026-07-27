@@ -119,8 +119,19 @@ func runServe(args []string, cfg *config.Config) error {
 		if err != nil {
 			return fmt.Errorf("initialize translation client: %w", err)
 		}
-		translateService = translate.NewService(client)
-		slog.Info("translation service enabled", "provider", cfg.Translation.Provider, "model", cfg.Translation.Model)
+		if cfg.Translation.Chunking.Enabled {
+			chunker := translate.NewChunker(cfg.Translation.Chunking.Strategy, cfg.Translation.Chunking.MaxChars)
+			translateService = translate.NewServiceWithChunking(client, chunker)
+			slog.Info("translation service enabled with chunking",
+				"provider", cfg.Translation.Provider,
+				"model", cfg.Translation.Model,
+				"strategy", cfg.Translation.Chunking.Strategy,
+				"max_chars", cfg.Translation.Chunking.MaxChars,
+			)
+		} else {
+			translateService = translate.NewService(client)
+			slog.Info("translation service enabled", "provider", cfg.Translation.Provider, "model", cfg.Translation.Model)
+		}
 	}
 
 	// Create and start server
