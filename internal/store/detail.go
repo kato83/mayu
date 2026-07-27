@@ -187,7 +187,7 @@ func (s *PostgresStore) buildBaseDetail(ctx context.Context, vulnID string) (*mo
 
 	// Try to enrich from OSV raw_json (gets severity, affected, references, credits)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT osv_id, raw_json FROM osv_entries WHERE vulnerability_id = $1 ORDER BY osv_id`,
+		`SELECT osv_id, raw_json, COALESCE(summary, ''), COALESCE(details, '') FROM osv_entries WHERE vulnerability_id = $1 ORDER BY osv_id`,
 		vulnID)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("query osv_entries: %w", err)
@@ -198,7 +198,8 @@ func (s *PostgresStore) buildBaseDetail(ctx context.Context, vulnID string) (*mo
 		for rows.Next() {
 			var osvID string
 			var rawJSON []byte
-			if err := rows.Scan(&osvID, &rawJSON); err != nil {
+			var entrySummary, entryDetails string
+			if err := rows.Scan(&osvID, &rawJSON, &entrySummary, &entryDetails); err != nil {
 				return nil, fmt.Errorf("scan osv_entry: %w", err)
 			}
 			if rawJSON == nil {
@@ -206,14 +207,22 @@ func (s *PostgresStore) buildBaseDetail(ctx context.Context, vulnID string) (*mo
 			}
 
 			entry := model.OSVEntryDetail{
-				OsvID:  osvID,
+				OsvID:   osvID,
+				Summary: entrySummary,
+				Details: entryDetails,
 				RawJSON: rawJSON,
 			}
 
 			vuln, parseErr := model.ParseVulnerability(rawJSON)
 			if parseErr == nil {
 				entry.Severity = vuln.Severity
-				entry.Details = vuln.Details
+				// Use column values if available, otherwise fall back to raw_json
+				if entry.Details == "" {
+					entry.Details = vuln.Details
+				}
+				if entry.Summary == "" {
+					entry.Summary = vuln.Summary
+				}
 				entry.Affected = vuln.Affected
 				entry.References = vuln.References
 				entry.Credits = vuln.Credits

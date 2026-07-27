@@ -17,6 +17,9 @@ type OSVEntryDetail struct {
 	// Severity contains severity/CVSS information specific to this OSV entry.
 	Severity []Severity `json:"severity,omitempty"`
 
+	// Summary is the one-line summary from this OSV entry.
+	Summary string `json:"summary,omitempty"`
+
 	// Details is the detailed description from this OSV entry.
 	Details string `json:"details,omitempty"`
 
@@ -31,6 +34,10 @@ type OSVEntryDetail struct {
 
 	// RawJSON is the original OSV JSON for this entry.
 	RawJSON json.RawMessage `json:"raw_json,omitempty"`
+
+	// Translations contains translations for this OSV entry's text fields
+	// when a non-English locale is requested via the Accept-Language header.
+	Translations []OSVEntryTranslation `json:"translations,omitempty"`
 }
 
 // VulnerabilityDetail is an enriched view of a vulnerability that combines
@@ -323,7 +330,7 @@ type MITREProblemTypeDetail struct {
 	CWEID        string                        `json:"cwe_id,omitempty"`
 	Description  string                        `json:"description"`
 	Lang         string                        `json:"lang,omitempty"`
-	Translations []MITREProblemTypeTranslation  `json:"translations,omitempty"`
+	Translations []MITREProblemTypeTranslation `json:"translations,omitempty"`
 }
 
 // MITRECreditDetail represents a credit entry from MITRE.

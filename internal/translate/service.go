@@ -38,19 +38,37 @@ type VulnerabilityTexts struct {
 
 	// KEVNotes is the KEV notes field.
 	KEVNotes string
+
+	// OSVEntries holds translatable texts for each OSV entry.
+	OSVEntries []OSVEntryTexts
+}
+
+// OSVEntryTexts holds translatable text fields for a single OSV entry.
+type OSVEntryTexts struct {
+	OsvID   string
+	Summary string
+	Details string
 }
 
 // TranslationResult holds all translated texts for a vulnerability.
 type TranslationResult struct {
-	Locale          string
-	TranslatedAt    time.Time
-	Summary         string
-	Details         string
-	NVDDescription  string
-	KEVVulnName     string
-	KEVShortDesc    string
-	KEVReqAction    string
-	KEVNotes        string
+	Locale         string
+	TranslatedAt   time.Time
+	Summary        string
+	Details        string
+	NVDDescription string
+	KEVVulnName    string
+	KEVShortDesc   string
+	KEVReqAction   string
+	KEVNotes       string
+	OSVEntries     []OSVEntryTranslationResult
+}
+
+// OSVEntryTranslationResult holds translated texts for a single OSV entry.
+type OSVEntryTranslationResult struct {
+	OsvID   string
+	Summary string
+	Details string
 }
 
 // Service orchestrates translating vulnerability text fields using an LLM client.
@@ -117,6 +135,32 @@ func (s *Service) TranslateVulnerability(ctx context.Context, texts Vulnerabilit
 		result.KEVNotes = translations[3]
 	}
 
+	// Translate OSV entry texts
+	for _, entry := range texts.OSVEntries {
+		var entryResult OSVEntryTranslationResult
+		entryResult.OsvID = entry.OsvID
+
+		if entry.Summary != "" {
+			translated, err := s.client.Translate(ctx, entry.Summary, targetLocale)
+			if err != nil {
+				return nil, fmt.Errorf("translate OSV entry %s summary: %w", entry.OsvID, err)
+			}
+			entryResult.Summary = translated
+		}
+
+		if entry.Details != "" {
+			translated, err := s.client.Translate(ctx, entry.Details, targetLocale)
+			if err != nil {
+				return nil, fmt.Errorf("translate OSV entry %s details: %w", entry.OsvID, err)
+			}
+			entryResult.Details = translated
+		}
+
+		if entryResult.Summary != "" || entryResult.Details != "" {
+			result.OSVEntries = append(result.OSVEntries, entryResult)
+		}
+	}
+
 	slog.Info("translation complete",
 		"id", texts.VulnerabilityID,
 		"locale", targetLocale,
@@ -148,6 +192,14 @@ func countNonEmpty(r *TranslationResult) int {
 	}
 	if r.KEVNotes != "" {
 		count++
+	}
+	for _, entry := range r.OSVEntries {
+		if entry.Summary != "" {
+			count++
+		}
+		if entry.Details != "" {
+			count++
+		}
 	}
 	return count
 }

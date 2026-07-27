@@ -166,6 +166,9 @@ type Store interface {
 	// SaveNVDDescriptionTranslation upserts a translation for an NVD description.
 	SaveNVDDescriptionTranslation(ctx context.Context, nvdDescID int64, locale, value string, translatedAt time.Time) error
 
+	// SaveOSVEntryTranslation upserts a translation for an OSV entry's summary/details.
+	SaveOSVEntryTranslation(ctx context.Context, osvEntryID, locale, summary, details string, translatedAt time.Time) error
+
 	// CreateTranslationJob records a new translation job and returns the auto-generated ID.
 	CreateTranslationJob(ctx context.Context, job *TranslationJob) (int64, error)
 

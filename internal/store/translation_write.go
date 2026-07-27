@@ -93,6 +93,31 @@ func (s *PostgresStore) GetTranslatableTexts(ctx context.Context, vulnID string)
 		return nil, fmt.Errorf("query KEV entry: %w", err)
 	}
 
+	// Get OSV entries with their summary/details
+	osvRows, err := s.db.QueryContext(ctx,
+		`SELECT osv_id, COALESCE(summary, ''), COALESCE(details, '')
+		 FROM osv_entries WHERE vulnerability_id = $1 ORDER BY osv_id`,
+		vulnID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("query OSV entries: %w", err)
+	}
+	if err == nil {
+		defer func() { _ = osvRows.Close() }()
+		for osvRows.Next() {
+			var entry OSVEntryTexts
+			if err := osvRows.Scan(&entry.OsvID, &entry.Summary, &entry.Details); err != nil {
+				return nil, fmt.Errorf("scan OSV entry: %w", err)
+			}
+			// Only include entries that have translatable text
+			if entry.Summary != "" || entry.Details != "" {
+				result.OSVEntries = append(result.OSVEntries, entry)
+			}
+		}
+		if err := osvRows.Err(); err != nil {
+			return nil, fmt.Errorf("iterate OSV entries: %w", err)
+		}
+	}
+
 	return result, nil
 }
 
@@ -108,4 +133,28 @@ type TranslatableTexts struct {
 	KEVShortDescription  string
 	KEVRequiredAction    string
 	KEVNotes             string
+	OSVEntries           []OSVEntryTexts
+}
+
+// OSVEntryTexts holds translatable texts for a single OSV entry.
+type OSVEntryTexts struct {
+	OsvID   string
+	Summary string
+	Details string
+}
+
+// SaveOSVEntryTranslation upserts a translation for an OSV entry's summary/details.
+func (s *PostgresStore) SaveOSVEntryTranslation(ctx context.Context, osvEntryID, locale, summary, details string, translatedAt time.Time) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO osv_entries_translation (osv_entry_id, locale, summary, details, translated_at)
+		 VALUES ($1, $2, $3, $4, $5)
+		 ON CONFLICT (osv_entry_id, locale) DO UPDATE SET
+		   summary = EXCLUDED.summary,
+		   details = EXCLUDED.details,
+		   translated_at = EXCLUDED.translated_at`,
+		osvEntryID, locale, nullIfEmpty(summary), nullIfEmpty(details), translatedAt)
+	if err != nil {
+		return fmt.Errorf("upsert osv_entries_translation: %w", err)
+	}
+	return nil
 }

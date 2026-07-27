@@ -162,6 +162,9 @@ func (m *mockStore) SaveKEVTranslation(ctx context.Context, kevEntryID int64, lo
 func (m *mockStore) SaveNVDDescriptionTranslation(ctx context.Context, nvdDescID int64, locale, value string, translatedAt time.Time) error {
 	return nil
 }
+func (m *mockStore) SaveOSVEntryTranslation(ctx context.Context, osvEntryID, locale, summary, details string, translatedAt time.Time) error {
+	return nil
+}
 func (m *mockStore) CreateTranslationJob(ctx context.Context, job *store.TranslationJob) (int64, error) {
 	return 1, nil
 }

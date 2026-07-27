@@ -158,6 +158,15 @@ func (s *Server) runTranslationJob(job *store.TranslationJob) {
 		KEVNotes:             texts.KEVNotes,
 	}
 
+	// Add OSV entry texts
+	for _, entry := range texts.OSVEntries {
+		translationTexts.OSVEntries = append(translationTexts.OSVEntries, translate.OSVEntryTexts{
+			OsvID:   entry.OsvID,
+			Summary: entry.Summary,
+			Details: entry.Details,
+		})
+	}
+
 	result, err := s.translateService.TranslateVulnerability(ctx, translationTexts, job.Locale)
 	if err != nil {
 		s.failTranslationJob(ctx, job, fmt.Sprintf("LLM translation failed: %v", err))
@@ -207,6 +216,22 @@ func (s *Server) runTranslationJob(job *store.TranslationJob) {
 		}
 		if result.KEVNotes != "" {
 			fieldsTranslated++
+		}
+	}
+
+	// Save OSV entry translations
+	for _, osvResult := range result.OSVEntries {
+		if osvResult.Summary != "" || osvResult.Details != "" {
+			if err := s.store.SaveOSVEntryTranslation(ctx, osvResult.OsvID, job.Locale, osvResult.Summary, osvResult.Details, result.TranslatedAt); err != nil {
+				s.failTranslationJob(ctx, job, fmt.Sprintf("failed to save OSV entry translation for %s: %v", osvResult.OsvID, err))
+				return
+			}
+			if osvResult.Summary != "" {
+				fieldsTranslated++
+			}
+			if osvResult.Details != "" {
+				fieldsTranslated++
+			}
 		}
 	}
 

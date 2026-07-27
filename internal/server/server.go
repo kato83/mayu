@@ -24,8 +24,8 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/fetcher"
-	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/i18n"
+	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
@@ -219,7 +219,7 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/vulnerabilities/{id}/epss-history", s.handleGetEPSSHistory)
-		r.With(middleware.Timeout(30 * time.Second)).Post("/vulnerabilities/{id}/translate", s.handleTranslateVulnerability)
+		r.With(middleware.Timeout(30*time.Second)).Post("/vulnerabilities/{id}/translate", s.handleTranslateVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
 		r.Get("/eol/{product}", s.handleGetEOLProduct)
 		r.Get("/eol/lookup", s.handleLookupEOL)
@@ -601,6 +601,14 @@ func (s *Server) handleGetVulnerability(w http.ResponseWriter, r *http.Request) 
 					for idx := range detail.MITRE.Credits {
 						if idx < len(translations.MITRECredits) {
 							detail.MITRE.Credits[idx].Translations = translations.MITRECredits[idx]
+						}
+					}
+				}
+				// Attach OSV entry translations by osv_id
+				if translations.OSVEntries != nil {
+					for idx := range detail.OsvEntries {
+						if t, ok := translations.OSVEntries[detail.OsvEntries[idx].OsvID]; ok {
+							detail.OsvEntries[idx].Translations = t
 						}
 					}
 				}

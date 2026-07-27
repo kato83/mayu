@@ -89,3 +89,18 @@ type MITRECreditTranslation struct {
 	// TranslatedAt is when this translation was generated.
 	TranslatedAt time.Time `json:"translated_at"`
 }
+
+// OSVEntryTranslation contains translations for an OSV entry's text fields.
+type OSVEntryTranslation struct {
+	// Locale is the BCP 47 language tag.
+	Locale string `json:"locale"`
+
+	// Summary is the translated summary (nil if not translated).
+	Summary *string `json:"summary,omitempty"`
+
+	// Details is the translated details (nil if not translated).
+	Details *string `json:"details,omitempty"`
+
+	// TranslatedAt is when this translation was generated.
+	TranslatedAt time.Time `json:"translated_at"`
+}

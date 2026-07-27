@@ -35,6 +35,9 @@ type TranslationResult struct {
 	// MITRECredits is a flat list of translations for all MITRE credits,
 	// ordered to match the credits returned by fetchMITRECredits.
 	MITRECredits [][]model.MITRECreditTranslation
+
+	// OSVEntries is a map from osv_id to translations for that entry.
+	OSVEntries map[string][]model.OSVEntryTranslation
 }
 
 // GetTranslations retrieves all available translations for a vulnerability detail.
@@ -81,6 +84,13 @@ func (s *PostgresStore) GetTranslations(ctx context.Context, q TranslationQuery)
 		return nil, fmt.Errorf("fetch MITRE credit translations: %w", err)
 	}
 	result.MITRECredits = creditTranslations
+
+	// 6. OSV entry translations
+	osvTranslations, err := s.fetchOSVEntryTranslations(ctx, q.VulnerabilityID, q.Locales)
+	if err != nil {
+		return nil, fmt.Errorf("fetch OSV entry translations: %w", err)
+	}
+	result.OSVEntries = osvTranslations
 
 	return result, nil
 }
@@ -307,6 +317,46 @@ func (s *PostgresStore) fetchMITRECreditTranslationsOrdered(ctx context.Context,
 	result := make([][]model.MITRECreditTranslation, len(creditIDs))
 	for i, id := range creditIDs {
 		result[i] = byID[id]
+	}
+	return result, nil
+}
+
+// fetchOSVEntryTranslations gets translations from osv_entries_translation
+// for all OSV entries associated with a vulnerability, keyed by osv_id.
+func (s *PostgresStore) fetchOSVEntryTranslations(ctx context.Context, vulnID string, locales []string) (map[string][]model.OSVEntryTranslation, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT oet.osv_entry_id, oet.locale, oet.summary, oet.details, oet.translated_at
+		 FROM osv_entries_translation oet
+		 JOIN osv_entries oe ON oe.osv_id = oet.osv_entry_id
+		 WHERE oe.vulnerability_id = $1 AND oet.locale = ANY($2)
+		 ORDER BY oet.osv_entry_id, oet.translated_at DESC`,
+		vulnID, locales)
+	if err != nil {
+		return nil, fmt.Errorf("query osv_entries_translation: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	result := make(map[string][]model.OSVEntryTranslation)
+	for rows.Next() {
+		var osvID string
+		var t model.OSVEntryTranslation
+		var summary, details sql.NullString
+		if err := rows.Scan(&osvID, &t.Locale, &summary, &details, &t.TranslatedAt); err != nil {
+			return nil, fmt.Errorf("scan OSV entry translation: %w", err)
+		}
+		if summary.Valid {
+			t.Summary = &summary.String
+		}
+		if details.Valid {
+			t.Details = &details.String
+		}
+		result[osvID] = append(result[osvID], t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(result) == 0 {
+		return nil, nil
 	}
 	return result, nil
 }
