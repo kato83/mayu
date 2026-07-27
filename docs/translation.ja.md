@@ -1,3 +1,6 @@
+---
+title: "翻訳機能 (LLM)"
+---
 # 翻訳機能 (LLM ベース)
 
 Mayu は脆弱性のテキストフィールド（概要、詳細、KEV説明、NVD説明）を OpenAI 互換 API を使ってオンデマンド翻訳する機能をサポートしています。
@@ -231,7 +234,7 @@ curl -X POST http://localhost:8080/api/v1/vulnerabilities/CVE-2024-1234/translat
 - `vulnerabilities_translation`
 - `kev_entries_translation`
 - `nvd_descriptions_translation`
-- `mitre_problem_types_translation`
-- `mitre_credits_translation`
+- `osv_entries_translation`
+- etc.
 
 この設計により、mayu が生成した翻訳と上流が提供する多言語データ（例: NVD の組み込み言語サポート）を明確に区別できます。

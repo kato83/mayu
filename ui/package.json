@@ -5,7 +5,7 @@
     "ng": "ng",
     "start": "ng serve",
     "start:ja": "ng serve --configuration=development-ja",
-    "copy-docs": "mkdir -p public/docs/docs && cp ../README.md public/docs/ && cp ../README_ja.md public/docs/ && cp ../docs/webhooks.md ../docs/webhooks.ja.md ../docs/nvd-import-comparison.md ../docs/nvd-import-comparison.ja.md ../docs/import-ghsa-json.md public/docs/docs/ && cp ../docs/*.jpg ../docs/*.png public/docs/docs/ 2>/dev/null || true",
+    "copy-docs": "mkdir -p public/docs/docs && cp ../README.md public/docs/ && cp ../README_ja.md public/docs/ && cp ../docs/webhooks.md ../docs/webhooks.ja.md ../docs/nvd-import-comparison.md ../docs/nvd-import-comparison.ja.md ../docs/import-ghsa-json.md ../docs/translation.md ../docs/translation.ja.md public/docs/docs/ && cp ../docs/*.jpg ../docs/*.png public/docs/docs/ 2>/dev/null || true",
     "prebuild": "pnpm run copy-docs",
     "build": "ng build",
     "prestart": "pnpm run copy-docs",

@@ -1,3 +1,6 @@
+---
+title: "Translation (LLM)"
+---
 # Translation (LLM-based)
 
 Mayu supports on-demand translation of vulnerability text fields (summary, details, KEV descriptions, NVD descriptions) using any OpenAI-compatible API endpoint.
@@ -231,7 +234,7 @@ Translations are stored in separate tables (not mixed with upstream data):
 - `vulnerabilities_translation`
 - `kev_entries_translation`
 - `nvd_descriptions_translation`
-- `mitre_problem_types_translation`
-- `mitre_credits_translation`
+- `osv_entries_translation`
+- etc.
 
 This design allows distinguishing mayu-generated translations from upstream-provided multilingual data (e.g., NVD's built-in language support).

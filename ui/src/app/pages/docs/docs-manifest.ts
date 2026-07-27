@@ -10,4 +10,5 @@ export const DOCS_MANIFEST: DocEntry[] = [
   { slug: 'webhooks', title: 'Webhooks', filename: 'docs/docs/webhooks.md', filenameJa: 'docs/docs/webhooks.ja.md' },
   { slug: 'nvd-import-comparison', title: 'NVD Import Comparison', filename: 'docs/docs/nvd-import-comparison.md', filenameJa: 'docs/docs/nvd-import-comparison.ja.md' },
   { slug: 'import-ghsa-json', title: 'Import GHSA JSON', filename: 'docs/docs/import-ghsa-json.md' },
+  { slug: 'translation', title: 'Translation (LLM)', filename: 'docs/docs/translation.md', filenameJa: 'docs/docs/translation.ja.md' },
 ];
