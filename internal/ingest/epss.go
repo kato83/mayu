@@ -19,6 +19,7 @@ const epssSource = "EPSS"
 type epssBatchStore interface {
 	UpsertEPSSBatch(ctx context.Context, scores []*model.EPSSScore) error
 	RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error
+	RefreshEPSSDailyStats(ctx context.Context, dates []string) error
 }
 
 // ImportEPSS performs a full import of EPSS scores from the bulk CSV download.
@@ -231,6 +232,20 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 			ing.logger.Printf("warning: failed to refresh EPSS summary at offset %d: %v", i, err)
 		} else {
 			summaryUpdated += len(batchIDs)
+		}
+
+		// Update the epss_daily_stats summary table for affected dates in this batch.
+		batchDates := make([]string, 0, len(batch))
+		seenDates := make(map[string]struct{})
+		for _, s := range batch {
+			dateStr := s.ScoreDate.Format("2006-01-02")
+			if _, ok := seenDates[dateStr]; !ok {
+				seenDates[dateStr] = struct{}{}
+				batchDates = append(batchDates, dateStr)
+			}
+		}
+		if err := es.RefreshEPSSDailyStats(ctx, batchDates); err != nil {
+			ing.logger.Printf("warning: failed to refresh EPSS daily stats at offset %d: %v", i, err)
 		}
 
 		// Run watchlist matching after summary is refreshed (only fires in update mode).

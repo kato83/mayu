@@ -273,14 +273,16 @@ func (s *PostgresStore) CountEPSSScores(ctx context.Context) (int64, error) {
 }
 
 // GetEPSSCoverage returns summary statistics about EPSS data coverage.
+// It queries the lightweight epss_daily_stats table (at most ~900 rows)
+// instead of scanning the massive epss_scores table (millions of rows).
 func (s *PostgresStore) GetEPSSCoverage(ctx context.Context) (*EPSSCoverage, error) {
 	row := s.db.QueryRowContext(ctx, `
 		SELECT
-			COUNT(DISTINCT score_date) AS total_days,
+			COUNT(*) AS total_days,
 			COALESCE(MIN(score_date)::text, '') AS first_date,
 			COALESCE(MAX(score_date)::text, '') AS last_date,
-			COUNT(*) AS total_scores
-		FROM epss_scores`)
+			COALESCE(SUM(score_count), 0) AS total_scores
+		FROM epss_daily_stats`)
 
 	var cov EPSSCoverage
 	if err := row.Scan(&cov.TotalDays, &cov.FirstDate, &cov.LastDate, &cov.TotalScores); err != nil {
@@ -288,11 +290,14 @@ func (s *PostgresStore) GetEPSSCoverage(ctx context.Context) (*EPSSCoverage, err
 	}
 
 	// Compute missing dates by generating the full date series and finding gaps
+	// against epss_daily_stats (which has at most ~900 rows, making NOT EXISTS fast).
 	if cov.FirstDate != "" && cov.LastDate != "" {
 		rows, err := s.db.QueryContext(ctx, `
 			SELECT d::date::text
 			FROM generate_series($1::date, $2::date, '1 day'::interval) AS d
-			WHERE d::date NOT IN (SELECT DISTINCT score_date FROM epss_scores)
+			WHERE NOT EXISTS (
+				SELECT 1 FROM epss_daily_stats WHERE score_date = d::date
+			)
 			ORDER BY d`,
 			cov.FirstDate, cov.LastDate,
 		)
@@ -316,6 +321,54 @@ func (s *PostgresStore) GetEPSSCoverage(ctx context.Context) (*EPSSCoverage, err
 	}
 
 	return &cov, nil
+}
+
+// RefreshEPSSDailyStats updates the epss_daily_stats summary table for the
+// given dates. It queries epss_scores for actual counts and upserts them into
+// the summary table. This keeps the lightweight stats table in sync after each
+// batch import without requiring a full table scan.
+func (s *PostgresStore) RefreshEPSSDailyStats(ctx context.Context, dates []string) error {
+	if len(dates) == 0 {
+		return nil
+	}
+
+	// Deduplicate dates
+	seen := make(map[string]struct{}, len(dates))
+	unique := make([]string, 0, len(dates))
+	for _, d := range dates {
+		if _, ok := seen[d]; !ok {
+			seen[d] = struct{}{}
+			unique = append(unique, d)
+		}
+	}
+
+	// Build placeholders for the ANY($1) array parameter
+	args := make([]interface{}, len(unique))
+	for i, d := range unique {
+		args[i] = d
+	}
+
+	// Use a single query: compute counts from epss_scores and upsert into epss_daily_stats
+	placeholders := make([]string, len(unique))
+	for i := range unique {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+	}
+
+	query := `
+		INSERT INTO epss_daily_stats (score_date, score_count, updated_at)
+		SELECT score_date, COUNT(*), NOW()
+		FROM epss_scores
+		WHERE score_date IN (` + strings.Join(placeholders, ", ") + `)
+		GROUP BY score_date
+		ON CONFLICT (score_date) DO UPDATE SET
+			score_count = EXCLUDED.score_count,
+			updated_at = NOW()`
+
+	_, err := s.db.ExecContext(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("refresh EPSS daily stats: %w", err)
+	}
+	return nil
 }
 
 // GetEPSSImportedDates returns a set of dates (YYYY-MM-DD) for which EPSS scores
