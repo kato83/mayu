@@ -20,6 +20,9 @@ type OSVEntryDetail struct {
 	// Details is the detailed description from this OSV entry.
 	Details string `json:"details,omitempty"`
 
+	// Affected contains affected packages specific to this OSV entry.
+	Affected []Affected `json:"affected,omitempty"`
+
 	// References contains reference links specific to this OSV entry.
 	References []Reference `json:"references,omitempty"`
 

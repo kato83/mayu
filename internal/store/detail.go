@@ -207,6 +207,7 @@ func (s *PostgresStore) buildBaseDetail(ctx context.Context, vulnID string) (*mo
 			if parseErr == nil {
 				entry.Severity = vuln.Severity
 				entry.Details = vuln.Details
+				entry.Affected = vuln.Affected
 				entry.References = vuln.References
 				entry.Credits = vuln.Credits
 
