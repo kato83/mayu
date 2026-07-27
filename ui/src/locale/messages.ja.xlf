@@ -198,6 +198,14 @@
         <source>View on NVD</source>
         <target>NVDで見る</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.mitreViewOnMitre" datatype="html">
+        <source>View on MITRE</source>
+        <target>MITREで見る</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.kevViewOnCisa" datatype="html">
+        <source>View on CISA KEV</source>
+        <target>CISA KEVで見る</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.rawJson" datatype="html">
         <source>Raw JSON</source>
         <target>Raw JSON</target>
