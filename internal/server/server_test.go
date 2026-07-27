@@ -162,6 +162,18 @@ func (m *mockStore) SaveKEVTranslation(ctx context.Context, kevEntryID int64, lo
 func (m *mockStore) SaveNVDDescriptionTranslation(ctx context.Context, nvdDescID int64, locale, value string, translatedAt time.Time) error {
 	return nil
 }
+func (m *mockStore) CreateTranslationJob(ctx context.Context, job *store.TranslationJob) (int64, error) {
+	return 1, nil
+}
+func (m *mockStore) UpdateTranslationJob(ctx context.Context, job *store.TranslationJob) error {
+	return nil
+}
+func (m *mockStore) GetTranslationJob(ctx context.Context, id int64) (*store.TranslationJob, error) {
+	return nil, nil
+}
+func (m *mockStore) ListTranslationJobs(ctx context.Context, limit int) ([]store.TranslationJob, error) {
+	return nil, nil
+}
 
 // newTestServer creates a Server with the given mock store for testing.
 // By default it uses NoAuthProvider so existing tests don't need auth.
