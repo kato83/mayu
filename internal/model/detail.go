@@ -88,6 +88,10 @@ type VulnerabilityDetail struct {
 
 	// EOL enrichment: lifecycle status of affected products
 	EOL []EOLEnrichment `json:"eol,omitempty"`
+
+	// Translations contains translations for text fields when a non-English
+	// locale is requested via the Accept-Language header.
+	Translations []VulnerabilityTranslation `json:"translations,omitempty"`
 }
 
 // EPSSDetail contains EPSS enrichment data for a vulnerability.
@@ -124,6 +128,10 @@ type KEVDetail struct {
 
 	// KnownRansomwareCampaignUse indicates if used in ransomware ("Known", "Unknown").
 	KnownRansomwareCampaignUse string `json:"known_ransomware_campaign_use"`
+
+	// Translations contains translations for text fields when a non-English
+	// locale is requested via the Accept-Language header.
+	Translations []KEVTranslation `json:"translations,omitempty"`
 }
 
 // LEVDetail contains LEV (Likely Exploited Vulnerabilities) enrichment data.
@@ -184,6 +192,10 @@ type NVDDetail struct {
 
 	// RawJSON is the original NVD JSON for raw display
 	RawJSON json.RawMessage `json:"raw_json,omitempty"`
+
+	// DescriptionTranslations contains translations of the NVD description
+	// when a non-English locale is requested via the Accept-Language header.
+	DescriptionTranslations []NVDDescriptionTranslation `json:"description_translations,omitempty"`
 }
 
 // NVDMetricDetail represents a single CVSS metric entry from NVD.
@@ -308,16 +320,18 @@ type MITREMetricDetail struct {
 
 // MITREProblemTypeDetail represents a CWE from MITRE.
 type MITREProblemTypeDetail struct {
-	CWEID       string `json:"cwe_id,omitempty"`
-	Description string `json:"description"`
-	Lang        string `json:"lang,omitempty"`
+	CWEID        string                        `json:"cwe_id,omitempty"`
+	Description  string                        `json:"description"`
+	Lang         string                        `json:"lang,omitempty"`
+	Translations []MITREProblemTypeTranslation  `json:"translations,omitempty"`
 }
 
 // MITRECreditDetail represents a credit entry from MITRE.
 type MITRECreditDetail struct {
-	Type  string `json:"type,omitempty"`
-	Value string `json:"value"`
-	Lang  string `json:"lang,omitempty"`
+	Type         string                   `json:"type,omitempty"`
+	Value        string                   `json:"value"`
+	Lang         string                   `json:"lang,omitempty"`
+	Translations []MITRECreditTranslation `json:"translations,omitempty"`
 }
 
 // MITREReferenceDetail represents a MITRE reference.
