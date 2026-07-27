@@ -98,6 +98,22 @@ mayu/
 - Keep `go.mod` lean; justify new dependencies
 - No CLI framework — uses Go standard `flag` package
 
+#### License Compatibility Check (Required)
+
+This project is licensed under the **MIT License**. Before adding any new dependency, verify license compatibility:
+
+1. **Check the license**: Confirm the library's license is compatible with MIT before running `go get`.
+2. **Allowed licenses** (MIT-compatible):
+   - MIT, BSD-2-Clause, BSD-3-Clause, ISC, Apache-2.0, Unlicense, CC0-1.0, MPL-2.0 (file-level copyleft)
+3. **Prohibited licenses** (would make MIT distribution impossible):
+   - GPL-2.0, GPL-3.0, LGPL-2.1, LGPL-3.0, AGPL-3.0, SSPL, CPAL, OSL
+   - Never add libraries under these licenses
+4. **Caution licenses** (conditionally usable — confirm with user first):
+   - MPL-2.0: File-level copyleft — only modified files must remain MPL. Safe if used unmodified
+   - Apache-2.0: Patent clause. Compatible with MIT but requires distributing the NOTICE file
+   - CC-BY-4.0: Not recommended for code (acceptable for data/documentation)
+5. **Verification procedure**: Check the repository's LICENSE file before `go get`. When unclear, verify via https://choosealicense.com/ or SPDX identifiers
+
 ### Documentation
 
 - When CLI commands, flags, or behavior change, update both `README.md` and `README_ja.md` to reflect the new usage

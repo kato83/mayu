@@ -3,6 +3,10 @@ package translate
 import (
 	"strings"
 	"unicode"
+
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/text"
 )
 
 const (
@@ -91,85 +95,291 @@ func looksLikeMarkdown(text string) bool {
 	return indicators >= 2
 }
 
-// splitMarkdown splits text along markdown block boundaries.
-// Code blocks (fenced) are kept intact and marked non-translatable.
-func (c *Chunker) splitMarkdown(text string) []Chunk {
+// splitMarkdown splits text using goldmark AST parsing.
+// Each AST node is categorized as translatable or non-translatable.
+//
+// Non-translatable nodes (kept as-is):
+//   - FencedCodeBlock: ```...```
+//   - CodeBlock: indented code blocks (4 spaces / 1 tab)
+//   - CodeSpan: inline `code`
+//   - AutoLink: <http://...>
+//   - RawHTML: inline raw HTML
+//   - HTMLBlock: block-level raw HTML
+//   - ThematicBreak: ---, ***, ___
+//   - Link destination/title (link text IS translated)
+//   - Image destination/title/alt
+//
+// Translatable nodes (sent to LLM):
+//   - Text (paragraph content, heading content, etc.)
+//   - Emphasis / Strong content
+//   - Link text
+//   - ListItem text content
+//   - Blockquote text content
+func (c *Chunker) splitMarkdown(input string) []Chunk {
+	source := []byte(input)
+
+	// Parse markdown into AST
+	md := goldmark.New()
+	reader := text.NewReader(source)
+	doc := md.Parser().Parse(reader)
+
+	// Walk the AST and build a list of spans with translatable flags.
+	type mdSegment struct {
+		start        int
+		stop         int
+		translatable bool
+	}
+
+	var segments []mdSegment
+
+	// collectLines extracts lines (byte segments) from a block node that has Lines().
+	collectLines := func(n ast.Node) (int, int) {
+		lines := n.Lines()
+		if lines.Len() == 0 {
+			return -1, -1
+		}
+		first := lines.At(0)
+		last := lines.At(lines.Len() - 1)
+		return first.Start, last.Stop
+	}
+
+	// Walk the AST at block level first to get non-translatable blocks.
+	// Then handle inline elements within translatable blocks.
+	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+
+		switch n.Kind() {
+		case ast.KindFencedCodeBlock:
+			// Include fence markers: use node position for the opening fence
+			// and find the closing fence after the content lines.
+			fcb := n.(*ast.FencedCodeBlock)
+			// The node's Pos() gives the start of the opening fence line.
+			start := fcb.Pos()
+			// End: after the last content line, the closing fence follows.
+			// We need to find the closing ``` line.
+			end := start
+			if fcb.Lines().Len() > 0 {
+				lastLine := fcb.Lines().At(fcb.Lines().Len() - 1)
+				end = lastLine.Stop
+			}
+			// Scan forward from end to include the closing fence line.
+			for end < len(source) && source[end] != '\n' {
+				end++
+			}
+			if end < len(source) && source[end] == '\n' {
+				end++ // include the newline after closing fence
+			}
+			// If start is -1, try to find it from lines
+			if start < 0 && fcb.Lines().Len() > 0 {
+				start = fcb.Lines().At(0).Start
+			}
+			if start >= 0 {
+				segments = append(segments, mdSegment{start: start, stop: end, translatable: false})
+			}
+			return ast.WalkSkipChildren, nil
+
+		case ast.KindCodeBlock:
+			// Indented code block
+			start, stop := collectLines(n)
+			if start >= 0 {
+				segments = append(segments, mdSegment{start: start, stop: stop, translatable: false})
+			}
+			return ast.WalkSkipChildren, nil
+
+		case ast.KindHTMLBlock:
+			start, stop := collectLines(n)
+			if start >= 0 {
+				segments = append(segments, mdSegment{start: start, stop: stop, translatable: false})
+			}
+			return ast.WalkSkipChildren, nil
+
+		case ast.KindCodeSpan:
+			// Inline code: find the backtick-delimited span in source.
+			// CodeSpan children are Text nodes with the code content.
+			// We need the full `...` including backticks.
+			// Use Pos() to find start, then scan to find the complete span.
+			pos := n.Pos()
+			if pos >= 0 {
+				// Find the end of the code span (matching closing backticks).
+				end := findCodeSpanEnd(source, pos)
+				segments = append(segments, mdSegment{start: pos, stop: end, translatable: false})
+			}
+			return ast.WalkSkipChildren, nil
+
+		case ast.KindAutoLink:
+			pos := n.Pos()
+			if pos >= 0 {
+				// AutoLink is <url>, find closing >
+				end := pos
+				for end < len(source) && source[end] != '>' {
+					end++
+				}
+				if end < len(source) {
+					end++ // include >
+				}
+				segments = append(segments, mdSegment{start: pos, stop: end, translatable: false})
+			}
+			return ast.WalkSkipChildren, nil
+
+		case ast.KindRawHTML:
+			pos := n.Pos()
+			if pos >= 0 {
+				// Find end of raw HTML tag
+				end := pos
+				for end < len(source) && source[end] != '>' {
+					end++
+				}
+				if end < len(source) {
+					end++ // include >
+				}
+				segments = append(segments, mdSegment{start: pos, stop: end, translatable: false})
+			}
+			return ast.WalkSkipChildren, nil
+
+		case ast.KindImage:
+			// Entire image syntax is non-translatable: ![alt](url "title")
+			pos := n.Pos()
+			if pos >= 0 {
+				end := findLinkEnd(source, pos)
+				segments = append(segments, mdSegment{start: pos, stop: end, translatable: false})
+			}
+			return ast.WalkSkipChildren, nil
+		}
+
+		return ast.WalkContinue, nil
+	})
+
+	// If no non-translatable segments found, treat whole text as translatable
+	if len(segments) == 0 {
+		var chunks []Chunk
+		for _, sub := range c.splitByMaxChars(input) {
+			chunks = append(chunks, Chunk{Text: sub, Translatable: true})
+		}
+		return chunks
+	}
+
+	// Sort segments by start position
+	for i := 1; i < len(segments); i++ {
+		key := segments[i]
+		j := i - 1
+		for j >= 0 && segments[j].start > key.start {
+			segments[j+1] = segments[j]
+			j--
+		}
+		segments[j+1] = key
+	}
+
 	var chunks []Chunk
-	lines := strings.Split(text, "\n")
+	pos := 0
+	for _, seg := range segments {
+		if seg.start < pos {
+			// Overlapping segment, skip
+			continue
+		}
+		// Text before this non-translatable segment is translatable
+		if seg.start > pos {
+			t := string(source[pos:seg.start])
+			if t != "" {
+				for _, sub := range c.splitByMaxChars(t) {
+					chunks = append(chunks, Chunk{Text: sub, Translatable: true})
+				}
+			}
+		}
+		// The non-translatable segment itself
+		chunks = append(chunks, Chunk{Text: string(source[seg.start:seg.stop]), Translatable: false})
+		pos = seg.stop
+	}
 
-	var currentBlock strings.Builder
-	inCodeBlock := false
-	var codeBlockContent strings.Builder
-
-	flushCurrent := func() {
-		if currentBlock.Len() > 0 {
-			content := currentBlock.String()
-			// Further split if too long
-			for _, sub := range c.splitByMaxChars(content) {
+	// Remaining text after the last non-translatable segment
+	if pos < len(source) {
+		t := string(source[pos:])
+		if t != "" {
+			for _, sub := range c.splitByMaxChars(t) {
 				chunks = append(chunks, Chunk{Text: sub, Translatable: true})
 			}
-			currentBlock.Reset()
 		}
-	}
-
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-
-		// Handle fenced code blocks
-		if strings.HasPrefix(trimmed, "```") {
-			if inCodeBlock {
-				// End of code block
-				codeBlockContent.WriteString(line)
-				if i < len(lines)-1 {
-					codeBlockContent.WriteByte('\n')
-				}
-				chunks = append(chunks, Chunk{Text: codeBlockContent.String(), Translatable: false})
-				codeBlockContent.Reset()
-				inCodeBlock = false
-			} else {
-				// Start of code block — flush current translatable text first
-				flushCurrent()
-				inCodeBlock = true
-				codeBlockContent.WriteString(line)
-				codeBlockContent.WriteByte('\n')
-			}
-			continue
-		}
-
-		if inCodeBlock {
-			codeBlockContent.WriteString(line)
-			if i < len(lines)-1 {
-				codeBlockContent.WriteByte('\n')
-			}
-			continue
-		}
-
-		// Block boundaries: empty lines, headings
-		isBlockBreak := trimmed == "" ||
-			strings.HasPrefix(trimmed, "# ") ||
-			strings.HasPrefix(trimmed, "## ") ||
-			strings.HasPrefix(trimmed, "### ") ||
-			strings.HasPrefix(trimmed, "#### ")
-
-		if isBlockBreak && currentBlock.Len() > 0 {
-			flushCurrent()
-		}
-
-		currentBlock.WriteString(line)
-		if i < len(lines)-1 {
-			currentBlock.WriteByte('\n')
-		}
-	}
-
-	// Flush remaining
-	if inCodeBlock {
-		// Unclosed code block — treat as non-translatable
-		chunks = append(chunks, Chunk{Text: codeBlockContent.String(), Translatable: false})
-	} else {
-		flushCurrent()
 	}
 
 	return chunks
+}
+
+// findCodeSpanEnd finds the end position of a code span starting at pos.
+// pos should point to the opening backtick(s).
+func findCodeSpanEnd(source []byte, pos int) int {
+	if pos >= len(source) || source[pos] != '`' {
+		return pos
+	}
+	// Count opening backticks
+	openCount := 0
+	i := pos
+	for i < len(source) && source[i] == '`' {
+		openCount++
+		i++
+	}
+	// Find matching closing backticks
+	for i < len(source) {
+		if source[i] == '`' {
+			closeCount := 0
+			j := i
+			for j < len(source) && source[j] == '`' {
+				closeCount++
+				j++
+			}
+			if closeCount == openCount {
+				return j
+			}
+			i = j
+		} else {
+			i++
+		}
+	}
+	return i
+}
+
+// findLinkEnd finds the end position of a link or image syntax starting at pos.
+// Handles [text](url) and [text](url "title") patterns.
+func findLinkEnd(source []byte, pos int) int {
+	i := pos
+	// Skip ![ or [
+	if i < len(source) && source[i] == '!' {
+		i++
+	}
+	if i >= len(source) || source[i] != '[' {
+		return pos + 1
+	}
+	// Find matching ]
+	bracketDepth := 0
+	for i < len(source) {
+		if source[i] == '[' {
+			bracketDepth++
+		} else if source[i] == ']' {
+			bracketDepth--
+			if bracketDepth == 0 {
+				i++
+				break
+			}
+		}
+		i++
+	}
+	// Check for (url) or (url "title")
+	if i < len(source) && source[i] == '(' {
+		parenDepth := 0
+		for i < len(source) {
+			if source[i] == '(' {
+				parenDepth++
+			} else if source[i] == ')' {
+				parenDepth--
+				if parenDepth == 0 {
+					i++
+					break
+				}
+			}
+			i++
+		}
+	}
+	return i
 }
 
 // splitSentences splits text on sentence boundaries.
