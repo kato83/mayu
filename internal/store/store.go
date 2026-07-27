@@ -149,6 +149,22 @@ type Store interface {
 	// GetTranslations retrieves available translations for a vulnerability detail
 	// in the requested locales. Returns nil if no locales are requested.
 	GetTranslations(ctx context.Context, q TranslationQuery) (*TranslationResult, error)
+
+	// GetTranslatableTexts fetches all translatable text fields for a vulnerability.
+	GetTranslatableTexts(ctx context.Context, vulnID string) (*TranslatableTexts, error)
+
+	// ResolveVulnerabilityID resolves an input ID (CVE, OSV, alias) to a vulnerabilities.id.
+	// Returns ("", nil) if not found.
+	ResolveVulnerabilityID(ctx context.Context, id string) (string, error)
+
+	// SaveVulnerabilityTranslation upserts a translation for a vulnerability's summary/details.
+	SaveVulnerabilityTranslation(ctx context.Context, vulnID, locale, summary, details string, translatedAt time.Time) error
+
+	// SaveKEVTranslation upserts a translation for KEV entry text fields.
+	SaveKEVTranslation(ctx context.Context, kevEntryID int64, locale, vulnName, shortDesc, reqAction, notes string, translatedAt time.Time) error
+
+	// SaveNVDDescriptionTranslation upserts a translation for an NVD description.
+	SaveNVDDescriptionTranslation(ctx context.Context, nvdDescID int64, locale, value string, translatedAt time.Time) error
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.

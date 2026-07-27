@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { routes } from './app.routes';
 import { AuthService } from './services/auth.service';
+import { acceptLanguageInterceptor } from './interceptors/accept-language.interceptor';
 import { httpErrorInterceptor } from './interceptors/http-error.interceptor';
 
 @Injectable()
@@ -28,7 +29,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     { provide: TitleStrategy, useClass: MayuTitleStrategy },
-    provideHttpClient(withInterceptors([httpErrorInterceptor])),
+    provideHttpClient(withInterceptors([acceptLanguageInterceptor, httpErrorInterceptor])),
     {
       provide: APP_INITIALIZER,
       useFactory: initializeAuth,

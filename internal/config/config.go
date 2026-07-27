@@ -61,6 +61,42 @@ type WebhookConfig struct {
 	Secret string `yaml:"secret"`
 }
 
+// TranslationConfig holds LLM-based translation configuration.
+// Supports OpenAI API-compatible endpoints (OpenAI, Azure, AWS Bedrock via gateway, Ollama, etc.).
+type TranslationConfig struct {
+	// Enabled controls whether translation features are available.
+	// When false, translation endpoints return 503.
+	Enabled bool `yaml:"enabled"`
+
+	// Provider is a human-readable provider name for logging (e.g., "openai", "ollama", "bedrock").
+	// This does not affect behavior — all providers use the OpenAI-compatible chat completions API.
+	Provider string `yaml:"provider"`
+
+	// Endpoint is the base URL of the OpenAI-compatible API (e.g., "https://api.openai.com/v1").
+	// For Ollama: "http://localhost:11434/v1"
+	// For AWS Bedrock via LiteLLM proxy: "http://localhost:4000/v1"
+	Endpoint string `yaml:"endpoint"`
+
+	// Model is the model identifier to use (e.g., "gpt-4o-mini", "llama3.1", "anthropic.claude-3-haiku").
+	Model string `yaml:"model"`
+
+	// APIKey is the API key/token for authentication. Leave empty for local models (Ollama).
+	APIKey string `yaml:"api_key"`
+
+	// MaxTokens is the maximum number of tokens for the translation response (default: 4096).
+	MaxTokens int `yaml:"max_tokens"`
+
+	// Temperature controls randomness (0.0-2.0, default: 0.3 for translation).
+	Temperature *float64 `yaml:"temperature"`
+
+	// Timeout is the HTTP request timeout in seconds (default: 120).
+	Timeout int `yaml:"timeout"`
+
+	// SystemPrompt allows overriding the default translation system prompt.
+	// If empty, a built-in prompt optimized for vulnerability text translation is used.
+	SystemPrompt string `yaml:"system_prompt"`
+}
+
 // Config represents the mayu configuration file structure.
 type Config struct {
 	// DatabaseURL is the PostgreSQL connection string.
@@ -69,6 +105,8 @@ type Config struct {
 	Auth AuthConfig `yaml:"auth"`
 	// Webhooks holds webhook notification endpoint configurations.
 	Webhooks []WebhookConfig `yaml:"webhooks"`
+	// Translation holds LLM-based translation configuration.
+	Translation TranslationConfig `yaml:"translation"`
 }
 
 // Load reads and parses a YAML configuration file from the given path.

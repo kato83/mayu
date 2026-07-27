@@ -16,6 +16,7 @@ import (
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/server"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/translate"
 	"github.com/kato83/mayu/internal/uiassets"
 	"github.com/kato83/mayu/internal/watchlist"
 	"github.com/kato83/mayu/internal/webhook"
@@ -111,6 +112,17 @@ func runServe(args []string, cfg *config.Config) error {
 	webhookStore := webhook.NewPostgresWebhookStore(s.DB())
 	webhookEngine := webhook.NewEngine(webhookStore)
 
+	// Initialize translation service (if configured)
+	var translateService *translate.Service
+	if cfg.Translation.Enabled {
+		client, err := translate.NewClient(cfg.Translation)
+		if err != nil {
+			return fmt.Errorf("initialize translation client: %w", err)
+		}
+		translateService = translate.NewService(client)
+		slog.Info("translation service enabled", "provider", cfg.Translation.Provider, "model", cfg.Translation.Model)
+	}
+
 	// Create and start server
 	srv := server.New(server.Config{
 		Addr:             *addr,
@@ -125,6 +137,7 @@ func runServe(args []string, cfg *config.Config) error {
 		WebhookEngine:    webhookEngine,
 		WatchlistStore:   watchlist.NewPostgresWatchlistStore(s.DB()),
 		WatchlistMatcher: watchlist.NewIngestMatcherAdapter(watchlist.NewMatcher(watchlist.NewPostgresWatchlistStore(s.DB()), watchlist.NewPostgresVulnDataProvider(s.DB()))),
+		TranslateService: translateService,
 	})
 
 	// Start periodic session cleanup if auth is enabled

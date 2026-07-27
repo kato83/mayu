@@ -147,6 +147,21 @@ func (m *mockStore) GetDashboardTopRisks(ctx context.Context, limit int) (*store
 func (m *mockStore) GetTranslations(ctx context.Context, q store.TranslationQuery) (*store.TranslationResult, error) {
 	return nil, nil
 }
+func (m *mockStore) GetTranslatableTexts(ctx context.Context, vulnID string) (*store.TranslatableTexts, error) {
+	return nil, nil
+}
+func (m *mockStore) ResolveVulnerabilityID(ctx context.Context, id string) (string, error) {
+	return id, nil
+}
+func (m *mockStore) SaveVulnerabilityTranslation(ctx context.Context, vulnID, locale, summary, details string, translatedAt time.Time) error {
+	return nil
+}
+func (m *mockStore) SaveKEVTranslation(ctx context.Context, kevEntryID int64, locale, vulnName, shortDesc, reqAction, notes string, translatedAt time.Time) error {
+	return nil
+}
+func (m *mockStore) SaveNVDDescriptionTranslation(ctx context.Context, nvdDescID int64, locale, value string, translatedAt time.Time) error {
+	return nil
+}
 
 // newTestServer creates a Server with the given mock store for testing.
 // By default it uses NoAuthProvider so existing tests don't need auth.

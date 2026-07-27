@@ -109,6 +109,13 @@ func (s *PostgresStore) GetVulnerabilityDetail(ctx context.Context, id string) (
 	return detail, nil
 }
 
+// ResolveVulnerabilityID resolves an input ID to a vulnerabilities.id value.
+// Checks vulnerabilities.id, osv_entries.osv_id, and vulnerability_aliases.alias.
+// Returns ("", nil) if not found.
+func (s *PostgresStore) ResolveVulnerabilityID(ctx context.Context, id string) (string, error) {
+	return s.resolveVulnerabilityID(ctx, id)
+}
+
 // resolveVulnerabilityID resolves an input ID to a vulnerabilities.id value.
 // Checks vulnerabilities.id, osv_entries.osv_id, and vulnerability_aliases.alias.
 func (s *PostgresStore) resolveVulnerabilityID(ctx context.Context, id string) (string, error) {

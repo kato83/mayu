@@ -29,6 +29,7 @@ import (
 	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/translate"
 	"github.com/kato83/mayu/internal/validate"
 	"github.com/kato83/mayu/internal/watchlist"
 	"github.com/kato83/mayu/internal/webhook"
@@ -85,6 +86,10 @@ type Config struct {
 	// WatchlistMatcher is the ingest integration point for watchlist matching.
 	// If nil, watchlist matching is not wired into the ingest pipeline.
 	WatchlistMatcher ingest.WatchlistMatcher
+
+	// TranslateService provides LLM-based translation capabilities.
+	// If nil, translation endpoints return 503 Service Unavailable.
+	TranslateService *translate.Service
 }
 
 // Server is the HTTP API server.
@@ -101,6 +106,7 @@ type Server struct {
 	webhookEngine    *webhook.Engine
 	watchlistStore   watchlist.WatchlistStore
 	watchlistMatcher ingest.WatchlistMatcher
+	translateService *translate.Service
 	loginLimiter     *auth.LoginRateLimiter
 	ingestRunning    atomic.Bool
 	runners          activeRunners
@@ -125,6 +131,7 @@ func New(cfg Config) *Server {
 		webhookEngine:    cfg.WebhookEngine,
 		watchlistStore:   cfg.WatchlistStore,
 		watchlistMatcher: cfg.WatchlistMatcher,
+		translateService: cfg.TranslateService,
 		loginLimiter:     auth.NewLoginRateLimiter(10, 15*time.Minute),
 	}
 
@@ -212,6 +219,7 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/vulnerabilities/{id}/epss-history", s.handleGetEPSSHistory)
+		r.With(middleware.Timeout(180 * time.Second)).Post("/vulnerabilities/{id}/translate", s.handleTranslateVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
 		r.Get("/eol/{product}", s.handleGetEOLProduct)
 		r.Get("/eol/lookup", s.handleLookupEOL)
