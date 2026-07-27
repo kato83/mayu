@@ -1,0 +1,34 @@
+{
+  "id": "FEAT-003",
+  "type": "fix",
+  "description": "Address review feedback: (1) Add Affected field to OSVEntryDetail in Go and TypeScript models, populate in store, display in OSV entry tab panels. (2) Add overflow-x-auto to tablist container for narrow viewport scrolling. (3) Add multi-entry test case to component spec.",
+  "status": "completed",
+  "steps": [
+    "1. In internal/model/detail.go, add Affected []Affected field to OSVEntryDetail struct.",
+    "2. In internal/store/detail.go, populate entry.Affected from vuln.Affected for each OSV entry.",
+    "3. In ui/src/app/models/vulnerability.model.ts, add affected?: Affected[] to OsvEntryDetail interface.",
+    "4. In vulnerability-detail.component.html, add overflow-x-auto to the tablist container div.",
+    "5. In vulnerability-detail.component.html, add affected packages section to the OSV entry tab panel.",
+    "6. In vulnerability-detail.component.spec.ts, add test case with osv_entries array of 2 entries verifying tabs and content switching."
+  ],
+  "acceptance_criteria": [
+    "OSVEntryDetail Go struct has Affected []Affected field",
+    "OSVEntryDetail TypeScript interface has affected?: Affected[] field",
+    "Each OSV entry in OsvEntries is populated with its Affected data",
+    "Tab bar container has overflow-x-auto class for horizontal scroll",
+    "OSV entry tab panel displays affected packages when present",
+    "Test with 2+ osv_entries verifies correct number of tabs and content switching",
+    "go build ./... passes",
+    "go test ./... passes",
+    "cd ui && pnpm build passes",
+    "cd ui && pnpm test passes"
+  ],
+  "verification": [
+    "go build ./...",
+    "go test ./...",
+    "cd /projects/sandbox/mayu/ui && pnpm build",
+    "cd /projects/sandbox/mayu/ui && pnpm test"
+  ],
+  "blocked_reason": null,
+  "findings": "All review issues addressed. Go build/test pass. Frontend build passes with 146 tests (5 new multi-entry tests). The Affected field is now included in OSVEntryDetail at both backend and frontend layers, populated per-entry from the parsed OSV JSON. The tab bar has overflow-x-auto for horizontal scrolling on narrow viewports. Issue 4 (first-entry selection bias) was left as-is per the orchestrator briefing since alphabetical ordering is deterministic."
+}

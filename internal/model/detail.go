@@ -8,6 +8,31 @@ import (
 	"time"
 )
 
+// OSVEntryDetail represents a single OSV entry associated with a vulnerability.
+// A vulnerability may have multiple OSV entries (e.g., GHSA-xxx, BIT-xxx for the same CVE).
+type OSVEntryDetail struct {
+	// OsvID is the OSV identifier (e.g., "GHSA-6f9g-cxwr-q5jr", "BIT-jenkins-2024-23897").
+	OsvID string `json:"osv_id"`
+
+	// Severity contains severity/CVSS information specific to this OSV entry.
+	Severity []Severity `json:"severity,omitempty"`
+
+	// Details is the detailed description from this OSV entry.
+	Details string `json:"details,omitempty"`
+
+	// Affected contains affected packages specific to this OSV entry.
+	Affected []Affected `json:"affected,omitempty"`
+
+	// References contains reference links specific to this OSV entry.
+	References []Reference `json:"references,omitempty"`
+
+	// Credits contains credits specific to this OSV entry.
+	Credits []Credit `json:"credits,omitempty"`
+
+	// RawJSON is the original OSV JSON for this entry.
+	RawJSON json.RawMessage `json:"raw_json,omitempty"`
+}
+
 // VulnerabilityDetail is an enriched view of a vulnerability that combines
 // data from OSV, NVD, MITRE, EPSS, KEV, and LEV sources.
 // Used by CLI --detail and API /{id} endpoints.
@@ -27,6 +52,10 @@ type VulnerabilityDetail struct {
 
 	// OsvRawJSON is the original OSV JSON for raw display
 	OsvRawJSON json.RawMessage `json:"osv_raw_json,omitempty"`
+
+	// OsvEntries contains all OSV entries associated with this vulnerability.
+	// A vulnerability may have multiple OSV entries (e.g., GHSA and BIT entries for the same CVE).
+	OsvEntries []OSVEntryDetail `json:"osv_entries,omitempty"`
 
 	// Normalized severity from vulnerability_summary (5-level scale label)
 	SeverityWorst string `json:"severity_worst,omitempty"`

@@ -179,28 +179,73 @@ func (s *PostgresStore) buildBaseDetail(ctx context.Context, vulnID string) (*mo
 	detail.Aliases = aliases
 
 	// Try to enrich from OSV raw_json (gets severity, affected, references, credits)
-	var rawJSON []byte
-	err = s.db.QueryRowContext(ctx,
-		`SELECT raw_json FROM osv_entries WHERE vulnerability_id = $1 LIMIT 1`,
-		vulnID).Scan(&rawJSON)
-	if err == nil && rawJSON != nil {
-		detail.OsvRawJSON = rawJSON
-		vuln, parseErr := model.ParseVulnerability(rawJSON)
-		if parseErr == nil {
-			detail.Severity = vuln.Severity
-			detail.Affected = vuln.Affected
-			detail.References = vuln.References
-			detail.Credits = vuln.Credits
-			detail.Related = vuln.Related
-			if vuln.Details != "" {
-				detail.Details = vuln.Details
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT osv_id, raw_json FROM osv_entries WHERE vulnerability_id = $1 ORDER BY osv_id`,
+		vulnID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("query osv_entries: %w", err)
+	}
+	if err == nil {
+		defer func() { _ = rows.Close() }()
+		first := true
+		for rows.Next() {
+			var osvID string
+			var rawJSON []byte
+			if err := rows.Scan(&osvID, &rawJSON); err != nil {
+				return nil, fmt.Errorf("scan osv_entry: %w", err)
 			}
-			if vuln.Summary != "" {
-				detail.Summary = vuln.Summary
+			if rawJSON == nil {
+				continue
 			}
-			if vuln.Withdrawn != nil {
-				detail.Withdrawn = vuln.Withdrawn
+
+			entry := model.OSVEntryDetail{
+				OsvID:  osvID,
+				RawJSON: rawJSON,
 			}
+
+			vuln, parseErr := model.ParseVulnerability(rawJSON)
+			if parseErr == nil {
+				entry.Severity = vuln.Severity
+				entry.Details = vuln.Details
+				entry.Affected = vuln.Affected
+				entry.References = vuln.References
+				entry.Credits = vuln.Credits
+
+				// Compute CVSS base_score and base_severity for this entry's severity
+				for i := range entry.Severity {
+					if entry.Severity[i].Score != "" {
+						if score, ok := cvss.BaseScore(entry.Severity[i].Score); ok {
+							entry.Severity[i].BaseScore = &score
+							entry.Severity[i].BaseSeverity = cvss.BaseSeverity(score, entry.Severity[i].Score)
+						}
+					}
+				}
+
+				// Populate top-level fields from the first entry for backward compatibility
+				if first {
+					detail.OsvRawJSON = rawJSON
+					detail.Severity = vuln.Severity
+					detail.Affected = vuln.Affected
+					detail.References = vuln.References
+					detail.Credits = vuln.Credits
+					detail.Related = vuln.Related
+					if vuln.Details != "" {
+						detail.Details = vuln.Details
+					}
+					if vuln.Summary != "" {
+						detail.Summary = vuln.Summary
+					}
+					if vuln.Withdrawn != nil {
+						detail.Withdrawn = vuln.Withdrawn
+					}
+				}
+			}
+
+			detail.OsvEntries = append(detail.OsvEntries, entry)
+			first = false
+		}
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("iterate osv_entries: %w", err)
 		}
 	}
 
