@@ -1,0 +1,7 @@
+{
+  "task_id": "task-multi-osv-tabs",
+  "task_description": "Show all OSV entries linked to a vulnerability as individual tabs (labeled by OSV ID) in the vulnerability detail view, instead of a single 'OSV' tab with LIMIT 1 data.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

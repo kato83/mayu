@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "fix",
   "description": "Address review feedback: (1) Add Affected field to OSVEntryDetail in Go and TypeScript models, populate in store, display in OSV entry tab panels. (2) Add overflow-x-auto to tablist container for narrow viewport scrolling. (3) Add multi-entry test case to component spec.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. In internal/model/detail.go, add Affected []Affected field to OSVEntryDetail struct.",
     "2. In internal/store/detail.go, populate entry.Affected from vuln.Affected for each OSV entry.",
@@ -30,5 +30,5 @@
     "cd /projects/sandbox/mayu/ui && pnpm test"
   ],
   "blocked_reason": null,
-  "findings": null
+  "findings": "All review issues addressed. Go build/test pass. Frontend build passes with 146 tests (5 new multi-entry tests). The Affected field is now included in OSVEntryDetail at both backend and frontend layers, populated per-entry from the parsed OSV JSON. The tab bar has overflow-x-auto for horizontal scrolling on narrow viewports. Issue 4 (first-entry selection bias) was left as-is per the orchestrator briefing since alphabetical ordering is deterministic."
 }
