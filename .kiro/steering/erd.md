@@ -42,8 +42,23 @@ erDiagram
         TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
         TEXT osv_entry_id FK "→ osv_entries(osv_id) CASCADE (nullable, OSV source only)"
         TEXT source "osv, nvd, mitre"
-        TEXT purl "pkg:type/namespace/name"
-        TEXT cpe "cpe:2.3:..."
+        TEXT purl_type "golang, npm, maven..."
+        TEXT purl_namespace
+        TEXT purl_name
+        TEXT purl_version
+        TEXT purl_qualifiers
+        TEXT purl_subpath
+        TEXT cpe_part "a, h, o"
+        TEXT cpe_vendor
+        TEXT cpe_product
+        TEXT cpe_version
+        TEXT cpe_update
+        TEXT cpe_edition
+        TEXT cpe_language
+        TEXT cpe_sw_edition
+        TEXT cpe_target_sw
+        TEXT cpe_target_hw
+        TEXT cpe_other
         TEXT ecosystem "Go, npm, PyPI..."
         TEXT name "package name"
         TEXT vendor "CPE/MITRE vendor"
@@ -170,6 +185,17 @@ erDiagram
         TEXT version_start_excluding
         TEXT version_end_including
         TEXT version_end_excluding
+        TEXT cpe_part "decomposed from criteria"
+        TEXT cpe_vendor
+        TEXT cpe_product
+        TEXT cpe_version
+        TEXT cpe_update
+        TEXT cpe_edition
+        TEXT cpe_language
+        TEXT cpe_sw_edition
+        TEXT cpe_target_sw
+        TEXT cpe_target_hw
+        TEXT cpe_other
     }
 
     nvd_references {
@@ -272,6 +298,12 @@ erDiagram
         JSONB raw_json
     }
 
+    epss_daily_stats {
+        DATE score_date PK
+        INTEGER score_count "NOT NULL"
+        TIMESTAMPTZ updated_at "DEFAULT NOW()"
+    }
+
     kev_entries {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         TEXT cve_id UK
@@ -291,6 +323,7 @@ erDiagram
 
     sync_state {
         TEXT source PK
+        TEXT source_type "osv, nvd, mitre, epss, kev"
         TIMESTAMPTZ last_modified_at
         TIMESTAMPTZ last_synced_at
         BIGINT record_count
@@ -307,6 +340,7 @@ erDiagram
         TEXT category "framework, lang, os, server-app, etc."
         TEXT_ARRAY tags
         TEXT version_command "e.g. node --version"
+        JSONB raw_json "Full product API response (reversibility)"
         TIMESTAMPTZ last_modified_at
         TIMESTAMPTZ last_synced_at "DEFAULT NOW()"
     }
@@ -479,7 +513,655 @@ erDiagram
     vulnerabilities ||--o{ watchlist_matches : "has"
     eol_products ||--o{ eol_releases : "has"
     eol_products ||--o{ eol_identifiers : "has"
+
+    vulnerabilities_translation {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
+        TEXT locale "BCP 47: ja, ko, zh-Hans, etc."
+        TEXT summary
+        TEXT details
+        TIMESTAMPTZ translated_at "DEFAULT NOW()"
+    }
+
+    kev_entries_translation {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT kev_entry_id FK "→ kev_entries(id) CASCADE"
+        TEXT locale "BCP 47"
+        TEXT vulnerability_name
+        TEXT short_description
+        TEXT required_action
+        TEXT notes
+        TIMESTAMPTZ translated_at "DEFAULT NOW()"
+    }
+
+    nvd_descriptions_translation {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT nvd_description_id FK "→ nvd_descriptions(id) CASCADE"
+        TEXT locale "BCP 47"
+        TEXT value "NOT NULL"
+        TIMESTAMPTZ translated_at "DEFAULT NOW()"
+    }
+
+    mitre_problem_types_translation {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT problem_type_id FK "→ mitre_problem_types(id) CASCADE"
+        TEXT locale "BCP 47"
+        TEXT description "NOT NULL"
+        TIMESTAMPTZ translated_at "DEFAULT NOW()"
+    }
+
+    mitre_credits_translation {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT credit_id FK "→ mitre_credits(id) CASCADE"
+        TEXT locale "BCP 47"
+        TEXT value "NOT NULL"
+        TIMESTAMPTZ translated_at "DEFAULT NOW()"
+    }
+
+    vulnerabilities ||--o{ vulnerabilities_translation : "translated"
+    kev_entries ||--o{ kev_entries_translation : "translated"
+    nvd_descriptions ||--o{ nvd_descriptions_translation : "translated"
+    mitre_problem_types ||--o{ mitre_problem_types_translation : "translated"
+    mitre_credits ||--o{ mitre_credits_translation : "translated"
 ```
+
+---
+
+## Domain-Specific Diagrams (分割図)
+
+全体図が大きいため、ドメインごとに分割した図を以下に示します。
+
+### Core Vulnerability & Aggregation
+
+```mermaid
+erDiagram
+    vulnerabilities {
+        TEXT id PK
+        TEXT summary
+        TEXT details
+        TIMESTAMPTZ published
+        TIMESTAMPTZ modified
+        TIMESTAMPTZ withdrawn
+    }
+
+    vulnerability_aliases {
+        BIGINT id PK
+        TEXT vulnerability_id FK
+        TEXT alias
+    }
+
+    alias_sources {
+        BIGINT id PK
+        BIGINT alias_id FK
+        TEXT osv_id FK
+    }
+
+    vulnerability_summary {
+        TEXT vulnerability_id PK, FK
+        SMALLINT severity_worst
+        SMALLINT severity_best
+        JSONB scores_detail
+        FLOAT8 epss_score
+        FLOAT8 epss_percentile
+        BOOLEAN in_kev
+        FLOAT8 lev_score
+        TEXT_ARRAY ecosystem_list
+        TEXT_ARRAY cwe_list
+        TIMESTAMPTZ computed_at
+    }
+
+    product_identifiers {
+        BIGINT id PK
+        TEXT vulnerability_id FK
+        TEXT osv_entry_id FK
+        TEXT source
+        TEXT purl_type
+        TEXT purl_namespace
+        TEXT purl_name
+        TEXT cpe_vendor
+        TEXT cpe_product
+        TEXT ecosystem
+        TEXT name
+        TEXT vendor
+        TEXT product
+        JSONB version_constraint
+    }
+
+    purl_cpe_mapping {
+        BIGINT id PK
+        TEXT purl_type
+        TEXT purl_name
+        TEXT cpe_vendor
+        TEXT cpe_product
+        FLOAT8 confidence
+        TEXT source
+    }
+
+    epss_scores {
+        BIGINT id PK
+        TEXT cve_id
+        TEXT vulnerability_id FK
+        FLOAT8 epss
+        FLOAT8 percentile
+        DATE score_date
+    }
+
+    epss_daily_stats {
+        DATE score_date PK
+        INTEGER score_count
+        TIMESTAMPTZ updated_at
+    }
+
+    vulnerabilities ||--o{ vulnerability_aliases : "has"
+    vulnerabilities ||--|| vulnerability_summary : "has"
+    vulnerabilities ||--o{ product_identifiers : "has"
+    vulnerabilities ||--o{ epss_scores : "has"
+    vulnerability_aliases ||--o{ alias_sources : "sourced by"
+```
+
+### OSV Data
+
+```mermaid
+erDiagram
+    vulnerabilities {
+        TEXT id PK
+    }
+
+    osv_entries {
+        TEXT osv_id PK
+        TEXT vulnerability_id FK
+        TEXT schema_version
+        JSONB raw_json
+        JSONB database_specific
+    }
+
+    osv_affected_packages {
+        BIGINT id PK
+        TEXT osv_entry_id FK
+        TEXT ecosystem
+        TEXT name
+        TEXT purl
+        TEXT_ARRAY versions
+    }
+
+    osv_affected_ranges {
+        BIGINT id PK
+        BIGINT affected_package_id FK
+        TEXT range_type
+        TEXT repo
+        JSONB events
+    }
+
+    osv_severity {
+        BIGINT id PK
+        TEXT osv_entry_id FK
+        BIGINT affected_package_id FK
+        TEXT severity_type
+        TEXT score
+    }
+
+    osv_references {
+        BIGINT id PK
+        TEXT osv_entry_id FK
+        TEXT reference_type
+        TEXT url
+    }
+
+    osv_credits {
+        BIGINT id PK
+        TEXT osv_entry_id FK
+        TEXT name
+        TEXT credit_type
+    }
+
+    vulnerabilities ||--o{ osv_entries : "has"
+    osv_entries ||--o{ osv_affected_packages : "has"
+    osv_entries ||--o{ osv_severity : "top-level"
+    osv_entries ||--o{ osv_references : "has"
+    osv_entries ||--o{ osv_credits : "has"
+    osv_affected_packages ||--o{ osv_affected_ranges : "has"
+    osv_affected_packages ||--o{ osv_severity : "per-package"
+```
+
+### NVD Data
+
+```mermaid
+erDiagram
+    vulnerabilities {
+        TEXT id PK
+    }
+
+    nvd_entries {
+        BIGINT id PK
+        TEXT cve_id UK
+        TEXT vulnerability_id FK
+        TEXT source_identifier
+        TEXT vuln_status
+        TIMESTAMPTZ published
+        TIMESTAMPTZ last_modified
+        JSONB raw_json
+    }
+
+    nvd_descriptions {
+        BIGINT id PK
+        BIGINT nvd_entry_id FK
+        TEXT lang
+        TEXT value
+    }
+
+    nvd_metrics {
+        BIGINT id PK
+        BIGINT nvd_entry_id FK
+        TEXT version
+        TEXT source
+        TEXT type
+        JSONB cvss_data
+        FLOAT8 base_score
+        TEXT base_severity
+    }
+
+    nvd_weaknesses {
+        BIGINT id PK
+        BIGINT nvd_entry_id FK
+        TEXT source
+        TEXT type
+        TEXT cwe_id
+    }
+
+    nvd_configurations {
+        BIGINT id PK
+        BIGINT nvd_entry_id FK
+        TEXT operator
+        BOOLEAN negate
+        JSONB raw_nodes
+    }
+
+    nvd_cpe_matches {
+        BIGINT id PK
+        BIGINT configuration_id FK
+        BOOLEAN vulnerable
+        TEXT criteria
+        TEXT cpe_vendor
+        TEXT cpe_product
+        TEXT cpe_version
+    }
+
+    nvd_references {
+        BIGINT id PK
+        BIGINT nvd_entry_id FK
+        TEXT url
+        TEXT source
+        TEXT_ARRAY tags
+    }
+
+    nvd_descriptions_translation {
+        BIGINT id PK
+        BIGINT nvd_description_id FK
+        TEXT locale "BCP 47"
+        TEXT value
+        TIMESTAMPTZ translated_at
+    }
+
+    vulnerabilities ||--o{ nvd_entries : "has"
+    nvd_entries ||--o{ nvd_descriptions : "has"
+    nvd_entries ||--o{ nvd_metrics : "has"
+    nvd_entries ||--o{ nvd_weaknesses : "has"
+    nvd_entries ||--o{ nvd_configurations : "has"
+    nvd_configurations ||--o{ nvd_cpe_matches : "has"
+    nvd_entries ||--o{ nvd_references : "has"
+    nvd_descriptions ||--o{ nvd_descriptions_translation : "translated"
+```
+
+### MITRE Data
+
+```mermaid
+erDiagram
+    vulnerabilities {
+        TEXT id PK
+    }
+
+    mitre_entries {
+        BIGINT id PK
+        TEXT cve_id UK
+        TEXT vulnerability_id FK
+        TEXT state
+        TEXT assigner_org_id
+        TEXT assigner_short_name
+        JSONB raw_json
+    }
+
+    mitre_containers {
+        BIGINT id PK
+        BIGINT mitre_entry_id FK
+        TEXT container_type "cna / adp"
+        TEXT title
+        TEXT provider_org_id
+        TEXT provider_short_name
+    }
+
+    mitre_affected {
+        BIGINT id PK
+        BIGINT container_id FK
+        TEXT vendor
+        TEXT product
+        TEXT default_status
+    }
+
+    mitre_affected_versions {
+        BIGINT id PK
+        BIGINT affected_id FK
+        TEXT version
+        TEXT status
+        TEXT less_than
+    }
+
+    mitre_metrics {
+        BIGINT id PK
+        BIGINT container_id FK
+        TEXT format
+        FLOAT8 base_score
+        TEXT base_severity
+    }
+
+    mitre_problem_types {
+        BIGINT id PK
+        BIGINT container_id FK
+        TEXT cwe_id
+        TEXT description
+        TEXT lang
+    }
+
+    mitre_references {
+        BIGINT id PK
+        BIGINT container_id FK
+        TEXT url
+        TEXT name
+    }
+
+    mitre_credits {
+        BIGINT id PK
+        BIGINT container_id FK
+        TEXT credit_type
+        TEXT value
+        TEXT lang
+    }
+
+    mitre_problem_types_translation {
+        BIGINT id PK
+        BIGINT problem_type_id FK
+        TEXT locale "BCP 47"
+        TEXT description
+        TIMESTAMPTZ translated_at
+    }
+
+    mitre_credits_translation {
+        BIGINT id PK
+        BIGINT credit_id FK
+        TEXT locale "BCP 47"
+        TEXT value
+        TIMESTAMPTZ translated_at
+    }
+
+    vulnerabilities ||--o{ mitre_entries : "has"
+    mitre_entries ||--o{ mitre_containers : "has"
+    mitre_containers ||--o{ mitre_affected : "has"
+    mitre_containers ||--o{ mitre_metrics : "has"
+    mitre_containers ||--o{ mitre_problem_types : "has"
+    mitre_containers ||--o{ mitre_references : "has"
+    mitre_containers ||--o{ mitre_credits : "has"
+    mitre_affected ||--o{ mitre_affected_versions : "has"
+    mitre_problem_types ||--o{ mitre_problem_types_translation : "translated"
+    mitre_credits ||--o{ mitre_credits_translation : "translated"
+```
+
+### KEV & EPSS
+
+```mermaid
+erDiagram
+    vulnerabilities {
+        TEXT id PK
+    }
+
+    kev_entries {
+        BIGINT id PK
+        TEXT cve_id UK
+        TEXT vulnerability_id FK
+        TEXT vendor_project
+        TEXT product
+        TEXT vulnerability_name
+        DATE date_added
+        TEXT short_description
+        TEXT required_action
+        DATE due_date
+        TEXT known_ransomware_campaign_use
+        TEXT notes
+        TEXT_ARRAY cwes
+        JSONB raw_json
+    }
+
+    kev_entries_translation {
+        BIGINT id PK
+        BIGINT kev_entry_id FK
+        TEXT locale "BCP 47"
+        TEXT vulnerability_name
+        TEXT short_description
+        TEXT required_action
+        TEXT notes
+        TIMESTAMPTZ translated_at
+    }
+
+    vulnerabilities ||--o{ kev_entries : "has"
+    kev_entries ||--o{ kev_entries_translation : "translated"
+```
+
+### EOL (End of Life)
+
+```mermaid
+erDiagram
+    eol_products {
+        TEXT name PK
+        TEXT label
+        TEXT category
+        TEXT_ARRAY tags
+        TEXT version_command
+        JSONB raw_json
+        TIMESTAMPTZ last_modified_at
+        TIMESTAMPTZ last_synced_at
+    }
+
+    eol_releases {
+        BIGINT id PK
+        TEXT product_name FK
+        TEXT release_name
+        TEXT label
+        TEXT codename
+        DATE release_date
+        BOOLEAN is_lts
+        BOOLEAN is_eol
+        DATE eol_from
+        BOOLEAN is_maintained
+        TEXT latest_version
+    }
+
+    eol_identifiers {
+        BIGINT id PK
+        TEXT product_name FK
+        TEXT identifier_type "purl or cpe"
+        TEXT identifier
+    }
+
+    eol_products ||--o{ eol_releases : "has"
+    eol_products ||--o{ eol_identifiers : "has"
+```
+
+### User, Auth & Notifications
+
+```mermaid
+erDiagram
+    users {
+        BIGINT id PK
+        TEXT email UK
+        TEXT name
+        TEXT role
+        TEXT password_hash
+        TEXT oidc_subject
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    api_keys {
+        BIGINT id PK
+        BIGINT user_id FK
+        TEXT key_prefix
+        TEXT key_hash
+        TEXT name
+        TIMESTAMPTZ expires_at
+    }
+
+    sessions {
+        TEXT id PK
+        BIGINT user_id FK
+        TIMESTAMPTZ expires_at
+    }
+
+    webhooks {
+        BIGINT id PK
+        TEXT name
+        TEXT url
+        TEXT_ARRAY events
+        TEXT content_type
+        TEXT body_template
+        TEXT secret
+        BOOLEAN enabled
+    }
+
+    webhook_delivery_logs {
+        BIGINT id PK
+        BIGINT webhook_id FK
+        TEXT event
+        INT response_status
+        TEXT error_message
+        INT attempt
+        TIMESTAMPTZ delivered_at
+    }
+
+    watchlists {
+        BIGINT id PK
+        BIGINT user_id FK
+        TEXT name
+        TEXT match_type
+        TEXT ecosystem
+        TEXT package_name
+        SMALLINT severity_min
+        FLOAT8 epss_threshold
+        BOOLEAN enabled
+    }
+
+    watchlist_matches {
+        BIGINT id PK
+        BIGINT watchlist_id FK
+        TEXT vulnerability_id FK
+        TIMESTAMPTZ matched_at
+        BOOLEAN notified
+    }
+
+    users ||--o{ api_keys : "has"
+    users ||--o{ sessions : "has"
+    users ||--o{ watchlists : "has"
+    webhooks ||--o{ webhook_delivery_logs : "has"
+    watchlists ||--o{ watchlist_matches : "has"
+```
+
+### Translation (i18n)
+
+```mermaid
+erDiagram
+    vulnerabilities {
+        TEXT id PK
+        TEXT summary
+        TEXT details
+    }
+
+    vulnerabilities_translation {
+        BIGINT id PK
+        TEXT vulnerability_id FK
+        TEXT locale "BCP 47"
+        TEXT summary
+        TEXT details
+        TIMESTAMPTZ translated_at
+    }
+
+    kev_entries {
+        BIGINT id PK
+        TEXT vulnerability_name
+        TEXT short_description
+        TEXT required_action
+        TEXT notes
+    }
+
+    kev_entries_translation {
+        BIGINT id PK
+        BIGINT kev_entry_id FK
+        TEXT locale "BCP 47"
+        TEXT vulnerability_name
+        TEXT short_description
+        TEXT required_action
+        TEXT notes
+        TIMESTAMPTZ translated_at
+    }
+
+    nvd_descriptions {
+        BIGINT id PK
+        TEXT lang "upstream language"
+        TEXT value
+    }
+
+    nvd_descriptions_translation {
+        BIGINT id PK
+        BIGINT nvd_description_id FK
+        TEXT locale "BCP 47"
+        TEXT value
+        TIMESTAMPTZ translated_at
+    }
+
+    mitre_problem_types {
+        BIGINT id PK
+        TEXT cwe_id
+        TEXT description
+        TEXT lang "upstream language"
+    }
+
+    mitre_problem_types_translation {
+        BIGINT id PK
+        BIGINT problem_type_id FK
+        TEXT locale "BCP 47"
+        TEXT description
+        TIMESTAMPTZ translated_at
+    }
+
+    mitre_credits {
+        BIGINT id PK
+        TEXT credit_type
+        TEXT value
+        TEXT lang "upstream language"
+    }
+
+    mitre_credits_translation {
+        BIGINT id PK
+        BIGINT credit_id FK
+        TEXT locale "BCP 47"
+        TEXT value
+        TIMESTAMPTZ translated_at
+    }
+
+    vulnerabilities ||--o{ vulnerabilities_translation : "translated"
+    kev_entries ||--o{ kev_entries_translation : "translated"
+    nvd_descriptions ||--o{ nvd_descriptions_translation : "translated"
+    mitre_problem_types ||--o{ mitre_problem_types_translation : "translated"
+    mitre_credits ||--o{ mitre_credits_translation : "translated"
+```
+
+---
 
 ## Design Principles
 
@@ -581,6 +1263,15 @@ CISA KEV catalog entries.
 ### `sync_state`
 Per-source delta synchronization tracking. No FK relationships.
 
+- `source`: Primary key identifying the sync source (e.g., ecosystem name for OSV, "NVD-native", "MITRE", "EPSS", "KEV").
+- `source_type`: Categorizes the source (osv, nvd, mitre, epss, kev).
+
+### `epss_daily_stats` (Aggregation Cache)
+Per-date summary of EPSS score counts for fast coverage queries without scanning the full `epss_scores` table.
+
+- Primary key: `score_date`.
+- Updated on each EPSS ingest.
+
 ### `eol_products` + `eol_releases` + `eol_identifiers` Tables
 Product lifecycle data from [endoflife.date](https://endoflife.date/) API v1.
 
@@ -608,3 +1299,14 @@ Product lifecycle data from [endoflife.date](https://endoflife.date/) API v1.
 | 5 | Add `alias_sources` junction table; refactor alias management | Schema change + importer refactor |
 | 6 | osv_id normalization (Debian prefix etc.) | Importer change + data migration |
 | 7 | Source-specific table column refinement (CPE decomposition, CVSS vector parsing) | Schema evolution |
+| 8 | Add `*_translation` tables for i18n support | Additive (5 new tables) |
+
+### Translation Tables (i18n)
+Separate tables for mayu-generated translations, following the `{table_name}_translation` naming pattern.
+
+- **Purpose**: Distinguish mayu-generated translations from upstream-provided multi-language data (e.g., NVD's `lang` column, MITRE's `lang` column).
+- **`locale`**: BCP 47 language tags (`ja`, `ko`, `zh-Hans`, etc.). English (`en`) rows are not stored—original text is always in the source table.
+- **`translated_at`**: Timestamp for freshness tracking. When the source text is updated, stale translations can be identified and re-generated.
+- **UNIQUE constraint**: `(source_id, locale)` ensures one translation per language per source record.
+- **NULL columns**: Partial translations allowed (e.g., `summary` translated but `details` still NULL).
+- **CASCADE DELETE**: Translation rows are automatically deleted when the source record is removed.
