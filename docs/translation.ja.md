@@ -53,6 +53,30 @@ translation:
   timeout: 300  # ローカルモデルは処理が遅い場合がある
 ```
 
+#### Ollama（リモートホスト / GGUF モデル）
+
+Ollama が別のマシン（ホームサーバー等）で動作している場合は、`localhost` の代わりにホストの IP アドレスまたはホスト名を使用します。また、Ollama の `hf.co/` モデル構文で Hugging Face の GGUF モデルを直接指定できます。
+
+```yaml
+translation:
+  enabled: true
+  provider: ollama
+  endpoint: http://192.168.1.100:11434/v1    # リモートの Ollama ホスト
+  model: "hf.co/LiquidAI/LFM2-350M-ENJP-MT-GGUF:Q4_K_M"
+  # api_key は Ollama では不要
+  max_tokens: 4096
+  temperature: 0.3
+  timeout: 120
+```
+
+> [!IMPORTANT]
+> `endpoint` には **ベース URL のみ** を指定してください（例: `http://host:11434/v1`）。
+> `/chat/completions` を含めては**いけません** — mayu が自動的にこのパスを付加します。
+
+> [!TIP]
+> Ollama サーバーでリモート接続を受け付けるには `OLLAMA_HOST=0.0.0.0` の設定が必要です。
+> デフォルトでは Ollama は `127.0.0.1` のみでリッスンします。
+
 #### AWS Bedrock（LiteLLM プロキシ経由）
 
 ```yaml

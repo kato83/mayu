@@ -53,6 +53,30 @@ translation:
   timeout: 300  # Local models may be slower
 ```
 
+#### Ollama (Remote Host / GGUF Model)
+
+When Ollama is running on a different machine (e.g., a home server), use the host's IP or hostname instead of `localhost`. You can also use Hugging Face GGUF models directly via Ollama's `hf.co/` model syntax.
+
+```yaml
+translation:
+  enabled: true
+  provider: ollama
+  endpoint: http://192.168.1.100:11434/v1    # Remote Ollama host
+  model: "hf.co/LiquidAI/LFM2-350M-ENJP-MT-GGUF:Q4_K_M"
+  # api_key not needed for Ollama
+  max_tokens: 4096
+  temperature: 0.3
+  timeout: 120
+```
+
+> [!IMPORTANT]
+> The `endpoint` must be the **base URL only** (e.g., `http://host:11434/v1`).
+> Do **not** include `/chat/completions` in the endpoint — mayu appends this path automatically.
+
+> [!TIP]
+> Ensure `OLLAMA_HOST=0.0.0.0` is set on the Ollama server to accept remote connections.
+> By default, Ollama only listens on `127.0.0.1`.
+
 #### AWS Bedrock (via LiteLLM Proxy)
 
 ```yaml
