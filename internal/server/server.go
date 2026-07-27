@@ -219,12 +219,16 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/vulnerabilities/{id}/epss-history", s.handleGetEPSSHistory)
-		r.With(middleware.Timeout(180 * time.Second)).Post("/vulnerabilities/{id}/translate", s.handleTranslateVulnerability)
+		r.With(middleware.Timeout(30 * time.Second)).Post("/vulnerabilities/{id}/translate", s.handleTranslateVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
 		r.Get("/eol/{product}", s.handleGetEOLProduct)
 		r.Get("/eol/lookup", s.handleLookupEOL)
 		r.Get("/status", s.handleStatus)
 		r.Get("/version", s.handleVersion)
+
+		// Translation job status endpoints
+		r.With(middleware.Timeout(30*time.Second)).Get("/translations/jobs", s.handleListTranslationJobs)
+		r.With(middleware.Timeout(30*time.Second)).Get("/translations/jobs/{id}", s.handleGetTranslationJob)
 	})
 
 	// Ingest endpoints

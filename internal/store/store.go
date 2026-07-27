@@ -165,6 +165,18 @@ type Store interface {
 
 	// SaveNVDDescriptionTranslation upserts a translation for an NVD description.
 	SaveNVDDescriptionTranslation(ctx context.Context, nvdDescID int64, locale, value string, translatedAt time.Time) error
+
+	// CreateTranslationJob records a new translation job and returns the auto-generated ID.
+	CreateTranslationJob(ctx context.Context, job *TranslationJob) (int64, error)
+
+	// UpdateTranslationJob updates an existing translation job (status, fields_translated, finish time).
+	UpdateTranslationJob(ctx context.Context, job *TranslationJob) error
+
+	// GetTranslationJob retrieves a translation job by ID. Returns nil, nil if not found.
+	GetTranslationJob(ctx context.Context, id int64) (*TranslationJob, error)
+
+	// ListTranslationJobs returns recent translation jobs ordered by start time (newest first).
+	ListTranslationJobs(ctx context.Context, limit int) ([]TranslationJob, error)
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.
