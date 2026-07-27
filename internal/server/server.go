@@ -468,6 +468,11 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		Fields:      fields,
 	}
 
+	// Set locale for translated summary
+	if locales := i18n.PreferredLocales(r.Context()); len(locales) > 0 {
+		query.Locale = locales[0]
+	}
+
 	// Sort parameter
 	if sortParam := q.Get("sort"); sortParam != "" {
 		validSorts := map[string]bool{

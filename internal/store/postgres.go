@@ -1209,6 +1209,10 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 	needSeverity := fieldSet["severity"]
 	needEcosystem := fieldSet["ecosystem"]
 
+	// Prepare locale-aware summary: if locale is set, we'll replace v.summary
+	// with COALESCE(vt.summary, v.summary) and add a LEFT JOIN after query assembly.
+	locale := query.Locale
+
 	// Build query using vulnerability_summary
 	var baseQuery string
 	var args []interface{}
@@ -1379,6 +1383,18 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 		argIdx++
 		baseQuery += fmt.Sprintf(` OFFSET $%d`, argIdx)
 		args = append(args, offset)
+	}
+
+	// Apply locale-aware summary: join translation table and use translated summary if available
+	if locale != "" {
+		argIdx++
+		localeArg := argIdx
+		baseQuery = strings.Replace(baseQuery, "v.summary", "COALESCE(vt.summary, v.summary)", 1)
+		baseQuery = strings.Replace(baseQuery,
+			"FROM vulnerabilities v",
+			fmt.Sprintf("FROM vulnerabilities v LEFT JOIN vulnerabilities_translation vt ON vt.vulnerability_id = v.id AND vt.locale = $%d", localeArg),
+			1)
+		args = append(args, locale)
 	}
 
 	rows, err := s.db.QueryContext(ctx, baseQuery, args...)
