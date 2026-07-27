@@ -1562,6 +1562,30 @@
         <source>Translate this page</source>
         <target>このページを翻訳</target>
       </trans-unit>
+      <trans-unit id="translatedText.original" datatype="html">
+        <source>Original</source>
+        <target>原文</target>
+      </trans-unit>
+      <trans-unit id="translatedText.translated" datatype="html">
+        <source>Translated</source>
+        <target>翻訳済み</target>
+      </trans-unit>
+      <trans-unit id="translatedText.showOriginal" datatype="html">
+        <source>Show original text</source>
+        <target>原文を表示</target>
+      </trans-unit>
+      <trans-unit id="translatedText.showTranslation" datatype="html">
+        <source>Show translated text</source>
+        <target>翻訳を表示</target>
+      </trans-unit>
+      <trans-unit id="translatedText.translate" datatype="html">
+        <source>Translate</source>
+        <target>翻訳する</target>
+      </trans-unit>
+      <trans-unit id="translatedText.requestTranslation" datatype="html">
+        <source>Request translation</source>
+        <target>翻訳をリクエスト</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

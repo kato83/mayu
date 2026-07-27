@@ -80,4 +80,4 @@ ui-lint:
 	pnpm --prefix ui run ng lint
 
 ui-i18n-extract:
-	cd ui && npx ng extract-i18n
+	cd ui && pnpm exec ng extract-i18n
