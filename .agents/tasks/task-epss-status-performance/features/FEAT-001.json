@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix the EPSS status API timeout by introducing an epss_daily_stats summary table and rewriting GetEPSSCoverage to query it instead of scanning the massive epss_scores table. This includes: (1) a new migration 000025 to create the table, (2) a function to update daily stats during EPSS import, (3) rewriting GetEPSSCoverage to use the summary table, (4) updating the ingest pipeline to maintain the table.",
+  "status": "completed",
+  "steps": [
+    "Create migration file migrations/000025_create_epss_daily_stats.up.sql that creates the epss_daily_stats table with columns: score_date DATE PRIMARY KEY, score_count INTEGER NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(). Also include a one-time population INSERT from the existing epss_scores data using: INSERT INTO epss_daily_stats (score_date, score_count) SELECT score_date, COUNT(*) FROM epss_scores GROUP BY score_date ON CONFLICT DO NOTHING. This ensures existing installations get their summary table populated on migration.",
+    "Create migration file migrations/000025_create_epss_daily_stats.down.sql that drops the epss_daily_stats table.",
+    "In internal/store/epss.go, add a new method UpsertEPSSDailyStats(ctx, date string, count int) that upserts a row into epss_daily_stats. Use INSERT ... ON CONFLICT (score_date) DO UPDATE SET score_count = EXCLUDED.score_count, updated_at = NOW().",
+    "Rewrite the GetEPSSCoverage method in internal/store/epss.go to query epss_daily_stats instead of epss_scores. The new implementation should: (a) query SELECT COUNT(*), COALESCE(MIN(score_date)::text,''), COALESCE(MAX(score_date)::text,''), COALESCE(SUM(score_count),0) FROM epss_daily_stats for coverage stats, (b) for missing dates, use generate_series with NOT EXISTS against epss_daily_stats (which has at most ~900 rows for 2.5 years of data, making NOT IN perfectly fine).",
+    "In internal/store/epss.go, modify the existing UpsertEPSSBatch or add logic alongside it so that after a batch is stored, the daily stats for the affected date(s) are updated. Since UpsertEPSSBatch processes scores that may span multiple dates in one batch, collect distinct dates from the batch and call UpsertEPSSDailyStats for each. Alternatively, add a new method RefreshEPSSDailyStats(ctx, dates []string) that does a bulk upsert by querying COUNT(*) from epss_scores WHERE score_date IN (...) grouped by score_date.",
+    "Update the epssBatchStore interface in internal/ingest/epss.go to include the new method (if needed) and call it from storeEPSSBatches after each batch is stored. Collect the distinct dates from the batch's scores and pass them to the new method.",
+    "Update the Store interface in internal/store/store.go if any publicly-exposed method signatures are added (UpsertEPSSDailyStats may stay unexported if only used through epssBatchStore interface).",
+    "Update the mock store in internal/server/server_test.go if the Store interface changes.",
+    "Run go build ./... to verify compilation passes."
+  ],
+  "acceptance_criteria": [
+    "go build ./... succeeds with no errors",
+    "GetEPSSCoverage no longer queries the epss_scores table directly - it queries epss_daily_stats which has at most hundreds of rows",
+    "The migration 000025 up/down files exist and are valid SQL",
+    "The EPSS ingest pipeline updates epss_daily_stats after each batch so the stats stay current",
+    "The Store interface in store.go compiles (mock in server_test.go satisfies it)"
+  ],
+  "verification": [
+    "Run 'go build ./...' and confirm it compiles successfully",
+    "Run 'go test ./... -count=1' to run unit tests and confirm they pass"
+  ],
+  "blocked_reason": null,
+  "findings": "ScoreDate in model.EPSSScore is time.Time, not string - needed .Format(\"2006-01-02\") when collecting batch dates. The epssBatchStore interface is only used via type assertion so adding RefreshEPSSDailyStats did not require changes to the main Store interface or the mock in server_test.go."
+}
