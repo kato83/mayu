@@ -114,6 +114,7 @@ func runServe(args []string, cfg *config.Config) error {
 
 	// Initialize translation service (if configured)
 	var translateService *translate.Service
+	var translateRateLimiter *translate.RateLimiter
 	if cfg.Translation.Enabled {
 		client, err := translate.NewClient(cfg.Translation)
 		if err != nil {
@@ -121,6 +122,37 @@ func runServe(args []string, cfg *config.Config) error {
 		}
 		translateService = translate.NewService(client)
 		slog.Info("translation service enabled", "provider", cfg.Translation.Provider, "model", cfg.Translation.Model)
+
+		// Initialize translation rate limiter (EDoS protection)
+		rateMax := cfg.Translation.RateLimit
+		if rateMax == 0 {
+			// Not explicitly set in config — use default
+			rateMax = translate.DefaultRateLimit
+		} else if rateMax < 0 {
+			// Explicitly disabled (rate_limit: -1)
+			rateMax = 0
+		}
+		rateWindow := cfg.Translation.RateLimitWindow
+		if rateWindow <= 0 {
+			rateWindow = translate.DefaultRateLimitWindow
+		}
+		rateBurst := cfg.Translation.RateLimitBurst
+
+		translateRateLimiter = translate.NewRateLimiter(translate.RateLimiterConfig{
+			Max:    rateMax,
+			Window: time.Duration(rateWindow) * time.Second,
+			Burst:  rateBurst,
+		})
+
+		if rateMax > 0 {
+			slog.Info("translation rate limiting enabled",
+				"max_requests", rateMax,
+				"window_seconds", rateWindow,
+				"burst", translateRateLimiter.BurstLimit(),
+			)
+		} else {
+			slog.Warn("translation rate limiting is disabled (rate_limit=-1); this may expose the system to EDoS attacks")
+		}
 	}
 
 	// Create and start server
@@ -137,7 +169,8 @@ func runServe(args []string, cfg *config.Config) error {
 		WebhookEngine:    webhookEngine,
 		WatchlistStore:   watchlist.NewPostgresWatchlistStore(s.DB()),
 		WatchlistMatcher: watchlist.NewIngestMatcherAdapter(watchlist.NewMatcher(watchlist.NewPostgresWatchlistStore(s.DB()), watchlist.NewPostgresVulnDataProvider(s.DB()))),
-		TranslateService: translateService,
+		TranslateService:     translateService,
+		TranslateRateLimiter: translateRateLimiter,
 	})
 
 	// Start periodic session cleanup if auth is enabled

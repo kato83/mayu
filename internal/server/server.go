@@ -90,26 +90,31 @@ type Config struct {
 	// TranslateService provides LLM-based translation capabilities.
 	// If nil, translation endpoints return 503 Service Unavailable.
 	TranslateService *translate.Service
+
+	// TranslateRateLimiter provides rate limiting for translation endpoints.
+	// If nil, no rate limiting is applied to translation requests.
+	TranslateRateLimiter *translate.RateLimiter
 }
 
 // Server is the HTTP API server.
 type Server struct {
-	httpServer       *http.Server
-	store            store.Store
-	version          string
-	uiDir            string
-	embedFS          fs.FS
-	fetcher          *fetcher.Fetcher
-	authProvider     auth.AuthProvider
-	apiKeyStore      auth.APIKeyStore
-	webhookStore     webhook.WebhookStore
-	webhookEngine    *webhook.Engine
-	watchlistStore   watchlist.WatchlistStore
-	watchlistMatcher ingest.WatchlistMatcher
-	translateService *translate.Service
-	loginLimiter     *auth.LoginRateLimiter
-	ingestRunning    atomic.Bool
-	runners          activeRunners
+	httpServer           *http.Server
+	store                store.Store
+	version              string
+	uiDir                string
+	embedFS              fs.FS
+	fetcher              *fetcher.Fetcher
+	authProvider         auth.AuthProvider
+	apiKeyStore          auth.APIKeyStore
+	webhookStore         webhook.WebhookStore
+	webhookEngine        *webhook.Engine
+	watchlistStore       watchlist.WatchlistStore
+	watchlistMatcher     ingest.WatchlistMatcher
+	translateService     *translate.Service
+	translateRateLimiter *translate.RateLimiter
+	loginLimiter         *auth.LoginRateLimiter
+	ingestRunning        atomic.Bool
+	runners              activeRunners
 }
 
 // New creates a new Server with the given configuration.
@@ -120,19 +125,20 @@ func New(cfg Config) *Server {
 	}
 
 	s := &Server{
-		store:            cfg.Store,
-		version:          cfg.Version,
-		uiDir:            cfg.UIDir,
-		embedFS:          cfg.EmbedFS,
-		fetcher:          cfg.Fetcher,
-		authProvider:     ap,
-		apiKeyStore:      cfg.APIKeyStore,
-		webhookStore:     cfg.WebhookStore,
-		webhookEngine:    cfg.WebhookEngine,
-		watchlistStore:   cfg.WatchlistStore,
-		watchlistMatcher: cfg.WatchlistMatcher,
-		translateService: cfg.TranslateService,
-		loginLimiter:     auth.NewLoginRateLimiter(10, 15*time.Minute),
+		store:                cfg.Store,
+		version:              cfg.Version,
+		uiDir:               cfg.UIDir,
+		embedFS:              cfg.EmbedFS,
+		fetcher:              cfg.Fetcher,
+		authProvider:         ap,
+		apiKeyStore:          cfg.APIKeyStore,
+		webhookStore:         cfg.WebhookStore,
+		webhookEngine:        cfg.WebhookEngine,
+		watchlistStore:       cfg.WatchlistStore,
+		watchlistMatcher:     cfg.WatchlistMatcher,
+		translateService:     cfg.TranslateService,
+		translateRateLimiter: cfg.TranslateRateLimiter,
+		loginLimiter:         auth.NewLoginRateLimiter(10, 15*time.Minute),
 	}
 
 	router := s.routes()
@@ -219,7 +225,7 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/vulnerabilities/{id}/epss-history", s.handleGetEPSSHistory)
-		r.With(middleware.Timeout(30 * time.Second)).Post("/vulnerabilities/{id}/translate", s.handleTranslateVulnerability)
+		r.With(s.translateRateLimitMiddleware(), middleware.Timeout(30*time.Second)).Post("/vulnerabilities/{id}/translate", s.handleTranslateVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
 		r.Get("/eol/{product}", s.handleGetEOLProduct)
 		r.Get("/eol/lookup", s.handleLookupEOL)

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/translate"
 )
@@ -48,6 +49,25 @@ type translationJobResponse struct {
 // translationJobsListResponse wraps the list of translation jobs.
 type translationJobsListResponse struct {
 	Jobs []translationJobResponse `json:"jobs"`
+}
+
+// translateRateLimitMiddleware returns the rate limit middleware for translation endpoints.
+// If no rate limiter is configured, it returns a no-op middleware.
+func (s *Server) translateRateLimitMiddleware() func(http.Handler) http.Handler {
+	if s.translateRateLimiter == nil || !s.translateRateLimiter.Enabled() {
+		return func(next http.Handler) http.Handler { return next }
+	}
+
+	keyFunc := func(r *http.Request) string {
+		// Use authenticated user ID if available (preferred for per-user limiting)
+		if user := auth.UserFromContext(r.Context()); user != nil && user.ID > 0 {
+			return fmt.Sprintf("user:%d", user.ID)
+		}
+		// Fallback to client IP (for no-auth mode or edge cases)
+		return "ip:" + translate.ClientIP(r)
+	}
+
+	return translate.RateLimitMiddleware(s.translateRateLimiter, keyFunc)
 }
 
 // handleTranslateVulnerability handles POST /api/v1/vulnerabilities/{id}/translate.

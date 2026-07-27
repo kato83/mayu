@@ -95,6 +95,24 @@ type TranslationConfig struct {
 	// SystemPrompt allows overriding the default translation system prompt.
 	// If empty, a built-in prompt optimized for vulnerability text translation is used.
 	SystemPrompt string `yaml:"system_prompt"`
+
+	// RateLimit is the maximum number of translation requests allowed per user (or IP)
+	// within the RateLimitWindow. This prevents EDoS (Economic Denial of Sustainability)
+	// attacks where excessive LLM API calls could lead to unexpected cost spikes.
+	// Default: 20 requests per window (enough to translate ~20 CVEs/hour).
+	// Set to -1 to disable rate limiting entirely.
+	RateLimit int `yaml:"rate_limit"`
+
+	// RateLimitWindow is the time window (in seconds) for the rate limit counter.
+	// After this window elapses, the counter resets for the user/IP.
+	// Default: 3600 (1 hour).
+	RateLimitWindow int `yaml:"rate_limit_window"`
+
+	// RateLimitBurst allows a short burst of requests above the rate limit.
+	// This is the maximum number of requests that can be made in quick succession
+	// before rate limiting kicks in. Must be >= RateLimit.
+	// Default: same as RateLimit (no burst allowance beyond the base limit).
+	RateLimitBurst int `yaml:"rate_limit_burst"`
 }
 
 // Config represents the mayu configuration file structure.
