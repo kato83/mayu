@@ -96,6 +96,19 @@ paths:
           schema:
             type: string
           example: "id,summary,modified,severity,ecosystem"
+        - name: kev
+          in: query
+          description: If "true", filter to only vulnerabilities in the CISA KEV catalog
+          schema:
+            type: string
+            enum: ["true"]
+        - name: sort
+          in: query
+          description: Sort order for results
+          schema:
+            type: string
+            enum: [modified_desc, modified_asc, published_desc, published_asc]
+            default: modified_desc
       responses:
         "200":
           description: Successful search response
@@ -120,23 +133,35 @@ paths:
     get:
       operationId: getVulnerability
       summary: Get a vulnerability by ID
-      description: Retrieve a single vulnerability by its OSV ID.
+      description: |
+        Retrieve a single vulnerability by its OSV ID, CVE ID, or alias.
+        When `detail=true`, returns enriched data from all sources (NVD, MITRE, EPSS, KEV, LEV, EOL).
+        When a non-English `Accept-Language` header is present, translations are included if available.
       tags:
         - vulnerabilities
       parameters:
         - name: id
           in: path
           required: true
-          description: Vulnerability ID (e.g., GO-2024-2687, CVE-2024-1234)
+          description: Vulnerability ID (e.g., GO-2024-2687, CVE-2024-1234, GHSA-xxxx)
           schema:
             type: string
           example: GO-2024-2687
         - name: detail
           in: query
-          description: If "true", return enriched vulnerability data from all sources (NVD, MITRE, EPSS, KEV, LEV)
+          description: If "true", return enriched vulnerability data from all sources (NVD, MITRE, EPSS, KEV, LEV, EOL)
           schema:
             type: string
             enum: ["true"]
+        - name: Accept-Language
+          in: header
+          description: |
+            BCP 47 language tag(s) for translation. When a non-English locale is specified and
+            `detail=true`, translated text fields are included in the response alongside originals.
+            Example: `ja`, `ko,en;q=0.5`, `zh-Hans`
+          schema:
+            type: string
+          example: "ja"
       responses:
         "200":
           description: Vulnerability found
@@ -175,6 +200,85 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EcosystemsResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/vulnerabilities/{id}/epss-history:
+    get:
+      operationId: getEPSSHistory
+      summary: Get EPSS score history for a vulnerability
+      description: Returns the full EPSS score history ordered by date ascending.
+      tags:
+        - vulnerabilities
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Vulnerability ID (e.g., CVE-2024-1234)
+          schema:
+            type: string
+          example: CVE-2024-1234
+      responses:
+        "200":
+          description: EPSS history data
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - vulnerability_id
+                  - history
+                properties:
+                  vulnerability_id:
+                    type: string
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                          format: date
+                        epss:
+                          type: number
+                          format: double
+                        percentile:
+                          type: number
+                          format: double
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/status:
+    get:
+      operationId: getStatus
+      summary: Get data source sync status
+      description: Returns sync state and EPSS coverage information for all data sources.
+      tags:
+        - system
+      responses:
+        "200":
+          description: Status information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sync_states:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                  epss_coverage:
+                    type: object
+                    additionalProperties: true
         "500":
           description: Internal server error
           content:
@@ -622,7 +726,7 @@ components:
 
     VulnerabilityDetail:
       type: object
-      description: Enriched vulnerability detail combining OSV, NVD, MITRE, EPSS, KEV, and LEV data.
+      description: Enriched vulnerability detail combining OSV, NVD, MITRE, EPSS, KEV, LEV, and EOL data.
       required:
         - id
         - modified
@@ -652,11 +756,11 @@ components:
             $ref: "#/components/schemas/Severity"
         severity_worst:
           type: string
-          description: Normalized worst severity level from vulnerability_summary (CRITICAL, HIGH, MEDIUM, LOW, NONE)
+          description: Normalized worst severity level (CRITICAL, HIGH, MEDIUM, LOW, NONE)
           enum: [CRITICAL, HIGH, MEDIUM, LOW, NONE]
         severity_best:
           type: string
-          description: Normalized best severity level from vulnerability_summary (CRITICAL, HIGH, MEDIUM, LOW, NONE)
+          description: Normalized best severity level (CRITICAL, HIGH, MEDIUM, LOW, NONE)
           enum: [CRITICAL, HIGH, MEDIUM, LOW, NONE]
         affected:
           type: array
@@ -670,48 +774,412 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Credit"
+        osv_entries:
+          type: array
+          description: All OSV entries associated with this vulnerability
+          items:
+            $ref: "#/components/schemas/OSVEntryDetail"
         nvd:
-          type: object
-          description: NVD enrichment data
+          $ref: "#/components/schemas/NVDDetail"
         mitre:
-          type: object
-          description: MITRE CVE Record enrichment data
+          $ref: "#/components/schemas/MITREDetail"
         epss:
-          type: object
-          description: EPSS score data
-          properties:
-            epss:
-              type: number
-              format: double
-            percentile:
-              type: number
-              format: double
-            score_date:
-              type: string
-              format: date
+          $ref: "#/components/schemas/EPSSDetail"
         kev:
-          type: object
-          description: CISA KEV catalog data
+          $ref: "#/components/schemas/KEVDetail"
         lev:
-          type: object
-          description: LEV (Likely Exploited Vulnerabilities) computed score
-          properties:
-            lev:
-              type: number
-              format: double
-            in_kev:
-              type: boolean
-            epss_score_count:
-              type: integer
-            first_epss_date:
-              type: string
-              format: date
-            last_epss_date:
-              type: string
-              format: date
-            computed_at:
-              type: string
-              format: date-time
+          $ref: "#/components/schemas/LEVDetail"
+        eol:
+          type: array
+          description: End-of-life enrichment for affected products
+          items:
+            type: object
+            additionalProperties: true
+        translations:
+          type: array
+          description: |
+            Translations of text fields (summary, details) for requested locales.
+            Only present when Accept-Language specifies a non-English locale and translations exist.
+          items:
+            $ref: "#/components/schemas/VulnerabilityTranslation"
+
+    OSVEntryDetail:
+      type: object
+      description: A single OSV entry associated with a vulnerability
+      properties:
+        osv_id:
+          type: string
+          description: OSV identifier (e.g., GHSA-xxxx, BIT-xxx)
+        severity:
+          type: array
+          items:
+            $ref: "#/components/schemas/Severity"
+        details:
+          type: string
+        affected:
+          type: array
+          items:
+            $ref: "#/components/schemas/Affected"
+        references:
+          type: array
+          items:
+            $ref: "#/components/schemas/Reference"
+        credits:
+          type: array
+          items:
+            $ref: "#/components/schemas/Credit"
+
+    NVDDetail:
+      type: object
+      description: NVD enrichment data
+      properties:
+        vuln_status:
+          type: string
+        source_identifier:
+          type: string
+        published:
+          type: string
+          format: date-time
+        last_modified:
+          type: string
+          format: date-time
+        description:
+          type: string
+          description: English description from NVD
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/NVDMetric"
+        weaknesses:
+          type: array
+          items:
+            type: object
+            properties:
+              source:
+                type: string
+              type:
+                type: string
+              cwe_id:
+                type: string
+        references:
+          type: array
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+              source:
+                type: string
+              tags:
+                type: array
+                items:
+                  type: string
+        configurations:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        ssvc:
+          $ref: "#/components/schemas/SSVCDetail"
+        description_translations:
+          type: array
+          description: Translations of the NVD description (present when Accept-Language is non-English)
+          items:
+            $ref: "#/components/schemas/NVDDescriptionTranslation"
+
+    NVDMetric:
+      type: object
+      properties:
+        version:
+          type: string
+          description: "CVSS version (v2, v31, v40)"
+        source:
+          type: string
+        type:
+          type: string
+          description: "Primary or Secondary"
+        base_score:
+          type: number
+          format: double
+        base_severity:
+          type: string
+        vector_string:
+          type: string
+        exploitability_score:
+          type: number
+          format: double
+        impact_score:
+          type: number
+          format: double
+
+    MITREDetail:
+      type: object
+      description: MITRE CVE Record enrichment data
+      properties:
+        state:
+          type: string
+        assigner_short_name:
+          type: string
+        date_published:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+        metrics:
+          type: array
+          items:
+            type: object
+            properties:
+              format:
+                type: string
+              cvss_version:
+                type: string
+              source:
+                type: string
+              base_score:
+                type: number
+                format: double
+              base_severity:
+                type: string
+              vector_string:
+                type: string
+        problem_types:
+          type: array
+          items:
+            $ref: "#/components/schemas/MITREProblemType"
+        credits:
+          type: array
+          items:
+            $ref: "#/components/schemas/MITRECredit"
+        references:
+          type: array
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+              name:
+                type: string
+              tags:
+                type: array
+                items:
+                  type: string
+        ssvc:
+          $ref: "#/components/schemas/SSVCDetail"
+
+    MITREProblemType:
+      type: object
+      properties:
+        cwe_id:
+          type: string
+        description:
+          type: string
+        lang:
+          type: string
+        translations:
+          type: array
+          description: Translations of the problem type description
+          items:
+            $ref: "#/components/schemas/MITREProblemTypeTranslation"
+
+    MITRECredit:
+      type: object
+      properties:
+        type:
+          type: string
+        value:
+          type: string
+        lang:
+          type: string
+        translations:
+          type: array
+          description: Translations of the credit value
+          items:
+            $ref: "#/components/schemas/MITRECreditTranslation"
+
+    EPSSDetail:
+      type: object
+      description: EPSS score data
+      properties:
+        epss:
+          type: number
+          format: double
+          description: Probability of exploitation in next 30 days [0.0, 1.0]
+        percentile:
+          type: number
+          format: double
+          description: Relative ranking among all scored CVEs [0.0, 1.0]
+        score_date:
+          type: string
+          format: date
+
+    KEVDetail:
+      type: object
+      description: CISA KEV catalog data
+      properties:
+        vendor_project:
+          type: string
+        product:
+          type: string
+        vulnerability_name:
+          type: string
+        date_added:
+          type: string
+          format: date
+        due_date:
+          type: string
+          format: date
+        required_action:
+          type: string
+        known_ransomware_campaign_use:
+          type: string
+        translations:
+          type: array
+          description: Translations of KEV text fields (present when Accept-Language is non-English)
+          items:
+            $ref: "#/components/schemas/KEVTranslation"
+
+    LEVDetail:
+      type: object
+      description: LEV (Likely Exploited Vulnerabilities) computed score
+      properties:
+        lev:
+          type: number
+          format: double
+          description: Probability of past exploitation [0.0, 1.0]
+        in_kev:
+          type: boolean
+        epss_score_count:
+          type: integer
+        first_epss_date:
+          type: string
+          format: date
+        last_epss_date:
+          type: string
+          format: date
+        computed_at:
+          type: string
+          format: date-time
+
+    SSVCDetail:
+      type: object
+      description: CISA SSVC (Stakeholder-Specific Vulnerability Categorization) assessment
+      properties:
+        version:
+          type: string
+        role:
+          type: string
+        timestamp:
+          type: string
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+              value:
+                type: string
+        decision:
+          type: string
+          description: "SSVC decision (Track, Track*, Attend, Act)"
+
+    VulnerabilityTranslation:
+      type: object
+      description: Translation of vulnerability text fields for a specific locale
+      required:
+        - locale
+        - translated_at
+      properties:
+        locale:
+          type: string
+          description: BCP 47 language tag (e.g., "ja", "ko", "zh-Hans")
+          example: "ja"
+        summary:
+          type: string
+          description: Translated summary (null if not yet translated)
+        details:
+          type: string
+          description: Translated details (null if not yet translated)
+        translated_at:
+          type: string
+          format: date-time
+          description: When the translation was generated
+
+    KEVTranslation:
+      type: object
+      description: Translation of KEV entry text fields for a specific locale
+      required:
+        - locale
+        - translated_at
+      properties:
+        locale:
+          type: string
+          example: "ja"
+        vulnerability_name:
+          type: string
+        short_description:
+          type: string
+        required_action:
+          type: string
+        notes:
+          type: string
+        translated_at:
+          type: string
+          format: date-time
+
+    NVDDescriptionTranslation:
+      type: object
+      description: Translation of an NVD description for a specific locale
+      required:
+        - locale
+        - value
+        - translated_at
+      properties:
+        locale:
+          type: string
+          example: "ja"
+        value:
+          type: string
+          description: Translated description text
+        translated_at:
+          type: string
+          format: date-time
+
+    MITREProblemTypeTranslation:
+      type: object
+      description: Translation of a MITRE problem type description
+      required:
+        - locale
+        - description
+        - translated_at
+      properties:
+        locale:
+          type: string
+          example: "ja"
+        description:
+          type: string
+        translated_at:
+          type: string
+          format: date-time
+
+    MITRECreditTranslation:
+      type: object
+      description: Translation of a MITRE credit value
+      required:
+        - locale
+        - value
+        - translated_at
+      properties:
+        locale:
+          type: string
+          example: "ja"
+        value:
+          type: string
+        translated_at:
+          type: string
+          format: date-time
 
     HealthResponse:
       type: object

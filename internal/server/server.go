@@ -25,6 +25,7 @@ import (
 	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/ingest"
+	"github.com/kato83/mayu/internal/i18n"
 	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/store"
@@ -166,8 +167,8 @@ func (s *Server) routes() http.Handler {
 			return s.authProvider.Mode() == "none"
 		},
 		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Content-Type", "Authorization"},
-		ExposedHeaders:   []string{"X-Total-Count"},
+		AllowedHeaders:   []string{"Accept", "Accept-Language", "Content-Type", "Authorization"},
+		ExposedHeaders:   []string{"X-Total-Count", "Content-Language"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
@@ -207,6 +208,7 @@ func (s *Server) routes() http.Handler {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(authMW)
 		r.Use(middleware.Timeout(30 * time.Second))
+		r.Use(i18n.LocaleMiddleware)
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/vulnerabilities/{id}/epss-history", s.handleGetEPSSHistory)
@@ -558,6 +560,41 @@ func (s *Server) handleGetVulnerability(w http.ResponseWriter, r *http.Request) 
 				fmt.Sprintf("vulnerability %q not found", id))
 			return
 		}
+
+		// Enrich with translations if non-English locale is requested
+		if locales := i18n.PreferredLocales(r.Context()); len(locales) > 0 {
+			translations, err := s.store.GetTranslations(r.Context(), store.TranslationQuery{
+				VulnerabilityID: detail.ID,
+				Locales:         locales,
+			})
+			if err != nil {
+				slog.Warn("failed to fetch translations", "id", id, "locales", locales, "error", err)
+				// Non-fatal: continue without translations
+			} else if translations != nil {
+				detail.Translations = translations.Vulnerability
+				if detail.KEV != nil && len(translations.KEV) > 0 {
+					detail.KEV.Translations = translations.KEV
+				}
+				if detail.NVD != nil && len(translations.NVDDescriptions) > 0 {
+					detail.NVD.DescriptionTranslations = translations.NVDDescriptions
+				}
+				if detail.MITRE != nil {
+					// Attach problem type translations by position
+					for idx := range detail.MITRE.ProblemTypes {
+						if idx < len(translations.MITREProblemTypes) {
+							detail.MITRE.ProblemTypes[idx].Translations = translations.MITREProblemTypes[idx]
+						}
+					}
+					// Attach credit translations by position
+					for idx := range detail.MITRE.Credits {
+						if idx < len(translations.MITRECredits) {
+							detail.MITRE.Credits[idx].Translations = translations.MITRECredits[idx]
+						}
+					}
+				}
+			}
+		}
+
 		writeJSON(w, http.StatusOK, detail)
 		return
 	}

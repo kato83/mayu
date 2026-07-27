@@ -145,6 +145,10 @@ type Store interface {
 
 	// GetDashboardTopRisks returns top risky CVEs by EPSS and LEV scores.
 	GetDashboardTopRisks(ctx context.Context, limit int) (*DashboardTopRisks, error)
+
+	// GetTranslations retrieves available translations for a vulnerability detail
+	// in the requested locales. Returns nil if no locales are requested.
+	GetTranslations(ctx context.Context, q TranslationQuery) (*TranslationResult, error)
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.

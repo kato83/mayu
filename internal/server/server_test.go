@@ -144,6 +144,9 @@ func (m *mockStore) GetDashboardDistributions(ctx context.Context) (*store.Dashb
 func (m *mockStore) GetDashboardTopRisks(ctx context.Context, limit int) (*store.DashboardTopRisks, error) {
 	return &store.DashboardTopRisks{TopEPSS: []store.RiskEntry{}, TopLEV: []store.RiskEntry{}}, nil
 }
+func (m *mockStore) GetTranslations(ctx context.Context, q store.TranslationQuery) (*store.TranslationResult, error) {
+	return nil, nil
+}
 
 // newTestServer creates a Server with the given mock store for testing.
 // By default it uses NoAuthProvider so existing tests don't need auth.
