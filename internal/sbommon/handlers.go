@@ -290,8 +290,8 @@ func HandleUploadSBOM(sbomStore SBOMStore, scanner *Scanner) http.HandlerFunc {
 			return
 		}
 
-		// Get previous scan for diff computation
-		prevResult, _ := sbomStore.GetLatestScanResult(r.Context(), versionID)
+		// Get previous version's scan for cross-version diff computation
+		prevResult, _ := sbomStore.GetPreviousVersionScanResult(r.Context(), project.ID, versionID)
 
 		// Compute diff
 		diff := ComputeDiff(scanResult, prevResult)

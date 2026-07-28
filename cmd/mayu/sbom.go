@@ -164,8 +164,8 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 		return fmt.Errorf("create version: %w", err)
 	}
 
-	// Get previous scan for diff
-	prevResult, _ := sbomStore.GetLatestScanResult(ctx, versionID)
+	// Get previous version's scan for cross-version diff
+	prevResult, _ := sbomStore.GetPreviousVersionScanResult(ctx, proj.ID, versionID)
 	diff := sbommon.ComputeDiff(scanResult, prevResult)
 
 	scanResult.VersionID = versionID

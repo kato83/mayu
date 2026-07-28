@@ -166,6 +166,23 @@ func (m *mockSBOMStore) GetPreviousScanResult(_ context.Context, versionID int64
 	return prev, nil
 }
 
+func (m *mockSBOMStore) GetPreviousVersionScanResult(_ context.Context, projectID int64, currentVersionID int64) (*SBOMScanResult, error) {
+	// Find the latest scan result from a version in the same project that has ID < currentVersionID
+	var prev *SBOMScanResult
+	for _, sr := range m.scanResults {
+		v, ok := m.versions[sr.VersionID]
+		if !ok {
+			continue
+		}
+		if v.ProjectID == projectID && v.ID < currentVersionID {
+			if prev == nil || sr.ScannedAt.After(prev.ScannedAt) {
+				prev = sr
+			}
+		}
+	}
+	return prev, nil
+}
+
 func (m *mockSBOMStore) ListAllVersions(_ context.Context) ([]*SBOMVersion, error) {
 	var result []*SBOMVersion
 	for _, v := range m.versions {

@@ -343,6 +343,35 @@ func (s *PostgresSBOMStore) GetPreviousScanResult(ctx context.Context, versionID
 	return &sr, nil
 }
 
+// GetPreviousVersionScanResult returns the latest scan result from the previous
+// version in the same project (ordered by version creation time).
+func (s *PostgresSBOMStore) GetPreviousVersionScanResult(ctx context.Context, projectID int64, currentVersionID int64) (*SBOMScanResult, error) {
+	var sr SBOMScanResult
+	var findingsJSON []byte
+	err := s.db.QueryRowContext(ctx, `
+		SELECT r.id, r.version_id, r.scanned_at, r.total_packages, r.vulnerable_packages,
+			r.total_findings, r.new_findings, r.resolved_findings, r.findings, r.status, r.trigger
+		FROM sbom_scan_results r
+		JOIN sbom_versions v ON v.id = r.version_id
+		WHERE v.project_id = $1
+		  AND v.id < $2
+		ORDER BY v.id DESC, r.scanned_at DESC
+		LIMIT 1`,
+		projectID, currentVersionID,
+	).Scan(&sr.ID, &sr.VersionID, &sr.ScannedAt, &sr.TotalPackages, &sr.VulnerablePackages,
+		&sr.TotalFindings, &sr.NewFindings, &sr.ResolvedFindings, &findingsJSON, &sr.Status, &sr.Trigger)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get previous version scan result for project %d: %w", projectID, err)
+	}
+	if err := json.Unmarshal(findingsJSON, &sr.Findings); err != nil {
+		return nil, fmt.Errorf("unmarshal findings: %w", err)
+	}
+	return &sr, nil
+}
+
 // ListAllVersions returns all SBOM versions across all projects.
 func (s *PostgresSBOMStore) ListAllVersions(ctx context.Context) ([]*SBOMVersion, error) {
 	rows, err := s.db.QueryContext(ctx, `

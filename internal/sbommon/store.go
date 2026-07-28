@@ -52,6 +52,12 @@ type SBOMStore interface {
 	// Returns nil, nil if no scan results exist.
 	GetLatestScanResult(ctx context.Context, versionID int64) (*SBOMScanResult, error)
 
+	// GetPreviousVersionScanResult returns the latest scan result from the
+	// previous version in the same project (ordered by creation time).
+	// This is used for cross-version diff computation on new version uploads.
+	// Returns nil, nil if no previous version or scan result exists.
+	GetPreviousVersionScanResult(ctx context.Context, projectID int64, currentVersionID int64) (*SBOMScanResult, error)
+
 	// GetPreviousScanResult returns the scan result immediately before the given scan ID
 	// for the same version. Returns nil, nil if no previous result exists.
 	GetPreviousScanResult(ctx context.Context, versionID int64, beforeScanID int64) (*SBOMScanResult, error)
