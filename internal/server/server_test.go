@@ -24,6 +24,7 @@ type mockStore struct {
 	getIngestJobFunc           func(ctx context.Context, id int64) (*store.IngestJob, error)
 	listSyncStatesFunc         func(ctx context.Context) ([]store.SyncState, error)
 	getEPSSCoverageFunc        func(ctx context.Context) (*store.EPSSCoverage, error)
+	getStatsTrendFunc          func(ctx context.Context, query store.StatsTrendQuery) (*store.StatsTrendResponse, error)
 }
 
 func (m *mockStore) Insert(ctx context.Context, vuln *model.Vulnerability) error { return nil }
@@ -176,6 +177,16 @@ func (m *mockStore) GetTranslationJob(ctx context.Context, id int64) (*store.Tra
 }
 func (m *mockStore) ListTranslationJobs(ctx context.Context, limit int) ([]store.TranslationJob, error) {
 	return nil, nil
+}
+func (m *mockStore) GetStatsTrend(ctx context.Context, query store.StatsTrendQuery) (*store.StatsTrendResponse, error) {
+	if m.getStatsTrendFunc != nil {
+		return m.getStatsTrendFunc(ctx, query)
+	}
+	return &store.StatsTrendResponse{
+		Range:      query.Range,
+		GroupBy:    query.GroupBy,
+		DataPoints: []store.StatsTrendDataPoint{},
+	}, nil
 }
 
 // newTestServer creates a Server with the given mock store for testing.
