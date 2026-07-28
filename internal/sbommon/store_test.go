@@ -248,3 +248,245 @@ func TestMockSBOMStore_ListAllVersionIDs(t *testing.T) {
 		t.Errorf("ListAllVersionIDs() len = %d, want 2", len(ids))
 	}
 }
+
+func TestMockSBOMStore_UpsertFindingStatus(t *testing.T) {
+	store := newMockSBOMStore()
+	ctx := context.Background()
+
+	// Insert a new finding status.
+	fs := &FindingStatus{
+		VersionID:     10,
+		VulnID:        "CVE-2024-1234",
+		Purl:          "pkg:npm/lodash@4.17.20",
+		Status:        FindingStatusOpen,
+		Justification: "initial triage",
+		UpdatedBy:     1,
+	}
+	result, err := store.UpsertFindingStatus(ctx, fs)
+	if err != nil {
+		t.Fatalf("UpsertFindingStatus() error = %v", err)
+	}
+	if result.ID == 0 {
+		t.Fatal("UpsertFindingStatus() returned ID 0")
+	}
+	if result.Status != FindingStatusOpen {
+		t.Errorf("Status = %q, want %q", result.Status, FindingStatusOpen)
+	}
+	if result.VulnID != "CVE-2024-1234" {
+		t.Errorf("VulnID = %q, want %q", result.VulnID, "CVE-2024-1234")
+	}
+
+	// Update the same finding status (status change should create a log entry).
+	fs2 := &FindingStatus{
+		VersionID:     10,
+		VulnID:        "CVE-2024-1234",
+		Purl:          "pkg:npm/lodash@4.17.20",
+		Status:        FindingStatusSuppressed,
+		Justification: "not applicable to our use case",
+		UpdatedBy:     2,
+	}
+	result2, err := store.UpsertFindingStatus(ctx, fs2)
+	if err != nil {
+		t.Fatalf("UpsertFindingStatus() update error = %v", err)
+	}
+	if result2.ID != result.ID {
+		t.Errorf("ID = %d, want %d (same record)", result2.ID, result.ID)
+	}
+	if result2.Status != FindingStatusSuppressed {
+		t.Errorf("Status = %q, want %q", result2.Status, FindingStatusSuppressed)
+	}
+
+	// Verify audit log was created.
+	logs, err := store.ListFindingStatusLog(ctx, result.ID)
+	if err != nil {
+		t.Fatalf("ListFindingStatusLog() error = %v", err)
+	}
+	if len(logs) != 1 {
+		t.Fatalf("ListFindingStatusLog() len = %d, want 1", len(logs))
+	}
+	if logs[0].OldStatus != FindingStatusOpen {
+		t.Errorf("OldStatus = %q, want %q", logs[0].OldStatus, FindingStatusOpen)
+	}
+	if logs[0].NewStatus != FindingStatusSuppressed {
+		t.Errorf("NewStatus = %q, want %q", logs[0].NewStatus, FindingStatusSuppressed)
+	}
+
+	// Upsert with same status should NOT create a log entry.
+	fs3 := &FindingStatus{
+		VersionID:     10,
+		VulnID:        "CVE-2024-1234",
+		Purl:          "pkg:npm/lodash@4.17.20",
+		Status:        FindingStatusSuppressed,
+		Justification: "updated justification",
+		UpdatedBy:     2,
+	}
+	_, err = store.UpsertFindingStatus(ctx, fs3)
+	if err != nil {
+		t.Fatalf("UpsertFindingStatus() same status error = %v", err)
+	}
+	logs, err = store.ListFindingStatusLog(ctx, result.ID)
+	if err != nil {
+		t.Fatalf("ListFindingStatusLog() error = %v", err)
+	}
+	if len(logs) != 1 {
+		t.Errorf("ListFindingStatusLog() len = %d, want 1 (no new log for same status)", len(logs))
+	}
+}
+
+func TestMockSBOMStore_GetFindingStatus(t *testing.T) {
+	store := newMockSBOMStore()
+	ctx := context.Background()
+
+	// Not found case.
+	got, err := store.GetFindingStatus(ctx, 10, "CVE-2024-0001", "pkg:npm/foo@1.0.0")
+	if err != nil {
+		t.Fatalf("GetFindingStatus() error = %v", err)
+	}
+	if got != nil {
+		t.Fatal("GetFindingStatus() should return nil for non-existent")
+	}
+
+	// Insert and retrieve.
+	fs := &FindingStatus{
+		VersionID:     10,
+		VulnID:        "CVE-2024-0001",
+		Purl:          "pkg:npm/foo@1.0.0",
+		Status:        FindingStatusInTriage,
+		Justification: "under review",
+		UpdatedBy:     1,
+	}
+	_, err = store.UpsertFindingStatus(ctx, fs)
+	if err != nil {
+		t.Fatalf("UpsertFindingStatus() error = %v", err)
+	}
+
+	got, err = store.GetFindingStatus(ctx, 10, "CVE-2024-0001", "pkg:npm/foo@1.0.0")
+	if err != nil {
+		t.Fatalf("GetFindingStatus() error = %v", err)
+	}
+	if got == nil {
+		t.Fatal("GetFindingStatus() returned nil")
+	}
+	if got.Status != FindingStatusInTriage {
+		t.Errorf("Status = %q, want %q", got.Status, FindingStatusInTriage)
+	}
+}
+
+func TestMockSBOMStore_ListFindingStatuses(t *testing.T) {
+	store := newMockSBOMStore()
+	ctx := context.Background()
+
+	// Insert multiple finding statuses for the same version.
+	statuses := []*FindingStatus{
+		{VersionID: 10, VulnID: "CVE-1", Purl: "pkg:npm/a@1.0", Status: FindingStatusOpen, UpdatedBy: 1},
+		{VersionID: 10, VulnID: "CVE-2", Purl: "pkg:npm/b@2.0", Status: FindingStatusSuppressed, UpdatedBy: 1},
+		{VersionID: 10, VulnID: "CVE-3", Purl: "pkg:npm/c@3.0", Status: FindingStatusOpen, UpdatedBy: 1},
+		{VersionID: 20, VulnID: "CVE-4", Purl: "pkg:npm/d@4.0", Status: FindingStatusOpen, UpdatedBy: 1},
+	}
+	for _, fs := range statuses {
+		if _, err := store.UpsertFindingStatus(ctx, fs); err != nil {
+			t.Fatalf("UpsertFindingStatus() error = %v", err)
+		}
+	}
+
+	// List all for version 10.
+	all, err := store.ListFindingStatuses(ctx, 10, nil)
+	if err != nil {
+		t.Fatalf("ListFindingStatuses() error = %v", err)
+	}
+	if len(all) != 3 {
+		t.Errorf("ListFindingStatuses(no filter) len = %d, want 3", len(all))
+	}
+
+	// List with status filter.
+	filtered, err := store.ListFindingStatuses(ctx, 10, []string{FindingStatusOpen})
+	if err != nil {
+		t.Fatalf("ListFindingStatuses(filtered) error = %v", err)
+	}
+	if len(filtered) != 2 {
+		t.Errorf("ListFindingStatuses(open) len = %d, want 2", len(filtered))
+	}
+
+	// List with multiple status filter.
+	multi, err := store.ListFindingStatuses(ctx, 10, []string{FindingStatusOpen, FindingStatusSuppressed})
+	if err != nil {
+		t.Fatalf("ListFindingStatuses(multi) error = %v", err)
+	}
+	if len(multi) != 3 {
+		t.Errorf("ListFindingStatuses(open+suppressed) len = %d, want 3", len(multi))
+	}
+
+	// List for version 20.
+	v20, err := store.ListFindingStatuses(ctx, 20, nil)
+	if err != nil {
+		t.Fatalf("ListFindingStatuses(v20) error = %v", err)
+	}
+	if len(v20) != 1 {
+		t.Errorf("ListFindingStatuses(v20) len = %d, want 1", len(v20))
+	}
+}
+
+func TestMockSBOMStore_ListFindingStatusLog(t *testing.T) {
+	store := newMockSBOMStore()
+	ctx := context.Background()
+
+	// Insert and change status multiple times.
+	fs := &FindingStatus{
+		VersionID: 10, VulnID: "CVE-1", Purl: "pkg:npm/a@1.0",
+		Status: FindingStatusOpen, UpdatedBy: 1,
+	}
+	result, err := store.UpsertFindingStatus(ctx, fs)
+	if err != nil {
+		t.Fatalf("UpsertFindingStatus() error = %v", err)
+	}
+
+	// Change to in_triage.
+	fs.Status = FindingStatusInTriage
+	_, err = store.UpsertFindingStatus(ctx, fs)
+	if err != nil {
+		t.Fatalf("UpsertFindingStatus() error = %v", err)
+	}
+
+	// Change to resolved.
+	fs.Status = FindingStatusResolved
+	_, err = store.UpsertFindingStatus(ctx, fs)
+	if err != nil {
+		t.Fatalf("UpsertFindingStatus() error = %v", err)
+	}
+
+	// Should have 2 log entries (open->in_triage, in_triage->resolved).
+	logs, err := store.ListFindingStatusLog(ctx, result.ID)
+	if err != nil {
+		t.Fatalf("ListFindingStatusLog() error = %v", err)
+	}
+	if len(logs) != 2 {
+		t.Fatalf("ListFindingStatusLog() len = %d, want 2", len(logs))
+	}
+
+	// Verify log entries content.
+	foundOpenToTriage := false
+	foundTriageToResolved := false
+	for _, l := range logs {
+		if l.OldStatus == FindingStatusOpen && l.NewStatus == FindingStatusInTriage {
+			foundOpenToTriage = true
+		}
+		if l.OldStatus == FindingStatusInTriage && l.NewStatus == FindingStatusResolved {
+			foundTriageToResolved = true
+		}
+	}
+	if !foundOpenToTriage {
+		t.Error("missing log entry: open -> in_triage")
+	}
+	if !foundTriageToResolved {
+		t.Error("missing log entry: in_triage -> resolved")
+	}
+
+	// Empty log for non-existent finding status ID.
+	empty, err := store.ListFindingStatusLog(ctx, 99999)
+	if err != nil {
+		t.Fatalf("ListFindingStatusLog(non-existent) error = %v", err)
+	}
+	if len(empty) != 0 {
+		t.Errorf("ListFindingStatusLog(non-existent) len = %d, want 0", len(empty))
+	}
+}

@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Add HTTP API handlers for finding status management: PUT endpoint to set/update a finding status, and a GET endpoint to list findings with optional status filtering. Wire these into the server router.",
+  "status": "pending",
+  "steps": [
+    "Add request/response types in internal/sbommon/handlers.go: updateFindingStatusRequest (Status string, Justification string, ExpiresAt *string), findingStatusResponse (ID, VersionID, VulnID, Purl, Status, Justification, UpdatedBy, UpdatedAt, ExpiresAt fields).",
+    "Implement HandleUpdateFindingStatus(store SBOMStore) http.HandlerFunc in internal/sbommon/handlers.go. It should: parse scanID from URL, look up the scan result to get version_id, verify ownership (scan->version->project->user chain), validate the request body (status must be one of the valid values, justification required for risk_accepted), call store.UpsertFindingStatus, and return the result. URL pattern: PUT /api/v1/sbom/scans/{scanID}/findings/{vulnID}/status with purl in the request body.",
+    "Implement HandleListFindingStatuses(store SBOMStore) http.HandlerFunc in internal/sbommon/handlers.go. It should: parse scanID from URL, verify ownership, accept optional ?status query param (comma-separated list of statuses to filter by), call store.ListFindingStatuses with the version_id, and return the list. URL pattern: GET /api/v1/sbom/scans/{scanID}/findings/statuses.",
+    "Register the new routes in internal/server/server.go under the existing /api/v1/sbom route group: r.Put(\"/scans/{scanID}/findings/{vulnID}/status\", sbommon.HandleUpdateFindingStatus(s.sbomStore)), r.Get(\"/scans/{scanID}/findings/statuses\", sbommon.HandleListFindingStatuses(s.sbomStore)).",
+    "Add unit tests in internal/sbommon/handlers_test.go for: TestHandleUpdateFindingStatus_Success, TestHandleUpdateFindingStatus_InvalidStatus, TestHandleUpdateFindingStatus_RiskAcceptedRequiresJustification, TestHandleUpdateFindingStatus_IDORProtection, TestHandleListFindingStatuses_Success, TestHandleListFindingStatuses_FilterByStatus."
+  ],
+  "acceptance_criteria": [
+    "PUT /api/v1/sbom/scans/{scanID}/findings/{vulnID}/status endpoint handles status updates with proper validation",
+    "GET /api/v1/sbom/scans/{scanID}/findings/statuses endpoint returns finding statuses with optional filtering",
+    "IDOR protection: users cannot modify or view finding statuses for projects they do not own",
+    "Validation: invalid status values return 400, risk_accepted without justification returns 400",
+    "Routes are registered in the server router",
+    "All new handler unit tests pass",
+    "Running 'go build ./...' succeeds",
+    "Running 'go test ./internal/sbommon/ -v -count=1' passes all tests"
+  ],
+  "verification": [
+    "cd /projects/sandbox/mayu && go build ./...",
+    "cd /projects/sandbox/mayu && go test ./internal/sbommon/ -v -count=1"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

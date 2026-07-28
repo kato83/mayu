@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Add Angular UI components for finding status management: a status dropdown per finding row in the scan detail view, a justification modal for risk_accepted status, and status filter controls in the findings list.",
+  "status": "pending",
+  "steps": [
+    "Add FindingStatusUpdate interface and FindingStatusEntry interface to ui/src/app/models/sbom.model.ts. FindingStatusUpdate: { status: string, justification?: string, purl: string, expires_at?: string }. FindingStatusEntry: { id: number, version_id: number, vuln_id: string, purl: string, status: string, justification?: string, updated_by: number, updated_at: string, expires_at?: string }.",
+    "Add updateFindingStatus(scanId: number, vulnId: string, body: FindingStatusUpdate) and listFindingStatuses(scanId: number, statusFilter?: string[]) methods to ui/src/app/services/sbom.service.ts.",
+    "Update ui/src/app/pages/sbom/sbom-scan-detail.component.ts to: (1) Add a status column to the All Findings table with a dropdown select element showing all valid statuses. (2) Add a status filter row above the table with checkboxes/buttons for each status. (3) On status change, show a justification modal/dialog (required for risk_accepted, optional for others). (4) Call the API to persist the status change. (5) Load existing statuses on page init and merge them with the findings display. (6) Use i18n with @@syntax for all new user-facing text.",
+    "Add a 'suppressed count' badge in the scan summary section showing how many findings are suppressed/false_positive (hidden from the default view)."
+  ],
+  "acceptance_criteria": [
+    "Each finding row in the scan detail table shows a status dropdown with all valid statuses",
+    "Changing status to risk_accepted triggers a justification input (required)",
+    "Status filter controls allow filtering the findings list by status",
+    "The service methods for updating and listing statuses are implemented",
+    "All new user-facing text uses i18n with @@syntax",
+    "A badge shows the count of suppressed/false_positive findings",
+    "The component compiles without TypeScript errors"
+  ],
+  "verification": [
+    "cd /projects/sandbox/mayu && go build ./...",
+    "cd /projects/sandbox/mayu && go test ./internal/sbommon/ -v -count=1"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

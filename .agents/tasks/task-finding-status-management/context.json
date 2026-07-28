@@ -1,0 +1,31 @@
+{
+  "project_type": "Go backend (REST API with go-chi) + Angular v22 frontend",
+  "language": "Go 1.26.5 (backend), TypeScript/Angular v22 (frontend)",
+  "build_system": "Makefile + pnpm (frontend)",
+  "test_framework": "Go testing (table-driven), Vitest (frontend)",
+  "build_command": "cd /projects/sandbox/mayu && go build ./...",
+  "test_command": "cd /projects/sandbox/mayu && go test ./internal/sbommon/ -v -count=1",
+  "verification_instructions": "1. Run 'go build ./...' to verify compilation. 2. Run 'go test ./internal/sbommon/ -v -count=1' to verify unit tests pass.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "Go 1.26.5 is available. Run 'go build ./...' to download deps and verify compilation.",
+  "environment_constraints": "No PostgreSQL available for integration tests. No pnpm/node available for UI build. Validate backend code by compilation and unit tests only. Validate migration SQL by syntax inspection.",
+  "contribution_requirements": "TDD approach. Table-driven tests. Both up and down migrations required. Sequential migration numbering (next: 000032). Update .kiro/steering/erd.md when DB schema changes. Doc comments on exported functions. Use context.Context. Minimize external dependencies.",
+  "key_patterns": "The sbommon package follows a clear pattern: store.go (interface), postgres.go (implementation), sbommon.go (domain types), handlers.go (HTTP handlers), handlers_test.go (tests using mockSBOMStore), scanner.go (business logic). Routes registered in internal/server/server.go under /api/v1/sbom. UI uses Angular signals, standalone components, TailwindCSS, i18n with @@syntax.",
+  "relevant_files": [
+    "internal/sbommon/store.go",
+    "internal/sbommon/postgres.go",
+    "internal/sbommon/sbommon.go",
+    "internal/sbommon/handlers.go",
+    "internal/sbommon/handlers_test.go",
+    "internal/sbommon/store_test.go",
+    "internal/sbommon/scanner.go",
+    "internal/server/server.go",
+    "migrations/000029_create_sbom_monitoring_tables.up.sql",
+    "migrations/000029_create_sbom_monitoring_tables.down.sql",
+    "ui/src/app/services/sbom.service.ts",
+    "ui/src/app/models/sbom.model.ts",
+    "ui/src/app/pages/sbom/sbom-scan-detail.component.ts",
+    ".kiro/steering/erd.md"
+  ],
+  "directory_structure": "cmd/ (CLI entrypoint), internal/sbommon/ (SBOM monitoring module with handlers/store/scanner), internal/server/ (HTTP router), migrations/ (SQL up/down files), ui/src/app/ (Angular frontend with pages/services/models)"
+}

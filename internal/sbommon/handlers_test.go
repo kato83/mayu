@@ -15,18 +15,22 @@ import (
 
 // mockSBOMStore implements SBOMStore for handler tests.
 type mockSBOMStore struct {
-	projects    map[int64]*SBOMProject
-	versions    map[int64]*SBOMVersion
-	scanResults map[int64]*SBOMScanResult
-	nextID      int64
+	projects         map[int64]*SBOMProject
+	versions         map[int64]*SBOMVersion
+	scanResults      map[int64]*SBOMScanResult
+	findingStatuses  map[int64]*FindingStatus
+	findingStatusLog map[int64]*FindingStatusLog
+	nextID           int64
 }
 
 func newMockSBOMStore() *mockSBOMStore {
 	return &mockSBOMStore{
-		projects:    make(map[int64]*SBOMProject),
-		versions:    make(map[int64]*SBOMVersion),
-		scanResults: make(map[int64]*SBOMScanResult),
-		nextID:      1,
+		projects:         make(map[int64]*SBOMProject),
+		versions:         make(map[int64]*SBOMVersion),
+		scanResults:      make(map[int64]*SBOMScanResult),
+		findingStatuses:  make(map[int64]*FindingStatus),
+		findingStatusLog: make(map[int64]*FindingStatusLog),
+		nextID:           1,
 	}
 }
 
@@ -197,6 +201,105 @@ func (m *mockSBOMStore) ListAllVersionIDs(_ context.Context) ([]int64, error) {
 		ids = append(ids, id)
 	}
 	return ids, nil
+}
+
+func (m *mockSBOMStore) UpsertFindingStatus(_ context.Context, fs *FindingStatus) (*FindingStatus, error) {
+	// Check if a finding status already exists for this combination.
+	var existing *FindingStatus
+	for _, s := range m.findingStatuses {
+		if s.VersionID == fs.VersionID && s.VulnID == fs.VulnID && s.Purl == fs.Purl {
+			existing = s
+			break
+		}
+	}
+
+	if existing != nil {
+		oldStatus := existing.Status
+		existing.Status = fs.Status
+		existing.Justification = fs.Justification
+		existing.UpdatedBy = fs.UpdatedBy
+		existing.UpdatedAt = time.Now()
+		existing.ExpiresAt = fs.ExpiresAt
+
+		// Log the status change if it actually changed.
+		if oldStatus != existing.Status {
+			logID := m.nextID
+			m.nextID++
+			m.findingStatusLog[logID] = &FindingStatusLog{
+				ID:              logID,
+				FindingStatusID: existing.ID,
+				OldStatus:       oldStatus,
+				NewStatus:       existing.Status,
+				Justification:   fs.Justification,
+				ChangedBy:       fs.UpdatedBy,
+				ChangedAt:       time.Now(),
+			}
+		}
+
+		result := *existing
+		return &result, nil
+	}
+
+	// Insert new finding status.
+	id := m.nextID
+	m.nextID++
+	newFS := &FindingStatus{
+		ID:            id,
+		VersionID:     fs.VersionID,
+		VulnID:        fs.VulnID,
+		Purl:          fs.Purl,
+		Status:        fs.Status,
+		Justification: fs.Justification,
+		UpdatedBy:     fs.UpdatedBy,
+		UpdatedAt:     time.Now(),
+		ExpiresAt:     fs.ExpiresAt,
+	}
+	m.findingStatuses[id] = newFS
+
+	result := *newFS
+	return &result, nil
+}
+
+func (m *mockSBOMStore) GetFindingStatus(_ context.Context, versionID int64, vulnID string, purl string) (*FindingStatus, error) {
+	for _, fs := range m.findingStatuses {
+		if fs.VersionID == versionID && fs.VulnID == vulnID && fs.Purl == purl {
+			return fs, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *mockSBOMStore) ListFindingStatuses(_ context.Context, versionID int64, statusFilter []string) ([]*FindingStatus, error) {
+	var result []*FindingStatus
+	for _, fs := range m.findingStatuses {
+		if fs.VersionID != versionID {
+			continue
+		}
+		if len(statusFilter) > 0 {
+			matched := false
+			for _, s := range statusFilter {
+				if fs.Status == s {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				continue
+			}
+		}
+		result = append(result, fs)
+	}
+	return result, nil
+}
+
+func (m *mockSBOMStore) ListFindingStatusLog(_ context.Context, findingStatusID int64) ([]*FindingStatusLog, error) {
+	var result []*FindingStatusLog
+	for _, l := range m.findingStatusLog {
+		if l.FindingStatusID == findingStatusID {
+			result = append(result, l)
+		}
+	}
+	return result, nil
 }
 
 // helper to create a request with auth context
