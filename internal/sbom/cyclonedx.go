@@ -90,10 +90,7 @@ func parseCycloneDXXML(data []byte) (*SBOM, error) {
 			Group:   xc.Group,
 		}
 		for _, xp := range xc.Properties {
-			c.Properties = append(c.Properties, cycloneDXProperty{
-				Name:  xp.Name,
-				Value: xp.Value,
-			})
+			c.Properties = append(c.Properties, cycloneDXProperty(xp))
 		}
 		bom.Components = append(bom.Components, c)
 	}

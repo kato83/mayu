@@ -87,11 +87,7 @@ func parseSPDXXML(data []byte) (*SBOM, error) {
 			VersionInfo: xp.VersionInfo,
 		}
 		for _, xr := range xp.ExternalRefs {
-			pkg.ExternalRefs = append(pkg.ExternalRefs, spdxExternalRef{
-				ReferenceCategory: xr.ReferenceCategory,
-				ReferenceType:     xr.ReferenceType,
-				ReferenceLocator:  xr.ReferenceLocator,
-			})
+			pkg.ExternalRefs = append(pkg.ExternalRefs, spdxExternalRef(xr))
 		}
 		doc.Packages = append(doc.Packages, pkg)
 	}
