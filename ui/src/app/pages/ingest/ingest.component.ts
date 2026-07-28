@@ -51,8 +51,8 @@ interface IngestOption {
             <select
               id="ingest-type"
               [(ngModel)]="selectedType"
-              [disabled]="running()"
-              class="w-full max-w-md rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50"
+              [disabled]="running() || !isAdmin()"
+              class="w-full max-w-md rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed outline-none disabled:opacity-50"
             >
               @for (opt of ingestOptions; track opt.value) {
                 <option [value]="opt.value">{{ opt.label }}</option>
@@ -72,8 +72,8 @@ interface IngestOption {
                 <select
                   id="ecosystem-select"
                   [(ngModel)]="selectedEcosystem"
-                  [disabled]="running()"
-                  class="w-full max-w-md rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50"
+                  [disabled]="running() || !isAdmin()"
+                  class="w-full max-w-md rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed outline-none disabled:opacity-50"
                 >
                   <option value="" i18n="@@ingest.ecosystemPlaceholder">-- All Ecosystems --</option>
                   @for (eco of ecosystems(); track eco) {
@@ -94,10 +94,10 @@ interface IngestOption {
                 id="repo-input"
                 type="text"
                 [(ngModel)]="repoInput"
-                [disabled]="running()"
+                [disabled]="running() || !isAdmin()"
                 placeholder="e.g. WordPress/wordpress-develop"
                 i18n-placeholder="@@ingest.repoPlaceholder"
-                class="w-full max-w-md rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50"
+                class="w-full max-w-md rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed outline-none disabled:opacity-50"
               />
             </div>
           }
@@ -113,8 +113,8 @@ interface IngestOption {
                   id="from-date"
                   type="date"
                   [(ngModel)]="fromDate"
-                  [disabled]="running()"
-                  class="rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50"
+                  [disabled]="running() || !isAdmin()"
+                  class="rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed outline-none disabled:opacity-50"
                 />
               </div>
               <div>
@@ -125,8 +125,8 @@ interface IngestOption {
                   id="to-date"
                   type="date"
                   [(ngModel)]="toDate"
-                  [disabled]="running()"
-                  class="rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50"
+                  [disabled]="running() || !isAdmin()"
+                  class="rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed outline-none disabled:opacity-50"
                 />
               </div>
             </div>
