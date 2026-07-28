@@ -34,12 +34,12 @@ import { WebhookService, WebhookDeliveryLog } from '../../services/webhook.servi
           <table class="w-full text-sm text-left">
             <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               <tr>
-                <th class="px-4 py-3" i18n="@@webhooks.deliveries.col.event">Event</th>
-                <th class="px-4 py-3" i18n="@@webhooks.deliveries.col.status">Status</th>
-                <th class="px-4 py-3" i18n="@@webhooks.deliveries.col.attempt">Attempt</th>
-                <th class="px-4 py-3" i18n="@@webhooks.deliveries.col.deliveredAt">Delivered At</th>
-                <th class="px-4 py-3" i18n="@@webhooks.deliveries.col.duration">Duration (ms)</th>
-                <th class="px-4 py-3" i18n="@@webhooks.deliveries.col.error">Error</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.deliveries.col.event">Event</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.deliveries.col.status">Status</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.deliveries.col.attempt">Attempt</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.deliveries.col.deliveredAt">Delivered At</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.deliveries.col.duration">Duration (ms)</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.deliveries.col.error">Error</th>
               </tr>
             </thead>
             <tbody>

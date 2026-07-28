@@ -124,12 +124,12 @@ import { SBOMProject, SBOMVersion, SBOMScanResult } from '../../models/sbom.mode
           <table class="w-full text-sm text-left">
             <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               <tr>
-                <th class="px-4 py-3" i18n="@@sbom.detail.col.version">Version</th>
-                <th class="px-4 py-3" i18n="@@sbom.detail.col.format">Format</th>
-                <th class="px-4 py-3" i18n="@@sbom.detail.col.components">Components</th>
-                <th class="px-4 py-3" i18n="@@sbom.detail.col.environment">Environment</th>
-                <th class="px-4 py-3" i18n="@@sbom.detail.col.created">Created</th>
-                <th class="px-4 py-3" i18n="@@sbom.detail.col.actions">Actions</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.version">Version</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.format">Format</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.components">Components</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.environment">Environment</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.created">Created</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.actions">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -187,13 +187,13 @@ import { SBOMProject, SBOMVersion, SBOMScanResult } from '../../models/sbom.mode
               <table class="w-full text-sm text-left">
                 <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                   <tr>
-                    <th class="px-4 py-3" i18n="@@sbom.detail.col.scannedAt">Scanned At</th>
-                    <th class="px-4 py-3" i18n="@@sbom.detail.col.status">Status</th>
-                    <th class="px-4 py-3" i18n="@@sbom.detail.col.findings">Findings</th>
-                    <th class="px-4 py-3" i18n="@@sbom.detail.col.new">New</th>
-                    <th class="px-4 py-3" i18n="@@sbom.detail.col.resolved">Resolved</th>
-                    <th class="px-4 py-3" i18n="@@sbom.detail.col.trigger">Trigger</th>
-                    <th class="px-4 py-3" i18n="@@sbom.detail.col.actions">Actions</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.scannedAt">Scanned At</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.status">Status</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.findings">Findings</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.new">New</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.resolved">Resolved</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.trigger">Trigger</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.detail.col.actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
