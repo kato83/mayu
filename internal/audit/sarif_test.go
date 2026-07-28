@@ -250,4 +250,21 @@ func TestGenerateSARIF_RuleFields(t *testing.T) {
 	if res.RuleIndex != 0 {
 		t.Errorf("result.ruleIndex = %d, want 0", res.RuleIndex)
 	}
+
+	// Check locations field (required by GitHub Code Scanning)
+	if len(res.Locations) != 1 {
+		t.Fatalf("result.locations length = %d, want 1", len(res.Locations))
+	}
+	loc := res.Locations[0]
+	if len(loc.LogicalLocations) != 1 {
+		t.Fatalf("logicalLocations length = %d, want 1", len(loc.LogicalLocations))
+	}
+	ll := loc.LogicalLocations[0]
+	wantName := "express@4.18.2"
+	if ll.Name != wantName {
+		t.Errorf("logicalLocation.name = %q, want %q", ll.Name, wantName)
+	}
+	if ll.Kind != "package" {
+		t.Errorf("logicalLocation.kind = %q, want %q", ll.Kind, "package")
+	}
 }

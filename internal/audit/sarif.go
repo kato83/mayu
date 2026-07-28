@@ -52,10 +52,22 @@ type sarifRuleProperties struct {
 
 // sarifResult represents a single finding.
 type sarifResult struct {
-	RuleID    string       `json:"ruleId"`
-	RuleIndex int          `json:"ruleIndex"`
-	Level     string       `json:"level"`
-	Message   sarifMessage `json:"message"`
+	RuleID    string          `json:"ruleId"`
+	RuleIndex int             `json:"ruleIndex"`
+	Level     string          `json:"level"`
+	Message   sarifMessage    `json:"message"`
+	Locations []sarifLocation `json:"locations"`
+}
+
+// sarifLocation represents a location associated with a result.
+type sarifLocation struct {
+	LogicalLocations []sarifLogicalLocation `json:"logicalLocations"`
+}
+
+// sarifLogicalLocation identifies a logical construct (e.g., a package).
+type sarifLogicalLocation struct {
+	Name string `json:"name"`
+	Kind string `json:"kind"`
 }
 
 // sarifMessage holds message text.
@@ -97,6 +109,16 @@ func GenerateSARIF(result *AuditResult, toolVersion string) ([]byte, error) {
 			Message: sarifMessage{
 				Text: fmt.Sprintf("Vulnerability %s found in %s@%s: %s",
 					f.VulnID, f.Component.Name, f.Component.Version, f.Summary),
+			},
+			Locations: []sarifLocation{
+				{
+					LogicalLocations: []sarifLogicalLocation{
+						{
+							Name: fmt.Sprintf("%s@%s", f.Component.Name, f.Component.Version),
+							Kind: "package",
+						},
+					},
+				},
 			},
 		})
 	}

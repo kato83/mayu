@@ -57,6 +57,16 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 		return 2, fmt.Errorf("--sbom is required")
 	}
 
+	// Validate --fail-on early before any I/O
+	var failOnLevel int
+	if *failOn != "" {
+		level, err := audit.ParseFailOn(*failOn)
+		if err != nil {
+			return 2, err
+		}
+		failOnLevel = level
+	}
+
 	// Read SBOM file
 	data, err := os.ReadFile(*sbomPath)
 	if err != nil {
@@ -100,16 +110,13 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 			return 2, fmt.Errorf("parse ignore file: %w", err)
 		}
 		result.Findings = audit.FilterFindings(result.Findings, ignored)
-	}
 
-	// Parse --fail-on threshold (validate early before output)
-	var failOnLevel int
-	if *failOn != "" {
-		level, err := audit.ParseFailOn(*failOn)
-		if err != nil {
-			return 2, err
+		// Recalculate VulnerablePackages from remaining findings
+		pkgSet := make(map[string]bool)
+		for _, f := range result.Findings {
+			pkgSet[f.Component.Ecosystem+"/"+f.Component.Name+"/"+f.Component.Version] = true
 		}
-		failOnLevel = level
+		result.VulnerablePackages = len(pkgSet)
 	}
 
 	// Output results
