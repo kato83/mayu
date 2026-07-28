@@ -192,6 +192,9 @@ func (ing *Ingester) UpdateEPSS(ctx context.Context) (*Stats, error) {
 //
 // To avoid OOM on large datasets (~200,000 scores per day), summary refresh is
 // performed incrementally per batch rather than accumulating all CVE IDs in memory.
+//
+// After all batches are stored, it refreshes epss_daily_stats once with accurate
+// counts (all scores for the affected dates are in the DB at that point).
 func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSScore) (int, error) {
 	if len(scores) == 0 {
 		return 0, nil
@@ -204,7 +207,12 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 
 	total := len(scores)
 	inserted := 0
-	summaryUpdated := 0
+
+	// Collect unique dates across all scores for post-batch daily stats refresh.
+	seenDates := make(map[string]struct{})
+	for _, s := range scores {
+		seenDates[s.ScoreDate.Format("2006-01-02")] = struct{}{}
+	}
 
 	for i := 0; i < total; i += ing.batchSize {
 		select {
@@ -230,22 +238,6 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 		}
 		if err := es.RefreshEPSSSummary(ctx, batchIDs); err != nil {
 			ing.logger.Printf("warning: failed to refresh EPSS summary at offset %d: %v", i, err)
-		} else {
-			summaryUpdated += len(batchIDs)
-		}
-
-		// Update the epss_daily_stats summary table for affected dates in this batch.
-		batchDates := make([]string, 0, len(batch))
-		seenDates := make(map[string]struct{})
-		for _, s := range batch {
-			dateStr := s.ScoreDate.Format("2006-01-02")
-			if _, ok := seenDates[dateStr]; !ok {
-				seenDates[dateStr] = struct{}{}
-				batchDates = append(batchDates, dateStr)
-			}
-		}
-		if err := es.RefreshEPSSDailyStats(ctx, batchDates); err != nil {
-			ing.logger.Printf("warning: failed to refresh EPSS daily stats at offset %d: %v", i, err)
 		}
 
 		// Run watchlist matching after summary is refreshed (only fires in update mode).
@@ -254,6 +246,17 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 
 		inserted += len(batch)
 		ing.progress(Progress{Phase: "store", Current: inserted, Total: total})
+	}
+
+	// Refresh epss_daily_stats once after all batches are stored.
+	// This ensures the COUNT(*) is accurate since all scores for the date(s)
+	// are now in the DB.
+	dates := make([]string, 0, len(seenDates))
+	for d := range seenDates {
+		dates = append(dates, d)
+	}
+	if err := es.RefreshEPSSDailyStats(ctx, dates); err != nil {
+		ing.logger.Printf("warning: failed to refresh EPSS daily stats for %v: %v", dates, err)
 	}
 
 	return inserted, nil
