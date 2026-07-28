@@ -1126,6 +1126,22 @@
         <source>Error</source>
         <target>エラー</target>
       </trans-unit>
+      <trans-unit id="webhooks.nameRequired" datatype="html">
+        <source>Name is required.</source>
+        <target>名前は必須です。</target>
+      </trans-unit>
+      <trans-unit id="webhooks.urlRequired" datatype="html">
+        <source>URL is required.</source>
+        <target>URLは必須です。</target>
+      </trans-unit>
+      <trans-unit id="webhooks.urlInvalid" datatype="html">
+        <source>Please enter a valid URL (http:// or https://).</source>
+        <target>有効なURL（http:// または https://）を入力してください。</target>
+      </trans-unit>
+      <trans-unit id="webhooks.eventsRequired" datatype="html">
+        <source>Events are required.</source>
+        <target>イベントは必須です。</target>
+      </trans-unit>
       <trans-unit id="sidebar.nav.watchlists" datatype="html">
         <source>Watchlists</source>
         <target>ウォッチリスト</target>
@@ -1350,6 +1366,14 @@
         <source> Delete </source>
         <target>削除</target>
       </trans-unit>
+      <trans-unit id="watchlists.nameRequired" datatype="html">
+        <source>Name is required.</source>
+        <target>名前は必須です。</target>
+      </trans-unit>
+      <trans-unit id="watchlists.matchTypeRequired" datatype="html">
+        <source>Match type is required.</source>
+        <target>マッチタイプは必須です。</target>
+      </trans-unit>
       <trans-unit id="sidebar.nav.docs" datatype="html">
         <source>Docs</source>
         <target>ドキュメント</target>
@@ -1557,6 +1581,14 @@
       <trans-unit id="vulnDetail.translateThis" datatype="html">
         <source>Translate this page</source>
         <target>このページを翻訳</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.showTranslated" datatype="html">
+        <source>Show Translated</source>
+        <target>翻訳を表示</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.showOriginal" datatype="html">
+        <source>Show Original</source>
+        <target>原文を表示</target>
       </trans-unit>
       <trans-unit id="translatedText.original" datatype="html">
         <source>Original</source>

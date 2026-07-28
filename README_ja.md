@@ -502,6 +502,14 @@ mayu apikey create --user-email admin@example.com --name 'CI Pipeline'
 mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90d
 ```
 
+### `mayu webhook` 認証
+
+すべての `mayu webhook` サブコマンドは、有効なAPIキーが設定された `MAYU_API_KEY` 環境変数を必要とします。APIキーはユーザーの認証と識別に使用されます。Webhookはユーザーごとにスコープされ、各ユーザーは自分のWebhookのみ管理できます。
+
+```bash
+export MAYU_API_KEY=your-api-key
+```
+
 ### `mayu webhook create`
 
 Webhook通知を新規作成します。
@@ -522,17 +530,19 @@ Webhook通知を新規作成します。
 **使用例:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu webhook create --name "security-team-slack" --url "https://hooks.slack.com/services/T00/B00/xxxx" --events "new_critical,new_high" --body-template '{"text": "{{ID}} ({{Severity}}) - {{Summary}}"}'
 mayu webhook create --name "all-vulns" --url "https://example.com/webhook" --events "*"
 ```
 
 ### `mayu webhook list`
 
-登録済みの全Webhookをテーブル形式で表示します（ID、名前、URL、イベント、有効状態）。
+認証されたユーザーのWebhookをテーブル形式で表示します（ID、名前、URL、イベント、有効状態）。
 
 **使用例:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu webhook list
 ```
 
@@ -547,6 +557,7 @@ Webhookにテストペイロードを送信して接続を確認します。
 **使用例:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu webhook test --id 1
 ```
 
@@ -618,36 +629,6 @@ auth:
       - openid
       - email
       - profile
-```
-
-**Webhook通知の例：**
-
-```yaml
-database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
-
-webhooks:
-  - name: "security-team-slack"
-    url: "https://hooks.slack.com/services/T00/B00/xxxx"
-    events: ["new_critical", "new_high"]
-    content_type: "application/json"
-    body_template: |
-      {"text": "🚨 {{ID}} ({{Severity}}) - {{Summary}}"}
-
-  - name: "all-vulns-generic"
-    url: "https://my-internal-system.example.com/api/webhook"
-    events: ["*"]
-    content_type: "application/json"
-    body_template: |
-      {
-        "event": "{{Event}}",
-        "vulnerability": {
-          "id": "{{ID}}",
-          "severity": "{{Severity}}",
-          "epss": {{EPSS}},
-          "lev": {{LEV}},
-          "summary": "{{Summary}}"
-        }
-      }
 ```
 
 **優先順位**（高い順）：

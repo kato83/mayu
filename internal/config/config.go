@@ -45,22 +45,6 @@ type AuthConfig struct {
 	SessionMaxAge int `yaml:"session_max_age"`
 }
 
-// WebhookConfig holds configuration for a single webhook notification endpoint.
-type WebhookConfig struct {
-	// Name is a human-readable identifier for the webhook.
-	Name string `yaml:"name"`
-	// URL is the HTTP endpoint to POST notifications to.
-	URL string `yaml:"url"`
-	// Events is the list of event types that trigger this webhook (e.g., "new_critical", "*").
-	Events []string `yaml:"events"`
-	// ContentType is the Content-Type header value for the POST request.
-	ContentType string `yaml:"content_type"`
-	// BodyTemplate is a Go text/template string used to render the request body.
-	BodyTemplate string `yaml:"body_template"`
-	// Secret is an optional shared secret for HMAC signature verification.
-	Secret string `yaml:"secret"`
-}
-
 // TranslationConfig holds LLM-based translation configuration.
 // Supports OpenAI API-compatible endpoints (OpenAI, Azure, AWS Bedrock via gateway, Ollama, etc.).
 type TranslationConfig struct {
@@ -150,8 +134,6 @@ type Config struct {
 	DatabaseURL string `yaml:"database_url"`
 	// Auth holds authentication and session configuration.
 	Auth AuthConfig `yaml:"auth"`
-	// Webhooks holds webhook notification endpoint configurations.
-	Webhooks []WebhookConfig `yaml:"webhooks"`
 	// Translation holds LLM-based translation configuration.
 	Translation TranslationConfig `yaml:"translation"`
 	// EPSS holds EPSS data retention configuration.

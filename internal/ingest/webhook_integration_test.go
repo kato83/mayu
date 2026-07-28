@@ -79,7 +79,10 @@ func TestIngestToWebhook_E2E(t *testing.T) {
 	db := openRawDB(t, s)
 	webhookStore := webhook.NewPostgresWebhookStore(db)
 
+	testUserID := createTestUser(t, db)
+
 	_, err = webhookStore.CreateWebhook(context.Background(), &model.Webhook{
+		UserID:       &testUserID,
 		Name:         "e2e-test-hook",
 		URL:          webhookReceiver.URL,
 		Events:       []string{"*"},
@@ -235,7 +238,10 @@ func TestIngestToWebhook_WithSeverity_E2E(t *testing.T) {
 	db := openRawDB(t, s)
 	webhookStore := webhook.NewPostgresWebhookStore(db)
 
+	testUserID := createTestUser(t, db)
+
 	_, err := webhookStore.CreateWebhook(context.Background(), &model.Webhook{
+		UserID:       &testUserID,
 		Name:         "critical-hook",
 		URL:          webhookReceiver.URL,
 		Events:       []string{"new_critical", "new_vulnerability"},
@@ -361,4 +367,18 @@ func openRawDB(t *testing.T, s interface{}) *sql.DB {
 		t.Fatal("store does not implement DB() *sql.DB — cannot get raw db connection")
 	}
 	return provider.DB()
+}
+
+// createTestUser inserts a test user into the users table and returns the user ID.
+func createTestUser(t *testing.T, db *sql.DB) int64 {
+	t.Helper()
+	var userID int64
+	err := db.QueryRow(`
+		INSERT INTO users (email, name, role, password_hash)
+		VALUES ('test@example.com', 'Test User', 'admin', 'dummy-hash')
+		RETURNING id`).Scan(&userID)
+	if err != nil {
+		t.Fatalf("create test user: %v", err)
+	}
+	return userID
 }

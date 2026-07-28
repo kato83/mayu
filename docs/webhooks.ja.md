@@ -18,41 +18,19 @@ Webhookは脆弱性データのインジェスト後にトリガーされます�
 
 ## 設定
 
-Webhookは**YAML設定ファイル**または**CLIコマンド**で設定できます。
+Webhookは**CLIコマンド**で管理します。すべてのwebhookコマンドは、有効なAPIキーが設定された `MAYU_API_KEY` 環境変数を必要とします。Webhookはユーザーごとにスコープされ、各ユーザーは自分のWebhookのみ管理できます。
 
-### YAML設定
+### 認証
 
-```yaml
-webhooks:
-  - name: "security-team-slack"
-    url: "https://hooks.slack.com/services/T00/B00/xxxx"
-    events: ["new_critical", "new_high"]
-    content_type: "application/json"
-    body_template: |
-      {"text": "🚨 {{ID}} ({{Severity}}) - {{Summary}}"}
-
-  - name: "all-vulns"
-    url: "https://example.com/api/webhook"
-    events: ["*"]
-    content_type: "application/json"
-    secret: "my-shared-secret"
-    body_template: |
-      {
-        "event": "{{Event}}",
-        "vulnerability": {
-          "id": "{{ID}}",
-          "severity": "{{Severity}}",
-          "epss": {{EPSS}},
-          "lev": {{LEV}},
-          "summary": "{{Summary}}"
-        }
-      }
+```bash
+export MAYU_API_KEY=your-api-key
 ```
 
 ### CLIコマンド
 
 ```bash
 # Webhook作成
+export MAYU_API_KEY=your-api-key
 mayu webhook create \
   --name "slack-alerts" \
   --url "https://hooks.slack.com/services/T00/B00/xxxx" \
@@ -60,7 +38,7 @@ mayu webhook create \
   --body-template '{"text": "{{ID}} ({{Severity}}) - {{Summary}}"}' \
   --secret "optional-hmac-secret"
 
-# Webhook一覧表示
+# 認証されたユーザーのWebhook一覧表示
 mayu webhook list
 
 # Webhookテスト（サンプルペイロードを送信）

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/cbroglie/mustache"
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/webhook"
@@ -42,6 +43,38 @@ func runWebhook(args []string, cfg *config.Config) error {
 	}
 }
 
+// authenticateWebhookUser validates the MAYU_API_KEY environment variable and
+// returns the authenticated user's ID, the database connection, and the webhook store.
+func authenticateWebhookUser(ctx context.Context, cfg *config.Config) (int64, *sql.DB, *webhook.PostgresWebhookStore, error) {
+	apiKey := os.Getenv("MAYU_API_KEY")
+	if apiKey == "" {
+		return 0, nil, nil, fmt.Errorf("MAYU_API_KEY environment variable is required for authentication")
+	}
+
+	databaseURL := resolveDatabaseURL(cfg)
+	db, err := sql.Open("pgx", databaseURL)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("open database: %w", err)
+	}
+
+	if err := db.PingContext(ctx); err != nil {
+		_ = db.Close()
+		return 0, nil, nil, fmt.Errorf("connect to database: %w", err)
+	}
+
+	// Validate API key and resolve user
+	authStore := auth.NewPostgresAuthStore(db)
+	authProvider := auth.NewLocalAuthProvider(authStore, authStore, authStore, 0)
+	user, err := authProvider.ValidateAPIKey(ctx, apiKey)
+	if err != nil {
+		_ = db.Close()
+		return 0, nil, nil, fmt.Errorf("authenticate: %w", err)
+	}
+
+	store := webhook.NewPostgresWebhookStore(db)
+	return user.ID, db, store, nil
+}
+
 func runWebhookCreate(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("webhook create", flag.ContinueOnError)
 
@@ -58,10 +91,13 @@ func runWebhookCreate(args []string, cfg *config.Config) error {
 		fmt.Println()
 		fmt.Println("Create a new webhook.")
 		fmt.Println()
+		fmt.Println("Requires the MAYU_API_KEY environment variable to be set with a valid API key.")
+		fmt.Println()
 		fmt.Println("Options:")
 		fs.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
+		fmt.Println("  export MAYU_API_KEY=your-api-key")
 		fmt.Println("  mayu webhook create --name 'Slack Alert' --url 'https://hooks.slack.com/...' --events 'new_critical,new_high' --body-template '{\"text\": \"{{ID}} ({{Severity}})\"}'")
 		fmt.Println("  mayu webhook create --name 'All Events' --url 'https://example.com/webhook' --events '*'")
 	}
@@ -86,21 +122,17 @@ func runWebhookCreate(args []string, cfg *config.Config) error {
 		eventList[i] = strings.TrimSpace(e)
 	}
 
-	// Connect to database
-	databaseURL := resolveDatabaseURL(cfg)
-	db, err := sql.Open("pgx", databaseURL)
+	ctx := context.Background()
+
+	// Authenticate user
+	userID, db, store, err := authenticateWebhookUser(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("open database: %w", err)
+		return err
 	}
 	defer func() { _ = db.Close() }()
 
-	ctx := context.Background()
-	if err := db.PingContext(ctx); err != nil {
-		return fmt.Errorf("connect to database: %w", err)
-	}
-
-	store := webhook.NewPostgresWebhookStore(db)
 	wh := &model.Webhook{
+		UserID:       &userID,
 		Name:         *name,
 		URL:          *url,
 		Events:       eventList,
@@ -132,7 +164,9 @@ func runWebhookList(args []string, cfg *config.Config) error {
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu webhook list")
 		fmt.Println()
-		fmt.Println("List all webhooks.")
+		fmt.Println("List webhooks for the authenticated user.")
+		fmt.Println()
+		fmt.Println("Requires the MAYU_API_KEY environment variable to be set with a valid API key.")
 		fmt.Println()
 		fmt.Println("Options:")
 		fs.PrintDefaults()
@@ -142,21 +176,16 @@ func runWebhookList(args []string, cfg *config.Config) error {
 		return err
 	}
 
-	// Connect to database
-	databaseURL := resolveDatabaseURL(cfg)
-	db, err := sql.Open("pgx", databaseURL)
+	ctx := context.Background()
+
+	// Authenticate user
+	userID, db, store, err := authenticateWebhookUser(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("open database: %w", err)
+		return err
 	}
 	defer func() { _ = db.Close() }()
 
-	ctx := context.Background()
-	if err := db.PingContext(ctx); err != nil {
-		return fmt.Errorf("connect to database: %w", err)
-	}
-
-	store := webhook.NewPostgresWebhookStore(db)
-	webhooks, err := store.ListWebhooks(ctx)
+	webhooks, err := store.ListWebhooksByUser(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("list webhooks: %w", err)
 	}
@@ -186,6 +215,8 @@ func runWebhookTest(args []string, cfg *config.Config) error {
 		fmt.Println()
 		fmt.Println("Send a test payload to a webhook.")
 		fmt.Println()
+		fmt.Println("Requires the MAYU_API_KEY environment variable to be set with a valid API key.")
+		fmt.Println()
 		fmt.Println("Options:")
 		fs.PrintDefaults()
 	}
@@ -198,25 +229,25 @@ func runWebhookTest(args []string, cfg *config.Config) error {
 		return fmt.Errorf("--id is required")
 	}
 
-	// Connect to database
-	databaseURL := resolveDatabaseURL(cfg)
-	db, err := sql.Open("pgx", databaseURL)
+	ctx := context.Background()
+
+	// Authenticate user
+	userID, db, store, err := authenticateWebhookUser(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("open database: %w", err)
+		return err
 	}
 	defer func() { _ = db.Close() }()
 
-	ctx := context.Background()
-	if err := db.PingContext(ctx); err != nil {
-		return fmt.Errorf("connect to database: %w", err)
-	}
-
-	store := webhook.NewPostgresWebhookStore(db)
 	wh, err := store.GetWebhook(ctx, *id)
 	if err != nil {
 		return fmt.Errorf("get webhook: %w", err)
 	}
 	if wh == nil {
+		return fmt.Errorf("webhook not found: id=%d", *id)
+	}
+
+	// Verify ownership: user can only test their own webhooks
+	if wh.UserID == nil || *wh.UserID != userID {
 		return fmt.Errorf("webhook not found: id=%d", *id)
 	}
 
@@ -283,6 +314,8 @@ func printWebhookUsage() {
 	fmt.Println("Usage: mayu webhook <subcommand> [options]")
 	fmt.Println()
 	fmt.Println("Manage webhooks.")
+	fmt.Println()
+	fmt.Println("All subcommands require the MAYU_API_KEY environment variable to be set.")
 	fmt.Println()
 	fmt.Println("Subcommands:")
 	fmt.Println("  create    Create a new webhook")

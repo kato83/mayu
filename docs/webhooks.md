@@ -18,41 +18,19 @@ Key features:
 
 ## Configuration
 
-Webhooks can be configured via **YAML config file** or **CLI commands**.
+Webhooks are managed via **CLI commands**. All webhook commands require the `MAYU_API_KEY` environment variable to be set with a valid API key. Webhooks are scoped per user — each user can only manage their own webhooks.
 
-### YAML Configuration
+### Authentication
 
-```yaml
-webhooks:
-  - name: "security-team-slack"
-    url: "https://hooks.slack.com/services/T00/B00/xxxx"
-    events: ["new_critical", "new_high"]
-    content_type: "application/json"
-    body_template: |
-      {"text": "🚨 {{ID}} ({{Severity}}) - {{Summary}}"}
-
-  - name: "all-vulns"
-    url: "https://example.com/api/webhook"
-    events: ["*"]
-    content_type: "application/json"
-    secret: "my-shared-secret"
-    body_template: |
-      {
-        "event": "{{Event}}",
-        "vulnerability": {
-          "id": "{{ID}}",
-          "severity": "{{Severity}}",
-          "epss": {{EPSS}},
-          "lev": {{LEV}},
-          "summary": "{{Summary}}"
-        }
-      }
+```bash
+export MAYU_API_KEY=your-api-key
 ```
 
 ### CLI Commands
 
 ```bash
 # Create a webhook
+export MAYU_API_KEY=your-api-key
 mayu webhook create \
   --name "slack-alerts" \
   --url "https://hooks.slack.com/services/T00/B00/xxxx" \
@@ -60,7 +38,7 @@ mayu webhook create \
   --body-template '{"text": "{{ID}} ({{Severity}}) - {{Summary}}"}' \
   --secret "optional-hmac-secret"
 
-# List all webhooks
+# List webhooks for the authenticated user
 mayu webhook list
 
 # Test a webhook (sends a sample payload)
