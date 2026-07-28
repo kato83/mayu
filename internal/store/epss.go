@@ -399,3 +399,39 @@ func (s *PostgresStore) GetEPSSImportedDates(ctx context.Context) (map[string]bo
 
 	return dates, nil
 }
+
+// CleanupOldEPSSScores deletes EPSS scores older than the specified number of days.
+// The retention period is counted from yesterday (since today's data may not exist yet).
+// For example, retentionDays=365 retains data from yesterday back 365 days.
+// Also removes corresponding epss_daily_stats entries. Returns the number of deleted scores.
+func (s *PostgresStore) CleanupOldEPSSScores(ctx context.Context, retentionDays int) (int64, error) {
+	if retentionDays <= 0 {
+		// Negative means retain all, skip cleanup
+		return 0, nil
+	}
+
+	// Cutoff: keep retentionDays days counting from yesterday.
+	// yesterday - (retentionDays - 1) = today - retentionDays
+	cutoffDate := time.Now().UTC().AddDate(0, 0, -retentionDays).Format("2006-01-02")
+
+	// Delete old scores
+	result, err := s.db.ExecContext(ctx,
+		`DELETE FROM epss_scores WHERE score_date < $1`, cutoffDate)
+	if err != nil {
+		return 0, fmt.Errorf("cleanup old EPSS scores: %w", err)
+	}
+
+	deleted, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("get rows affected: %w", err)
+	}
+
+	// Also clean up epss_daily_stats for removed dates
+	_, err = s.db.ExecContext(ctx,
+		`DELETE FROM epss_daily_stats WHERE score_date < $1`, cutoffDate)
+	if err != nil {
+		return deleted, fmt.Errorf("cleanup old EPSS daily stats: %w", err)
+	}
+
+	return deleted, nil
+}

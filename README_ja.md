@@ -522,6 +522,11 @@ database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 auth:
   # mode: none | local | oidc (デフォルト: none)
   mode: none
+
+# EPSSデータ保存期間 (デフォルト: 365日、前日から起算)
+# -1に設定すると全履歴データを無期限保持 (LEV精度最大化に必要)
+epss:
+  retention_days: 365
 ```
 
 **ローカル認証の例：**
@@ -672,6 +677,9 @@ mayu ingest --source epss --update
 
 > [!TIP]
 > バックフィルは1日あたり約 5-7 MB（約20万CVEスコア）をダウンロードします。2023-03-07 からのフルバックフィルは約860日分です。既にインポート済みの日付は再実行時に自動スキップされます。
+
+> [!IMPORTANT]
+> デフォルトでは mayu は EPSS 履歴を365日分保持します。LEV の精度はより多くの履歴データがあるほど向上します。最大精度のためには、`config.yaml` で `epss.retention_days: -1` を設定して全データを無期限保持してください。EPSS ingest 完了後、保存期間を超えたデータは自動的にクリーンアップされます。
 
 ### LEV スコアの表示
 

@@ -521,6 +521,11 @@ database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 auth:
   # mode: none | local | oidc (default: none)
   mode: none
+
+# EPSS data retention (default: 365 days, counted from yesterday)
+# Set to -1 to retain all historical data indefinitely (required for full LEV accuracy)
+epss:
+  retention_days: 365
 ```
 
 **Example with local authentication:**
@@ -672,6 +677,9 @@ mayu ingest --source epss --update
 
 > [!TIP]
 > The backfill downloads ~5-7 MB per day (~200,000 CVE scores). A full backfill from 2023-03-07 covers ~860 days. Already-imported dates are automatically skipped on re-run.
+
+> [!IMPORTANT]
+> By default, mayu retains 365 days of EPSS history. LEV accuracy improves with more historical data. For maximum accuracy, set `epss.retention_days: -1` in `config.yaml` to retain all data indefinitely. After each EPSS ingest, data beyond the retention period is automatically cleaned up.
 
 ### Viewing LEV scores
 

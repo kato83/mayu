@@ -136,6 +136,14 @@ type ChunkingConfig struct {
 	MaxChars int `yaml:"max_chars"`
 }
 
+// EPSSConfig holds EPSS data retention configuration.
+type EPSSConfig struct {
+	// RetentionDays is the number of days of EPSS historical data to retain.
+	// After each EPSS ingest, scores older than this are deleted.
+	// Default: 365. Set to 0 or "full" equivalent (negative value) to retain all data indefinitely.
+	RetentionDays int `yaml:"retention_days"`
+}
+
 // Config represents the mayu configuration file structure.
 type Config struct {
 	// DatabaseURL is the PostgreSQL connection string.
@@ -146,6 +154,8 @@ type Config struct {
 	Webhooks []WebhookConfig `yaml:"webhooks"`
 	// Translation holds LLM-based translation configuration.
 	Translation TranslationConfig `yaml:"translation"`
+	// EPSS holds EPSS data retention configuration.
+	EPSS EPSSConfig `yaml:"epss"`
 }
 
 // Load reads and parses a YAML configuration file from the given path.
@@ -167,4 +177,17 @@ func Load(path string, explicit bool) (*Config, error) {
 		return nil, fmt.Errorf("parse config file %s: %w", path, err)
 	}
 	return &cfg, nil
+}
+
+// DefaultEPSSRetentionDays is the default number of days to retain EPSS historical data.
+const DefaultEPSSRetentionDays = 365
+
+// EffectiveRetentionDays returns the EPSS retention period in days.
+// Returns DefaultEPSSRetentionDays (365) if not configured (zero value).
+// Returns -1 (retain all) if explicitly set to a negative value.
+func (c *EPSSConfig) EffectiveRetentionDays() int {
+	if c.RetentionDays == 0 {
+		return DefaultEPSSRetentionDays
+	}
+	return c.RetentionDays
 }

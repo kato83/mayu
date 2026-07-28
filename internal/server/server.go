@@ -94,6 +94,11 @@ type Config struct {
 	// TranslateRateLimiter provides rate limiting for translation endpoints.
 	// If nil, no rate limiting is applied to translation requests.
 	TranslateRateLimiter *translate.RateLimiter
+
+	// EPSSRetentionDays is the number of days of EPSS data to retain.
+	// After each EPSS ingest, older data is cleaned up.
+	// A value <= 0 means retain all data indefinitely.
+	EPSSRetentionDays int
 }
 
 // Server is the HTTP API server.
@@ -113,6 +118,7 @@ type Server struct {
 	translateService     *translate.Service
 	translateRateLimiter *translate.RateLimiter
 	loginLimiter         *auth.LoginRateLimiter
+	epssRetentionDays    int
 	ingestRunning        atomic.Bool
 	runners              activeRunners
 }
@@ -139,6 +145,7 @@ func New(cfg Config) *Server {
 		translateService:     cfg.TranslateService,
 		translateRateLimiter: cfg.TranslateRateLimiter,
 		loginLimiter:         auth.NewLoginRateLimiter(10, 15*time.Minute),
+		epssRetentionDays:    cfg.EPSSRetentionDays,
 	}
 
 	router := s.routes()

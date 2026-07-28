@@ -20,6 +20,7 @@ type epssBatchStore interface {
 	UpsertEPSSBatch(ctx context.Context, scores []*model.EPSSScore) error
 	RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error
 	RefreshEPSSDailyStats(ctx context.Context, dates []string) error
+	CleanupOldEPSSScores(ctx context.Context, retentionDays int) (int64, error)
 }
 
 // ImportEPSS performs a full import of EPSS scores from the bulk CSV download.
@@ -83,6 +84,9 @@ func (ing *Ingester) ImportEPSS(ctx context.Context) (*Stats, error) {
 
 	stats.Duration = time.Since(start)
 	ing.progress(Progress{Phase: "store", Current: inserted, Total: stats.Total, Message: fmt.Sprintf("Done: %d EPSS scores imported in %s", inserted, stats.Duration.Round(time.Millisecond))})
+
+	// Cleanup old EPSS scores based on retention policy
+	ing.cleanupOldEPSSScores(ctx)
 
 	return stats, nil
 }
@@ -484,5 +488,33 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 		Message: fmt.Sprintf("Done: %d days processed, %d scores inserted, %d skipped, %d failed in %s",
 			processedDays, totalInserted, skippedDays, failedDays, stats.Duration.Round(time.Second))})
 
+	// Cleanup old EPSS scores based on retention policy
+	ing.cleanupOldEPSSScores(ctx)
+
 	return stats, nil
+}
+
+// cleanupOldEPSSScores removes EPSS scores older than the configured retention period.
+// Called after EPSS ingest operations complete. Skipped if retention is <= 0 (retain all).
+func (ing *Ingester) cleanupOldEPSSScores(ctx context.Context) {
+	if ing.epssRetentionDays <= 0 {
+		return
+	}
+
+	es, ok := ing.store.(epssBatchStore)
+	if !ok {
+		return
+	}
+
+	ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Cleaning up EPSS scores older than %d days...", ing.epssRetentionDays)})
+
+	deleted, err := es.CleanupOldEPSSScores(ctx, ing.epssRetentionDays)
+	if err != nil {
+		ing.logger.Printf("warning: failed to cleanup old EPSS scores: %v", err)
+		return
+	}
+
+	if deleted > 0 {
+		ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Cleaned up %d old EPSS score records", deleted)})
+	}
 }

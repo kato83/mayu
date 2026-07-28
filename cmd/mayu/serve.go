@@ -182,6 +182,7 @@ func runServe(args []string, cfg *config.Config) error {
 		WatchlistMatcher:     watchlist.NewIngestMatcherAdapter(watchlist.NewMatcher(watchlist.NewPostgresWatchlistStore(s.DB()), watchlist.NewPostgresVulnDataProvider(s.DB()))),
 		TranslateService:     translateService,
 		TranslateRateLimiter: translateRateLimiter,
+		EPSSRetentionDays:    cfg.EPSS.EffectiveRetentionDays(),
 	})
 
 	// Start periodic session cleanup if auth is enabled

@@ -206,6 +206,7 @@ func (s *Server) runIngestJob(runner *ingestRunner, job *store.IngestJob, req in
 	ing := ingest.New(s.fetcher, p, s.store, ingest.WithProgress(progressFn),
 		s.webhookNotifierOption(),
 		s.watchlistMatcherOption(),
+		ingest.WithEPSSRetentionDays(s.epssRetentionDays),
 	)
 
 	var stats *ingest.Stats

@@ -235,6 +235,7 @@ func runIngest(args []string, cfg *config.Config) error {
 		ingest.WithJobRecorder(s),
 		ingest.WithWatchlistMatcher(wlMatcher),
 		ingest.WithUpdateMode(*update),
+		ingest.WithEPSSRetentionDays(cfg.EPSS.EffectiveRetentionDays()),
 	)
 
 	// Handle --source

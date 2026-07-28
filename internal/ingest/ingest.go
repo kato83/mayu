@@ -104,6 +104,15 @@ func WithWatchlistMatcher(m WatchlistMatcher) Option {
 	}
 }
 
+// WithEPSSRetentionDays sets the EPSS data retention period in days.
+// After each EPSS ingest, scores older than this number of days are cleaned up.
+// A value <= 0 means retain all data indefinitely (no cleanup).
+func WithEPSSRetentionDays(days int) Option {
+	return func(ing *Ingester) {
+		ing.epssRetentionDays = days
+	}
+}
+
 // WatchlistMatcher is the interface for watchlist matching after ingest.
 type WatchlistMatcher interface {
 	// MatchNewVulnerabilities checks newly ingested vulnerabilities against watchlists.
@@ -112,17 +121,18 @@ type WatchlistMatcher interface {
 
 // Ingester orchestrates the full ingestion pipeline.
 type Ingester struct {
-	fetcher          *fetcher.Fetcher
-	parser           *parser.Parser
-	store            store.Store
-	logger           *log.Logger
-	batchSize        int
-	storeWorkers     int
-	progressFn       func(Progress)
-	jobStore         store.Store // optional: enables ingest job recording
-	webhookNotifier  func(ctx context.Context, vulnIDs []string)
-	watchlistMatcher WatchlistMatcher
-	isUpdateMode     bool // when true, watchlist matching fires after ingest
+	fetcher           *fetcher.Fetcher
+	parser            *parser.Parser
+	store             store.Store
+	logger            *log.Logger
+	batchSize         int
+	storeWorkers      int
+	progressFn        func(Progress)
+	jobStore          store.Store // optional: enables ingest job recording
+	webhookNotifier   func(ctx context.Context, vulnIDs []string)
+	watchlistMatcher  WatchlistMatcher
+	isUpdateMode      bool // when true, watchlist matching fires after ingest
+	epssRetentionDays int  // EPSS retention days (<=0 means retain all)
 }
 
 // DefaultStoreWorkers returns the default number of parallel store workers
