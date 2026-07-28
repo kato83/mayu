@@ -24,11 +24,6 @@ type projectResponse struct {
 	UpdatedAt string `json:"updated_at"`
 }
 
-type uploadSBOMRequest struct {
-	Version     string `json:"version"`
-	Environment string `json:"environment,omitempty"`
-}
-
 type versionResponse struct {
 	ID             int64  `json:"id"`
 	ProjectID      int64  `json:"project_id"`

@@ -213,8 +213,12 @@ func TestMockSBOMStore_ListAllVersions(t *testing.T) {
 	store := newMockSBOMStore()
 	ctx := context.Background()
 
-	store.CreateVersion(ctx, &SBOMVersion{ProjectID: 1, Version: "1.0"})
-	store.CreateVersion(ctx, &SBOMVersion{ProjectID: 2, Version: "2.0"})
+	if _, err := store.CreateVersion(ctx, &SBOMVersion{ProjectID: 1, Version: "1.0"}); err != nil {
+		t.Fatalf("CreateVersion() error = %v", err)
+	}
+	if _, err := store.CreateVersion(ctx, &SBOMVersion{ProjectID: 2, Version: "2.0"}); err != nil {
+		t.Fatalf("CreateVersion() error = %v", err)
+	}
 
 	all, err := store.ListAllVersions(ctx)
 	if err != nil {
@@ -229,8 +233,12 @@ func TestMockSBOMStore_ListAllVersionIDs(t *testing.T) {
 	store := newMockSBOMStore()
 	ctx := context.Background()
 
-	store.CreateVersion(ctx, &SBOMVersion{ProjectID: 1, Version: "1.0"})
-	store.CreateVersion(ctx, &SBOMVersion{ProjectID: 2, Version: "2.0"})
+	if _, err := store.CreateVersion(ctx, &SBOMVersion{ProjectID: 1, Version: "1.0"}); err != nil {
+		t.Fatalf("CreateVersion() error = %v", err)
+	}
+	if _, err := store.CreateVersion(ctx, &SBOMVersion{ProjectID: 2, Version: "2.0"}); err != nil {
+		t.Fatalf("CreateVersion() error = %v", err)
+	}
 
 	ids, err := store.ListAllVersionIDs(ctx)
 	if err != nil {
