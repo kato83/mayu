@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Add HTTP API handlers for finding status management: PUT endpoint to set/update a finding status, and a GET endpoint to list findings with optional status filtering. Wire these into the server router.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "Add request/response types in internal/sbommon/handlers.go: updateFindingStatusRequest (Status string, Justification string, ExpiresAt *string), findingStatusResponse (ID, VersionID, VulnID, Purl, Status, Justification, UpdatedBy, UpdatedAt, ExpiresAt fields).",
     "Implement HandleUpdateFindingStatus(store SBOMStore) http.HandlerFunc in internal/sbommon/handlers.go. It should: parse scanID from URL, look up the scan result to get version_id, verify ownership (scan->version->project->user chain), validate the request body (status must be one of the valid values, justification required for risk_accepted), call store.UpsertFindingStatus, and return the result. URL pattern: PUT /api/v1/sbom/scans/{scanID}/findings/{vulnID}/status with purl in the request body.",
@@ -25,5 +25,5 @@
     "cd /projects/sandbox/mayu && go test ./internal/sbommon/ -v -count=1"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All tests pass. Build succeeds. Routes registered alongside existing scan endpoints in server.go. Used strings import in test file for justification error message check."
 }
