@@ -43,21 +43,20 @@ type ingestStartResponse struct {
 
 // allowedIngestTypes is the permit-list of valid ingest type values.
 var allowedIngestTypes = map[string]bool{
-	"ecosystem":        true,
-	"ecosystem_update": true,
-	"all":              true,
-	"nvd":              true,
-	"nvd_update":       true,
-	"nvd_converted":    true,
-	"mitre":            true,
-	"mitre_update":     true,
-	"epss":             true,
-	"epss_update":      true,
-	"epss_backfill":    true,
-	"kev":              true,
-	"kev_update":       true,
-	"debian":           true,
-	"ghsa":             true,
+	"osv":           true,
+	"osv_update":    true,
+	"osv_nvd":       true,
+	"osv_debian":    true,
+	"nvd":           true,
+	"nvd_update":    true,
+	"mitre":         true,
+	"mitre_update":  true,
+	"epss":          true,
+	"epss_update":   true,
+	"epss_backfill": true,
+	"kev":           true,
+	"kev_update":    true,
+	"ghsa":          true,
 }
 
 // ecosystemNameRe validates ecosystem names to prevent path traversal.
@@ -92,27 +91,26 @@ func (s *Server) handleIngest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate ecosystem for ecosystem types.
-	if req.Type == "ecosystem" || req.Type == "ecosystem_update" {
-		if req.Ecosystem == "" {
-			writeError(w, http.StatusBadRequest, "ecosystem is required for type "+req.Type)
-			return
-		}
-		if !ecosystemNameRe.MatchString(req.Ecosystem) {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid ecosystem name %q", req.Ecosystem))
-			return
-		}
+	// Validate ecosystem for OSV types.
+	if req.Type == "osv" || req.Type == "osv_update" {
+		// ecosystem is optional (empty = all ecosystems)
+		if req.Ecosystem != "" {
+			if !ecosystemNameRe.MatchString(req.Ecosystem) {
+				writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid ecosystem name %q", req.Ecosystem))
+				return
+			}
 
-		// Validate ecosystem against known list.
-		valid, err := s.isValidEcosystem(r.Context(), req.Ecosystem)
-		if err != nil {
-			slog.Error("failed to validate ecosystem", "ecosystem", req.Ecosystem, "error", err)
-			writeError(w, http.StatusInternalServerError, "failed to validate ecosystem")
-			return
-		}
-		if !valid {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("unknown ecosystem %q", req.Ecosystem))
-			return
+			// Validate ecosystem against known list.
+			valid, err := s.isValidEcosystem(r.Context(), req.Ecosystem)
+			if err != nil {
+				slog.Error("failed to validate ecosystem", "ecosystem", req.Ecosystem, "error", err)
+				writeError(w, http.StatusInternalServerError, "failed to validate ecosystem")
+				return
+			}
+			if !valid {
+				writeError(w, http.StatusBadRequest, fmt.Sprintf("unknown ecosystem %q", req.Ecosystem))
+				return
+			}
 		}
 	}
 
@@ -214,19 +212,26 @@ func (s *Server) runIngestJob(runner *ingestRunner, job *store.IngestJob, req in
 	var ingestErr error
 
 	switch req.Type {
-	case "ecosystem":
-		stats, ingestErr = ing.FullImport(ctx, req.Ecosystem)
-	case "ecosystem_update":
-		stats, ingestErr = ing.DeltaImport(ctx, req.Ecosystem)
-	case "all":
-		stats, ingestErr = s.ingestAll(ctx, ing, progressFn)
+	case "osv":
+		if req.Ecosystem != "" {
+			stats, ingestErr = ing.FullImport(ctx, req.Ecosystem)
+		} else {
+			stats, ingestErr = s.ingestAll(ctx, ing, progressFn)
+		}
+	case "osv_update":
+		if req.Ecosystem != "" {
+			stats, ingestErr = ing.DeltaImport(ctx, req.Ecosystem)
+		} else {
+			stats, ingestErr = s.ingestAllUpdate(ctx, ing, progressFn)
+		}
+	case "osv_nvd":
+		stats, ingestErr = ing.ImportConvertedSource(ctx, fetcher.SourceNVD)
+	case "osv_debian":
+		stats, ingestErr = ing.ImportConvertedSource(ctx, fetcher.SourceDebian)
 	case "nvd":
 		stats, ingestErr = ing.ImportNVDNative(ctx)
 	case "nvd_update":
-		// UpdateNVDNative is removed; ImportNVDNative auto-selects full/delta per year.
 		stats, ingestErr = ing.ImportNVDNative(ctx)
-	case "nvd_converted":
-		stats, ingestErr = ing.ImportConvertedSource(ctx, fetcher.SourceNVD)
 	case "mitre":
 		stats, ingestErr = ing.ImportMITRE(ctx)
 	case "mitre_update":
@@ -249,8 +254,6 @@ func (s *Server) runIngestJob(runner *ingestRunner, job *store.IngestJob, req in
 		stats, ingestErr = ing.ImportKEV(ctx)
 	case "kev_update":
 		stats, ingestErr = ing.UpdateKEV(ctx)
-	case "debian":
-		stats, ingestErr = ing.ImportConvertedSource(ctx, fetcher.SourceDebian)
 	case "ghsa":
 		stats, ingestErr = s.ingestGHSA(ctx, req.Repo, progressFn)
 	}
@@ -381,7 +384,7 @@ func (s *Server) handleIngestJobStream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ingestAll imports all ecosystems sequentially (matching CLI --all behavior).
+// ingestAll imports all ecosystems sequentially (matching CLI --source osv behavior).
 func (s *Server) ingestAll(ctx context.Context, ing *ingest.Ingester, progressFn func(ingest.Progress)) (*ingest.Stats, error) {
 	ecosystems, err := s.fetcher.ListEcosystems(ctx)
 	if err != nil {
@@ -410,6 +413,47 @@ func (s *Server) ingestAll(ctx context.Context, ing *ingest.Ingester, progressFn
 		stats, err := ing.FullImport(ctx, eco)
 		if err != nil {
 			slog.Error("ingest ecosystem failed", "ecosystem", eco, "error", err)
+			totalStats.Errors++
+			continue
+		}
+		totalStats.Inserted += stats.Inserted
+		totalStats.Total += stats.Total
+		totalStats.Errors += stats.Errors
+		totalStats.Duration += stats.Duration
+	}
+
+	return totalStats, nil
+}
+
+// ingestAllUpdate performs delta update for all ecosystems sequentially.
+func (s *Server) ingestAllUpdate(ctx context.Context, ing *ingest.Ingester, progressFn func(ingest.Progress)) (*ingest.Stats, error) {
+	ecosystems, err := s.fetcher.ListEcosystems(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list ecosystems: %w", err)
+	}
+
+	totalStats := &ingest.Stats{
+		Ecosystem:  "all",
+		IsFullSync: false,
+	}
+
+	for i, eco := range ecosystems {
+		select {
+		case <-ctx.Done():
+			return totalStats, ctx.Err()
+		default:
+		}
+
+		progressFn(ingest.Progress{
+			Phase:   "download",
+			Current: i + 1,
+			Total:   len(ecosystems),
+			Message: fmt.Sprintf("Updating ecosystem: %s", eco),
+		})
+
+		stats, err := ing.DeltaImport(ctx, eco)
+		if err != nil {
+			slog.Error("update ecosystem failed", "ecosystem", eco, "error", err)
 			totalStats.Errors++
 			continue
 		}
@@ -536,9 +580,9 @@ func (s *Server) watchlistMatcherOption() ingest.Option {
 // ingestTypeToSource maps ingest type strings to source names for job records.
 func ingestTypeToSource(t string) string {
 	switch t {
-	case "ecosystem", "ecosystem_update", "all":
+	case "osv", "osv_update", "osv_nvd", "osv_debian":
 		return "osv"
-	case "nvd", "nvd_update", "nvd_converted":
+	case "nvd", "nvd_update":
 		return "nvd"
 	case "mitre", "mitre_update":
 		return "mitre"
@@ -546,8 +590,6 @@ func ingestTypeToSource(t string) string {
 		return "epss"
 	case "kev", "kev_update":
 		return "kev"
-	case "debian":
-		return "debian"
 	case "ghsa":
 		return "ghsa"
 	default:

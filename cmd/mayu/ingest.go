@@ -26,44 +26,57 @@ func runIngest(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("ingest", flag.ExitOnError)
 
 	ecosystem := fs.String("ecosystem", "", "Ecosystem to import (e.g., Go, PyPI, npm)")
-	source := fs.String("source", "", "Import from source (nvd, debian, mitre, epss, kev, eol, ghsa)")
-	all := fs.Bool("all", false, "Import all ecosystems")
+	source := fs.String("source", "", "Import from source (osv, nvd, mitre, epss, kev, eol, ghsa)")
+	sourceType := fs.String("type", "", "Sub-type for --source osv (nvd, debian) to import OSV-converted data")
 	update := fs.Bool("update", false, "Perform delta update instead of full import")
 	backfill := fs.Bool("backfill", false, "Backfill historical data (with --source epss)")
 	fromDate := fs.String("from", "", "Start date for backfill (YYYY-MM-DD, default: 2023-03-07 for EPSS v3)")
 	toDate := fs.String("to", "", "End date for backfill (YYYY-MM-DD, default: today)")
-	concurrency := fs.Int("concurrency", 3, "Number of ecosystems to import in parallel (with --all)")
+	concurrency := fs.Int("concurrency", 3, "Number of ecosystems to import in parallel (with --source osv)")
 	batchSize := fs.Int("batch-size", 100, "Number of vulnerabilities per batch insert")
 	storeWorkers := fs.Int("store-workers", ingest.DefaultStoreWorkers(), "Number of parallel DB store workers per ecosystem")
-	native := fs.Bool("native", false, "Use native data source feed instead of OSV conversion (with --source nvd)")
-	year := fs.Int("year", 0, "Import only a specific year's NVD feed (e.g., 2024; with --source nvd --native)")
+	year := fs.Int("year", 0, "Import only a specific year's NVD feed (e.g., 2024; with --source nvd)")
 	fileMode := fs.Bool("file", false, "Import from local OSV JSON files (paths as positional arguments)")
 	ghsaRepo := fs.String("repo", "", "GitHub repository (owner/repo) for --source ghsa")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu ingest [options]")
 		fmt.Println()
-		fmt.Println("Import vulnerability data from OSV into the local database.")
+		fmt.Println("Import vulnerability data into the local database.")
+		fmt.Println()
+		fmt.Println("Data Sources:")
+		fmt.Println("  --source osv                Import OSV vulnerability data from GCS bucket")
+		fmt.Println("  --source osv --type nvd     Import NVD CVE data (OSV-converted format from GCS)")
+		fmt.Println("  --source osv --type debian  Import Debian Security Advisories (OSV-converted)")
+		fmt.Println("  --source nvd                Import NVD CVE data directly from NVD JSON Feed 2.0")
+		fmt.Println("  --source mitre              Import MITRE CVE data from cvelistV5 GitHub Releases")
+		fmt.Println("  --source epss               Import EPSS scores (Exploit Prediction Scoring System)")
+		fmt.Println("  --source kev                Import CISA KEV catalog (Known Exploited Vulnerabilities)")
+		fmt.Println("  --source eol                Import endoflife.date product lifecycle data")
+		fmt.Println("  --source ghsa               Import GitHub Security Advisories (requires --repo)")
 		fmt.Println()
 		fmt.Println("Options:")
 		fs.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  mayu ingest --ecosystem Go")
-		fmt.Println("  mayu ingest --ecosystem Go --update")
-		fmt.Println("  mayu ingest --all")
-		fmt.Println("  mayu ingest --source nvd")
-		fmt.Println("  mayu ingest --source nvd --native        # Import NVD (auto: full for new, delta for recent)")
-		fmt.Println("  mayu ingest --source nvd --native --year 2024  # Force full import of a specific year")
-		fmt.Println("  mayu ingest --source debian")
-		fmt.Println("  mayu ingest --source mitre              # Import MITRE CVE from cvelistV5")
-		fmt.Println("  mayu ingest --source mitre --update     # Delta update from hourly releases")
-		fmt.Println("  mayu ingest --source epss               # Import EPSS scores (bulk CSV)")
-		fmt.Println("  mayu ingest --source epss --update      # Update EPSS scores if outdated")
-		fmt.Println("  mayu ingest --source epss --backfill    # Backfill all EPSS history (2023-03-07 to today)")
+		fmt.Println("  mayu ingest --source osv                 # Import all OSV ecosystems (full sync)")
+		fmt.Println("  mayu ingest --source osv --ecosystem Go  # Import Go ecosystem only")
+		fmt.Println("  mayu ingest --source osv --update        # Delta update all OSV ecosystems")
+		fmt.Println("  mayu ingest --source osv --ecosystem Go --update  # Delta update Go only")
+		fmt.Println("  mayu ingest --source osv --type nvd      # Import NVD (OSV-converted format)")
+		fmt.Println("  mayu ingest --source osv --type debian   # Import Debian (OSV-converted format)")
+		fmt.Println("  mayu ingest --ecosystem Go               # Shorthand for --source osv --ecosystem Go")
+		fmt.Println("  mayu ingest --source nvd                 # Import NVD (auto: full for new, delta for recent)")
+		fmt.Println("  mayu ingest --source nvd --year 2024     # Force full import of a specific year")
+		fmt.Println("  mayu ingest --source mitre               # Import MITRE CVE from cvelistV5")
+		fmt.Println("  mayu ingest --source mitre --update      # Delta update from hourly releases")
+		fmt.Println("  mayu ingest --source epss                # Import EPSS scores (bulk CSV)")
+		fmt.Println("  mayu ingest --source epss --update       # Update EPSS scores if outdated")
+		fmt.Println("  mayu ingest --source epss --backfill     # Backfill all EPSS history (2023-03-07 to today)")
 		fmt.Println("  mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19")
-		fmt.Println("  mayu ingest --source kev                # Import CISA KEV catalog")
-		fmt.Println("  mayu ingest --source kev --update       # Update KEV catalog if outdated")
+		fmt.Println("  mayu ingest --source kev                 # Import CISA KEV catalog")
+		fmt.Println("  mayu ingest --source kev --update        # Update KEV catalog if outdated")
+		fmt.Println("  mayu ingest --source eol                 # Import endoflife.date data")
 		fmt.Println("  mayu ingest --source ghsa --repo WordPress/wordpress-develop  # Import GitHub repo advisories")
 		fmt.Println("  mayu ingest --file vuln1.json vuln2.json # Import local OSV JSON files")
 	}
@@ -73,8 +86,8 @@ func runIngest(args []string, cfg *config.Config) error {
 	}
 
 	// Validate flags
-	if !*all && *ecosystem == "" && *source == "" && !*fileMode {
-		return fmt.Errorf("either --ecosystem, --source, --all, or --file is required")
+	if *ecosystem == "" && *source == "" && !*fileMode {
+		return fmt.Errorf("either --source, --ecosystem, or --file is required (see 'mayu ingest --help')")
 	}
 
 	// Resolve database URL
@@ -224,13 +237,47 @@ func runIngest(args []string, cfg *config.Config) error {
 		ingest.WithUpdateMode(*update),
 	)
 
-	// Handle --source (converted data sources)
+	// Handle --source
 	if *source != "" {
-		// NVD native import via JSON Feed 2.0
-		if *native {
-			if strings.ToLower(*source) != "nvd" {
-				return fmt.Errorf("--native flag is only supported with --source nvd")
+		// OSV ecosystem import (all or specific ecosystem, or OSV-converted sources)
+		if strings.ToLower(*source) == "osv" {
+			// Handle --type for OSV-converted sources (nvd, debian)
+			if *sourceType != "" {
+				src := ingest.GetConvertedSource(*sourceType)
+				if src == nil {
+					return fmt.Errorf("unknown --type %q for --source osv (supported: nvd, debian)", *sourceType)
+				}
+				fmt.Printf("\n=== Importing %s (OSV-converted: gs://%s/%s) ===\n", src.Name, src.Bucket, src.Prefix)
+				stats, err := ing.ImportConvertedSource(ctx, *src)
+				if err != nil {
+					if ctx.Err() != nil {
+						fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+						return nil
+					}
+					return fmt.Errorf("import %s: %w", src.Name, err)
+				}
+				printStats(stats)
+				return nil
 			}
+
+			if *ecosystem != "" {
+				// Specific ecosystem
+				ecosystems, err := resolveEcosystems(ctx, f, false, *ecosystem)
+				if err != nil {
+					return err
+				}
+				return runOSVImport(ctx, ing, f, p, s, ecosystems, *update, *concurrency, *batchSize, *storeWorkers, wlMatcher)
+			}
+			// All ecosystems
+			ecosystems, err := resolveEcosystems(ctx, f, true, "")
+			if err != nil {
+				return err
+			}
+			return runOSVImport(ctx, ing, f, p, s, ecosystems, *update, *concurrency, *batchSize, *storeWorkers, wlMatcher)
+		}
+
+		// NVD native import via JSON Feed 2.0
+		if strings.ToLower(*source) == "nvd" {
 			fmt.Println("\n=== Importing NVD (native JSON Feed 2.0) ===")
 			var years []int
 			if *year != 0 {
@@ -470,41 +517,28 @@ func runIngest(args []string, cfg *config.Config) error {
 			return nil
 		}
 
-		// Existing converted source logic
-		src := ingest.GetConvertedSource(*source)
-		if src == nil {
-			return fmt.Errorf("unknown source: %q (supported: nvd, debian, mitre, epss, kev, eol, ghsa)", *source)
-		}
-		fmt.Printf("\n=== Importing %s (converted source: gs://%s/%s) ===\n", src.Name, src.Bucket, src.Prefix)
-		stats, err := ing.ImportConvertedSource(ctx, *src)
-		if err != nil {
-			if ctx.Err() != nil {
-				fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
-				return nil
-			}
-			return fmt.Errorf("import %s: %w", src.Name, err)
-		}
-		printStats(stats)
-		return nil
+		return fmt.Errorf("unknown source: %q (supported: osv, nvd, mitre, epss, kev, eol, ghsa)", *source)
 	}
 
-	// Determine ecosystems to import
-	ecosystems, err := resolveEcosystems(ctx, f, *all, *ecosystem)
+	// Handle bare --ecosystem (without --source): treat as --source osv --ecosystem X
+	ecosystems, err := resolveEcosystems(ctx, f, false, *ecosystem)
 	if err != nil {
 		return err
 	}
+	return runOSVImport(ctx, ing, f, p, s, ecosystems, *update, *concurrency, *batchSize, *storeWorkers, wlMatcher)
+}
 
-	// Run import for each ecosystem (parallel with semaphore).
-	// When --all is used, individual ecosystem failures do NOT stop the entire run.
-	// Each ecosystem's FullImport already updates sync_state on success, so
-	// re-running with --all --update will skip already-imported ecosystems.
-	maxConcurrency := *concurrency
+// runOSVImport runs the OSV ecosystem import for one or more ecosystems in parallel.
+func runOSVImport(ctx context.Context, _ *ingest.Ingester, f *fetcher.Fetcher, p *parser.Parser, s *store.PostgresStore, ecosystems []string, update bool, concurrency, batchSize, storeWorkers int, wlMatcher ingest.WatchlistMatcher) error {
+	maxConcurrency := concurrency
 	if maxConcurrency < 1 {
 		maxConcurrency = 1
 	}
 	if len(ecosystems) == 1 {
 		maxConcurrency = 1
 	}
+
+	allMode := len(ecosystems) > 1
 
 	sem := make(chan struct{}, maxConcurrency)
 
@@ -535,11 +569,11 @@ func runIngest(args []string, cfg *config.Config) error {
 
 			// Each goroutine uses its own Ingester to avoid shared state issues
 			ecoIng := ingest.New(f, p, s,
-				ingest.WithBatchSize(*batchSize),
-				ingest.WithStoreWorkers(*storeWorkers),
+				ingest.WithBatchSize(batchSize),
+				ingest.WithStoreWorkers(storeWorkers),
 				ingest.WithJobRecorder(s),
 				ingest.WithWatchlistMatcher(wlMatcher),
-				ingest.WithUpdateMode(*update),
+				ingest.WithUpdateMode(update),
 				ingest.WithProgress(func(prog ingest.Progress) {
 					// Prefix progress with ecosystem name for parallel output
 					switch prog.Phase {
@@ -571,7 +605,7 @@ func runIngest(args []string, cfg *config.Config) error {
 
 			var stats *ingest.Stats
 			var importErr error
-			if *update {
+			if update {
 				stats, importErr = ecoIng.DeltaImport(gCtx, eco)
 			} else {
 				stats, importErr = ecoIng.FullImport(gCtx, eco)
@@ -584,10 +618,8 @@ func runIngest(args []string, cfg *config.Config) error {
 					return gCtx.Err()
 				}
 
-				// For --all mode, record the failure and continue with other ecosystems.
-				// The ecosystem's sync_state is NOT updated on failure, so the next
-				// run with --all --update will retry it via full import (no sync_state = full).
-				if *all {
+				// For multi-ecosystem mode, record the failure and continue with other ecosystems.
+				if allMode {
 					fmt.Fprintf(os.Stderr, "\n  ✗ %s failed: %v\n", eco, importErr)
 					resultsMu.Lock()
 					results = append(results, ecoResult{Ecosystem: eco, Err: importErr})
@@ -614,8 +646,8 @@ func runIngest(args []string, cfg *config.Config) error {
 		return err
 	}
 
-	// When --all is used, report summary of successes and failures.
-	if *all && len(results) > 0 {
+	// When multiple ecosystems, report summary of successes and failures.
+	if allMode && len(results) > 0 {
 		var succeeded, failed int
 		for _, r := range results {
 			if r.Err != nil {
@@ -627,7 +659,7 @@ func runIngest(args []string, cfg *config.Config) error {
 		if failed > 0 {
 			fmt.Fprintf(os.Stderr, "\n=== Summary: %d/%d ecosystems succeeded, %d failed ===\n",
 				succeeded, len(ecosystems), failed)
-			fmt.Fprintf(os.Stderr, "  Tip: re-run with 'mayu ingest --all --update' to retry failed ecosystems.\n")
+			fmt.Fprintf(os.Stderr, "  Tip: re-run with 'mayu ingest --source osv --update' to retry failed ecosystems.\n")
 			fmt.Fprintf(os.Stderr, "  (Successfully imported ecosystems will use delta update; failed ones will be re-imported.)\n\n")
 			for _, r := range results {
 				if r.Err != nil {

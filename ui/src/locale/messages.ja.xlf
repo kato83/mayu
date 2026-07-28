@@ -503,8 +503,8 @@
         <target>エコシステムを読み込み中...</target>
       </trans-unit>
       <trans-unit id="ingest.ecosystemPlaceholder" datatype="html">
-        <source>-- Select Ecosystem --</source>
-        <target>-- エコシステムを選択 --</target>
+        <source>-- All Ecosystems --</source>
+        <target>-- 全エコシステム --</target>
       </trans-unit>
       <trans-unit id="ingest.running" datatype="html">
         <source>Running...</source>
@@ -530,21 +530,25 @@
         <source>Event Log</source>
         <target>イベントログ</target>
       </trans-unit>
-      <trans-unit id="ingest.option.ecosystem" datatype="html">
-        <source>Ecosystem (Full)</source>
-        <target>エコシステム（全件）</target>
+      <trans-unit id="ingest.option.osv" datatype="html">
+        <source>OSV (Full)</source>
+        <target>OSV（全件）</target>
       </trans-unit>
-      <trans-unit id="ingest.option.ecosystemUpdate" datatype="html">
-        <source>Ecosystem (Delta Update)</source>
-        <target>エコシステム（差分更新）</target>
+      <trans-unit id="ingest.option.osvUpdate" datatype="html">
+        <source>OSV (Delta Update)</source>
+        <target>OSV（差分更新）</target>
       </trans-unit>
-      <trans-unit id="ingest.option.all" datatype="html">
-        <source>All Ecosystems</source>
-        <target>全エコシステム</target>
+      <trans-unit id="ingest.option.osvNvd" datatype="html">
+        <source>OSV - NVD (Converted)</source>
+        <target>OSV - NVD（変換版）</target>
+      </trans-unit>
+      <trans-unit id="ingest.option.osvDebian" datatype="html">
+        <source>OSV - Debian (Converted)</source>
+        <target>OSV - Debian（変換版）</target>
       </trans-unit>
       <trans-unit id="ingest.option.nvd" datatype="html">
-        <source>NVD</source>
-        <target>NVD</target>
+        <source>NVD (Native)</source>
+        <target>NVD（ネイティブ）</target>
       </trans-unit>
       <trans-unit id="ingest.option.nvdUpdate" datatype="html">
         <source>NVD (Delta Update)</source>
@@ -574,17 +578,9 @@
         <source>KEV (Delta Update)</source>
         <target>KEV（差分更新）</target>
       </trans-unit>
-      <trans-unit id="ingest.option.nvdConverted" datatype="html">
-        <source>NVD (Converted)</source>
-        <target>NVD（変換版）</target>
-      </trans-unit>
       <trans-unit id="ingest.option.epssBackfill" datatype="html">
         <source>EPSS (Backfill)</source>
         <target>EPSS（バックフィル）</target>
-      </trans-unit>
-      <trans-unit id="ingest.option.debian" datatype="html">
-        <source>Debian</source>
-        <target>Debian</target>
       </trans-unit>
       <trans-unit id="ingest.option.ghsa" datatype="html">
         <source>GitHub Security Advisories</source>

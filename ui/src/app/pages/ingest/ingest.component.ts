@@ -65,7 +65,7 @@ interface IngestOption {
                   [disabled]="running()"
                   class="w-full max-w-md rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50"
                 >
-                  <option value="" i18n="@@ingest.ecosystemPlaceholder">-- Select Ecosystem --</option>
+                  <option value="" i18n="@@ingest.ecosystemPlaceholder">-- All Ecosystems --</option>
                   @for (eco of ecosystems(); track eco) {
                     <option [value]="eco">{{ eco }}</option>
                   }
@@ -212,14 +212,13 @@ export class IngestComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
 
   private streamSub: Subscription | null = null;
-
   readonly ingestOptions: IngestOption[] = [
-    { value: 'ecosystem', label: $localize`:@@ingest.option.ecosystem:Ecosystem (Full)`, needsEcosystem: true, needsRepo: false, needsDates: false },
-    { value: 'ecosystem_update', label: $localize`:@@ingest.option.ecosystemUpdate:Ecosystem (Delta Update)`, needsEcosystem: true, needsRepo: false, needsDates: false },
-    { value: 'all', label: $localize`:@@ingest.option.all:All Ecosystems`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'nvd', label: $localize`:@@ingest.option.nvd:NVD`, needsEcosystem: false, needsRepo: false, needsDates: false },
+    { value: 'osv', label: $localize`:@@ingest.option.osv:OSV (Full)`, needsEcosystem: true, needsRepo: false, needsDates: false },
+    { value: 'osv_update', label: $localize`:@@ingest.option.osvUpdate:OSV (Delta Update)`, needsEcosystem: true, needsRepo: false, needsDates: false },
+    { value: 'osv_nvd', label: $localize`:@@ingest.option.osvNvd:OSV - NVD (Converted)`, needsEcosystem: false, needsRepo: false, needsDates: false },
+    { value: 'osv_debian', label: $localize`:@@ingest.option.osvDebian:OSV - Debian (Converted)`, needsEcosystem: false, needsRepo: false, needsDates: false },
+    { value: 'nvd', label: $localize`:@@ingest.option.nvd:NVD (Native)`, needsEcosystem: false, needsRepo: false, needsDates: false },
     { value: 'nvd_update', label: $localize`:@@ingest.option.nvdUpdate:NVD (Delta Update)`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'nvd_converted', label: $localize`:@@ingest.option.nvdConverted:NVD (Converted)`, needsEcosystem: false, needsRepo: false, needsDates: false },
     { value: 'mitre', label: $localize`:@@ingest.option.mitre:MITRE`, needsEcosystem: false, needsRepo: false, needsDates: false },
     { value: 'mitre_update', label: $localize`:@@ingest.option.mitreUpdate:MITRE (Delta Update)`, needsEcosystem: false, needsRepo: false, needsDates: false },
     { value: 'epss', label: $localize`:@@ingest.option.epss:EPSS`, needsEcosystem: false, needsRepo: false, needsDates: false },
@@ -227,11 +226,10 @@ export class IngestComponent implements OnInit, OnDestroy {
     { value: 'epss_backfill', label: $localize`:@@ingest.option.epssBackfill:EPSS (Backfill)`, needsEcosystem: false, needsRepo: false, needsDates: true },
     { value: 'kev', label: $localize`:@@ingest.option.kev:KEV`, needsEcosystem: false, needsRepo: false, needsDates: false },
     { value: 'kev_update', label: $localize`:@@ingest.option.kevUpdate:KEV (Delta Update)`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'debian', label: $localize`:@@ingest.option.debian:Debian`, needsEcosystem: false, needsRepo: false, needsDates: false },
     { value: 'ghsa', label: $localize`:@@ingest.option.ghsa:GitHub Security Advisories`, needsEcosystem: false, needsRepo: true, needsDates: false },
   ];
 
-  selectedType: IngestType = 'ecosystem';
+  selectedType: IngestType = 'osv';
   selectedEcosystem = '';
   repoInput = '';
   fromDate = '';
@@ -265,7 +263,8 @@ export class IngestComponent implements OnInit, OnDestroy {
     if (this.running()) return false;
     const opt = this.selectedOption();
     if (!opt) return false;
-    if (opt.needsEcosystem && !this.selectedEcosystem) return false;
+    // For osv/osv_update, ecosystem is optional (empty = all ecosystems)
+    if (opt.needsEcosystem && opt.value !== 'osv' && opt.value !== 'osv_update' && !this.selectedEcosystem) return false;
     if (opt.needsRepo && !this.repoInput.includes('/')) return false;
     return true;
   }
