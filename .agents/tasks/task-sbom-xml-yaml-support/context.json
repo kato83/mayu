@@ -1,0 +1,24 @@
+{
+  "project_type": "Go backend (unified vulnerability intelligence tool)",
+  "language": "Go",
+  "build_system": "go build, go test (standard Go toolchain)",
+  "test_framework": "Go standard testing package with inline mock data and table-driven tests",
+  "build_command": "cd /projects/sandbox/mayu && go build ./...",
+  "test_command": "cd /projects/sandbox/mayu && go test ./internal/sbom/... -v -count=1",
+  "verification_instructions": "1. Run go build ./... to confirm compilation. 2. Run go test ./internal/sbom/... -v -count=1 to confirm all tests pass.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "Go 1.26.5 is available. gopkg.in/yaml.v3 and encoding/xml are already available (yaml.v3 in go.mod, encoding/xml in stdlib). No additional setup needed.",
+  "environment_constraints": "OPEN_INTERNET network mode. Go 1.26.5 available. No Docker needed for tests.",
+  "contribution_requirements": "Tests use inline mock data (no testdata files). Table-driven tests preferred. Test mocks should be self-created based on official format structures.",
+  "key_patterns": "Parse(data []byte) is the main entry point. detectFormat() identifies format. Each format has its own file (cyclonedx.go, spdx.go) with typed structs and a parse function. Components without purl are skipped. resolveComponent() converts purl string to Component. XML structs use encoding/xml tags. YAML uses gopkg.in/yaml.v3 struct tags.",
+  "relevant_files": [
+    "internal/sbom/sbom.go",
+    "internal/sbom/cyclonedx.go",
+    "internal/sbom/spdx.go",
+    "internal/sbom/cyclonedx_test.go",
+    "internal/sbom/spdx_test.go",
+    "internal/purl/purl.go",
+    "go.mod"
+  ],
+  "directory_structure": "internal/sbom/ - SBOM parsing package with format detection and per-format parsers. internal/purl/ - Package URL parsing utilities. All source in Go."
+}

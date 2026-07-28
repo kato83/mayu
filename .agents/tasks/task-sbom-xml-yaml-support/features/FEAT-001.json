@@ -1,0 +1,36 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add XML and YAML parsing support for CycloneDX and SPDX SBOM formats, including updated format detection logic",
+  "status": "completed",
+  "steps": [
+    "Step 1: Update detectFormat() in internal/sbom/sbom.go to handle XML and YAML input in addition to JSON. Detection strategy: (a) if bytes start with '<?xml' or '<' after trimming whitespace, treat as XML and probe for CycloneDX namespace or SPDX element names; (b) try YAML unmarshaling into a probe struct checking bomFormat and spdxVersion fields; (c) fall back to existing JSON detection.",
+    "Step 2: Add XML struct tags to the existing CycloneDX struct types in internal/sbom/cyclonedx.go (or create a separate internal struct set for XML). The CycloneDX XML format uses namespace http://cyclonedx.org/schema/bom/1.6 (or 1.5/1.7). The root element is <bom> with <components> containing <component> elements. Each <component> has child elements: <name>, <version>, <purl>, <group>, <scope>, and <properties> containing <property name=... value=...>. Add a parseCycloneDXXML(data []byte) function.",
+    "Step 3: Add YAML parsing for CycloneDX in internal/sbom/cyclonedx.go. CycloneDX YAML uses the same structure as JSON but with YAML syntax. The existing JSON struct tags map 1:1 with YAML field names. Add yaml struct tags to the cycloneDX types and add parseCycloneDXYAML(data []byte) function using gopkg.in/yaml.v3.",
+    "Step 4: Add XML parsing for SPDX in internal/sbom/spdx.go. SPDX 2.3 XML (RDF/XML) uses elements like <SpdxDocument> with <packages> containing <Package> elements. Each Package has <name>, <versionInfo>, and <externalRef> elements containing <referenceCategory>, <referenceType>, <referenceLocator>. Add parseSPDXXML(data []byte) function. Note: SPDX XML is relatively rare but the element names mirror the JSON field names in a straightforward XML mapping.",
+    "Step 5: Add YAML parsing for SPDX in internal/sbom/spdx.go. SPDX YAML has the same structure as SPDX JSON with YAML syntax (spdxVersion, packages array with externalRefs). Add yaml struct tags and parseSPDXYAML(data []byte) function.",
+    "Step 6: Update the Parse() function and the internal dispatch in internal/sbom/sbom.go to route XML/YAML data to the appropriate parser functions based on the detected encoding format.",
+    "Step 7: Add comprehensive tests in internal/sbom/cyclonedx_test.go for CycloneDX XML and YAML parsing. Create inline mock data based on CycloneDX official schema structure. Test cases: basic parsing with multiple components, dev dependency detection (scope element + property element), skip components without purl, empty components list.",
+    "Step 8: Add comprehensive tests in internal/sbom/spdx_test.go for SPDX XML and YAML parsing. Create inline mock data based on SPDX 2.3 official schema structure. Test cases: basic parsing with multiple packages, skip packages without purl external ref, IsDev always false.",
+    "Step 9: Add tests for the updated detectFormat() to cover XML and YAML inputs in addition to existing JSON tests.",
+    "Step 10: Update the package doc comment in internal/sbom/sbom.go to reflect the newly supported formats (CycloneDX XML/YAML, SPDX XML/YAML)."
+  ],
+  "acceptance_criteria": [
+    "go build ./... succeeds with no errors",
+    "go test ./internal/sbom/... -v -count=1 passes all tests (existing and new)",
+    "CycloneDX XML input is correctly parsed to produce the same Component output as equivalent JSON",
+    "CycloneDX YAML input is correctly parsed to produce the same Component output as equivalent JSON",
+    "SPDX XML input is correctly parsed to produce the same Component output as equivalent JSON",
+    "SPDX YAML input is correctly parsed to produce the same Component output as equivalent JSON",
+    "detectFormat() correctly identifies all 6 input types: CycloneDX JSON/XML/YAML and SPDX JSON/XML/YAML",
+    "Components without purl are still skipped in all format variants",
+    "Dev dependency detection still works correctly for CycloneDX XML/YAML variants",
+    "All test mock data is inline in test files, not in external testdata files"
+  ],
+  "verification": [
+    "cd /projects/sandbox/mayu && go build ./...",
+    "cd /projects/sandbox/mayu && go test ./internal/sbom/... -v -count=1"
+  ],
+  "blocked_reason": null,
+  "findings": "All 26 tests pass. Build succeeds cleanly. gopkg.in/yaml.v3 was already in go.mod, encoding/xml is stdlib. detectFormat now returns a *detectedFormat struct (format + encoding) instead of a plain string, and the TestDetectFormat test was updated accordingly to check got.format instead of got directly. Review follow-up: rewrote detectXMLFormat to use xml.NewDecoder (issue #1), added 11 malformed-input test cases (issue #3), documented SPDX XML nesting assumption (issue #2), documented CycloneDX bom-ref version scope (issue #4), and added JSON-before-YAML ordering comment. Total test count: 38 (all pass)."
+}
