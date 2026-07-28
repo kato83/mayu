@@ -80,6 +80,30 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'sbom',
+        title: $localize`:@@route.title.sbom:SBOM Monitoring`,
+        loadComponent: () =>
+          import('./pages/sbom/sbom-projects.component').then(
+            (m) => m.SbomProjectsComponent,
+          ),
+      },
+      {
+        path: 'sbom/:id',
+        title: $localize`:@@route.title.sbomDetail:SBOM Project Detail`,
+        loadComponent: () =>
+          import('./pages/sbom/sbom-project-detail.component').then(
+            (m) => m.SbomProjectDetailComponent,
+          ),
+      },
+      {
+        path: 'sbom/:projectId/scans/:scanId',
+        title: $localize`:@@route.title.sbomScan:Scan Result`,
+        loadComponent: () =>
+          import('./pages/sbom/sbom-scan-detail.component').then(
+            (m) => m.SbomScanDetailComponent,
+          ),
+      },
+      {
         path: 'watchlists',
         title: $localize`:@@route.title.watchlists:Watchlists`,
         loadComponent: () =>

@@ -321,6 +321,55 @@ Audit an SBOM for known vulnerabilities.
 - CycloneDX 1.7 (JSON) — dev dependencies detected via `scope` and `cdx:npm:package:development` property
 - SPDX 2.3 (JSON) — all packages treated as production (SPDX lacks dev/prod distinction)
 
+### `mayu sbom upload`
+
+Upload an SBOM file and run a vulnerability scan.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name | (required) |
+| `--version` | SBOM version label | (required) |
+| `--sbom` | Path to SBOM file (CycloneDX or SPDX JSON) | (required) |
+| `--environment` | Environment label (e.g., `production`, `staging`) | — |
+
+**Examples:**
+
+```bash
+mayu sbom upload --project my-app --version 1.0.0 --sbom bom.json
+mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment production
+```
+
+### `mayu sbom scan`
+
+Re-scan an existing SBOM version for vulnerabilities using the latest vulnerability database.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name | (required) |
+| `--version` | Version to scan (if omitted, scans the latest version) | — |
+
+**Examples:**
+
+```bash
+mayu sbom scan --project my-app
+mayu sbom scan --project my-app --version 1.0.0
+```
+
+### `mayu sbom list`
+
+List SBOM projects or versions within a project.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name (if omitted, lists all projects) | — |
+
+**Examples:**
+
+```bash
+mayu sbom list                    # List all projects
+mayu sbom list --project my-app   # List versions for a project
+```
+
 ### `mayu search`
 
 Search for vulnerabilities in the local database.

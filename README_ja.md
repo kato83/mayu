@@ -322,6 +322,55 @@ SBOM の脆弱性監査を実行します。
 - CycloneDX 1.7 (JSON) — `scope` および `cdx:npm:package:development` プロパティで開発依存を検出
 - SPDX 2.3 (JSON) — 全パッケージを本番依存として扱う（SPDXにはdev/prod区別なし）
 
+### `mayu sbom upload`
+
+SBOM ファイルをアップロードし、脆弱性スキャンを実行します。
+
+| フラグ | 説明 | デフォルト |
+|------|------|---------|
+| `--project` | プロジェクト名 | （必須） |
+| `--version` | SBOM バージョンラベル | （必須） |
+| `--sbom` | SBOM ファイルパス（CycloneDX または SPDX JSON） | （必須） |
+| `--environment` | 環境ラベル（例: `production`, `staging`） | — |
+
+**使用例:**
+
+```bash
+mayu sbom upload --project my-app --version 1.0.0 --sbom bom.json
+mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment production
+```
+
+### `mayu sbom scan`
+
+既存の SBOM バージョンを最新の脆弱性データベースで再スキャンします。
+
+| フラグ | 説明 | デフォルト |
+|------|------|---------|
+| `--project` | プロジェクト名 | （必須） |
+| `--version` | スキャン対象バージョン（省略時は最新バージョン） | — |
+
+**使用例:**
+
+```bash
+mayu sbom scan --project my-app
+mayu sbom scan --project my-app --version 1.0.0
+```
+
+### `mayu sbom list`
+
+SBOM プロジェクト一覧またはプロジェクト内のバージョン一覧を表示します。
+
+| フラグ | 説明 | デフォルト |
+|------|------|---------|
+| `--project` | プロジェクト名（省略時は全プロジェクトを表示） | — |
+
+**使用例:**
+
+```bash
+mayu sbom list                    # 全プロジェクト一覧
+mayu sbom list --project my-app   # プロジェクト内のバージョン一覧
+```
+
 ### `mayu search`
 
 ローカルデータベースから脆弱性を検索します。

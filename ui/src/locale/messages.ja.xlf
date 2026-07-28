@@ -1582,6 +1582,290 @@
         <source>Request translation</source>
         <target>翻訳をリクエスト</target>
       </trans-unit>
+      <trans-unit id="sidebar.nav.sbom" datatype="html">
+        <source>SBOM</source>
+        <target>SBOM</target>
+      </trans-unit>
+      <trans-unit id="route.title.sbom" datatype="html">
+        <source>SBOM Monitoring</source>
+        <target>SBOM モニタリング</target>
+      </trans-unit>
+      <trans-unit id="route.title.sbomDetail" datatype="html">
+        <source>SBOM Project Detail</source>
+        <target>SBOM プロジェクト詳細</target>
+      </trans-unit>
+      <trans-unit id="route.title.sbomScan" datatype="html">
+        <source>Scan Result</source>
+        <target>スキャン結果</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.title" datatype="html">
+        <source> SBOM Projects </source>
+        <target>SBOM プロジェクト</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.createButton" datatype="html">
+        <source> Create Project </source>
+        <target>プロジェクト作成</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.createTitle" datatype="html">
+        <source> Create New Project </source>
+        <target>新規プロジェクト作成</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.nameLabel" datatype="html">
+        <source> Project Name </source>
+        <target>プロジェクト名</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.namePlaceholder" datatype="html">
+        <source>e.g. my-application</source>
+        <target>例: my-application</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.nameRequired" datatype="html">
+        <source>Project name is required.</source>
+        <target>プロジェクト名は必須です。</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.submitButton" datatype="html">
+        <source> Create </source>
+        <target>作成</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.cancelButton" datatype="html">
+        <source> Cancel </source>
+        <target>キャンセル</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.loading" datatype="html">
+        <source>Loading...</source>
+        <target>読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.noProjects" datatype="html">
+        <source> No SBOM projects found. Create one to start monitoring. </source>
+        <target>SBOM プロジェクトが見つかりません。モニタリングを開始するにはプロジェクトを作成してください。</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.col.name" datatype="html">
+        <source>Name</source>
+        <target>名前</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.col.created" datatype="html">
+        <source>Created</source>
+        <target>作成日時</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.col.actions" datatype="html">
+        <source>Actions</source>
+        <target>操作</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.deleteButton" datatype="html">
+        <source> Delete </source>
+        <target>削除</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.deleteConfirmTitle" datatype="html">
+        <source> Delete Project </source>
+        <target>プロジェクト削除</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.deleteConfirmMessage" datatype="html">
+        <source> Are you sure you want to delete this project? All versions and scan results will be removed. </source>
+        <target>このプロジェクトを削除してもよろしいですか？すべてのバージョンとスキャン結果が削除されます。</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.confirmDeleteButton" datatype="html">
+        <source> Delete </source>
+        <target>削除</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.backToProjects" datatype="html">
+        <source> ← Back to Projects </source>
+        <target>← プロジェクト一覧に戻る</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.uploadButton" datatype="html">
+        <source> Upload SBOM </source>
+        <target>SBOM アップロード</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.uploadTitle" datatype="html">
+        <source> Upload SBOM File </source>
+        <target>SBOM ファイルのアップロード</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.versionLabel" datatype="html">
+        <source> Version </source>
+        <target>バージョン</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.versionPlaceholder" datatype="html">
+        <source>e.g. 1.0.0</source>
+        <target>例: 1.0.0</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.environmentLabel" datatype="html">
+        <source> Environment </source>
+        <target>環境</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.environmentPlaceholder" datatype="html">
+        <source>e.g. production</source>
+        <target>例: production</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.fileLabel" datatype="html">
+        <source> SBOM File (JSON) </source>
+        <target>SBOM ファイル (JSON)</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.uploadSubmitButton" datatype="html">
+        <source> Upload </source>
+        <target>アップロード</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.cancelButton" datatype="html">
+        <source> Cancel </source>
+        <target>キャンセル</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.versionsTitle" datatype="html">
+        <source> Versions </source>
+        <target>バージョン一覧</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.loading" datatype="html">
+        <source>Loading...</source>
+        <target>読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.noVersions" datatype="html">
+        <source> No versions uploaded yet. Upload an SBOM to get started. </source>
+        <target>まだバージョンがアップロードされていません。SBOM をアップロードして開始してください。</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.version" datatype="html">
+        <source>Version</source>
+        <target>バージョン</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.format" datatype="html">
+        <source>Format</source>
+        <target>フォーマット</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.components" datatype="html">
+        <source>Components</source>
+        <target>コンポーネント数</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.environment" datatype="html">
+        <source>Environment</source>
+        <target>環境</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.created" datatype="html">
+        <source>Created</source>
+        <target>作成日時</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.actions" datatype="html">
+        <source>Actions</source>
+        <target>操作</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.viewScansButton" datatype="html">
+        <source> Scans </source>
+        <target>スキャン</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.scanResultsFor" datatype="html">
+        <source>Scan Results for</source>
+        <target>スキャン結果:</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.closeScans" datatype="html">
+        <source> Close </source>
+        <target>閉じる</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.noScans" datatype="html">
+        <source> No scan results available for this version. </source>
+        <target>このバージョンのスキャン結果はありません。</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.scannedAt" datatype="html">
+        <source>Scanned At</source>
+        <target>スキャン日時</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.status" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.findings" datatype="html">
+        <source>Findings</source>
+        <target>検出数</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.new" datatype="html">
+        <source>New</source>
+        <target>新規</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.resolved" datatype="html">
+        <source>Resolved</source>
+        <target>解決済み</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.col.trigger" datatype="html">
+        <source>Trigger</source>
+        <target>トリガー</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.viewDetailButton" datatype="html">
+        <source> Details </source>
+        <target>詳細</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.backToProject" datatype="html">
+        <source> ← Back to Project </source>
+        <target>← プロジェクトに戻る</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.loading" datatype="html">
+        <source>Loading scan result...</source>
+        <target>スキャン結果を読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.title" datatype="html">
+        <source> Scan Result </source>
+        <target>スキャン結果</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.totalPackages" datatype="html">
+        <source>Total Packages</source>
+        <target>パッケージ総数</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.vulnerablePackages" datatype="html">
+        <source>Vulnerable</source>
+        <target>脆弱性あり</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.totalFindings" datatype="html">
+        <source>Total Findings</source>
+        <target>検出総数</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.status" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.scannedAt" datatype="html">
+        <source>Scanned at:</source>
+        <target>スキャン日時:</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.trigger" datatype="html">
+        <source>Trigger:</source>
+        <target>トリガー:</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.diffTitle" datatype="html">
+        <source> Changes from Previous Scan </source>
+        <target>前回スキャンからの変更</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.noDiff" datatype="html">
+        <source> No changes detected from the previous scan. </source>
+        <target>前回スキャンからの変更はありません。</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.newFindings" datatype="html">
+        <source> New Findings </source>
+        <target>新規検出</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.resolvedFindings" datatype="html">
+        <source> Resolved Findings </source>
+        <target>解決済み</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.findingsTitle" datatype="html">
+        <source> All Findings </source>
+        <target>全検出結果</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.noFindings" datatype="html">
+        <source> No vulnerabilities found in this scan. </source>
+        <target>このスキャンでは脆弱性は検出されませんでした。</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.col.package" datatype="html">
+        <source>Package</source>
+        <target>パッケージ</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.col.version" datatype="html">
+        <source>Version</source>
+        <target>バージョン</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.col.vulnId" datatype="html">
+        <source>Vulnerability</source>
+        <target>脆弱性ID</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.col.severity" datatype="html">
+        <source>Severity</source>
+        <target>深刻度</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.col.summary" datatype="html">
+        <source>Summary</source>
+        <target>概要</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>
