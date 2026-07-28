@@ -1,0 +1,84 @@
+// Package sbommon provides SBOM continuous monitoring functionality.
+// It manages SBOM projects, versions, scan results, and diff detection
+// for tracking vulnerability changes over time.
+package sbommon
+
+import (
+	"encoding/json"
+	"time"
+)
+
+// SBOMProject represents a user's SBOM monitoring project.
+type SBOMProject struct {
+	ID        int64
+	UserID    int64
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// SBOMVersion represents a specific SBOM version within a project.
+type SBOMVersion struct {
+	ID             int64
+	ProjectID      int64
+	Version        string
+	Environment    string
+	SBOMFormat     string
+	RawSBOM        json.RawMessage
+	ComponentCount int
+	CreatedAt      time.Time
+}
+
+// SBOMScanResult represents the result of scanning an SBOM version for vulnerabilities.
+type SBOMScanResult struct {
+	ID                 int64
+	VersionID          int64
+	ScannedAt          time.Time
+	TotalPackages      int
+	VulnerablePackages int
+	TotalFindings      int
+	NewFindings        int
+	ResolvedFindings   int
+	Findings           []ScanFinding
+	Status             string // "completed" or "failed"
+	Trigger            string // "manual", "ingest", or "api"
+}
+
+// ScanFinding represents a single vulnerability finding within a scan result.
+type ScanFinding struct {
+	// Purl is the Package URL of the affected component.
+	Purl string `json:"purl"`
+
+	// Name is the package name.
+	Name string `json:"name"`
+
+	// Version is the package version.
+	Version string `json:"version"`
+
+	// Ecosystem is the package ecosystem.
+	Ecosystem string `json:"ecosystem"`
+
+	// VulnID is the vulnerability identifier (e.g., "CVE-2024-45337").
+	VulnID string `json:"vuln_id"`
+
+	// Aliases are alternative identifiers for the vulnerability.
+	Aliases []string `json:"aliases,omitempty"`
+
+	// Severity is the human-readable severity level (e.g., "CRITICAL", "HIGH").
+	Severity string `json:"severity"`
+
+	// SeverityLevel is the normalized numeric severity.
+	SeverityLevel int `json:"severity_level"`
+
+	// Summary is a short description of the vulnerability.
+	Summary string `json:"summary"`
+}
+
+// ScanDiff represents the difference between two scan results.
+type ScanDiff struct {
+	// NewFindings are vulnerabilities present in the current scan but not the previous.
+	NewFindings []ScanFinding `json:"new_findings"`
+
+	// ResolvedFindings are vulnerabilities present in the previous scan but not the current.
+	ResolvedFindings []ScanFinding `json:"resolved_findings"`
+}

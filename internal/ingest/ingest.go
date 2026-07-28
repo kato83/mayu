@@ -113,6 +113,20 @@ func WithEPSSRetentionDays(days int) Option {
 	}
 }
 
+// SBOMReEvaluator is the interface for re-evaluating SBOM versions after ingest.
+type SBOMReEvaluator interface {
+	// ReEvaluate re-scans all SBOM versions against the current vulnerability database.
+	ReEvaluate(ctx context.Context, vulnIDs []string)
+}
+
+// WithSBOMReEvaluator sets a callback that is invoked (non-blocking) after
+// ingestion completes to re-evaluate tracked SBOM versions against new data.
+func WithSBOMReEvaluator(re SBOMReEvaluator) Option {
+	return func(ing *Ingester) {
+		ing.sbomReEvaluator = re
+	}
+}
+
 // WatchlistMatcher is the interface for watchlist matching after ingest.
 type WatchlistMatcher interface {
 	// MatchNewVulnerabilities checks newly ingested vulnerabilities against watchlists.
@@ -131,6 +145,7 @@ type Ingester struct {
 	jobStore          store.Store // optional: enables ingest job recording
 	webhookNotifier   func(ctx context.Context, vulnIDs []string)
 	watchlistMatcher  WatchlistMatcher
+	sbomReEvaluator   SBOMReEvaluator
 	isUpdateMode      bool // when true, watchlist matching fires after ingest
 	epssRetentionDays int  // EPSS retention days (<=0 means retain all)
 }
@@ -623,6 +638,13 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 
 	// Run watchlist matching after summary is up-to-date
 	ing.matchWatchlists(ctx, collectedIDs)
+
+	// Fire SBOM re-evaluation (non-blocking) if configured and in update mode.
+	if ing.sbomReEvaluator != nil && ing.isUpdateMode && len(collectedIDs) > 0 {
+		ids := make([]string, len(collectedIDs))
+		copy(ids, collectedIDs)
+		go ing.sbomReEvaluator.ReEvaluate(context.WithoutCancel(ctx), ids)
+	}
 
 	return int(insertedTotal), nil
 }

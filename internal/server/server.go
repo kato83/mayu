@@ -28,6 +28,7 @@ import (
 	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
+	"github.com/kato83/mayu/internal/sbommon"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/translate"
 	"github.com/kato83/mayu/internal/validate"
@@ -87,6 +88,14 @@ type Config struct {
 	// If nil, watchlist matching is not wired into the ingest pipeline.
 	WatchlistMatcher ingest.WatchlistMatcher
 
+	// SBOMStore provides SBOM monitoring persistence for the SBOM API.
+	// If nil, SBOM monitoring endpoints are not registered.
+	SBOMStore sbommon.SBOMStore
+
+	// SBOMScanner provides SBOM scanning capabilities.
+	// If nil, SBOM scan endpoints are not available.
+	SBOMScanner *sbommon.Scanner
+
 	// TranslateService provides LLM-based translation capabilities.
 	// If nil, translation endpoints return 503 Service Unavailable.
 	TranslateService *translate.Service
@@ -115,6 +124,8 @@ type Server struct {
 	webhookEngine        *webhook.Engine
 	watchlistStore       watchlist.WatchlistStore
 	watchlistMatcher     ingest.WatchlistMatcher
+	sbomStore            sbommon.SBOMStore
+	sbomScanner          *sbommon.Scanner
 	translateService     *translate.Service
 	translateRateLimiter *translate.RateLimiter
 	loginLimiter         *auth.LoginRateLimiter
@@ -142,6 +153,8 @@ func New(cfg Config) *Server {
 		webhookEngine:        cfg.WebhookEngine,
 		watchlistStore:       cfg.WatchlistStore,
 		watchlistMatcher:     cfg.WatchlistMatcher,
+		sbomStore:            cfg.SBOMStore,
+		sbomScanner:          cfg.SBOMScanner,
 		translateService:     cfg.TranslateService,
 		translateRateLimiter: cfg.TranslateRateLimiter,
 		loginLimiter:         auth.NewLoginRateLimiter(10, 15*time.Minute),
@@ -298,6 +311,25 @@ func (s *Server) routes() http.Handler {
 			r.Put("/{id}", watchlist.HandleUpdateWatchlist(s.watchlistStore))
 			r.Delete("/{id}", watchlist.HandleDeleteWatchlist(s.watchlistStore))
 			r.Get("/{id}/matches", watchlist.HandleListWatchlistMatches(s.watchlistStore))
+		})
+	}
+
+	// SBOM monitoring endpoints
+	if s.sbomStore != nil {
+		r.Route("/api/v1/sbom", func(r chi.Router) {
+			r.Use(authMW)
+			r.Use(middleware.Timeout(30 * time.Second))
+			r.Get("/projects", sbommon.HandleListProjects(s.sbomStore))
+			r.Post("/projects", sbommon.HandleCreateProject(s.sbomStore))
+			r.Get("/projects/{id}", sbommon.HandleGetProject(s.sbomStore))
+			r.Delete("/projects/{id}", sbommon.HandleDeleteProject(s.sbomStore))
+			r.Get("/projects/{id}/versions", sbommon.HandleListVersions(s.sbomStore))
+			if s.sbomScanner != nil {
+				r.Post("/projects/{id}/versions", sbommon.HandleUploadSBOM(s.sbomStore, s.sbomScanner))
+			}
+			r.Get("/versions/{versionID}/scans", sbommon.HandleListScanResults(s.sbomStore))
+			r.Get("/scans/{scanID}", sbommon.HandleGetScanResult(s.sbomStore))
+			r.Get("/scans/{scanID}/diff", sbommon.HandleGetScanDiff(s.sbomStore))
 		})
 	}
 

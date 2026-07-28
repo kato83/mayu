@@ -124,6 +124,18 @@ func (m *mockWebhookStore) PruneDeliveryLogs(_ context.Context, keepPerWebhook i
 	return nil
 }
 
+func (m *mockWebhookStore) ListWebhooksByUser(_ context.Context, userID int64) ([]*model.Webhook, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var result []*model.Webhook
+	for _, w := range m.webhooks {
+		if w.UserID != nil && *w.UserID == userID {
+			result = append(result, w)
+		}
+	}
+	return result, nil
+}
+
 func (m *mockWebhookStore) getLogs() []*model.WebhookDeliveryLog {
 	m.mu.Lock()
 	defer m.mu.Unlock()

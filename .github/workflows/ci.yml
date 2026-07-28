@@ -80,7 +80,7 @@ jobs:
           cache: true
 
       - name: Build
-        run: make build
+        run: make build-no-ui
 
       - name: Verify binary
         run: ./bin/mayu version

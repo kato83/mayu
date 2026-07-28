@@ -12,6 +12,7 @@ import (
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-chi/chi/v5"
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/webhook"
 )
@@ -154,6 +155,12 @@ func (s *Server) handleCreateWebhook(w http.ResponseWriter, r *http.Request) {
 		Enabled:      enabled,
 	}
 
+	// Set user_id from authenticated user
+	user := auth.UserFromContext(r.Context())
+	if user != nil {
+		wh.UserID = &user.ID
+	}
+
 	created, err := s.webhookStore.CreateWebhook(r.Context(), wh)
 	if err != nil {
 		slog.Error("failed to create webhook", "error", err)
@@ -166,7 +173,20 @@ func (s *Server) handleCreateWebhook(w http.ResponseWriter, r *http.Request) {
 
 // handleListWebhooks handles GET /api/v1/webhooks
 func (s *Server) handleListWebhooks(w http.ResponseWriter, r *http.Request) {
-	webhooks, err := s.webhookStore.ListWebhooks(r.Context())
+	user := auth.UserFromContext(r.Context())
+
+	var webhooks []*model.Webhook
+	var err error
+
+	// Admins see all webhooks; regular users see only their own
+	if user != nil && user.Role == auth.RoleAdmin {
+		webhooks, err = s.webhookStore.ListWebhooks(r.Context())
+	} else if user != nil {
+		webhooks, err = s.webhookStore.ListWebhooksByUser(r.Context(), user.ID)
+	} else {
+		webhooks, err = s.webhookStore.ListWebhooks(r.Context())
+	}
+
 	if err != nil {
 		slog.Error("failed to list webhooks", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to list webhooks")
@@ -200,6 +220,15 @@ func (s *Server) handleGetWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Non-admin users can only access their own webhooks
+	user := auth.UserFromContext(r.Context())
+	if user != nil && user.Role != auth.RoleAdmin {
+		if wh.UserID == nil || *wh.UserID != user.ID {
+			writeError(w, http.StatusNotFound, fmt.Sprintf("webhook %d not found", id))
+			return
+		}
+	}
+
 	writeJSON(w, http.StatusOK, toWebhookResponse(wh))
 }
 
@@ -209,6 +238,21 @@ func (s *Server) handleUpdateWebhook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid webhook ID")
 		return
+	}
+
+	// Verify ownership for non-admin users
+	user := auth.UserFromContext(r.Context())
+	if user != nil && user.Role != auth.RoleAdmin {
+		existing, err := s.webhookStore.GetWebhook(r.Context(), id)
+		if err != nil {
+			slog.Error("failed to get webhook for ownership check", "id", id, "error", err)
+			writeError(w, http.StatusInternalServerError, "failed to update webhook")
+			return
+		}
+		if existing == nil || existing.UserID == nil || *existing.UserID != user.ID {
+			writeError(w, http.StatusNotFound, fmt.Sprintf("webhook %d not found", id))
+			return
+		}
 	}
 
 	var req webhookRequest
@@ -255,6 +299,22 @@ func (s *Server) handleUpdateWebhook(w http.ResponseWriter, r *http.Request) {
 		Enabled:      enabled,
 	}
 
+	// Preserve user_id ownership: for non-admin users, set their own ID;
+	// for admins, load the existing webhook and carry forward its UserID.
+	if user != nil && user.Role != auth.RoleAdmin {
+		wh.UserID = &user.ID
+	} else {
+		existing, err := s.webhookStore.GetWebhook(r.Context(), id)
+		if err != nil {
+			slog.Error("failed to get webhook for user_id preservation", "id", id, "error", err)
+			writeError(w, http.StatusInternalServerError, "failed to update webhook")
+			return
+		}
+		if existing != nil {
+			wh.UserID = existing.UserID
+		}
+	}
+
 	updated, err := s.webhookStore.UpdateWebhook(r.Context(), wh)
 	if err != nil {
 		slog.Error("failed to update webhook", "id", id, "error", err)
@@ -271,6 +331,21 @@ func (s *Server) handleDeleteWebhook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid webhook ID")
 		return
+	}
+
+	// Verify ownership for non-admin users
+	user := auth.UserFromContext(r.Context())
+	if user != nil && user.Role != auth.RoleAdmin {
+		existing, err := s.webhookStore.GetWebhook(r.Context(), id)
+		if err != nil {
+			slog.Error("failed to get webhook for ownership check", "id", id, "error", err)
+			writeError(w, http.StatusInternalServerError, "failed to delete webhook")
+			return
+		}
+		if existing == nil || existing.UserID == nil || *existing.UserID != user.ID {
+			writeError(w, http.StatusNotFound, fmt.Sprintf("webhook %d not found", id))
+			return
+		}
 	}
 
 	if err := s.webhookStore.DeleteWebhook(r.Context(), id); err != nil {

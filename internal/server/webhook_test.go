@@ -152,6 +152,19 @@ func (m *mockWebhookStore) PruneDeliveryLogs(_ context.Context, keepPerWebhook i
 	return nil
 }
 
+func (m *mockWebhookStore) ListWebhooksByUser(_ context.Context, userID int64) ([]*model.Webhook, error) {
+	if m.listErr != nil {
+		return nil, m.listErr
+	}
+	var result []*model.Webhook
+	for _, wh := range m.webhooks {
+		if wh.UserID != nil && *wh.UserID == userID {
+			result = append(result, wh)
+		}
+	}
+	return result, nil
+}
+
 // newTestServerWithWebhook creates a Server with a mock webhook store for testing.
 func newTestServerWithWebhook(ws webhook.WebhookStore) *Server {
 	return New(Config{

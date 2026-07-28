@@ -456,3 +456,81 @@ func TestSeverityName(t *testing.T) {
 		}
 	}
 }
+
+func TestMockStore_ListWebhooksByUser(t *testing.T) {
+	store := newMockStore()
+	ctx := context.Background()
+
+	userID1 := int64(1)
+	userID2 := int64(2)
+
+	// Create webhooks with different user_ids
+	_, err := store.CreateWebhook(ctx, &model.Webhook{
+		Name:         "user1-hook",
+		URL:          "https://example.com/1",
+		Events:       []string{"*"},
+		ContentType:  "application/json",
+		BodyTemplate: `{}`,
+		Enabled:      true,
+		UserID:       &userID1,
+	})
+	if err != nil {
+		t.Fatalf("CreateWebhook failed: %v", err)
+	}
+
+	_, err = store.CreateWebhook(ctx, &model.Webhook{
+		Name:         "user2-hook",
+		URL:          "https://example.com/2",
+		Events:       []string{"*"},
+		ContentType:  "application/json",
+		BodyTemplate: `{}`,
+		Enabled:      true,
+		UserID:       &userID2,
+	})
+	if err != nil {
+		t.Fatalf("CreateWebhook failed: %v", err)
+	}
+
+	// Create webhook with nil user_id (legacy)
+	_, err = store.CreateWebhook(ctx, &model.Webhook{
+		Name:         "legacy-hook",
+		URL:          "https://example.com/legacy",
+		Events:       []string{"*"},
+		ContentType:  "application/json",
+		BodyTemplate: `{}`,
+		Enabled:      true,
+	})
+	if err != nil {
+		t.Fatalf("CreateWebhook failed: %v", err)
+	}
+
+	// List by user 1
+	user1Hooks, err := store.ListWebhooksByUser(ctx, userID1)
+	if err != nil {
+		t.Fatalf("ListWebhooksByUser failed: %v", err)
+	}
+	if len(user1Hooks) != 1 {
+		t.Errorf("expected 1 webhook for user 1, got %d", len(user1Hooks))
+	}
+	if len(user1Hooks) > 0 && user1Hooks[0].Name != "user1-hook" {
+		t.Errorf("expected 'user1-hook', got %q", user1Hooks[0].Name)
+	}
+
+	// List by user 2
+	user2Hooks, err := store.ListWebhooksByUser(ctx, userID2)
+	if err != nil {
+		t.Fatalf("ListWebhooksByUser failed: %v", err)
+	}
+	if len(user2Hooks) != 1 {
+		t.Errorf("expected 1 webhook for user 2, got %d", len(user2Hooks))
+	}
+
+	// List all (should include all 3)
+	all, err := store.ListWebhooks(ctx)
+	if err != nil {
+		t.Fatalf("ListWebhooks failed: %v", err)
+	}
+	if len(all) != 3 {
+		t.Errorf("expected 3 webhooks total, got %d", len(all))
+	}
+}

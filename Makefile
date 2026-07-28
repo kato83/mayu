@@ -1,18 +1,22 @@
-.PHONY: build build-release build-embed test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down ui-dev ui-dev-ja ui-build ui-test ui-lint ui-i18n-extract
+.PHONY: build build-no-ui build-release test test-integration fmt lint clean docker-up docker-down migrate-up migrate-down ui-dev ui-dev-ja ui-build ui-test ui-lint ui-i18n-extract
 
 # Variables
 BINARY_NAME=mayu
 DATABASE_URL?=postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
-# Build
-build:
+# Build (with embedded Web UI — same as release binaries)
+build: ui-build
+	rm -rf internal/uiassets/dist
+	cp -r ui/dist/mayu/browser internal/uiassets/dist
+	touch internal/uiassets/dist/.gitkeep
+	go build -tags uiembed -ldflags "-X main.version=$(VERSION)" -o bin/$(BINARY_NAME) ./cmd/mayu
+
+# Build without Web UI (Go only, faster for backend-only development)
+build-no-ui:
 	go build -ldflags "-X main.version=$(VERSION)" -o bin/$(BINARY_NAME) ./cmd/mayu
 
-build-release:
-	go build -ldflags "-s -w -X main.version=$(VERSION)" -o bin/$(BINARY_NAME) ./cmd/mayu
-
-build-embed: ui-build
+build-release: ui-build
 	rm -rf internal/uiassets/dist
 	cp -r ui/dist/mayu/browser internal/uiassets/dist
 	touch internal/uiassets/dist/.gitkeep

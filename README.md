@@ -321,6 +321,69 @@ Audit an SBOM for known vulnerabilities.
 - CycloneDX 1.7 (JSON) — dev dependencies detected via `scope` and `cdx:npm:package:development` property
 - SPDX 2.3 (JSON) — all packages treated as production (SPDX lacks dev/prod distinction)
 
+### `mayu sbom` Authentication
+
+> [!WARNING]
+> The `mayu sbom` subcommands are **experimental**. Breaking changes to the CLI interface, API responses, or database schema may occur without notice. SBOM scan results stored in the database may be reset during schema migrations in future releases.
+
+All `mayu sbom` subcommands require the `MAYU_API_KEY` environment variable to be set with a valid API key. The API key is used to authenticate and identify the user.
+
+```bash
+export MAYU_API_KEY=your-api-key
+```
+
+### `mayu sbom upload`
+
+Upload an SBOM file and run a vulnerability scan.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name | (required) |
+| `--version` | SBOM version label | (required) |
+| `--sbom` | Path to SBOM file (CycloneDX or SPDX JSON) | (required) |
+| `--environment` | Environment label (e.g., `production`, `staging`) | — |
+
+**Examples:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom upload --project my-app --version 1.0.0 --sbom bom.json
+mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment production
+```
+
+### `mayu sbom scan`
+
+Re-scan an existing SBOM version for vulnerabilities using the latest vulnerability database.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name | (required) |
+| `--version` | Version to scan (if omitted, scans the latest version) | — |
+
+**Examples:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom scan --project my-app
+mayu sbom scan --project my-app --version 1.0.0
+```
+
+### `mayu sbom list`
+
+List SBOM projects or versions within a project.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name (if omitted, lists all projects) | — |
+
+**Examples:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom list                    # List all projects
+mayu sbom list --project my-app   # List versions for a project
+```
+
 ### `mayu search`
 
 Search for vulnerabilities in the local database.
@@ -441,6 +504,14 @@ mayu apikey create --user-email admin@example.com --name 'CI Pipeline'
 mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90d
 ```
 
+### `mayu webhook` Authentication
+
+All `mayu webhook` subcommands require the `MAYU_API_KEY` environment variable to be set with a valid API key. The API key is used to authenticate and identify the user. Webhooks are scoped per user — each user can only manage their own webhooks.
+
+```bash
+export MAYU_API_KEY=your-api-key
+```
+
 ### `mayu webhook create`
 
 Create a new webhook for notifications.
@@ -461,17 +532,19 @@ Create a new webhook for notifications.
 **Examples:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu webhook create --name "security-team-slack" --url "https://hooks.slack.com/services/T00/B00/xxxx" --events "new_critical,new_high" --body-template '{"text": "{{ID}} ({{Severity}}) - {{Summary}}"}'
 mayu webhook create --name "all-vulns" --url "https://example.com/webhook" --events "*"
 ```
 
 ### `mayu webhook list`
 
-List all registered webhooks in table format (ID, Name, URL, Events, Enabled).
+List webhooks for the authenticated user in table format (ID, Name, URL, Events, Enabled).
 
 **Examples:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu webhook list
 ```
 
@@ -486,6 +559,7 @@ Send a test payload to a webhook to verify connectivity.
 **Examples:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu webhook test --id 1
 ```
 
@@ -557,36 +631,6 @@ auth:
       - openid
       - email
       - profile
-```
-
-**Example with webhook notifications:**
-
-```yaml
-database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
-
-webhooks:
-  - name: "security-team-slack"
-    url: "https://hooks.slack.com/services/T00/B00/xxxx"
-    events: ["new_critical", "new_high"]
-    content_type: "application/json"
-    body_template: |
-      {"text": "🚨 {{ID}} ({{Severity}}) - {{Summary}}"}
-
-  - name: "all-vulns-generic"
-    url: "https://my-internal-system.example.com/api/webhook"
-    events: ["*"]
-    content_type: "application/json"
-    body_template: |
-      {
-        "event": "{{Event}}",
-        "vulnerability": {
-          "id": "{{ID}}",
-          "severity": "{{Severity}}",
-          "epss": {{EPSS}},
-          "lev": {{LEV}},
-          "summary": "{{Summary}}"
-        }
-      }
 ```
 
 **Priority order** (highest to lowest):

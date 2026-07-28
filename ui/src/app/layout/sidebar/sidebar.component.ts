@@ -197,6 +197,7 @@ export class SidebarComponent implements OnInit {
       ],
     },
     { label: $localize`:@@sidebar.nav.status:Status`, route: '/status', icon: '⚙️' },
+    { label: $localize`:@@sidebar.nav.sbom:SBOM`, route: '/sbom', icon: '📦' },
     { label: $localize`:@@sidebar.nav.webhooks:Webhooks`, route: '/webhooks', icon: '🔔' },
     { label: $localize`:@@sidebar.nav.watchlists:Watchlists`, route: '/watchlists', icon: '🏷️' },
     { label: $localize`:@@sidebar.nav.apiKeys:API Keys`, route: '/api-keys', icon: '🔑' },

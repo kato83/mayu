@@ -322,6 +322,69 @@ SBOM の脆弱性監査を実行します。
 - CycloneDX 1.7 (JSON) — `scope` および `cdx:npm:package:development` プロパティで開発依存を検出
 - SPDX 2.3 (JSON) — 全パッケージを本番依存として扱う（SPDXにはdev/prod区別なし）
 
+### `mayu sbom` 認証
+
+> [!WARNING]
+> `mayu sbom` サブコマンドは**試験的機能**です。CLIインターフェース、APIレスポンス、データベーススキーマに予告なく破壊的変更が行われる可能性があります。将来のリリースでスキーマ移行に伴い、データベースに保存されたSBOMスキャン結果がリセットされる場合があります。
+
+全ての `mayu sbom` サブコマンドは `MAYU_API_KEY` 環境変数に有効な API キーを設定する必要があります。API キーはユーザーの認証・識別に使用されます。
+
+```bash
+export MAYU_API_KEY=your-api-key
+```
+
+### `mayu sbom upload`
+
+SBOM ファイルをアップロードし、脆弱性スキャンを実行します。
+
+| フラグ | 説明 | デフォルト |
+|------|------|---------|
+| `--project` | プロジェクト名 | （必須） |
+| `--version` | SBOM バージョンラベル | （必須） |
+| `--sbom` | SBOM ファイルパス（CycloneDX または SPDX JSON） | （必須） |
+| `--environment` | 環境ラベル（例: `production`, `staging`） | — |
+
+**使用例:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom upload --project my-app --version 1.0.0 --sbom bom.json
+mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment production
+```
+
+### `mayu sbom scan`
+
+既存の SBOM バージョンを最新の脆弱性データベースで再スキャンします。
+
+| フラグ | 説明 | デフォルト |
+|------|------|---------|
+| `--project` | プロジェクト名 | （必須） |
+| `--version` | スキャン対象バージョン（省略時は最新バージョン） | — |
+
+**使用例:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom scan --project my-app
+mayu sbom scan --project my-app --version 1.0.0
+```
+
+### `mayu sbom list`
+
+SBOM プロジェクト一覧またはプロジェクト内のバージョン一覧を表示します。
+
+| フラグ | 説明 | デフォルト |
+|------|------|---------|
+| `--project` | プロジェクト名（省略時は全プロジェクトを表示） | — |
+
+**使用例:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom list                    # 全プロジェクト一覧
+mayu sbom list --project my-app   # プロジェクト内のバージョン一覧
+```
+
 ### `mayu search`
 
 ローカルデータベースから脆弱性を検索します。
@@ -442,6 +505,14 @@ mayu apikey create --user-email admin@example.com --name 'CI Pipeline'
 mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90d
 ```
 
+### `mayu webhook` 認証
+
+すべての `mayu webhook` サブコマンドは、有効なAPIキーが設定された `MAYU_API_KEY` 環境変数を必要とします。APIキーはユーザーの認証と識別に使用されます。Webhookはユーザーごとにスコープされ、各ユーザーは自分のWebhookのみ管理できます。
+
+```bash
+export MAYU_API_KEY=your-api-key
+```
+
 ### `mayu webhook create`
 
 Webhook通知を新規作成します。
@@ -462,17 +533,19 @@ Webhook通知を新規作成します。
 **使用例:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu webhook create --name "security-team-slack" --url "https://hooks.slack.com/services/T00/B00/xxxx" --events "new_critical,new_high" --body-template '{"text": "{{ID}} ({{Severity}}) - {{Summary}}"}'
 mayu webhook create --name "all-vulns" --url "https://example.com/webhook" --events "*"
 ```
 
 ### `mayu webhook list`
 
-登録済みの全Webhookをテーブル形式で表示します（ID、名前、URL、イベント、有効状態）。
+認証されたユーザーのWebhookをテーブル形式で表示します（ID、名前、URL、イベント、有効状態）。
 
 **使用例:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu webhook list
 ```
 
@@ -487,6 +560,7 @@ Webhookにテストペイロードを送信して接続を確認します。
 **使用例:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu webhook test --id 1
 ```
 
@@ -558,36 +632,6 @@ auth:
       - openid
       - email
       - profile
-```
-
-**Webhook通知の例：**
-
-```yaml
-database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
-
-webhooks:
-  - name: "security-team-slack"
-    url: "https://hooks.slack.com/services/T00/B00/xxxx"
-    events: ["new_critical", "new_high"]
-    content_type: "application/json"
-    body_template: |
-      {"text": "🚨 {{ID}} ({{Severity}}) - {{Summary}}"}
-
-  - name: "all-vulns-generic"
-    url: "https://my-internal-system.example.com/api/webhook"
-    events: ["*"]
-    content_type: "application/json"
-    body_template: |
-      {
-        "event": "{{Event}}",
-        "vulnerability": {
-          "id": "{{ID}}",
-          "severity": "{{Severity}}",
-          "epss": {{EPSS}},
-          "lev": {{LEV}},
-          "summary": "{{Summary}}"
-        }
-      }
 ```
 
 **優先順位**（高い順）：
