@@ -299,9 +299,20 @@ func (s *Server) handleUpdateWebhook(w http.ResponseWriter, r *http.Request) {
 		Enabled:      enabled,
 	}
 
-	// Preserve user_id ownership
+	// Preserve user_id ownership: for non-admin users, set their own ID;
+	// for admins, load the existing webhook and carry forward its UserID.
 	if user != nil && user.Role != auth.RoleAdmin {
 		wh.UserID = &user.ID
+	} else {
+		existing, err := s.webhookStore.GetWebhook(r.Context(), id)
+		if err != nil {
+			slog.Error("failed to get webhook for user_id preservation", "id", id, "error", err)
+			writeError(w, http.StatusInternalServerError, "failed to update webhook")
+			return
+		}
+		if existing != nil {
+			wh.UserID = existing.UserID
+		}
 	}
 
 	updated, err := s.webhookStore.UpdateWebhook(r.Context(), wh)

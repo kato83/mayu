@@ -3,6 +3,7 @@ package sbommon
 import (
 	"context"
 	"log"
+	"time"
 )
 
 // SBOMReEvaluator re-scans all tracked SBOM versions when new vulnerabilities
@@ -30,6 +31,9 @@ func NewSBOMReEvaluator(store SBOMStore, scanner *Scanner, logger *log.Logger) *
 // It computes diffs and returns the total number of new findings detected across
 // all versions. This method is designed to be called in a goroutine after ingest.
 func (r *SBOMReEvaluator) ReEvaluate(ctx context.Context, _ []string) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancel()
+
 	versionIDs, err := r.store.ListAllVersionIDs(ctx)
 	if err != nil {
 		r.logger.Printf("sbom re-evaluator: failed to list version IDs: %v", err)

@@ -325,7 +325,7 @@ func (s *Server) routes() http.Handler {
 			r.Delete("/projects/{id}", sbommon.HandleDeleteProject(s.sbomStore))
 			r.Get("/projects/{id}/versions", sbommon.HandleListVersions(s.sbomStore))
 			if s.sbomScanner != nil {
-				r.Post("/projects/{id}/upload", sbommon.HandleUploadSBOM(s.sbomStore, s.sbomScanner))
+				r.Post("/projects/{id}/versions", sbommon.HandleUploadSBOM(s.sbomStore, s.sbomScanner))
 			}
 			r.Get("/versions/{versionID}/scans", sbommon.HandleListScanResults(s.sbomStore))
 			r.Get("/scans/{scanID}", sbommon.HandleGetScanResult(s.sbomStore))
