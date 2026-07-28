@@ -225,6 +225,14 @@ mayu audit --sbom ./sbom.cdx.json --no-version-check
 mayu audit --sbom ./sbom.cdx.json --format json
 # CSV output
 mayu audit --sbom ./sbom.cdx.json --format csv
+# SARIF output (for GitHub Code Scanning / GitLab SAST)
+mayu audit --sbom ./sbom.cdx.json --format sarif > results.sarif
+# Fail only on critical and high severity findings
+mayu audit --sbom ./sbom.cdx.json --fail-on critical,high
+# Suppress accepted vulnerabilities
+mayu audit --sbom ./sbom.cdx.json --ignore .mayu-ignore
+# CI/CD gate: combine all options
+mayu audit --sbom bom.json --fail-on critical,high --ignore .mayu-ignore --format sarif > results.sarif
 ```
 
 ### Start Server
@@ -305,21 +313,44 @@ Audit an SBOM for known vulnerabilities.
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--sbom` | Path to SBOM file (CycloneDX 1.7 or SPDX 2.3 JSON) | (required) |
-| `--format` | Output format: `table`, `json`, `csv` | `table` |
+| `--format` | Output format: `table`, `json`, `csv`, `sarif` | `table` |
 | `--include-dev` | Include development dependencies in audit | `false` |
 | `--no-version-check` | Skip version matching, report all vulnerabilities for package name | `false` |
+| `--fail-on` | Fail only for findings at or above specified severity (comma-separated: `critical`, `high`, `medium`, `low`, `none`) | (all findings fail) |
+| `--ignore` | Path to ignore file containing vulnerability IDs to suppress (one per line, `#` for comments) | - |
 
 **Exit codes:**
 
 | Code | Meaning |
 |------|---------|
-| 0 | No vulnerabilities found |
-| 1 | One or more vulnerabilities found |
+| 0 | No vulnerabilities found (or none above `--fail-on` threshold) |
+| 1 | Findings above threshold detected (or any findings when `--fail-on` is not set) |
 | 2 | Error (invalid input, database connection failure, etc.) |
 
 **Supported SBOM formats:**
-- CycloneDX 1.7 (JSON) — dev dependencies detected via `scope` and `cdx:npm:package:development` property
-- SPDX 2.3 (JSON) — all packages treated as production (SPDX lacks dev/prod distinction)
+- CycloneDX 1.7 (JSON) -- dev dependencies detected via `scope` and `cdx:npm:package:development` property
+- SPDX 2.3 (JSON) -- all packages treated as production (SPDX lacks dev/prod distinction)
+
+**Ignore file format (`.mayu-ignore`):**
+
+```
+# Accepted risks
+CVE-2024-1234    # reason: no impact on our usage
+GHSA-xxxx-yyyy   # suppressed until 2025-03-01
+```
+
+**CI/CD integration example (GitHub Actions):**
+
+```yaml
+- name: Audit dependencies
+  run: |
+    mayu audit --sbom bom.json --fail-on critical,high --ignore .mayu-ignore --format sarif > results.sarif
+
+- name: Upload SARIF
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
+```
 
 ### `mayu sbom` Authentication
 

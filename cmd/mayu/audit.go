@@ -20,9 +20,11 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 	fs := flag.NewFlagSet("audit", flag.ExitOnError)
 
 	sbomPath := fs.String("sbom", "", "Path to SBOM file (CycloneDX 1.7 or SPDX 2.3 JSON)")
-	format := fs.String("format", "table", "Output format: table, json, csv")
+	format := fs.String("format", "table", "Output format: table, json, csv, sarif")
 	includeDev := fs.Bool("include-dev", false, "Include development dependencies in audit")
 	noVersionCheck := fs.Bool("no-version-check", false, "Skip version matching, report all vulnerabilities for package name")
+	failOn := fs.String("fail-on", "", "Fail with exit code 1 only for findings at or above severity (e.g., critical,high)")
+	ignorePath := fs.String("ignore", "", "Path to ignore file containing vulnerability IDs to suppress")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu audit [options]")
@@ -42,6 +44,9 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --no-version-check")
 		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --format json")
 		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --format csv")
+		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --format sarif > results.sarif")
+		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --fail-on critical,high")
+		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --fail-on critical --ignore .mayu-ignore")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -50,6 +55,16 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 
 	if *sbomPath == "" {
 		return 2, fmt.Errorf("--sbom is required")
+	}
+
+	// Validate --fail-on early before any I/O
+	var failOnLevel int
+	if *failOn != "" {
+		level, err := audit.ParseFailOn(*failOn)
+		if err != nil {
+			return 2, err
+		}
+		failOnLevel = level
 	}
 
 	// Read SBOM file
@@ -88,6 +103,22 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 		return 2, fmt.Errorf("audit: %w", err)
 	}
 
+	// Apply ignore file filtering
+	if *ignorePath != "" {
+		ignored, err := audit.ParseIgnoreFile(*ignorePath)
+		if err != nil {
+			return 2, fmt.Errorf("parse ignore file: %w", err)
+		}
+		result.Findings = audit.FilterFindings(result.Findings, ignored)
+
+		// Recalculate VulnerablePackages from remaining findings
+		pkgSet := make(map[string]bool)
+		for _, f := range result.Findings {
+			pkgSet[f.Component.Ecosystem+"/"+f.Component.Name+"/"+f.Component.Version] = true
+		}
+		result.VulnerablePackages = len(pkgSet)
+	}
+
 	// Output results
 	switch *format {
 	case "json":
@@ -96,11 +127,25 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 		outputAuditCSV(result)
 	case "table":
 		outputAuditTable(result, bom.Format)
+	case "sarif":
+		data, err := audit.GenerateSARIF(result, version)
+		if err != nil {
+			return 2, fmt.Errorf("generate SARIF: %w", err)
+		}
+		fmt.Println(string(data))
 	default:
-		return 2, fmt.Errorf("unknown format: %q (supported: table, json, csv)", *format)
+		return 2, fmt.Errorf("unknown format: %q (supported: table, json, csv, sarif)", *format)
 	}
 
-	// Exit code: 1 if vulnerabilities found, 0 if clean
+	// Exit code logic
+	if *failOn != "" {
+		if audit.ShouldFail(result.Findings, failOnLevel) {
+			return 1, nil
+		}
+		return 0, nil
+	}
+
+	// Default behavior: exit 1 if any findings
 	if len(result.Findings) > 0 {
 		return 1, nil
 	}

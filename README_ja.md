@@ -226,6 +226,14 @@ mayu audit --sbom ./sbom.cdx.json --no-version-check
 mayu audit --sbom ./sbom.cdx.json --format json
 # CSV 出力
 mayu audit --sbom ./sbom.cdx.json --format csv
+# SARIF 出力（GitHub Code Scanning / GitLab SAST 連携用）
+mayu audit --sbom ./sbom.cdx.json --format sarif > results.sarif
+# Critical と High の脆弱性のみで失敗判定
+mayu audit --sbom ./sbom.cdx.json --fail-on critical,high
+# 受容済み脆弱性を除外
+mayu audit --sbom ./sbom.cdx.json --ignore .mayu-ignore
+# CI/CD ゲート: 全オプションを組み合わせ
+mayu audit --sbom bom.json --fail-on critical,high --ignore .mayu-ignore --format sarif > results.sarif
 ```
 
 ### サーバーの起動
@@ -306,21 +314,44 @@ SBOM の脆弱性監査を実行します。
 | フラグ | 説明 | デフォルト |
 |------|------|---------|
 | `--sbom` | SBOM ファイルパス（CycloneDX 1.7 または SPDX 2.3 JSON） | （必須） |
-| `--format` | 出力フォーマット: `table`, `json`, `csv` | `table` |
+| `--format` | 出力フォーマット: `table`, `json`, `csv`, `sarif` | `table` |
 | `--include-dev` | 開発依存もaudit対象に含める | `false` |
 | `--no-version-check` | バージョンチェックをスキップし、パッケージ名マッチのみで報告 | `false` |
+| `--fail-on` | 指定した重大度以上の脆弱性がある場合のみ失敗（カンマ区切り: `critical`, `high`, `medium`, `low`, `none`） | （全件で失敗） |
+| `--ignore` | 除外する脆弱性IDを記載したファイルパス（1行1ID、`#` でコメント） | - |
 
 **終了コード:**
 
 | コード | 意味 |
 |------|------|
-| 0 | 脆弱性なし |
-| 1 | 1件以上の脆弱性あり |
+| 0 | 脆弱性なし（または `--fail-on` 閾値を超える脆弱性なし） |
+| 1 | 閾値以上の脆弱性あり（`--fail-on` 未指定時は全件で失敗） |
 | 2 | エラー（不正な入力、DB接続失敗など） |
 
 **対応SBOMフォーマット:**
-- CycloneDX 1.7 (JSON) — `scope` および `cdx:npm:package:development` プロパティで開発依存を検出
-- SPDX 2.3 (JSON) — 全パッケージを本番依存として扱う（SPDXにはdev/prod区別なし）
+- CycloneDX 1.7 (JSON) -- `scope` および `cdx:npm:package:development` プロパティで開発依存を検出
+- SPDX 2.3 (JSON) -- 全パッケージを本番依存として扱う（SPDXにはdev/prod区別なし）
+
+**除外ファイルフォーマット (`.mayu-ignore`):**
+
+```
+# 受容済みリスク
+CVE-2024-1234    # 理由: 当プロジェクトへの影響なし
+GHSA-xxxx-yyyy   # 2025-03-01 まで抑制
+```
+
+**CI/CD連携例 (GitHub Actions):**
+
+```yaml
+- name: 依存関係の監査
+  run: |
+    mayu audit --sbom bom.json --fail-on critical,high --ignore .mayu-ignore --format sarif > results.sarif
+
+- name: SARIF アップロード
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
+```
 
 ### `mayu sbom` 認証
 
