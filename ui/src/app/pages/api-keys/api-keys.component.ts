@@ -119,11 +119,11 @@ import { ApiKeyService, APIKey } from '../../services/api-key.service';
           <table class="w-full text-sm text-left">
             <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               <tr>
-                <th class="px-4 py-3" i18n="@@apiKeys.col.name">Name</th>
-                <th class="px-4 py-3" i18n="@@apiKeys.col.prefix">Prefix</th>
-                <th class="px-4 py-3" i18n="@@apiKeys.col.created">Created</th>
-                <th class="px-4 py-3" i18n="@@apiKeys.col.expires">Expires</th>
-                <th class="px-4 py-3" i18n="@@apiKeys.col.actions">Actions</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@apiKeys.col.name">Name</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@apiKeys.col.prefix">Prefix</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@apiKeys.col.created">Created</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@apiKeys.col.expires">Expires</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@apiKeys.col.actions">Actions</th>
               </tr>
             </thead>
             <tbody>

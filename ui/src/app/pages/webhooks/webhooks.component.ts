@@ -225,11 +225,11 @@ import { WebhookService, Webhook } from '../../services/webhook.service';
           <table class="w-full text-sm text-left">
             <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               <tr>
-                <th class="px-4 py-3" i18n="@@webhooks.col.name">Name</th>
-                <th class="px-4 py-3" i18n="@@webhooks.col.url">URL</th>
-                <th class="px-4 py-3" i18n="@@webhooks.col.events">Events</th>
-                <th class="px-4 py-3" i18n="@@webhooks.col.enabled">Enabled</th>
-                <th class="px-4 py-3" i18n="@@webhooks.col.actions">Actions</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.col.name">Name</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.col.url">URL</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.col.events">Events</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.col.enabled">Enabled</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@webhooks.col.actions">Actions</th>
               </tr>
             </thead>
             <tbody>

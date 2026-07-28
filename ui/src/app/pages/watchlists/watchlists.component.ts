@@ -240,12 +240,12 @@ import {
           <table class="w-full text-sm text-left">
             <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               <tr>
-                <th class="px-4 py-3" i18n="@@watchlists.col.name">Name</th>
-                <th class="px-4 py-3" i18n="@@watchlists.col.type">Type</th>
-                <th class="px-4 py-3" i18n="@@watchlists.col.conditions">Conditions</th>
-                <th class="px-4 py-3" i18n="@@watchlists.col.enabled">Enabled</th>
-                <th class="px-4 py-3" i18n="@@watchlists.col.created">Created</th>
-                <th class="px-4 py-3" i18n="@@watchlists.col.actions">Actions</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@watchlists.col.name">Name</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@watchlists.col.type">Type</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@watchlists.col.conditions">Conditions</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@watchlists.col.enabled">Enabled</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@watchlists.col.created">Created</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@watchlists.col.actions">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -326,9 +326,9 @@ import {
               <table class="w-full text-sm text-left">
                 <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                   <tr>
-                    <th class="px-4 py-3" i18n="@@watchlists.match.vulnId">Vulnerability ID</th>
-                    <th class="px-4 py-3" i18n="@@watchlists.match.matchedAt">Matched At</th>
-                    <th class="px-4 py-3" i18n="@@watchlists.match.notified">Notified</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@watchlists.match.vulnId">Vulnerability ID</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@watchlists.match.matchedAt">Matched At</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@watchlists.match.notified">Notified</th>
                   </tr>
                 </thead>
                 <tbody>

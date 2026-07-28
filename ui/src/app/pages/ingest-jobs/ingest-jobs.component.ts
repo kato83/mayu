@@ -38,14 +38,14 @@ import { IngestJob, IngestJobDetail } from '../../models/ingest.model';
           <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
             <thead class="bg-slate-50 dark:bg-slate-900/50">
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@ingestJobs.col.id">ID</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@ingestJobs.col.source">Source</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@ingestJobs.col.status">Status</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@ingestJobs.col.started">Started</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@ingestJobs.col.duration">Duration</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@ingestJobs.col.total">Total</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@ingestJobs.col.success">Success</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@ingestJobs.col.failed">Failed</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@ingestJobs.col.id">ID</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@ingestJobs.col.source">Source</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@ingestJobs.col.status">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@ingestJobs.col.started">Started</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@ingestJobs.col.duration">Duration</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@ingestJobs.col.total">Total</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@ingestJobs.col.success">Success</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@ingestJobs.col.failed">Failed</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
@@ -126,10 +126,10 @@ import { IngestJob, IngestJobDetail } from '../../models/ingest.model';
                 <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                   <thead class="bg-slate-50 dark:bg-slate-900/50">
                     <tr>
-                      <th class="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase" i18n="@@ingestJobs.detail.col.vulnId">Vuln ID</th>
-                      <th class="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase" i18n="@@ingestJobs.detail.col.errorType">Error Type</th>
-                      <th class="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase" i18n="@@ingestJobs.detail.col.message">Message</th>
-                      <th class="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase" i18n="@@ingestJobs.detail.col.time">Time</th>
+                      <th class="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap" i18n="@@ingestJobs.detail.col.vulnId">Vuln ID</th>
+                      <th class="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap" i18n="@@ingestJobs.detail.col.errorType">Error Type</th>
+                      <th class="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap" i18n="@@ingestJobs.detail.col.message">Message</th>
+                      <th class="px-3 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap" i18n="@@ingestJobs.detail.col.time">Time</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-200 dark:divide-slate-700">

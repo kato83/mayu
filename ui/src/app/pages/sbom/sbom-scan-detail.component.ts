@@ -77,11 +77,11 @@ import { SBOMScanResult, ScanDiff, ScanFinding } from '../../models/sbom.model';
                     <table class="w-full text-sm text-left">
                       <thead class="text-xs uppercase bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
                         <tr>
-                          <th class="px-4 py-2" i18n="@@sbom.scan.col.package">Package</th>
-                          <th class="px-4 py-2" i18n="@@sbom.scan.col.version">Version</th>
-                          <th class="px-4 py-2" i18n="@@sbom.scan.col.vulnId">Vulnerability</th>
-                          <th class="px-4 py-2" i18n="@@sbom.scan.col.severity">Severity</th>
-                          <th class="px-4 py-2" i18n="@@sbom.scan.col.summary">Summary</th>
+                          <th class="px-4 py-2 whitespace-nowrap" i18n="@@sbom.scan.col.package">Package</th>
+                          <th class="px-4 py-2 whitespace-nowrap" i18n="@@sbom.scan.col.version">Version</th>
+                          <th class="px-4 py-2 whitespace-nowrap" i18n="@@sbom.scan.col.vulnId">Vulnerability</th>
+                          <th class="px-4 py-2 whitespace-nowrap" i18n="@@sbom.scan.col.severity">Severity</th>
+                          <th class="px-4 py-2 whitespace-nowrap" i18n="@@sbom.scan.col.summary">Summary</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -114,11 +114,11 @@ import { SBOMScanResult, ScanDiff, ScanFinding } from '../../models/sbom.model';
                     <table class="w-full text-sm text-left">
                       <thead class="text-xs uppercase bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
                         <tr>
-                          <th class="px-4 py-2" i18n="@@sbom.scan.col.package">Package</th>
-                          <th class="px-4 py-2" i18n="@@sbom.scan.col.version">Version</th>
-                          <th class="px-4 py-2" i18n="@@sbom.scan.col.vulnId">Vulnerability</th>
-                          <th class="px-4 py-2" i18n="@@sbom.scan.col.severity">Severity</th>
-                          <th class="px-4 py-2" i18n="@@sbom.scan.col.summary">Summary</th>
+                          <th class="px-4 py-2 whitespace-nowrap" i18n="@@sbom.scan.col.package">Package</th>
+                          <th class="px-4 py-2 whitespace-nowrap" i18n="@@sbom.scan.col.version">Version</th>
+                          <th class="px-4 py-2 whitespace-nowrap" i18n="@@sbom.scan.col.vulnId">Vulnerability</th>
+                          <th class="px-4 py-2 whitespace-nowrap" i18n="@@sbom.scan.col.severity">Severity</th>
+                          <th class="px-4 py-2 whitespace-nowrap" i18n="@@sbom.scan.col.summary">Summary</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -159,11 +159,11 @@ import { SBOMScanResult, ScanDiff, ScanFinding } from '../../models/sbom.model';
               <table class="w-full text-sm text-left">
                 <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                   <tr>
-                    <th class="px-4 py-3" i18n="@@sbom.scan.col.package">Package</th>
-                    <th class="px-4 py-3" i18n="@@sbom.scan.col.version">Version</th>
-                    <th class="px-4 py-3" i18n="@@sbom.scan.col.vulnId">Vulnerability</th>
-                    <th class="px-4 py-3" i18n="@@sbom.scan.col.severity">Severity</th>
-                    <th class="px-4 py-3" i18n="@@sbom.scan.col.summary">Summary</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.scan.col.package">Package</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.scan.col.version">Version</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.scan.col.vulnId">Vulnerability</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.scan.col.severity">Severity</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.scan.col.summary">Summary</th>
                   </tr>
                 </thead>
                 <tbody>
