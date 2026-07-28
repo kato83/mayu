@@ -315,6 +315,9 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
         this.statsTrend.set(data);
         setTimeout(() => this.renderTrendChart(), 0);
       },
+      error: (err) => {
+        console.error('Failed to load trend data', err);
+      },
     });
   }
 

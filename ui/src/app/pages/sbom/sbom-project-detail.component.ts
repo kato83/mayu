@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -6,6 +6,7 @@ import { Chart, registerables } from 'chart.js';
 
 import { SbomService } from '../../services/sbom.service';
 import { StatsTrendService } from '../../services/stats-trend.service';
+import { ThemeService } from '../../services/theme.service';
 import { SBOMProject, SBOMVersion, SBOMScanResult } from '../../models/sbom.model';
 import { StatsTrendResponse } from '../../models/stats-trend.model';
 
@@ -271,6 +272,7 @@ Chart.register(...registerables);
 export class SbomProjectDetailComponent implements OnInit, OnDestroy {
   private readonly sbomService = inject(SbomService);
   private readonly statsTrendService = inject(StatsTrendService);
+  private readonly themeService = inject(ThemeService);
   private readonly route = inject(ActivatedRoute);
 
   readonly project = signal<SBOMProject | null>(null);
@@ -291,6 +293,7 @@ export class SbomProjectDetailComponent implements OnInit, OnDestroy {
 
   @ViewChild('projectTrendCanvas') projectTrendCanvasRef!: ElementRef<HTMLCanvasElement>;
   private projectTrendChart: Chart | null = null;
+  private chartRendered = false;
 
   // Upload form
   readonly showUploadForm = signal(false);
@@ -301,6 +304,16 @@ export class SbomProjectDetailComponent implements OnInit, OnDestroy {
   uploadEnvironment = '';
 
   projectId = 0;
+
+  constructor() {
+    effect(() => {
+      // Track theme mode signal to trigger re-render on theme change
+      this.themeService.mode();
+      if (this.chartRendered) {
+        setTimeout(() => this.renderProjectTrendChart(), 50);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.projectId = Number(this.route.snapshot.paramMap.get('id'));
@@ -320,6 +333,9 @@ export class SbomProjectDetailComponent implements OnInit, OnDestroy {
       next: (data) => {
         this.trendData.set(data);
         setTimeout(() => this.renderProjectTrendChart(), 0);
+      },
+      error: (err) => {
+        console.error('Failed to load project trend data', err);
       },
     });
   }
@@ -432,6 +448,7 @@ export class SbomProjectDetailComponent implements OnInit, OnDestroy {
         },
       },
     });
+    this.chartRendered = true;
   }
 
   private get tickColor(): string {

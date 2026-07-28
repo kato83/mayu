@@ -518,12 +518,6 @@ paths:
           schema:
             type: integer
             format: int64
-        - name: metric
-          in: query
-          description: Optional metric filter
-          schema:
-            type: string
-            enum: ["findings", "severity", "new", "resolved"]
       responses:
         "200":
           description: Trend data returned successfully

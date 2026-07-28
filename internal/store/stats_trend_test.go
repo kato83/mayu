@@ -38,7 +38,28 @@ func TestStatsTrendQuery_Defaults(t *testing.T) {
 	if q.GroupBy != "" {
 		t.Errorf("expected empty GroupBy, got %q", q.GroupBy)
 	}
-	if q.Metric != "" {
-		t.Errorf("expected empty Metric, got %q", q.Metric)
+}
+
+func TestValidateGroupBy(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{name: "day is valid", input: "day", wantErr: false},
+		{name: "week is valid", input: "week", wantErr: false},
+		{name: "month is valid", input: "month", wantErr: false},
+		{name: "empty is invalid", input: "", wantErr: true},
+		{name: "year is invalid", input: "year", wantErr: true},
+		{name: "sql injection attempt", input: "day'); DROP TABLE vulnerabilities; --", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateGroupBy(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateGroupBy(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+			}
+		})
 	}
 }

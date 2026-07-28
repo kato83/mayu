@@ -5,6 +5,21 @@ import (
 	"fmt"
 )
 
+// validGroupByValues defines the allowed values for the GroupBy field.
+var validGroupByValues = map[string]bool{
+	"day":   true,
+	"week":  true,
+	"month": true,
+}
+
+// validateGroupBy checks that groupBy is one of the allowed values.
+func validateGroupBy(groupBy string) error {
+	if !validGroupByValues[groupBy] {
+		return fmt.Errorf("invalid group_by value %q: must be one of day, week, month", groupBy)
+	}
+	return nil
+}
+
 // rangeToInterval returns the number of days for the given range string.
 // Returns "" for "all" (no date filter).
 func rangeToInterval(r string) string {
@@ -32,12 +47,13 @@ func (s *PostgresStore) GetStatsTrend(ctx context.Context, query StatsTrendQuery
 
 // getGlobalStatsTrend aggregates from vulnerabilities + vulnerability_summary by published date.
 func (s *PostgresStore) getGlobalStatsTrend(ctx context.Context, query StatsTrendQuery) (*StatsTrendResponse, error) {
+	if err := validateGroupBy(query.GroupBy); err != nil {
+		return nil, err
+	}
+
 	interval := rangeToInterval(query.Range)
 
 	var whereClause string
-	var args []interface{}
-	argIdx := 1
-
 	if interval != "" {
 		whereClause = fmt.Sprintf("WHERE v.published >= NOW() - INTERVAL '%s days'", interval)
 	}
@@ -60,8 +76,6 @@ func (s *PostgresStore) getGlobalStatsTrend(ctx context.Context, query StatsTren
 		query.GroupBy,
 		query.GroupBy,
 	)
-	_ = argIdx
-	_ = args
 
 	rows, err := s.db.QueryContext(ctx, sqlQuery)
 	if err != nil {
@@ -94,6 +108,10 @@ func (s *PostgresStore) getGlobalStatsTrend(ctx context.Context, query StatsTren
 
 // getProjectStatsTrend aggregates from sbom_scan_results by scanned_at date for a given project.
 func (s *PostgresStore) getProjectStatsTrend(ctx context.Context, query StatsTrendQuery) (*StatsTrendResponse, error) {
+	if err := validateGroupBy(query.GroupBy); err != nil {
+		return nil, err
+	}
+
 	interval := rangeToInterval(query.Range)
 
 	whereClause := "WHERE sv.project_id = $1 AND sr.status = 'completed'"

@@ -164,18 +164,6 @@ func TestHandleStatsTrend_InvalidProjectID(t *testing.T) {
 	}
 }
 
-func TestHandleStatsTrend_InvalidMetric(t *testing.T) {
-	srv := newTestServer(&mockStore{})
-
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/stats/trend?metric=invalid", nil)
-	w := httptest.NewRecorder()
-	srv.httpServer.Handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
 func TestHandleStatsTrend_DefaultParams(t *testing.T) {
 	ms := &mockStore{
 		getStatsTrendFunc: func(ctx context.Context, query store.StatsTrendQuery) (*store.StatsTrendResponse, error) {
@@ -184,9 +172,6 @@ func TestHandleStatsTrend_DefaultParams(t *testing.T) {
 			}
 			if query.GroupBy != "day" {
 				t.Errorf("expected default group_by day, got %q", query.GroupBy)
-			}
-			if query.Metric != "" {
-				t.Errorf("expected empty metric, got %q", query.Metric)
 			}
 			if query.ProjectID != 0 {
 				t.Errorf("expected project_id 0, got %d", query.ProjectID)

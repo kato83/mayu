@@ -407,7 +407,6 @@ type StatsTrendQuery struct {
 	Range     string // "30d", "90d", "180d", "365d", "all"
 	ProjectID int64  // 0 means global trend
 	GroupBy   string // "day", "week", "month"
-	Metric    string // "findings", "severity", "new", "resolved" (optional filter)
 }
 
 // StatsTrendResponse is the API response for the stats trend endpoint.

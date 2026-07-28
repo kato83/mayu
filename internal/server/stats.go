@@ -24,20 +24,11 @@ var validGroupBy = map[string]bool{
 	"month": true,
 }
 
-// validMetrics defines allowed values for the metric query parameter.
-var validMetrics = map[string]bool{
-	"findings": true,
-	"severity": true,
-	"new":      true,
-	"resolved": true,
-}
-
 // handleStatsTrend handles GET /api/v1/stats/trend.
 // Query parameters:
 //   - range: time range (30d, 90d, 180d, 365d, all) - default "30d"
 //   - project_id: optional project ID for project-level trends
 //   - group_by: aggregation period (day, week, month) - default "day"
-//   - metric: optional metric filter (findings, severity, new, resolved)
 func (s *Server) handleStatsTrend(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
@@ -61,13 +52,6 @@ func (s *Server) handleStatsTrend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse and validate metric (optional)
-	metric := q.Get("metric")
-	if metric != "" && !validMetrics[metric] {
-		writeError(w, http.StatusBadRequest, "invalid metric parameter: must be one of findings, severity, new, resolved")
-		return
-	}
-
 	// Parse project_id (optional)
 	var projectID int64
 	if pidStr := q.Get("project_id"); pidStr != "" {
@@ -83,7 +67,6 @@ func (s *Server) handleStatsTrend(w http.ResponseWriter, r *http.Request) {
 		Range:     rangeParam,
 		ProjectID: projectID,
 		GroupBy:   groupBy,
-		Metric:    metric,
 	}
 
 	result, err := s.store.GetStatsTrend(r.Context(), query)
