@@ -10,14 +10,18 @@ import (
 // to suppress. The file format uses one ID per line. Lines starting with # are
 // comments, blank lines are skipped, and inline comments (text after #) are
 // stripped. Leading and trailing whitespace is trimmed from each ID.
-func ParseIgnoreFile(path string) (map[string]bool, error) {
+func ParseIgnoreFile(path string) (ignored map[string]bool, err error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
-	ignored := make(map[string]bool)
+	ignored = make(map[string]bool)
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -35,7 +39,7 @@ func ParseIgnoreFile(path string) (map[string]bool, error) {
 		ignored[line] = true
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		return nil, err
 	}
 
