@@ -490,3 +490,58 @@ func TestMockSBOMStore_ListFindingStatusLog(t *testing.T) {
 		t.Errorf("ListFindingStatusLog(non-existent) len = %d, want 0", len(empty))
 	}
 }
+
+func TestMockSBOMStore_FirstStatusAssignmentAuditLog(t *testing.T) {
+	store := newMockSBOMStore()
+	ctx := context.Background()
+
+	// First assignment with a non-open status should create an audit log entry.
+	fs := &FindingStatus{
+		VersionID:     10,
+		VulnID:        "CVE-2024-9999",
+		Purl:          "pkg:npm/example@1.0.0",
+		Status:        FindingStatusInTriage,
+		Justification: "starting triage",
+		UpdatedBy:     1,
+	}
+	result, err := store.UpsertFindingStatus(ctx, fs)
+	if err != nil {
+		t.Fatalf("UpsertFindingStatus() error = %v", err)
+	}
+
+	// Should have 1 audit log entry: open -> in_triage.
+	logs, err := store.ListFindingStatusLog(ctx, result.ID)
+	if err != nil {
+		t.Fatalf("ListFindingStatusLog() error = %v", err)
+	}
+	if len(logs) != 1 {
+		t.Fatalf("ListFindingStatusLog() len = %d, want 1 (initial assignment audit log)", len(logs))
+	}
+	if logs[0].OldStatus != FindingStatusOpen {
+		t.Errorf("OldStatus = %q, want %q", logs[0].OldStatus, FindingStatusOpen)
+	}
+	if logs[0].NewStatus != FindingStatusInTriage {
+		t.Errorf("NewStatus = %q, want %q", logs[0].NewStatus, FindingStatusInTriage)
+	}
+
+	// First assignment with "open" status should NOT create an audit log entry.
+	fs2 := &FindingStatus{
+		VersionID: 10,
+		VulnID:    "CVE-2024-0000",
+		Purl:      "pkg:npm/other@2.0.0",
+		Status:    FindingStatusOpen,
+		UpdatedBy: 1,
+	}
+	result2, err := store.UpsertFindingStatus(ctx, fs2)
+	if err != nil {
+		t.Fatalf("UpsertFindingStatus() error = %v", err)
+	}
+
+	logs2, err := store.ListFindingStatusLog(ctx, result2.ID)
+	if err != nil {
+		t.Fatalf("ListFindingStatusLog() error = %v", err)
+	}
+	if len(logs2) != 0 {
+		t.Errorf("ListFindingStatusLog() len = %d, want 0 (no log for open->open)", len(logs2))
+	}
+}

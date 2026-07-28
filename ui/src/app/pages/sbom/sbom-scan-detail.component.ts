@@ -269,6 +269,13 @@ const ALL_STATUSES = ['open', 'in_triage', 'suppressed', 'false_positive', 'risk
             </div>
           </div>
         }
+
+        <!-- Error notification -->
+        @if (statusUpdateError()) {
+          <div class="fixed bottom-4 right-4 z-50 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg shadow-lg" role="alert">
+            <p class="text-sm">{{ statusUpdateError() }}</p>
+          </div>
+        }
       }
     </div>
   `,
@@ -283,6 +290,7 @@ export class SbomScanDetailComponent implements OnInit {
   readonly findingStatuses = signal<Map<string, FindingStatusEntry>>(new Map());
   readonly activeStatusFilters = signal<Set<string>>(new Set(['open', 'in_triage']));
   readonly showJustificationModal = signal(false);
+  readonly statusUpdateError = signal<string | null>(null);
 
   readonly allStatuses = ALL_STATUSES;
   justificationText = '';
@@ -419,6 +427,10 @@ export class SbomScanDetailComponent implements OnInit {
 
     if (newStatus === 'risk_accepted' && !justification) return;
 
+    this.showJustificationModal.set(false);
+    this.pendingStatusChange = null;
+    this.justificationText = '';
+
     this.sbomService
       .updateFindingStatus(this.scanId, finding.vuln_id, {
         status: newStatus,
@@ -432,11 +444,11 @@ export class SbomScanDetailComponent implements OnInit {
           map.set(key, entry);
           this.findingStatuses.set(map);
         },
+        error: () => {
+          this.statusUpdateError.set($localize`:@@sbom.scan.statusUpdateError:Failed to update finding status. Please try again.`);
+          setTimeout(() => this.statusUpdateError.set(null), 5000);
+        },
       });
-
-    this.showJustificationModal.set(false);
-    this.pendingStatusChange = null;
-    this.justificationText = '';
   }
 
   /** Get a human-readable label for a status value. */

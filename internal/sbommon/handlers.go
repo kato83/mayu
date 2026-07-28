@@ -722,6 +722,13 @@ func HandleListFindingStatuses(store SBOMStore) http.HandlerFunc {
 			for i := range statusFilter {
 				statusFilter[i] = strings.TrimSpace(statusFilter[i])
 			}
+			// Validate each filter value against the allowed set.
+			for _, s := range statusFilter {
+				if !isValidFindingStatus(s) {
+					writeError(w, http.StatusBadRequest, "invalid status filter value: "+s)
+					return
+				}
+			}
 		}
 
 		statuses, err := store.ListFindingStatuses(r.Context(), sr.VersionID, statusFilter)

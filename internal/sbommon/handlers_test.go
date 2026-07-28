@@ -257,6 +257,21 @@ func (m *mockSBOMStore) UpsertFindingStatus(_ context.Context, fs *FindingStatus
 	}
 	m.findingStatuses[id] = newFS
 
+	// Log the initial status change from implicit "open" if the new status is not "open".
+	if fs.Status != FindingStatusOpen {
+		logID := m.nextID
+		m.nextID++
+		m.findingStatusLog[logID] = &FindingStatusLog{
+			ID:              logID,
+			FindingStatusID: id,
+			OldStatus:       FindingStatusOpen,
+			NewStatus:       fs.Status,
+			Justification:   fs.Justification,
+			ChangedBy:       fs.UpdatedBy,
+			ChangedAt:       time.Now(),
+		}
+	}
+
 	result := *newFS
 	return &result, nil
 }
@@ -879,5 +894,41 @@ func TestHandleListFindingStatuses_FilterByStatus(t *testing.T) {
 	}
 	if len(resp) > 0 && resp[0].Status != "in_triage" {
 		t.Errorf("Status = %q, want %q", resp[0].Status, "in_triage")
+	}
+}
+
+func TestHandleListFindingStatuses_InvalidFilterValue(t *testing.T) {
+	store := newMockSBOMStore()
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{
+			{VulnID: "CVE-2024-1234", Purl: "pkg:npm/foo@1.0.0", Name: "foo", Version: "1.0.0", Ecosystem: "npm"},
+		},
+		Status: "completed", Trigger: "api",
+	}
+
+	handler := HandleListFindingStatuses(store)
+
+	// Use an invalid status filter value
+	req := reqWithUser("GET", "/api/v1/sbom/scans/1/findings/statuses?status=foo,bar", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("scanID", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusBadRequest, w.Body.String())
+	}
+
+	var resp map[string]string
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !strings.Contains(resp["error"], "invalid status filter value") {
+		t.Errorf("error message should mention invalid status filter value, got: %q", resp["error"])
 	}
 }

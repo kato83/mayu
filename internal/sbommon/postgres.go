@@ -465,8 +465,21 @@ func (s *PostgresSBOMStore) UpsertFindingStatus(ctx context.Context, fs *Finding
 		result.ExpiresAt = &expiresAt.Time
 	}
 
-	// Log the status change if it actually changed.
-	if oldStatus.Valid && oldStatus.String != result.Status {
+	// Log the status change.
+	// If no prior record exists and the new status is not "open" (the implicit default),
+	// log the transition from implicit "open" to create a complete audit trail.
+	// If a prior record exists and the status changed, log the transition.
+	if !oldStatus.Valid && result.Status != FindingStatusOpen {
+		// First time this finding is being triaged - log transition from implicit "open".
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO sbom_finding_status_log (finding_status_id, old_status, new_status, justification, changed_by, changed_at)
+			VALUES ($1, $2, $3, $4, $5, NOW())`,
+			result.ID, FindingStatusOpen, result.Status, fs.Justification, fs.UpdatedBy,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("insert finding status log: %w", err)
+		}
+	} else if oldStatus.Valid && oldStatus.String != result.Status {
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO sbom_finding_status_log (finding_status_id, old_status, new_status, justification, changed_by, changed_at)
 			VALUES ($1, $2, $3, $4, $5, NOW())`,
