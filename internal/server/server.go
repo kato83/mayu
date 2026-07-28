@@ -583,7 +583,20 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 	var nextCursor string
 	if len(results) == limit {
 		last := results[len(results)-1]
-		nextCursor = store.EncodeCursor(last.Published, last.ID)
+		sortKey := query.Sort
+		if sortKey == "" {
+			sortKey = "modified_desc"
+		}
+		if strings.HasPrefix(sortKey, "published") {
+			nextCursor = store.EncodeCursorWithSort("published", last.Published, last.ID)
+		} else {
+			var mod *time.Time
+			if !last.Modified.IsZero() {
+				m := last.Modified
+				mod = &m
+			}
+			nextCursor = store.EncodeCursorWithSort("modified", mod, last.ID)
+		}
 	}
 
 	w.Header().Set("X-Total-Count", strconv.FormatInt(total, 10))

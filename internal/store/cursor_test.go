@@ -5,11 +5,11 @@ import (
 	"time"
 )
 
-func TestEncodeDecode_WithPublished(t *testing.T) {
-	published := time.Date(2024, 6, 15, 10, 30, 0, 0, time.UTC)
+func TestEncodeDecode_WithTimestamp(t *testing.T) {
+	ts := time.Date(2024, 6, 15, 10, 30, 0, 0, time.UTC)
 	id := "GO-2024-2687"
 
-	encoded := EncodeCursor(&published, id)
+	encoded := EncodeCursorWithSort("modified", &ts, id)
 	if encoded == "" {
 		t.Fatal("expected non-empty cursor")
 	}
@@ -21,18 +21,21 @@ func TestEncodeDecode_WithPublished(t *testing.T) {
 	if cursor.ID != id {
 		t.Errorf("expected ID %q, got %q", id, cursor.ID)
 	}
-	if cursor.Published == nil {
-		t.Fatal("expected non-nil Published")
+	if cursor.SortKey != "modified" {
+		t.Errorf("expected SortKey %q, got %q", "modified", cursor.SortKey)
 	}
-	if !cursor.Published.Equal(published) {
-		t.Errorf("expected Published %v, got %v", published, *cursor.Published)
+	if cursor.Timestamp == nil {
+		t.Fatal("expected non-nil Timestamp")
+	}
+	if !cursor.Timestamp.Equal(ts) {
+		t.Errorf("expected Timestamp %v, got %v", ts, *cursor.Timestamp)
 	}
 }
 
-func TestEncodeDecode_NilPublished(t *testing.T) {
+func TestEncodeDecode_NilTimestamp(t *testing.T) {
 	id := "CVE-2024-1234"
 
-	encoded := EncodeCursor(nil, id)
+	encoded := EncodeCursorWithSort("published", nil, id)
 	if encoded == "" {
 		t.Fatal("expected non-empty cursor")
 	}
@@ -44,8 +47,29 @@ func TestEncodeDecode_NilPublished(t *testing.T) {
 	if cursor.ID != id {
 		t.Errorf("expected ID %q, got %q", id, cursor.ID)
 	}
-	if cursor.Published != nil {
-		t.Errorf("expected nil Published, got %v", cursor.Published)
+	if cursor.SortKey != "published" {
+		t.Errorf("expected SortKey %q, got %q", "published", cursor.SortKey)
+	}
+	if cursor.Timestamp != nil {
+		t.Errorf("expected nil Timestamp, got %v", cursor.Timestamp)
+	}
+}
+
+func TestEncodeDecode_LegacyV1Format(t *testing.T) {
+	// EncodeCursor (legacy) now produces v2 with "modified" sort key
+	ts := time.Date(2024, 6, 15, 10, 30, 0, 0, time.UTC)
+	id := "GO-2024-2687"
+
+	encoded := EncodeCursor(&ts, id)
+	cursor, err := DecodeCursor(encoded)
+	if err != nil {
+		t.Fatalf("DecodeCursor failed: %v", err)
+	}
+	if cursor.SortKey != "modified" {
+		t.Errorf("expected SortKey %q, got %q", "modified", cursor.SortKey)
+	}
+	if cursor.ID != id {
+		t.Errorf("expected ID %q, got %q", id, cursor.ID)
 	}
 }
 
@@ -89,24 +113,43 @@ func TestDecodeCursor_InvalidTimestamp(t *testing.T) {
 }
 
 func TestEncodeCursor_Deterministic(t *testing.T) {
-	published := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	ts := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	id := "TEST-001"
 
-	c1 := EncodeCursor(&published, id)
-	c2 := EncodeCursor(&published, id)
+	c1 := EncodeCursorWithSort("modified", &ts, id)
+	c2 := EncodeCursorWithSort("modified", &ts, id)
 	if c1 != c2 {
 		t.Errorf("expected deterministic encoding, got %q and %q", c1, c2)
 	}
 }
 
 func TestEncodeCursor_DifferentTimezonesSameInstant(t *testing.T) {
-	// Different timezone representations of the same instant should produce same cursor
 	t1 := time.Date(2024, 6, 15, 10, 0, 0, 0, time.UTC)
 	t2 := time.Date(2024, 6, 15, 19, 0, 0, 0, time.FixedZone("JST", 9*3600))
 
-	c1 := EncodeCursor(&t1, "ID-1")
-	c2 := EncodeCursor(&t2, "ID-1")
+	c1 := EncodeCursorWithSort("published", &t1, "ID-1")
+	c2 := EncodeCursorWithSort("published", &t2, "ID-1")
 	if c1 != c2 {
 		t.Errorf("expected same cursor for same instant in different timezones, got %q and %q", c1, c2)
+	}
+}
+
+func TestEncodeDecode_PublishedSortKey(t *testing.T) {
+	ts := time.Date(2025, 3, 1, 12, 0, 0, 0, time.UTC)
+	id := "CVE-2025-1234"
+
+	encoded := EncodeCursorWithSort("published", &ts, id)
+	cursor, err := DecodeCursor(encoded)
+	if err != nil {
+		t.Fatalf("DecodeCursor failed: %v", err)
+	}
+	if cursor.SortKey != "published" {
+		t.Errorf("expected SortKey %q, got %q", "published", cursor.SortKey)
+	}
+	if cursor.ID != id {
+		t.Errorf("expected ID %q, got %q", id, cursor.ID)
+	}
+	if cursor.Timestamp == nil || !cursor.Timestamp.Equal(ts) {
+		t.Errorf("expected Timestamp %v, got %v", ts, cursor.Timestamp)
 	}
 }

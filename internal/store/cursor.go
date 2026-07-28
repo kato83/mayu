@@ -7,37 +7,74 @@ import (
 	"time"
 )
 
-// Cursor represents a pagination cursor encoding (published, id) for stable keyset ordering.
-// Sort order: ORDER BY published DESC NULLS LAST, id DESC
+// Cursor represents a pagination cursor encoding a sort key timestamp and id for stable keyset ordering.
 type Cursor struct {
-	// Published is the published timestamp of the last seen item.
-	// Nil means the item has no published date (NULL in DB).
-	Published *time.Time
+	// SortKey is the sort column name ("published" or "modified").
+	SortKey string
+
+	// Timestamp is the sort key timestamp of the last seen item.
+	// Nil means the item has a NULL value for the sort key.
+	Timestamp *time.Time
 
 	// ID is the vulnerability ID of the last seen item.
 	ID string
 }
 
-// EncodeCursor creates an opaque cursor string from published time and id.
-// Format: base64("v1|<published_rfc3339_nano>|<id>") or base64("v1||<id>") for null published.
-func EncodeCursor(published *time.Time, id string) string {
-	var pubStr string
-	if published != nil {
-		pubStr = published.UTC().Format(time.RFC3339Nano)
+// EncodeCursor creates an opaque cursor string from a sort key, timestamp, and id.
+// Format: base64("v2|<sort_key>|<timestamp_rfc3339_nano>|<id>")
+// Also supports legacy format for backward compatibility.
+func EncodeCursor(ts *time.Time, id string) string {
+	return EncodeCursorWithSort("modified", ts, id)
+}
+
+// EncodeCursorWithSort creates an opaque cursor string with explicit sort key.
+func EncodeCursorWithSort(sortKey string, ts *time.Time, id string) string {
+	var tsStr string
+	if ts != nil {
+		tsStr = ts.UTC().Format(time.RFC3339Nano)
 	}
-	raw := fmt.Sprintf("v1|%s|%s", pubStr, id)
+	raw := fmt.Sprintf("v2|%s|%s|%s", sortKey, tsStr, id)
 	return base64.RawURLEncoding.EncodeToString([]byte(raw))
 }
 
 // DecodeCursor parses an opaque cursor string back into its components.
-// Returns an error if the cursor is malformed.
+// Supports both v1 (legacy, assumes published) and v2 formats.
 func DecodeCursor(cursor string) (*Cursor, error) {
 	data, err := base64.RawURLEncoding.DecodeString(cursor)
 	if err != nil {
 		return nil, fmt.Errorf("invalid cursor encoding: %w", err)
 	}
 
-	parts := strings.SplitN(string(data), "|", 3)
+	str := string(data)
+
+	// v2 format: "v2|<sort_key>|<timestamp>|<id>"
+	if strings.HasPrefix(str, "v2|") {
+		parts := strings.SplitN(str, "|", 4)
+		if len(parts) != 4 {
+			return nil, fmt.Errorf("invalid cursor format")
+		}
+
+		c := &Cursor{
+			SortKey: parts[1],
+			ID:      parts[3],
+		}
+
+		if parts[2] != "" {
+			t, err := time.Parse(time.RFC3339Nano, parts[2])
+			if err != nil {
+				return nil, fmt.Errorf("invalid cursor timestamp: %w", err)
+			}
+			c.Timestamp = &t
+		}
+
+		if c.ID == "" {
+			return nil, fmt.Errorf("invalid cursor: empty id")
+		}
+		return c, nil
+	}
+
+	// v1 format (legacy): "v1|<timestamp>|<id>" — assumes published sort key
+	parts := strings.SplitN(str, "|", 3)
 	if len(parts) != 3 {
 		return nil, fmt.Errorf("invalid cursor format")
 	}
@@ -47,7 +84,8 @@ func DecodeCursor(cursor string) (*Cursor, error) {
 	}
 
 	c := &Cursor{
-		ID: parts[2],
+		SortKey: "published",
+		ID:      parts[2],
 	}
 
 	if parts[1] != "" {
@@ -55,7 +93,7 @@ func DecodeCursor(cursor string) (*Cursor, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid cursor timestamp: %w", err)
 		}
-		c.Published = &t
+		c.Timestamp = &t
 	}
 
 	if c.ID == "" {

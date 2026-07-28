@@ -728,29 +728,35 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 	baseQuery, args, argIdx := s.buildSearchConditions(query)
 
 	// Apply cursor-based or offset-based pagination
-	// Note: cursor-based pagination currently only supports published_desc ordering.
-	// When a cursor is set, the sort order is forced to published_desc for correctness.
 	sortOrder := query.Sort
 	if query.Cursor != "" {
-		sortOrder = "published_desc"
 		cursor, err := DecodeCursor(query.Cursor)
 		if err != nil {
 			return nil, fmt.Errorf("invalid cursor: %w", err)
 		}
-		// Keyset condition: (published, id) < (cursor.published, cursor.id)
-		// For DESC order: find rows that sort AFTER the cursor position
-		if cursor.Published != nil {
+
+		// Determine sort column from cursor's sort key
+		sortCol := "modified"
+		if cursor.SortKey == "published" {
+			sortCol = "published"
+			sortOrder = "published_desc"
+		} else {
+			sortOrder = "modified_desc"
+		}
+
+		// Keyset condition: (sort_col, id) < (cursor.timestamp, cursor.id) for DESC order
+		if cursor.Timestamp != nil {
 			argIdx++
-			pubArg := argIdx
+			tsArg := argIdx
 			argIdx++
 			idArg := argIdx
-			baseQuery += fmt.Sprintf(` AND (published < $%d OR (published = $%d AND v.id < $%d) OR (published IS NULL))`,
-				pubArg, pubArg, idArg)
-			args = append(args, cursor.Published.UTC(), cursor.ID)
+			baseQuery += fmt.Sprintf(` AND (%s < $%d OR (%s = $%d AND v.id < $%d) OR (%s IS NULL))`,
+				sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
+			args = append(args, cursor.Timestamp.UTC(), cursor.ID)
 		} else {
-			// Cursor item had NULL published; only items with NULL published AND id < cursor.id come after
+			// Cursor item had NULL sort column; only items with NULL sort_col AND id < cursor.id come after
 			argIdx++
-			baseQuery += fmt.Sprintf(` AND (published IS NULL AND v.id < $%d)`, argIdx)
+			baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id < $%d)`, sortCol, argIdx)
 			args = append(args, cursor.ID)
 		}
 	}
@@ -1352,25 +1358,32 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 	}
 
 	// ORDER BY and pagination (cursor-based or offset-based)
-	// Note: cursor-based pagination currently only supports published_desc ordering.
 	sortOrder := query.Sort
 	if query.Cursor != "" {
-		sortOrder = "published_desc"
 		cursor, err := DecodeCursor(query.Cursor)
 		if err != nil {
 			return nil, fmt.Errorf("invalid cursor: %w", err)
 		}
-		if cursor.Published != nil {
+
+		sortCol := "v.modified"
+		if cursor.SortKey == "published" {
+			sortCol = "v.published"
+			sortOrder = "published_desc"
+		} else {
+			sortOrder = "modified_desc"
+		}
+
+		if cursor.Timestamp != nil {
 			argIdx++
-			pubArg := argIdx
+			tsArg := argIdx
 			argIdx++
 			idArg := argIdx
-			baseQuery += fmt.Sprintf(` AND (v.published < $%d OR (v.published = $%d AND v.id < $%d) OR (v.published IS NULL))`,
-				pubArg, pubArg, idArg)
-			args = append(args, cursor.Published.UTC(), cursor.ID)
+			baseQuery += fmt.Sprintf(` AND (%s < $%d OR (%s = $%d AND v.id < $%d) OR (%s IS NULL))`,
+				sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
+			args = append(args, cursor.Timestamp.UTC(), cursor.ID)
 		} else {
 			argIdx++
-			baseQuery += fmt.Sprintf(` AND (v.published IS NULL AND v.id < $%d)`, argIdx)
+			baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id < $%d)`, sortCol, argIdx)
 			args = append(args, cursor.ID)
 		}
 	}
