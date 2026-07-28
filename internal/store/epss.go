@@ -83,7 +83,7 @@ func (s *PostgresStore) upsertEPSSChunk(ctx context.Context, scores []*model.EPS
 	vulnArgs := make([]interface{}, 0, len(uniqueCVEs))
 	vulnValues := make([]string, 0, len(uniqueCVEs))
 	for i, cveID := range uniqueCVEs {
-		vulnValues = append(vulnValues, fmt.Sprintf("($%d, NULL, NULL, NULL, NOW(), NULL)", i+1))
+		vulnValues = append(vulnValues, fmt.Sprintf("($%d, NULL, NULL, NULL, NULL, NULL)", i+1))
 		vulnArgs = append(vulnArgs, cveID)
 	}
 
