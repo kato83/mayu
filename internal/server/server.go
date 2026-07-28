@@ -483,7 +483,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 	var fields []string
 	if f := q.Get("fields"); f != "" {
 		validFields := map[string]bool{
-			"id": true, "summary": true, "modified": true,
+			"id": true, "summary": true, "published": true, "modified": true,
 			"severity": true, "ecosystem": true,
 		}
 		for _, field := range strings.Split(f, ",") {
@@ -493,7 +493,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 			}
 			if !validFields[field] {
 				writeError(w, http.StatusBadRequest,
-					fmt.Sprintf("invalid field %q (valid: id, summary, modified, severity, ecosystem)", field))
+					fmt.Sprintf("invalid field %q (valid: id, summary, published, modified, severity, ecosystem)", field))
 				return
 			}
 			fields = append(fields, field)
