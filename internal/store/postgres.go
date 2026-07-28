@@ -252,7 +252,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		ON CONFLICT (id) DO UPDATE SET
 			summary = COALESCE(NULLIF(EXCLUDED.summary, ''), vulnerabilities.summary),
 			details = COALESCE(NULLIF(EXCLUDED.details, ''), vulnerabilities.details),
-			published = COALESCE(EXCLUDED.published, vulnerabilities.published),
+			published = LEAST(EXCLUDED.published, vulnerabilities.published),
 			modified = GREATEST(EXCLUDED.modified, vulnerabilities.modified),
 			withdrawn = EXCLUDED.withdrawn`,
 		canID,

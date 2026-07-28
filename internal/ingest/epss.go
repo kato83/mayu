@@ -2,8 +2,10 @@ package ingest
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/kato83/mayu/internal/model"
@@ -21,6 +23,8 @@ type epssBatchStore interface {
 	RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error
 	RefreshEPSSDailyStats(ctx context.Context, dates []string) error
 	CleanupOldEPSSScores(ctx context.Context, retentionDays int) (int64, error)
+	GetEmptyVulnerabilityIDs(ctx context.Context, cveIDs []string) ([]string, error)
+	UpdateVulnerabilityFromCvelistV5(ctx context.Context, id, summary string, published, modified *time.Time) error
 }
 
 // ImportEPSS performs a full import of EPSS scores from the bulk CSV download.
@@ -235,11 +239,14 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 			return inserted, fmt.Errorf("upsert EPSS batch at offset %d: %w", i, err)
 		}
 
-		// Refresh summary immediately for this batch to avoid accumulating IDs in memory.
+		// Fetch metadata from cvelistV5 for newly created empty vulnerability records.
 		batchIDs := make([]string, len(batch))
 		for j, s := range batch {
 			batchIDs[j] = s.CVEID
 		}
+		ing.fillEmptyVulnerabilitiesFromCvelistV5(ctx, es, batchIDs)
+
+		// Refresh summary immediately for this batch to avoid accumulating IDs in memory.
 		if err := es.RefreshEPSSSummary(ctx, batchIDs); err != nil {
 			ing.logger.Printf("warning: failed to refresh EPSS summary at offset %d: %v", i, err)
 		}
@@ -517,4 +524,114 @@ func (ing *Ingester) cleanupOldEPSSScores(ctx context.Context) {
 	if deleted > 0 {
 		ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Cleaned up %d old EPSS score records", deleted)})
 	}
+}
+
+// fillEmptyVulnerabilitiesFromCvelistV5 finds vulnerability records that were created
+// as empty placeholders (by EPSS ingest's ON CONFLICT DO NOTHING) and attempts to
+// fill them with metadata from the cvelistV5 GitHub repository.
+//
+// For each empty vulnerability:
+//  1. Fetch the CVE record from cvelistV5 raw GitHub
+//  2. Parse summary (English description), datePublished, dateUpdated
+//  3. Update the vulnerability record in the database
+//
+// CVEs not found in cvelistV5 are silently skipped (logged at debug level).
+func (ing *Ingester) fillEmptyVulnerabilitiesFromCvelistV5(ctx context.Context, es epssBatchStore, cveIDs []string) {
+	// Only process CVE-format IDs
+	var cveFormatIDs []string
+	for _, id := range cveIDs {
+		if strings.HasPrefix(id, "CVE-") {
+			cveFormatIDs = append(cveFormatIDs, id)
+		}
+	}
+	if len(cveFormatIDs) == 0 {
+		return
+	}
+
+	// Find which ones are empty placeholders
+	emptyIDs, err := es.GetEmptyVulnerabilityIDs(ctx, cveFormatIDs)
+	if err != nil {
+		ing.logger.Printf("warning: failed to find empty vulnerabilities for cvelistV5 fallback: %v", err)
+		return
+	}
+	if len(emptyIDs) == 0 {
+		return
+	}
+
+	// Fetch and update each empty vulnerability from cvelistV5
+	for _, cveID := range emptyIDs {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		data, err := ing.fetcher.FetchCVEFromCvelistV5(ctx, cveID)
+		if err != nil {
+			ing.logger.Printf("warning: cvelistV5 fallback for %s failed: %v", cveID, err)
+			continue
+		}
+		if data == nil {
+			// CVE not found in cvelistV5, skip silently
+			continue
+		}
+
+		// Parse the CVE record
+		summary, published, modified := parseCvelistV5Record(data)
+		if summary == "" && published == nil && modified == nil {
+			continue
+		}
+
+		if err := es.UpdateVulnerabilityFromCvelistV5(ctx, cveID, summary, published, modified); err != nil {
+			ing.logger.Printf("warning: failed to update %s from cvelistV5: %v", cveID, err)
+		}
+	}
+}
+
+// parseCvelistV5Record extracts summary, published, and modified dates from a
+// cvelistV5 CVE record JSON. Returns empty/nil values if parsing fails.
+func parseCvelistV5Record(data []byte) (summary string, published, modified *time.Time) {
+	var record struct {
+		CVEMetadata struct {
+			DatePublished model.MITRETime `json:"datePublished"`
+			DateUpdated   model.MITRETime `json:"dateUpdated"`
+		} `json:"cveMetadata"`
+		Containers struct {
+			CNA *struct {
+				Descriptions []struct {
+					Lang  string `json:"lang"`
+					Value string `json:"value"`
+				} `json:"descriptions"`
+			} `json:"cna"`
+		} `json:"containers"`
+	}
+
+	if err := json.Unmarshal(data, &record); err != nil {
+		return "", nil, nil
+	}
+
+	// Extract English description as summary
+	if record.Containers.CNA != nil {
+		for _, desc := range record.Containers.CNA.Descriptions {
+			if desc.Lang == "en" || strings.HasPrefix(desc.Lang, "en") {
+				summary = desc.Value
+				break
+			}
+		}
+		// Fallback: use the first description if no English one found
+		if summary == "" && len(record.Containers.CNA.Descriptions) > 0 {
+			summary = record.Containers.CNA.Descriptions[0].Value
+		}
+	}
+
+	if !record.CVEMetadata.DatePublished.IsZero() {
+		t := record.CVEMetadata.DatePublished.Time
+		published = &t
+	}
+	if !record.CVEMetadata.DateUpdated.IsZero() {
+		t := record.CVEMetadata.DateUpdated.Time
+		modified = &t
+	}
+
+	return summary, published, modified
 }

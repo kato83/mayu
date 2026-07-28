@@ -103,7 +103,7 @@ func (s *PostgresStore) upsertMITREEntry(ctx context.Context, tx *sql.Tx, entry 
 		VALUES ($1, $2, NULL, $3, $4, NULL)
 		ON CONFLICT (id) DO UPDATE SET
 			summary = COALESCE(NULLIF(vulnerabilities.summary, ''), EXCLUDED.summary),
-			published = COALESCE(vulnerabilities.published, EXCLUDED.published),
+			published = LEAST(EXCLUDED.published, vulnerabilities.published),
 			modified = GREATEST(EXCLUDED.modified, vulnerabilities.modified)`,
 		cveID,
 		nullIfEmpty(summary),

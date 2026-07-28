@@ -62,7 +62,7 @@ interface NavItem {
                         routerLinkActive="bg-slate-700 text-white"
                         [routerLinkActiveOptions]="{ exact: true }"
                         (click)="closed.emit()"
-                        class="flex items-center gap-3 pl-9 pr-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                        class="flex items-center gap-3 pl-6 pr-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                       >
                         <span class="text-lg">{{ child.icon }}</span>
                         <span>{{ child.label }}</span>

@@ -435,3 +435,60 @@ func (s *PostgresStore) CleanupOldEPSSScores(ctx context.Context, retentionDays 
 
 	return deleted, nil
 }
+
+// GetEmptyVulnerabilityIDs returns CVE IDs from the given list that have NULL published
+// and NULL summary in the vulnerabilities table (i.e., placeholder records created by
+// EPSS ingest that lack real vulnerability data).
+func (s *PostgresStore) GetEmptyVulnerabilityIDs(ctx context.Context, cveIDs []string) ([]string, error) {
+	if len(cveIDs) == 0 {
+		return nil, nil
+	}
+
+	// Build parameterized query
+	placeholders := make([]string, len(cveIDs))
+	args := make([]interface{}, len(cveIDs))
+	for i, id := range cveIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id FROM vulnerabilities
+		WHERE id IN (%s)
+			AND published IS NULL
+			AND summary IS NULL`,
+		strings.Join(placeholders, ", "))
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get empty vulnerability IDs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var result []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan empty vulnerability ID: %w", err)
+		}
+		result = append(result, id)
+	}
+	return result, rows.Err()
+}
+
+// UpdateVulnerabilityFromCvelistV5 updates a vulnerability record with data
+// fetched from the cvelistV5 repository (summary, published, modified).
+func (s *PostgresStore) UpdateVulnerabilityFromCvelistV5(ctx context.Context, id, summary string, published, modified *time.Time) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE vulnerabilities
+		SET summary = COALESCE(NULLIF($2, ''), summary),
+			published = LEAST($3, published),
+			modified = GREATEST($4, modified)
+		WHERE id = $1`,
+		id, nullIfEmpty(summary), published, modified,
+	)
+	if err != nil {
+		return fmt.Errorf("update vulnerability from cvelistV5: %w", err)
+	}
+	return nil
+}

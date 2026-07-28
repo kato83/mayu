@@ -192,13 +192,8 @@ function emptyFilters(): FilterState {
                   <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colSummary">Summary</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colEcosystem">Ecosystem</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colSeverity">Severity</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    @if (filters.sort.startsWith('published')) {
-                      <span i18n="@@vulnList.colPublished">Published</span>
-                    } @else {
-                      <span i18n="@@vulnList.colModified">Modified</span>
-                    }
-                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colPublished">Published</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider" i18n="@@vulnList.colModified">Modified</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
@@ -238,11 +233,10 @@ function emptyFilters(): FilterState {
                       }
                     </td>
                     <td class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                      @if (filters.sort.startsWith('published')) {
-                        {{ vuln.published | date:'yyyy-MM-dd' }}
-                      } @else {
-                        {{ vuln.modified | date:'yyyy-MM-dd' }}
-                      }
+                      {{ vuln.published | date:'yyyy-MM-dd' }}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                      {{ vuln.modified | date:'yyyy-MM-dd' }}
                     </td>
                   </tr>
                 }
@@ -494,7 +488,7 @@ export class VulnerabilitiesComponent implements OnInit {
 
     const params: SearchParams = {
       limit: this.limit(),
-      fields: 'id,summary,modified,severity,ecosystem',
+      fields: 'id,summary,published,modified,severity,ecosystem',
     };
 
     // Use cursor if available, otherwise first page (no cursor needed)
