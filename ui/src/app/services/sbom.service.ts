@@ -9,6 +9,8 @@ import {
   ScanDiff,
   CreateProjectRequest,
   UploadSBOMResponse,
+  FindingStatusUpdate,
+  FindingStatusEntry,
 } from '../models/sbom.model';
 
 @Injectable({
@@ -83,5 +85,27 @@ export class SbomService {
    */
   getScanDiff(scanId: number): Observable<ScanDiff> {
     return this.http.get<ScanDiff>(`${this.baseUrl}/scans/${scanId}/diff`, { withCredentials: true });
+  }
+
+  /**
+   * Update the status of a finding in a scan.
+   */
+  updateFindingStatus(scanId: number, vulnId: string, body: FindingStatusUpdate): Observable<FindingStatusEntry> {
+    return this.http.put<FindingStatusEntry>(
+      `${this.baseUrl}/scans/${scanId}/findings/${encodeURIComponent(vulnId)}/status`,
+      body,
+      { withCredentials: true },
+    );
+  }
+
+  /**
+   * List finding statuses for a scan, optionally filtered by status values.
+   */
+  listFindingStatuses(scanId: number, statusFilter?: string[]): Observable<FindingStatusEntry[]> {
+    let url = `${this.baseUrl}/scans/${scanId}/findings/statuses`;
+    if (statusFilter && statusFilter.length > 0) {
+      url += `?status=${statusFilter.join(',')}`;
+    }
+    return this.http.get<FindingStatusEntry[]>(url, { withCredentials: true });
   }
 }
