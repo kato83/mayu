@@ -140,11 +140,11 @@ func TestScanner_ScanVersion_NilVersion(t *testing.T) {
 
 func TestComputeDiff(t *testing.T) {
 	tests := []struct {
-		name             string
-		current          *SBOMScanResult
-		previous         *SBOMScanResult
-		wantNew          int
-		wantResolved     int
+		name         string
+		current      *SBOMScanResult
+		previous     *SBOMScanResult
+		wantNew      int
+		wantResolved int
 	}{
 		{
 			name:    "nil current returns empty diff",

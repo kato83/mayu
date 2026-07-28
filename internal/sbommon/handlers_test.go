@@ -15,10 +15,10 @@ import (
 
 // mockSBOMStore implements SBOMStore for handler tests.
 type mockSBOMStore struct {
-	projects     map[int64]*SBOMProject
-	versions     map[int64]*SBOMVersion
-	scanResults  map[int64]*SBOMScanResult
-	nextID       int64
+	projects    map[int64]*SBOMProject
+	versions    map[int64]*SBOMVersion
+	scanResults map[int64]*SBOMScanResult
+	nextID      int64
 }
 
 func newMockSBOMStore() *mockSBOMStore {
@@ -396,7 +396,7 @@ func TestHandleListScanResults_IDORProtection(t *testing.T) {
 	store.scanResults[1] = &SBOMScanResult{
 		ID: 1, VersionID: 10, ScannedAt: time.Now(),
 		Findings: []ScanFinding{{VulnID: "CVE-1", Name: "pkg-a", Version: "1.0", Ecosystem: "npm"}},
-		Status: "completed", Trigger: "api",
+		Status:   "completed", Trigger: "api",
 	}
 
 	handler := HandleListScanResults(store)
@@ -423,7 +423,7 @@ func TestHandleGetScanResult_IDORProtection(t *testing.T) {
 	store.scanResults[1] = &SBOMScanResult{
 		ID: 1, VersionID: 10, ScannedAt: time.Now(),
 		Findings: []ScanFinding{{VulnID: "CVE-1", Name: "pkg-a", Version: "1.0", Ecosystem: "npm"}},
-		Status: "completed", Trigger: "api",
+		Status:   "completed", Trigger: "api",
 	}
 
 	handler := HandleGetScanResult(store)
@@ -450,12 +450,12 @@ func TestHandleGetScanDiff_IDORProtection(t *testing.T) {
 	store.scanResults[1] = &SBOMScanResult{
 		ID: 1, VersionID: 10, ScannedAt: time.Now().Add(-time.Hour),
 		Findings: []ScanFinding{{VulnID: "CVE-1", Name: "pkg-a", Version: "1.0", Ecosystem: "npm"}},
-		Status: "completed", Trigger: "api",
+		Status:   "completed", Trigger: "api",
 	}
 	store.scanResults[2] = &SBOMScanResult{
 		ID: 2, VersionID: 10, ScannedAt: time.Now(),
 		Findings: []ScanFinding{{VulnID: "CVE-2", Name: "pkg-b", Version: "2.0", Ecosystem: "npm"}},
-		Status: "completed", Trigger: "api",
+		Status:   "completed", Trigger: "api",
 	}
 
 	handler := HandleGetScanDiff(store)
@@ -482,7 +482,7 @@ func TestHandleListScanResults_OwnerCanAccess(t *testing.T) {
 	store.scanResults[1] = &SBOMScanResult{
 		ID: 1, VersionID: 10, ScannedAt: time.Now(),
 		Findings: []ScanFinding{{VulnID: "CVE-1", Name: "pkg-a", Version: "1.0", Ecosystem: "npm"}},
-		Status: "completed", Trigger: "api",
+		Status:   "completed", Trigger: "api",
 	}
 
 	handler := HandleListScanResults(store)

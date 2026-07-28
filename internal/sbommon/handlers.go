@@ -602,7 +602,7 @@ func parseSBOMFormat(data []byte) (*struct {
 		} `json:"components"`
 		Packages []struct {
 			ExternalRefs []struct {
-				ReferenceType string `json:"referenceType"`
+				ReferenceType    string `json:"referenceType"`
 				ReferenceLocator string `json:"referenceLocator"`
 			} `json:"externalRefs"`
 		} `json:"packages"`
