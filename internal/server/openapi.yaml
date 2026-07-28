@@ -487,6 +487,51 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/stats/trend:
+    get:
+      operationId: getStatsTrend
+      summary: Get vulnerability trend data
+      description: |
+        Returns time-series vulnerability trend data with configurable range, grouping,
+        and optional project scoping. For global trends, aggregates CVE severity data.
+        For project-level trends, aggregates SBOM scan results.
+      tags:
+        - stats
+      parameters:
+        - name: range
+          in: query
+          description: Time range for the trend data
+          schema:
+            type: string
+            enum: ["30d", "90d", "180d", "365d", "all"]
+            default: "30d"
+        - name: group_by
+          in: query
+          description: Aggregation period for data points
+          schema:
+            type: string
+            enum: ["day", "week", "month"]
+            default: "day"
+        - name: project_id
+          in: query
+          description: Optional project ID for project-level trends
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Trend data returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsTrendResponse"
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /healthz:
     get:
       operationId: healthCheck
@@ -1202,6 +1247,73 @@ components:
           type: string
           description: Application version string
           example: "1.0.0"
+
+    StatsTrendResponse:
+      type: object
+      required:
+        - range
+        - group_by
+        - data_points
+      properties:
+        range:
+          type: string
+          description: The time range used for the query
+          example: "30d"
+        group_by:
+          type: string
+          description: The aggregation period used
+          example: "day"
+        data_points:
+          type: array
+          description: Time-series data points
+          items:
+            $ref: "#/components/schemas/StatsTrendDataPoint"
+
+    StatsTrendDataPoint:
+      type: object
+      required:
+        - date
+        - total
+      properties:
+        date:
+          type: string
+          description: Date label for this data point (YYYY-MM-DD)
+          example: "2024-01-15"
+        total:
+          type: integer
+          format: int64
+          description: Total count for this period
+          example: 42
+        critical:
+          type: integer
+          format: int64
+          description: Count of critical severity vulnerabilities
+          example: 5
+        high:
+          type: integer
+          format: int64
+          description: Count of high severity vulnerabilities
+          example: 12
+        medium:
+          type: integer
+          format: int64
+          description: Count of medium severity vulnerabilities
+          example: 18
+        low:
+          type: integer
+          format: int64
+          description: Count of low severity vulnerabilities
+          example: 7
+        new:
+          type: integer
+          format: int64
+          description: Count of new findings (project-level only)
+          example: 3
+        resolved:
+          type: integer
+          format: int64
+          description: Count of resolved findings (project-level only)
+          example: 2
 
     EcosystemsResponse:
       type: object

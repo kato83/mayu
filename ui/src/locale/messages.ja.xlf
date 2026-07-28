@@ -1454,6 +1454,54 @@
         <source>New Vulnerabilities (Last 30 Days)</source>
         <target>新規脆弱性（直近30日）</target>
       </trans-unit>
+      <trans-unit id="dashboard.vulnTrendTitle" datatype="html">
+        <source>Vulnerability Trend</source>
+        <target>脆弱性トレンド</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendRange30d" datatype="html">
+        <source>30 Days</source>
+        <target>30日</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendRange90d" datatype="html">
+        <source>90 Days</source>
+        <target>90日</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendRange180d" datatype="html">
+        <source>180 Days</source>
+        <target>180日</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendRange365d" datatype="html">
+        <source>365 Days</source>
+        <target>365日</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendGroupDay" datatype="html">
+        <source>Day</source>
+        <target>日</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendGroupWeek" datatype="html">
+        <source>Week</source>
+        <target>週</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendGroupMonth" datatype="html">
+        <source>Month</source>
+        <target>月</target>
+      </trans-unit>
+      <trans-unit id="dashboard.chartCritical" datatype="html">
+        <source>Critical</source>
+        <target>緊急</target>
+      </trans-unit>
+      <trans-unit id="dashboard.chartHigh" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="dashboard.chartMedium" datatype="html">
+        <source>Medium</source>
+        <target>中</target>
+      </trans-unit>
+      <trans-unit id="dashboard.chartLow" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
       <trans-unit id="dashboard.severityWorst" datatype="html">
         <source>Severity (Worst Case)</source>
         <target>深刻度（最悪ケース）</target>
@@ -1917,6 +1965,46 @@
       <trans-unit id="sbom.scan.col.summary" datatype="html">
         <source>Summary</source>
         <target>概要</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.trendTitle" datatype="html">
+        <source>Vulnerability Trend</source>
+        <target>脆弱性トレンド</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.trendRange30d" datatype="html">
+        <source>30d</source>
+        <target>30日</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.trendRange90d" datatype="html">
+        <source>90d</source>
+        <target>90日</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.trendRange180d" datatype="html">
+        <source>180d</source>
+        <target>180日</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.trendRange365d" datatype="html">
+        <source>365d</source>
+        <target>365日</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.chartTotalFindings" datatype="html">
+        <source>Total Findings</source>
+        <target>検出数合計</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.chartNewFindings" datatype="html">
+        <source>New</source>
+        <target>新規</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.chartResolved" datatype="html">
+        <source>Resolved</source>
+        <target>解決済み</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.axisTotal" datatype="html">
+        <source>Total</source>
+        <target>合計</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.axisChanges" datatype="html">
+        <source>Changes</source>
+        <target>変更数</target>
       </trans-unit>
     </body>
   </file>

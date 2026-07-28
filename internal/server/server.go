@@ -343,6 +343,13 @@ func (s *Server) routes() http.Handler {
 		r.Get("/top-risks", s.handleDashboardTopRisks)
 	})
 
+	// Stats endpoints
+	r.Route("/api/v1/stats", func(r chi.Router) {
+		r.Use(authMW)
+		r.Use(middleware.Timeout(30 * time.Second))
+		r.Get("/trend", s.handleStatsTrend)
+	})
+
 	// SPA static file serving with fallback to index.html
 	if s.uiDir != "" || s.embedFS != nil {
 		r.Get("/*", s.handleSPA)

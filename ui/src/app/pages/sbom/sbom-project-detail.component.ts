@@ -1,10 +1,16 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Chart, registerables } from 'chart.js';
 
 import { SbomService } from '../../services/sbom.service';
+import { StatsTrendService } from '../../services/stats-trend.service';
+import { ThemeService } from '../../services/theme.service';
 import { SBOMProject, SBOMVersion, SBOMScanResult } from '../../models/sbom.model';
+import { StatsTrendResponse } from '../../models/stats-trend.model';
+
+Chart.register(...registerables);
 
 @Component({
   selector: 'app-sbom-project-detail',
@@ -21,6 +27,26 @@ import { SBOMProject, SBOMVersion, SBOMScanResult } from '../../models/sbom.mode
 
       @if (project()) {
         <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">{{ project()!.name }}</h1>
+      }
+
+      <!-- Project Vulnerability Trend chart -->
+      @if (trendData() && trendData()!.data_points.length > 0) {
+        <section class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 mb-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+            <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-200" i18n="@@sbom.detail.trendTitle">Vulnerability Trend</h2>
+            <div class="flex gap-1">
+              @for (r of trendRanges; track r.value) {
+                <button
+                  (click)="onProjectTrendRangeChange(r.value)"
+                  [class]="selectedProjectTrendRange() === r.value ? 'px-2 py-1 text-xs font-medium rounded bg-indigo-600 text-white cursor-pointer' : 'px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer'"
+                >{{ r.label }}</button>
+              }
+            </div>
+          </div>
+          <div class="relative w-full" style="height: 240px">
+            <canvas #projectTrendCanvas></canvas>
+          </div>
+        </section>
       }
 
       <!-- Upload SBOM form -->
@@ -243,8 +269,10 @@ import { SBOMProject, SBOMVersion, SBOMScanResult } from '../../models/sbom.mode
     </div>
   `,
 })
-export class SbomProjectDetailComponent implements OnInit {
+export class SbomProjectDetailComponent implements OnInit, OnDestroy {
   private readonly sbomService = inject(SbomService);
+  private readonly statsTrendService = inject(StatsTrendService);
+  private readonly themeService = inject(ThemeService);
   private readonly route = inject(ActivatedRoute);
 
   readonly project = signal<SBOMProject | null>(null);
@@ -253,6 +281,19 @@ export class SbomProjectDetailComponent implements OnInit {
   readonly scanResults = signal<SBOMScanResult[]>([]);
   readonly scansLoading = signal(false);
   readonly selectedVersion = signal<SBOMVersion | null>(null);
+  readonly trendData = signal<StatsTrendResponse | null>(null);
+  readonly selectedProjectTrendRange = signal('90d');
+
+  readonly trendRanges = [
+    { value: '30d', label: $localize`:@@sbom.detail.trendRange30d:30d` },
+    { value: '90d', label: $localize`:@@sbom.detail.trendRange90d:90d` },
+    { value: '180d', label: $localize`:@@sbom.detail.trendRange180d:180d` },
+    { value: '365d', label: $localize`:@@sbom.detail.trendRange365d:365d` },
+  ];
+
+  @ViewChild('projectTrendCanvas') projectTrendCanvasRef!: ElementRef<HTMLCanvasElement>;
+  private projectTrendChart: Chart | null = null;
+  private chartRendered = false;
 
   // Upload form
   readonly showUploadForm = signal(false);
@@ -264,10 +305,162 @@ export class SbomProjectDetailComponent implements OnInit {
 
   projectId = 0;
 
+  constructor() {
+    effect(() => {
+      // Track theme mode signal to trigger re-render on theme change
+      this.themeService.mode();
+      if (this.chartRendered) {
+        setTimeout(() => this.renderProjectTrendChart(), 50);
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.projectId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadProject();
     this.loadVersions();
+    this.loadProjectTrend('90d');
+  }
+
+  ngOnDestroy(): void {
+    if (this.projectTrendChart) {
+      this.projectTrendChart.destroy();
+    }
+  }
+
+  private loadProjectTrend(range: string): void {
+    this.statsTrendService.getTrend({ project_id: this.projectId, range, group_by: 'day' }).subscribe({
+      next: (data) => {
+        this.trendData.set(data);
+        setTimeout(() => this.renderProjectTrendChart(), 0);
+      },
+      error: (err) => {
+        console.error('Failed to load project trend data', err);
+      },
+    });
+  }
+
+  onProjectTrendRangeChange(range: string): void {
+    this.selectedProjectTrendRange.set(range);
+    this.loadProjectTrend(range);
+  }
+
+  private renderProjectTrendChart(): void {
+    const data = this.trendData();
+    if (!data || !this.projectTrendCanvasRef) return;
+
+    const ctx = this.projectTrendCanvasRef.nativeElement.getContext('2d');
+    if (!ctx) return;
+
+    if (this.projectTrendChart) {
+      this.projectTrendChart.destroy();
+      this.projectTrendChart = null;
+    }
+
+    const dataPoints = data.data_points;
+    const labels = dataPoints.map((d) => d.date);
+
+    this.projectTrendChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'line',
+            label: $localize`:@@sbom.detail.chartTotalFindings:Total Findings`,
+            data: dataPoints.map((d) => d.total),
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: dataPoints.length > 60 ? 0 : 2,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+            yAxisID: 'y',
+            order: 1,
+          },
+          {
+            type: 'bar',
+            label: $localize`:@@sbom.detail.chartNewFindings:New`,
+            data: dataPoints.map((d) => d.new ?? 0),
+            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+            borderColor: '#ef4444',
+            borderWidth: 1,
+            yAxisID: 'y1',
+            stack: 'changes',
+            order: 2,
+          },
+          {
+            type: 'bar',
+            label: $localize`:@@sbom.detail.chartResolved:Resolved`,
+            data: dataPoints.map((d) => d.resolved ?? 0),
+            backgroundColor: 'rgba(34, 197, 94, 0.7)',
+            borderColor: '#22c55e',
+            borderWidth: 1,
+            yAxisID: 'y1',
+            stack: 'changes',
+            order: 3,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { color: this.tickColor, font: { size: 11 }, usePointStyle: true },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { maxTicksLimit: 10, font: { size: 10 }, color: this.tickColor },
+            grid: { display: false },
+          },
+          y: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            ticks: { font: { size: 10 }, color: this.tickColor },
+            grid: { color: this.gridColor },
+            title: {
+              display: true,
+              text: $localize`:@@sbom.detail.axisTotal:Total`,
+              color: this.tickColor,
+              font: { size: 10 },
+            },
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: true,
+            ticks: { font: { size: 10 }, color: this.tickColor },
+            grid: { display: false },
+            title: {
+              display: true,
+              text: $localize`:@@sbom.detail.axisChanges:Changes`,
+              color: this.tickColor,
+              font: { size: 10 },
+            },
+          },
+        },
+      },
+    });
+    this.chartRendered = true;
+  }
+
+  private get tickColor(): string {
+    return document.documentElement.classList.contains('dark')
+      ? 'rgba(226, 232, 240, 0.8)'
+      : 'rgba(100, 116, 139, 0.8)';
+  }
+
+  private get gridColor(): string {
+    return document.documentElement.classList.contains('dark')
+      ? 'rgba(148, 163, 184, 0.15)'
+      : 'rgba(148, 163, 184, 0.2)';
   }
 
   private loadProject(): void {

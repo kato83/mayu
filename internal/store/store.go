@@ -180,6 +180,11 @@ type Store interface {
 
 	// ListTranslationJobs returns recent translation jobs ordered by start time (newest first).
 	ListTranslationJobs(ctx context.Context, limit int) ([]TranslationJob, error)
+
+	// GetStatsTrend returns time-series vulnerability trend data.
+	// For global trends (ProjectID == 0): aggregates from vulnerabilities + vulnerability_summary by published date.
+	// For project-level trends (ProjectID > 0): aggregates from sbom_scan_results by scanned_at date.
+	GetStatsTrend(ctx context.Context, query StatsTrendQuery) (*StatsTrendResponse, error)
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.
@@ -395,4 +400,30 @@ type RiskEntry struct {
 	Score           float64 `json:"score"`
 	Percentile      float64 `json:"percentile,omitempty"`
 	Severity        string  `json:"severity,omitempty"`
+}
+
+// StatsTrendQuery defines parameters for the stats trend endpoint.
+type StatsTrendQuery struct {
+	Range     string // "30d", "90d", "180d", "365d", "all"
+	ProjectID int64  // 0 means global trend
+	GroupBy   string // "day", "week", "month"
+}
+
+// StatsTrendResponse is the API response for the stats trend endpoint.
+type StatsTrendResponse struct {
+	Range      string               `json:"range"`
+	GroupBy    string               `json:"group_by"`
+	DataPoints []StatsTrendDataPoint `json:"data_points"`
+}
+
+// StatsTrendDataPoint is a single time-series data point.
+type StatsTrendDataPoint struct {
+	Date     string `json:"date"`
+	Total    int64  `json:"total"`
+	Critical int64  `json:"critical"`
+	High     int64  `json:"high"`
+	Medium   int64  `json:"medium"`
+	Low      int64  `json:"low"`
+	New      int64  `json:"new,omitempty"`
+	Resolved int64  `json:"resolved,omitempty"`
 }
