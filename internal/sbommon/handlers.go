@@ -519,6 +519,15 @@ func HandleGetScanDiff(sbomStore SBOMStore) http.HandlerFunc {
 			return
 		}
 
+		// If no previous scan in the same version, fall back to the previous version's scan
+		if previous == nil {
+			previous, err = sbomStore.GetPreviousVersionScanResult(r.Context(), version.ProjectID, current.VersionID)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "failed to get previous version scan result")
+				return
+			}
+		}
+
 		diff := ComputeDiff(current, previous)
 
 		writeJSON(w, http.StatusOK, scanDiffResponse{
