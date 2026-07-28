@@ -14,6 +14,7 @@ import { forkJoin } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 
 import { DashboardService } from '../../services/dashboard.service';
+import { StatsTrendService } from '../../services/stats-trend.service';
 import { ThemeService } from '../../services/theme.service';
 import {
   DashboardSummary,
@@ -21,6 +22,7 @@ import {
   DashboardDistributions,
   DashboardTopRisks,
 } from '../../models/dashboard.model';
+import { StatsTrendResponse } from '../../models/stats-trend.model';
 
 Chart.register(...registerables);
 
@@ -63,10 +65,30 @@ Chart.register(...registerables);
         </div>
       </section>
 
-      <!-- Trend chart -->
+      <!-- Vulnerability Trend hero chart -->
       <section class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 mb-6">
-        <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3" i18n="@@dashboard.trendTitle">New Vulnerabilities (Last 30 Days)</h2>
-        <div class="relative w-full" style="height: 220px">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+          <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-200" i18n="@@dashboard.vulnTrendTitle">Vulnerability Trend</h2>
+          <div class="flex gap-1 flex-wrap">
+            <div class="flex gap-1 mr-2">
+              @for (r of trendRanges; track r.value) {
+                <button
+                  (click)="onTrendRangeChange(r.value)"
+                  [class]="selectedTrendRange() === r.value ? 'px-2 py-1 text-xs font-medium rounded bg-indigo-600 text-white cursor-pointer' : 'px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer'"
+                >{{ r.label }}</button>
+              }
+            </div>
+            <div class="flex gap-1">
+              @for (g of trendGroups; track g.value) {
+                <button
+                  (click)="onTrendGroupChange(g.value)"
+                  [class]="selectedTrendGroup() === g.value ? 'px-2 py-1 text-xs font-medium rounded bg-indigo-600 text-white cursor-pointer' : 'px-2 py-1 text-xs font-medium rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 cursor-pointer'"
+                >{{ g.label }}</button>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="relative w-full" style="height: 280px">
           <canvas #trendCanvas></canvas>
         </div>
       </section>
@@ -180,6 +202,7 @@ Chart.register(...registerables);
 })
 export class DashboardComponent implements AfterViewInit, OnDestroy {
   private readonly dashboardService = inject(DashboardService);
+  private readonly statsTrendService = inject(StatsTrendService);
   private readonly themeService = inject(ThemeService);
 
   // State signals
@@ -188,6 +211,24 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   readonly trends = signal<DashboardTrends | null>(null);
   readonly distributions = signal<DashboardDistributions | null>(null);
   readonly topRisks = signal<DashboardTopRisks | null>(null);
+  readonly statsTrend = signal<StatsTrendResponse | null>(null);
+
+  // Trend chart controls
+  readonly selectedTrendRange = signal('30d');
+  readonly selectedTrendGroup = signal('day');
+
+  readonly trendRanges = [
+    { value: '30d', label: $localize`:@@dashboard.trendRange30d:30 Days` },
+    { value: '90d', label: $localize`:@@dashboard.trendRange90d:90 Days` },
+    { value: '180d', label: $localize`:@@dashboard.trendRange180d:180 Days` },
+    { value: '365d', label: $localize`:@@dashboard.trendRange365d:365 Days` },
+  ];
+
+  readonly trendGroups = [
+    { value: 'day', label: $localize`:@@dashboard.trendGroupDay:Day` },
+    { value: 'week', label: $localize`:@@dashboard.trendGroupWeek:Week` },
+    { value: 'month', label: $localize`:@@dashboard.trendGroupMonth:Month` },
+  ];
 
   // Canvas refs
   @ViewChild('trendCanvas') trendCanvasRef!: ElementRef<HTMLCanvasElement>;
@@ -199,6 +240,7 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
 
   // Chart instances for cleanup
   private charts: Chart[] = [];
+  private trendChart: Chart | null = null;
   private chartsRendered = false;
 
   constructor() {
@@ -217,6 +259,9 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.charts.forEach((c) => c.destroy());
+    if (this.trendChart) {
+      this.trendChart.destroy();
+    }
   }
 
   private loadData(): void {
@@ -225,12 +270,14 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
       trends: this.dashboardService.getTrends(30),
       distributions: this.dashboardService.getDistributions(),
       topRisks: this.dashboardService.getTopRisks(10),
+      statsTrend: this.statsTrendService.getTrend({ range: '30d', group_by: 'day' }),
     }).subscribe({
       next: (data) => {
         this.summary.set(data.summary);
         this.trends.set(data.trends);
         this.distributions.set(data.distributions);
         this.topRisks.set(data.topRisks);
+        this.statsTrend.set(data.statsTrend);
         this.loading.set(false);
 
         // Render charts after DOM updates
@@ -238,6 +285,35 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
       },
       error: () => {
         this.loading.set(false);
+      },
+    });
+  }
+
+  onTrendRangeChange(range: string): void {
+    this.selectedTrendRange.set(range);
+    // Auto-select appropriate group_by
+    let groupBy = this.selectedTrendGroup();
+    if (range === '30d') {
+      groupBy = 'day';
+    } else if (range === '90d' || range === '180d') {
+      groupBy = 'week';
+    } else if (range === '365d') {
+      groupBy = 'month';
+    }
+    this.selectedTrendGroup.set(groupBy);
+    this.loadTrendData(range, groupBy);
+  }
+
+  onTrendGroupChange(groupBy: string): void {
+    this.selectedTrendGroup.set(groupBy);
+    this.loadTrendData(this.selectedTrendRange(), groupBy);
+  }
+
+  private loadTrendData(range: string, groupBy: string): void {
+    this.statsTrendService.getTrend({ range, group_by: groupBy }).subscribe({
+      next: (data) => {
+        this.statsTrend.set(data);
+        setTimeout(() => this.renderTrendChart(), 0);
       },
     });
   }
@@ -271,27 +347,73 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   }
 
   private renderTrendChart(): void {
-    const data = this.trends()?.daily_new_vulns;
-    if (!data || !this.trendCanvasRef) return;
+    const trendData = this.statsTrend();
+    if (!trendData || !this.trendCanvasRef) return;
 
     const ctx = this.trendCanvasRef.nativeElement.getContext('2d');
     if (!ctx) return;
 
-    const chart = new Chart(ctx, {
+    // Destroy previous trend chart if exists
+    if (this.trendChart) {
+      this.trendChart.destroy();
+      this.trendChart = null;
+    }
+
+    const dataPoints = trendData.data_points;
+    const labels = dataPoints.map((d) => d.date);
+
+    this.trendChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: data.map((d) => d.date),
+        labels,
         datasets: [
           {
-            label: $localize`:@@dashboard.chartNewVulns:New Vulnerabilities`,
-            data: data.map((d) => d.count),
-            borderColor: '#6366f1',
-            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            label: $localize`:@@dashboard.chartCritical:Critical`,
+            data: dataPoints.map((d) => d.critical),
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.3)',
             fill: true,
             tension: 0.3,
-            pointRadius: data.length > 60 ? 0 : 2,
+            pointRadius: dataPoints.length > 60 ? 0 : 2,
             pointHoverRadius: 4,
             borderWidth: 2,
+            order: 4,
+          },
+          {
+            label: $localize`:@@dashboard.chartHigh:High`,
+            data: dataPoints.map((d) => d.high),
+            borderColor: '#f97316',
+            backgroundColor: 'rgba(249, 115, 22, 0.3)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: dataPoints.length > 60 ? 0 : 2,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+            order: 3,
+          },
+          {
+            label: $localize`:@@dashboard.chartMedium:Medium`,
+            data: dataPoints.map((d) => d.medium),
+            borderColor: '#eab308',
+            backgroundColor: 'rgba(234, 179, 8, 0.3)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: dataPoints.length > 60 ? 0 : 2,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+            order: 2,
+          },
+          {
+            label: $localize`:@@dashboard.chartLow:Low`,
+            data: dataPoints.map((d) => d.low),
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.3)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: dataPoints.length > 60 ? 0 : 2,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+            order: 1,
           },
         ],
       },
@@ -299,21 +421,28 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { intersect: false, mode: 'index' },
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { color: this.tickColor, font: { size: 11 }, usePointStyle: true },
+          },
+        },
         scales: {
           x: {
-            ticks: { maxTicksLimit: 8, font: { size: 10 }, color: this.tickColor },
+            ticks: { maxTicksLimit: 10, font: { size: 10 }, color: this.tickColor },
             grid: { display: false },
+            stacked: true,
           },
           y: {
             beginAtZero: true,
+            stacked: true,
             ticks: { font: { size: 10 }, color: this.tickColor },
             grid: { color: this.gridColor },
           },
         },
       },
     });
-    this.charts.push(chart);
   }
 
   private renderSeverityChart(): void {
