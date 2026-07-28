@@ -61,6 +61,7 @@ func (s *PostgresStore) SearchByPackages(ctx context.Context, packages []Package
 			LIMIT 1
 		) oe ON true
 		WHERE (pi.ecosystem, pi.name) IN (VALUES %s)
+			AND v.withdrawn IS NULL
 		ORDER BY oe.vulnerability_id, oe.osv_id`,
 		strings.Join(valueClauses, ", "))
 
