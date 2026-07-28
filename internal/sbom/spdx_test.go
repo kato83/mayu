@@ -165,38 +165,370 @@ func TestParseSPDX_DevAlwaysFalse(t *testing.T) {
 	}
 }
 
+func TestParseSPDXXML(t *testing.T) {
+	data := []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="http://spdx.org/rdf/terms#">
+  <spdxVersion>SPDX-2.3</spdxVersion>
+  <packages>
+    <Package>
+      <SPDXID>SPDXRef-Package-express</SPDXID>
+      <name>express</name>
+      <versionInfo>4.18.2</versionInfo>
+      <externalRefs>
+        <ExternalRef>
+          <referenceCategory>PACKAGE-MANAGER</referenceCategory>
+          <referenceType>purl</referenceType>
+          <referenceLocator>pkg:npm/express@4.18.2</referenceLocator>
+        </ExternalRef>
+      </externalRefs>
+    </Package>
+    <Package>
+      <SPDXID>SPDXRef-Package-angular-core</SPDXID>
+      <name>@angular/core</name>
+      <versionInfo>22.0.7</versionInfo>
+      <externalRefs>
+        <ExternalRef>
+          <referenceCategory>PACKAGE-MANAGER</referenceCategory>
+          <referenceType>purl</referenceType>
+          <referenceLocator>pkg:npm/%40angular/core@22.0.7</referenceLocator>
+        </ExternalRef>
+      </externalRefs>
+    </Package>
+    <Package>
+      <SPDXID>SPDXRef-Package-no-purl</SPDXID>
+      <name>no-purl</name>
+      <versionInfo>1.0.0</versionInfo>
+    </Package>
+  </packages>
+</Document>`)
+
+	sbom, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+
+	if sbom.Format != FormatSPDX {
+		t.Errorf("Format = %q, want %q", sbom.Format, FormatSPDX)
+	}
+
+	// Should have 2 components (no-purl skipped)
+	if len(sbom.Components) != 2 {
+		t.Fatalf("len(Components) = %d, want 2", len(sbom.Components))
+	}
+
+	// First component
+	c1 := sbom.Components[0]
+	if c1.Name != "express" {
+		t.Errorf("Components[0].Name = %q, want %q", c1.Name, "express")
+	}
+	if c1.Version != "4.18.2" {
+		t.Errorf("Components[0].Version = %q, want %q", c1.Version, "4.18.2")
+	}
+	if c1.Ecosystem != "npm" {
+		t.Errorf("Components[0].Ecosystem = %q, want %q", c1.Ecosystem, "npm")
+	}
+	if c1.IsDev {
+		t.Error("Components[0].IsDev = true, want false")
+	}
+
+	// Second component (scoped npm package)
+	c2 := sbom.Components[1]
+	if c2.Name != "@angular/core" {
+		t.Errorf("Components[1].Name = %q, want %q", c2.Name, "@angular/core")
+	}
+	if c2.Version != "22.0.7" {
+		t.Errorf("Components[1].Version = %q, want %q", c2.Version, "22.0.7")
+	}
+}
+
+func TestParseSPDXXML_SkipNoPurl(t *testing.T) {
+	data := []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="http://spdx.org/rdf/terms#">
+  <spdxVersion>SPDX-2.3</spdxVersion>
+  <packages>
+    <Package>
+      <SPDXID>SPDXRef-Package-no-refs</SPDXID>
+      <name>no-refs</name>
+      <versionInfo>1.0.0</versionInfo>
+    </Package>
+    <Package>
+      <SPDXID>SPDXRef-Package-non-purl-ref</SPDXID>
+      <name>non-purl-ref</name>
+      <versionInfo>1.0.0</versionInfo>
+      <externalRefs>
+        <ExternalRef>
+          <referenceCategory>SECURITY</referenceCategory>
+          <referenceType>cpe23Type</referenceType>
+          <referenceLocator>cpe:2.3:a:vendor:product:1.0.0:*:*:*:*:*:*:*</referenceLocator>
+        </ExternalRef>
+      </externalRefs>
+    </Package>
+    <Package>
+      <SPDXID>SPDXRef-Package-has-purl</SPDXID>
+      <name>has-purl</name>
+      <versionInfo>2.0.0</versionInfo>
+      <externalRefs>
+        <ExternalRef>
+          <referenceCategory>PACKAGE-MANAGER</referenceCategory>
+          <referenceType>purl</referenceType>
+          <referenceLocator>pkg:npm/has-purl@2.0.0</referenceLocator>
+        </ExternalRef>
+      </externalRefs>
+    </Package>
+  </packages>
+</Document>`)
+
+	sbom, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+
+	if len(sbom.Components) != 1 {
+		t.Fatalf("len(Components) = %d, want 1", len(sbom.Components))
+	}
+	if sbom.Components[0].Name != "has-purl" {
+		t.Errorf("Components[0].Name = %q, want %q", sbom.Components[0].Name, "has-purl")
+	}
+}
+
+func TestParseSPDXXML_DevAlwaysFalse(t *testing.T) {
+	data := []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="http://spdx.org/rdf/terms#">
+  <spdxVersion>SPDX-2.3</spdxVersion>
+  <packages>
+    <Package>
+      <SPDXID>SPDXRef-Package-vitest</SPDXID>
+      <name>vitest</name>
+      <versionInfo>3.2.4</versionInfo>
+      <externalRefs>
+        <ExternalRef>
+          <referenceCategory>PACKAGE-MANAGER</referenceCategory>
+          <referenceType>purl</referenceType>
+          <referenceLocator>pkg:npm/vitest@3.2.4</referenceLocator>
+        </ExternalRef>
+      </externalRefs>
+    </Package>
+  </packages>
+</Document>`)
+
+	sbom, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+
+	if len(sbom.Components) != 1 {
+		t.Fatalf("len(Components) = %d, want 1", len(sbom.Components))
+	}
+	if sbom.Components[0].IsDev {
+		t.Error("SPDX XML component IsDev = true, want false")
+	}
+}
+
+func TestParseSPDXYAML(t *testing.T) {
+	data := []byte(`spdxVersion: "SPDX-2.3"
+dataLicense: "CC0-1.0"
+SPDXID: "SPDXRef-DOCUMENT"
+name: "test-project"
+packages:
+  - SPDXID: "SPDXRef-Package-express"
+    name: "express"
+    versionInfo: "4.18.2"
+    externalRefs:
+      - referenceCategory: "PACKAGE-MANAGER"
+        referenceType: "purl"
+        referenceLocator: "pkg:npm/express@4.18.2"
+  - SPDXID: "SPDXRef-Package-angular-core"
+    name: "@angular/core"
+    versionInfo: "22.0.7"
+    externalRefs:
+      - referenceCategory: "PACKAGE-MANAGER"
+        referenceType: "purl"
+        referenceLocator: "pkg:npm/%40angular/core@22.0.7"
+  - SPDXID: "SPDXRef-Package-no-purl"
+    name: "no-purl"
+    versionInfo: "1.0.0"
+`)
+
+	sbom, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+
+	if sbom.Format != FormatSPDX {
+		t.Errorf("Format = %q, want %q", sbom.Format, FormatSPDX)
+	}
+
+	// Should have 2 components (no-purl skipped)
+	if len(sbom.Components) != 2 {
+		t.Fatalf("len(Components) = %d, want 2", len(sbom.Components))
+	}
+
+	// First component
+	c1 := sbom.Components[0]
+	if c1.Name != "express" {
+		t.Errorf("Components[0].Name = %q, want %q", c1.Name, "express")
+	}
+	if c1.Version != "4.18.2" {
+		t.Errorf("Components[0].Version = %q, want %q", c1.Version, "4.18.2")
+	}
+	if c1.Ecosystem != "npm" {
+		t.Errorf("Components[0].Ecosystem = %q, want %q", c1.Ecosystem, "npm")
+	}
+	if c1.IsDev {
+		t.Error("Components[0].IsDev = true, want false")
+	}
+
+	// Second component (scoped npm package)
+	c2 := sbom.Components[1]
+	if c2.Name != "@angular/core" {
+		t.Errorf("Components[1].Name = %q, want %q", c2.Name, "@angular/core")
+	}
+	if c2.Version != "22.0.7" {
+		t.Errorf("Components[1].Version = %q, want %q", c2.Version, "22.0.7")
+	}
+}
+
+func TestParseSPDXYAML_SkipNoPurl(t *testing.T) {
+	data := []byte(`spdxVersion: "SPDX-2.3"
+packages:
+  - SPDXID: "SPDXRef-Package-no-refs"
+    name: "no-refs"
+    versionInfo: "1.0.0"
+  - SPDXID: "SPDXRef-Package-non-purl-ref"
+    name: "non-purl-ref"
+    versionInfo: "1.0.0"
+    externalRefs:
+      - referenceCategory: "SECURITY"
+        referenceType: "cpe23Type"
+        referenceLocator: "cpe:2.3:a:vendor:product:1.0.0:*:*:*:*:*:*:*"
+  - SPDXID: "SPDXRef-Package-has-purl"
+    name: "has-purl"
+    versionInfo: "2.0.0"
+    externalRefs:
+      - referenceCategory: "PACKAGE-MANAGER"
+        referenceType: "purl"
+        referenceLocator: "pkg:npm/has-purl@2.0.0"
+`)
+
+	sbom, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+
+	if len(sbom.Components) != 1 {
+		t.Fatalf("len(Components) = %d, want 1", len(sbom.Components))
+	}
+	if sbom.Components[0].Name != "has-purl" {
+		t.Errorf("Components[0].Name = %q, want %q", sbom.Components[0].Name, "has-purl")
+	}
+}
+
+func TestParseSPDXYAML_DevAlwaysFalse(t *testing.T) {
+	data := []byte(`spdxVersion: "SPDX-2.3"
+packages:
+  - SPDXID: "SPDXRef-Package-vitest"
+    name: "vitest"
+    versionInfo: "3.2.4"
+    externalRefs:
+      - referenceCategory: "PACKAGE-MANAGER"
+        referenceType: "purl"
+        referenceLocator: "pkg:npm/vitest@3.2.4"
+`)
+
+	sbom, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse() error: %v", err)
+	}
+
+	if len(sbom.Components) != 1 {
+		t.Fatalf("len(Components) = %d, want 1", len(sbom.Components))
+	}
+	if sbom.Components[0].IsDev {
+		t.Error("SPDX YAML component IsDev = true, want false")
+	}
+}
+
 func TestDetectFormat(t *testing.T) {
 	tests := []struct {
 		name    string
-		json    string
+		input   string
 		want    string
 		wantErr bool
 	}{
 		{
-			name: "CycloneDX",
-			json: `{"bomFormat": "CycloneDX", "specVersion": "1.7", "components": []}`,
+			name:  "CycloneDX JSON",
+			input: `{"bomFormat": "CycloneDX", "specVersion": "1.7", "components": []}`,
+			want:  FormatCycloneDX,
+		},
+		{
+			name:  "SPDX JSON",
+			input: `{"spdxVersion": "SPDX-2.3", "packages": []}`,
+			want:  FormatSPDX,
+		},
+		{
+			name: "CycloneDX XML",
+			input: `<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.6"><components></components></bom>`,
 			want: FormatCycloneDX,
 		},
 		{
-			name: "SPDX",
-			json: `{"spdxVersion": "SPDX-2.3", "packages": []}`,
+			name: "SPDX XML",
+			input: `<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="http://spdx.org/rdf/terms#"><spdxVersion>SPDX-2.3</spdxVersion></Document>`,
+			want: FormatSPDX,
+		},
+		{
+			name: "CycloneDX YAML",
+			input: `bomFormat: CycloneDX
+specVersion: "1.6"
+components: []
+`,
+			want: FormatCycloneDX,
+		},
+		{
+			name: "SPDX YAML",
+			input: `spdxVersion: "SPDX-2.3"
+packages: []
+`,
 			want: FormatSPDX,
 		},
 		{
 			name:    "unknown format",
-			json:    `{"name": "something", "version": "1.0.0"}`,
+			input:   `{"name": "something", "version": "1.0.0"}`,
 			wantErr: true,
 		},
 		{
-			name:    "invalid JSON",
-			json:    `not json`,
+			name:    "invalid content",
+			input:   `not json or yaml or xml %%%`,
+			wantErr: true,
+		},
+		{
+			name:    "unknown XML format",
+			input:   `<?xml version="1.0"?><root><unknown>data</unknown></root>`,
+			wantErr: true,
+		},
+		{
+			name: "CycloneDX XML without namespace but with bom element",
+			input: `<?xml version="1.0" encoding="UTF-8"?>
+<bom version="1"><components></components></bom>`,
+			want: FormatCycloneDX,
+		},
+		{
+			name: "XML with cyclonedx.org in namespace only",
+			input: `<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.5"><components></components></bom>`,
+			want: FormatCycloneDX,
+		},
+		{
+			name:    "XML with bom-like substring in non-root element should not match",
+			input:   `<?xml version="1.0"?><root><bombardment>data</bombardment></root>`,
 			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := detectFormat([]byte(tt.json))
+			got, err := detectFormat([]byte(tt.input))
 			if tt.wantErr {
 				if err == nil {
 					t.Error("detectFormat() error = nil, want error")
@@ -206,8 +538,76 @@ func TestDetectFormat(t *testing.T) {
 			if err != nil {
 				t.Fatalf("detectFormat() error = %v", err)
 			}
-			if got != tt.want {
-				t.Errorf("detectFormat() = %q, want %q", got, tt.want)
+			if got.format != tt.want {
+				t.Errorf("detectFormat().format = %q, want %q", got.format, tt.want)
+			}
+		})
+	}
+}
+
+func TestParse_MalformedInput(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []byte
+	}{
+		{
+			name:  "truncated XML CycloneDX",
+			input: []byte(`<?xml version="1.0" encoding="UTF-8"?><bom xmlns="http://cyclonedx.org/schema/bom/1.6"><components><component type="library"><name>test</name>`),
+		},
+		{
+			name:  "truncated XML SPDX",
+			input: []byte(`<?xml version="1.0" encoding="UTF-8"?><Document xmlns="http://spdx.org/rdf/terms#"><spdxVersion>SPDX-2.3</spdxVersion><packages><Package><name>test</name>`),
+		},
+		{
+			name:  "invalid XML content after valid header",
+			input: []byte(`<?xml version="1.0" encoding="UTF-8"?><bom xmlns="http://cyclonedx.org/schema/bom/1.6"><components><not valid xml &&& !!!></components></bom>`),
+		},
+		{
+			name:  "truncated JSON CycloneDX",
+			input: []byte(`{"bomFormat": "CycloneDX", "specVersion": "1.7", "components": [{"type": "library", "name": "test"`),
+		},
+		{
+			name:  "truncated JSON SPDX",
+			input: []byte(`{"spdxVersion": "SPDX-2.3", "packages": [{"SPDXID": "SPDXRef-Pkg"`),
+		},
+		{
+			name:  "invalid YAML indentation",
+			input: []byte("bomFormat: CycloneDX\nspecVersion: \"1.6\"\ncomponents:\n\t- type: library\n\t\tname: test\n"),
+		},
+		{
+			name:  "binary garbage",
+			input: []byte{0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD, 0x89, 0x50, 0x4E, 0x47},
+		},
+		{
+			name:  "empty input",
+			input: []byte{},
+		},
+		{
+			name:  "whitespace only",
+			input: []byte("   \n\t  \n  "),
+		},
+		{
+			name:  "XML with only processing instruction",
+			input: []byte(`<?xml version="1.0" encoding="UTF-8"?>`),
+		},
+		{
+			name:  "CycloneDX JSON with invalid component purl",
+			input: []byte(`{"bomFormat": "CycloneDX", "specVersion": "1.7", "components": [{"type": "library", "name": "test", "version": "1.0.0", "purl": "not-a-valid-purl"}]}`),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := Parse(tt.input)
+			// We expect either an error or a valid (possibly empty) SBOM.
+			// The parser must not panic on malformed input.
+			if err != nil {
+				// Error is acceptable for malformed input.
+				return
+			}
+			// If no error, result must be non-nil.
+			if result == nil {
+				t.Fatal("Parse() returned nil result and nil error")
 			}
 		})
 	}

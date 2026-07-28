@@ -1,13 +1,17 @@
 // Package sbom provides parsers for Software Bill of Materials (SBOM) formats.
-// It supports CycloneDX 1.7 (JSON) and SPDX 2.3 (JSON) formats with automatic
-// format detection based on document content.
+// It supports CycloneDX (JSON, XML, YAML) and SPDX 2.3 (JSON, XML, YAML)
+// formats with automatic format detection based on document content.
 package sbom
 
 import (
+	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"strings"
 
 	"github.com/kato83/mayu/internal/purl"
+	"gopkg.in/yaml.v3"
 )
 
 // Format constants for SBOM document types.
@@ -15,6 +19,19 @@ const (
 	FormatCycloneDX = "CycloneDX"
 	FormatSPDX      = "SPDX"
 )
+
+// Encoding constants for SBOM document encodings.
+const (
+	encodingJSON = "json"
+	encodingXML  = "xml"
+	encodingYAML = "yaml"
+)
+
+// detectedFormat holds both the SBOM format and its encoding.
+type detectedFormat struct {
+	format   string
+	encoding string
+}
 
 // Component represents a single package extracted from an SBOM document.
 type Component struct {
@@ -46,42 +63,114 @@ type SBOM struct {
 }
 
 // Parse reads SBOM data and returns the parsed result. It automatically detects
-// the format (CycloneDX or SPDX) based on the JSON structure.
-// Components without a valid purl are skipped.
+// the format (CycloneDX or SPDX) and encoding (JSON, XML, or YAML) based on
+// document content. Components without a valid purl are skipped.
 func Parse(data []byte) (*SBOM, error) {
-	format, err := detectFormat(data)
+	detected, err := detectFormat(data)
 	if err != nil {
 		return nil, err
 	}
 
-	switch format {
-	case FormatCycloneDX:
+	switch {
+	case detected.format == FormatCycloneDX && detected.encoding == encodingJSON:
 		return parseCycloneDX(data)
-	case FormatSPDX:
+	case detected.format == FormatCycloneDX && detected.encoding == encodingXML:
+		return parseCycloneDXXML(data)
+	case detected.format == FormatCycloneDX && detected.encoding == encodingYAML:
+		return parseCycloneDXYAML(data)
+	case detected.format == FormatSPDX && detected.encoding == encodingJSON:
 		return parseSPDX(data)
+	case detected.format == FormatSPDX && detected.encoding == encodingXML:
+		return parseSPDXXML(data)
+	case detected.format == FormatSPDX && detected.encoding == encodingYAML:
+		return parseSPDXYAML(data)
 	default:
-		return nil, fmt.Errorf("unsupported SBOM format: %s", format)
+		return nil, fmt.Errorf("unsupported SBOM format: %s (%s)", detected.format, detected.encoding)
 	}
 }
 
-// detectFormat inspects the JSON structure to determine the SBOM format.
-func detectFormat(data []byte) (string, error) {
-	var probe struct {
+// detectFormat inspects the data to determine the SBOM format and encoding.
+// Detection strategy:
+//  1. If the content starts with '<' (after trimming whitespace), treat as XML
+//     and use an XML decoder to read the first start element for identification.
+//  2. Try JSON unmarshaling into a probe struct.
+//  3. Try YAML unmarshaling into a probe struct.
+//
+// JSON must be tried before YAML because YAML is a strict superset of JSON:
+// yaml.Unmarshal will successfully parse any valid JSON document. If the order
+// were reversed, all JSON documents would be misclassified as YAML.
+func detectFormat(data []byte) (*detectedFormat, error) {
+	trimmed := bytes.TrimSpace(data)
+
+	// Check for XML
+	if len(trimmed) > 0 && trimmed[0] == '<' {
+		return detectXMLFormat(trimmed)
+	}
+
+	// Try JSON first (must precede YAML; see function comment above).
+	var jsonProbe struct {
 		BomFormat   string `json:"bomFormat"`
 		SpdxVersion string `json:"spdxVersion"`
 	}
-	if err := json.Unmarshal(data, &probe); err != nil {
-		return "", fmt.Errorf("failed to parse SBOM JSON: %w", err)
+	if err := json.Unmarshal(data, &jsonProbe); err == nil {
+		if jsonProbe.BomFormat == "CycloneDX" {
+			return &detectedFormat{format: FormatCycloneDX, encoding: encodingJSON}, nil
+		}
+		if jsonProbe.SpdxVersion != "" {
+			return &detectedFormat{format: FormatSPDX, encoding: encodingJSON}, nil
+		}
 	}
 
-	if probe.BomFormat == "CycloneDX" {
-		return FormatCycloneDX, nil
+	// Try YAML (any valid JSON also passes yaml.Unmarshal, so this must come last).
+	var yamlProbe struct {
+		BomFormat   string `yaml:"bomFormat"`
+		SpdxVersion string `yaml:"spdxVersion"`
 	}
-	if probe.SpdxVersion != "" {
-		return FormatSPDX, nil
+	if err := yaml.Unmarshal(data, &yamlProbe); err == nil {
+		if yamlProbe.BomFormat == "CycloneDX" {
+			return &detectedFormat{format: FormatCycloneDX, encoding: encodingYAML}, nil
+		}
+		if yamlProbe.SpdxVersion != "" {
+			return &detectedFormat{format: FormatSPDX, encoding: encodingYAML}, nil
+		}
 	}
 
-	return "", fmt.Errorf("unrecognized SBOM format: missing bomFormat or spdxVersion field")
+	return nil, fmt.Errorf("unrecognized SBOM format: unable to detect format from content")
+}
+
+// detectXMLFormat determines the SBOM format from XML content by using an XML
+// decoder to read the first start element and inspect its name and namespace.
+// This avoids false positives from substring matching (e.g., a comment or CDATA
+// section that happens to contain "cyclonedx.org" or "<bom").
+func detectXMLFormat(data []byte) (*detectedFormat, error) {
+	decoder := xml.NewDecoder(bytes.NewReader(data))
+	for {
+		tok, err := decoder.Token()
+		if err != nil {
+			break
+		}
+		se, ok := tok.(xml.StartElement)
+		if !ok {
+			continue
+		}
+		// Inspect the first start element's local name and namespace.
+		localName := strings.ToLower(se.Name.Local)
+		ns := strings.ToLower(se.Name.Space)
+
+		// CycloneDX: root element is <bom> with namespace containing "cyclonedx.org"
+		if localName == "bom" || strings.Contains(ns, "cyclonedx.org") {
+			return &detectedFormat{format: FormatCycloneDX, encoding: encodingXML}, nil
+		}
+
+		// SPDX: root element is <Document> (or variants) with namespace containing "spdx.org"
+		if localName == "document" || localName == "spdxdocument" || strings.Contains(ns, "spdx.org") {
+			return &detectedFormat{format: FormatSPDX, encoding: encodingXML}, nil
+		}
+
+		// Only inspect the first start element; if it does not match, fail.
+		break
+	}
+	return nil, fmt.Errorf("unrecognized XML SBOM format")
 }
 
 // resolveComponent resolves a purl string into a Component with ecosystem and package name.

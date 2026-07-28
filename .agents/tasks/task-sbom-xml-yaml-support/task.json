@@ -1,0 +1,14 @@
+{
+  "task_id": "task-sbom-xml-yaml-support",
+  "task_description": "Add XML and YAML parsing support for SBOM formats (CycloneDX and SPDX) with updated format detection and comprehensive tests using self-created inline mock data",
+  "status": "completed",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "go build ./... succeeds. All 26 tests in ./internal/sbom/... pass (9 existing + 17 new). Tests cover CycloneDX XML/YAML and SPDX XML/YAML parsing including dev detection, skip-no-purl, empty components, and format detection for all 6 encoding variants plus error cases. Test mocks are all inline with realistic data structures matching official specs."
+  }
+}
