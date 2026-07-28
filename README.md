@@ -323,6 +323,9 @@ Audit an SBOM for known vulnerabilities.
 
 ### `mayu sbom` Authentication
 
+> [!WARNING]
+> The `mayu sbom` subcommands are **experimental**. Breaking changes to the CLI interface, API responses, or database schema may occur without notice. SBOM scan results stored in the database may be reset during schema migrations in future releases.
+
 All `mayu sbom` subcommands require the `MAYU_API_KEY` environment variable to be set with a valid API key. The API key is used to authenticate and identify the user.
 
 ```bash

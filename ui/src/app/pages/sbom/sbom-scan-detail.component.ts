@@ -89,7 +89,9 @@ import { SBOMScanResult, ScanDiff, ScanFinding } from '../../models/sbom.model';
                           <tr class="border-b border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10">
                             <td class="px-4 py-2 text-slate-900 dark:text-white font-medium">{{ finding.name }}</td>
                             <td class="px-4 py-2 text-slate-600 dark:text-slate-400">{{ finding.version }}</td>
-                            <td class="px-4 py-2 text-slate-900 dark:text-white">{{ finding.vuln_id }}</td>
+                            <td class="px-4 py-2">
+                              <a [routerLink]="['/vulnerabilities', finding.vuln_id]" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline">{{ finding.vuln_id }}</a>
+                            </td>
                             <td class="px-4 py-2">
                               <span [class]="severityClass(finding.severity)">{{ finding.severity }}</span>
                             </td>
@@ -124,7 +126,9 @@ import { SBOMScanResult, ScanDiff, ScanFinding } from '../../models/sbom.model';
                           <tr class="border-b border-green-100 dark:border-green-900/30 bg-green-50/50 dark:bg-green-900/10">
                             <td class="px-4 py-2 text-slate-900 dark:text-white font-medium">{{ finding.name }}</td>
                             <td class="px-4 py-2 text-slate-600 dark:text-slate-400">{{ finding.version }}</td>
-                            <td class="px-4 py-2 text-slate-900 dark:text-white">{{ finding.vuln_id }}</td>
+                            <td class="px-4 py-2">
+                              <a [routerLink]="['/vulnerabilities', finding.vuln_id]" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline">{{ finding.vuln_id }}</a>
+                            </td>
                             <td class="px-4 py-2">
                               <span [class]="severityClass(finding.severity)">{{ finding.severity }}</span>
                             </td>
@@ -167,7 +171,9 @@ import { SBOMScanResult, ScanDiff, ScanFinding } from '../../models/sbom.model';
                     <tr class="border-b border-slate-200 dark:border-slate-700">
                       <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ finding.name }}</td>
                       <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ finding.version }}</td>
-                      <td class="px-4 py-3 text-slate-900 dark:text-white">{{ finding.vuln_id }}</td>
+                      <td class="px-4 py-3">
+                        <a [routerLink]="['/vulnerabilities', finding.vuln_id]" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline">{{ finding.vuln_id }}</a>
+                      </td>
                       <td class="px-4 py-3">
                         <span [class]="severityClass(finding.severity)">{{ finding.severity }}</span>
                       </td>
