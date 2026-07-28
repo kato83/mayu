@@ -6,6 +6,7 @@ package sbom
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"strings"
 
@@ -91,9 +92,13 @@ func Parse(data []byte) (*SBOM, error) {
 // detectFormat inspects the data to determine the SBOM format and encoding.
 // Detection strategy:
 //  1. If the content starts with '<' (after trimming whitespace), treat as XML
-//     and probe for CycloneDX namespace or SPDX element names.
+//     and use an XML decoder to read the first start element for identification.
 //  2. Try JSON unmarshaling into a probe struct.
 //  3. Try YAML unmarshaling into a probe struct.
+//
+// JSON must be tried before YAML because YAML is a strict superset of JSON:
+// yaml.Unmarshal will successfully parse any valid JSON document. If the order
+// were reversed, all JSON documents would be misclassified as YAML.
 func detectFormat(data []byte) (*detectedFormat, error) {
 	trimmed := bytes.TrimSpace(data)
 
@@ -102,7 +107,7 @@ func detectFormat(data []byte) (*detectedFormat, error) {
 		return detectXMLFormat(trimmed)
 	}
 
-	// Try JSON
+	// Try JSON first (must precede YAML; see function comment above).
 	var jsonProbe struct {
 		BomFormat   string `json:"bomFormat"`
 		SpdxVersion string `json:"spdxVersion"`
@@ -116,7 +121,7 @@ func detectFormat(data []byte) (*detectedFormat, error) {
 		}
 	}
 
-	// Try YAML
+	// Try YAML (any valid JSON also passes yaml.Unmarshal, so this must come last).
 	var yamlProbe struct {
 		BomFormat   string `yaml:"bomFormat"`
 		SpdxVersion string `yaml:"spdxVersion"`
@@ -133,16 +138,37 @@ func detectFormat(data []byte) (*detectedFormat, error) {
 	return nil, fmt.Errorf("unrecognized SBOM format: unable to detect format from content")
 }
 
-// detectXMLFormat determines the SBOM format from XML content.
+// detectXMLFormat determines the SBOM format from XML content by using an XML
+// decoder to read the first start element and inspect its name and namespace.
+// This avoids false positives from substring matching (e.g., a comment or CDATA
+// section that happens to contain "cyclonedx.org" or "<bom").
 func detectXMLFormat(data []byte) (*detectedFormat, error) {
-	content := string(data)
-	// CycloneDX XML uses namespace containing "cyclonedx.org" or root element <bom>
-	if strings.Contains(content, "cyclonedx.org") || strings.Contains(content, "<bom") {
-		return &detectedFormat{format: FormatCycloneDX, encoding: encodingXML}, nil
-	}
-	// SPDX XML uses namespace containing "spdx.org" or elements like <spdxVersion>
-	if strings.Contains(content, "spdx.org") || strings.Contains(content, "<spdxVersion") || strings.Contains(content, "<Document") {
-		return &detectedFormat{format: FormatSPDX, encoding: encodingXML}, nil
+	decoder := xml.NewDecoder(bytes.NewReader(data))
+	for {
+		tok, err := decoder.Token()
+		if err != nil {
+			break
+		}
+		se, ok := tok.(xml.StartElement)
+		if !ok {
+			continue
+		}
+		// Inspect the first start element's local name and namespace.
+		localName := strings.ToLower(se.Name.Local)
+		ns := strings.ToLower(se.Name.Space)
+
+		// CycloneDX: root element is <bom> with namespace containing "cyclonedx.org"
+		if localName == "bom" || strings.Contains(ns, "cyclonedx.org") {
+			return &detectedFormat{format: FormatCycloneDX, encoding: encodingXML}, nil
+		}
+
+		// SPDX: root element is <Document> (or variants) with namespace containing "spdx.org"
+		if localName == "document" || localName == "spdxdocument" || strings.Contains(ns, "spdx.org") {
+			return &detectedFormat{format: FormatSPDX, encoding: encodingXML}, nil
+		}
+
+		// Only inspect the first start element; if it does not match, fail.
+		break
 	}
 	return nil, fmt.Errorf("unrecognized XML SBOM format")
 }

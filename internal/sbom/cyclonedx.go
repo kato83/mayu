@@ -39,6 +39,9 @@ type cycloneDXXMLBOM struct {
 }
 
 // cycloneDXXMLComponent represents a single component in a CycloneDX XML BOM.
+// NOTE: bom-ref is declared as an XML attribute (xml:"bom-ref,attr") which matches
+// CycloneDX schema versions 1.4 and later. Older schema versions (< 1.4) may
+// represent bom-ref differently; those documents will have this field silently empty.
 type cycloneDXXMLComponent struct {
 	Type       string                  `xml:"type,attr"`
 	Name       string                  `xml:"name"`

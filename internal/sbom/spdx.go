@@ -29,6 +29,13 @@ type spdxExternalRef struct {
 }
 
 // spdxXMLDocument represents the top-level SPDX XML document.
+// NOTE: This struct assumes a specific XML schema layout where packages are nested
+// as <packages><Package>...</Package></packages> and external refs as
+// <externalRefs><ExternalRef>...</ExternalRef></externalRefs>. This matches the
+// output of common SPDX tools (e.g., spdx-sbom-generator, syft). If a tool
+// produces a different nesting (e.g., <Package> directly under root, or lowercase
+// element names), parsing will silently return zero packages. Only the subset of
+// SPDX 2.3 XML produced with this specific element hierarchy is supported.
 type spdxXMLDocument struct {
 	XMLName     xml.Name         `xml:"Document"`
 	SpdxVersion string           `xml:"spdxVersion"`

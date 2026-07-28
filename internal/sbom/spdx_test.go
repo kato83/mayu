@@ -507,6 +507,23 @@ packages: []
 			input:   `<?xml version="1.0"?><root><unknown>data</unknown></root>`,
 			wantErr: true,
 		},
+		{
+			name: "CycloneDX XML without namespace but with bom element",
+			input: `<?xml version="1.0" encoding="UTF-8"?>
+<bom version="1"><components></components></bom>`,
+			want: FormatCycloneDX,
+		},
+		{
+			name: "XML with cyclonedx.org in namespace only",
+			input: `<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.5"><components></components></bom>`,
+			want: FormatCycloneDX,
+		},
+		{
+			name:    "XML with bom-like substring in non-root element should not match",
+			input:   `<?xml version="1.0"?><root><bombardment>data</bombardment></root>`,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -523,6 +540,74 @@ packages: []
 			}
 			if got.format != tt.want {
 				t.Errorf("detectFormat().format = %q, want %q", got.format, tt.want)
+			}
+		})
+	}
+}
+
+func TestParse_MalformedInput(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []byte
+	}{
+		{
+			name:  "truncated XML CycloneDX",
+			input: []byte(`<?xml version="1.0" encoding="UTF-8"?><bom xmlns="http://cyclonedx.org/schema/bom/1.6"><components><component type="library"><name>test</name>`),
+		},
+		{
+			name:  "truncated XML SPDX",
+			input: []byte(`<?xml version="1.0" encoding="UTF-8"?><Document xmlns="http://spdx.org/rdf/terms#"><spdxVersion>SPDX-2.3</spdxVersion><packages><Package><name>test</name>`),
+		},
+		{
+			name:  "invalid XML content after valid header",
+			input: []byte(`<?xml version="1.0" encoding="UTF-8"?><bom xmlns="http://cyclonedx.org/schema/bom/1.6"><components><not valid xml &&& !!!></components></bom>`),
+		},
+		{
+			name:  "truncated JSON CycloneDX",
+			input: []byte(`{"bomFormat": "CycloneDX", "specVersion": "1.7", "components": [{"type": "library", "name": "test"`),
+		},
+		{
+			name:  "truncated JSON SPDX",
+			input: []byte(`{"spdxVersion": "SPDX-2.3", "packages": [{"SPDXID": "SPDXRef-Pkg"`),
+		},
+		{
+			name:  "invalid YAML indentation",
+			input: []byte("bomFormat: CycloneDX\nspecVersion: \"1.6\"\ncomponents:\n\t- type: library\n\t\tname: test\n"),
+		},
+		{
+			name:  "binary garbage",
+			input: []byte{0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD, 0x89, 0x50, 0x4E, 0x47},
+		},
+		{
+			name:  "empty input",
+			input: []byte{},
+		},
+		{
+			name:  "whitespace only",
+			input: []byte("   \n\t  \n  "),
+		},
+		{
+			name:  "XML with only processing instruction",
+			input: []byte(`<?xml version="1.0" encoding="UTF-8"?>`),
+		},
+		{
+			name:  "CycloneDX JSON with invalid component purl",
+			input: []byte(`{"bomFormat": "CycloneDX", "specVersion": "1.7", "components": [{"type": "library", "name": "test", "version": "1.0.0", "purl": "not-a-valid-purl"}]}`),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := Parse(tt.input)
+			// We expect either an error or a valid (possibly empty) SBOM.
+			// The parser must not panic on malformed input.
+			if err != nil {
+				// Error is acceptable for malformed input.
+				return
+			}
+			// If no error, result must be non-nil.
+			if result == nil {
+				t.Fatal("Parse() returned nil result and nil error")
 			}
 		})
 	}
