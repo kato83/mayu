@@ -2,10 +2,8 @@ package ingest
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/kato83/mayu/internal/model"
@@ -23,8 +21,6 @@ type epssBatchStore interface {
 	RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error
 	RefreshEPSSDailyStats(ctx context.Context, dates []string) error
 	CleanupOldEPSSScores(ctx context.Context, retentionDays int) (int64, error)
-	GetMissingVulnerabilityIDs(ctx context.Context, cveIDs []string) ([]string, error)
-	InsertVulnerabilityFromCvelistV5(ctx context.Context, id, summary string, published, modified *time.Time) error
 }
 
 // ImportEPSS performs a full import of EPSS scores from the bulk CSV download.
@@ -235,14 +231,6 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 		}
 
 		batch := scores[i:end]
-
-		// Ensure all referenced vulnerabilities exist in DB.
-		// For missing CVEs, attempt to fetch from cvelistV5; skip those not found.
-		batch = ing.ensureVulnerabilitiesExist(ctx, es, batch)
-		if len(batch) == 0 {
-			continue
-		}
-
 		if err := es.UpsertEPSSBatch(ctx, batch); err != nil {
 			return inserted, fmt.Errorf("upsert EPSS batch at offset %d: %w", i, err)
 		}
@@ -529,125 +517,4 @@ func (ing *Ingester) cleanupOldEPSSScores(ctx context.Context) {
 	if deleted > 0 {
 		ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Cleaned up %d old EPSS score records", deleted)})
 	}
-}
-
-// ensureVulnerabilitiesExist checks which CVE IDs in the batch are missing from the
-// vulnerabilities table, fetches their metadata from cvelistV5, inserts them, and
-// returns only the scores whose parent vulnerability now exists.
-// CVEs not found in cvelistV5 are excluded from the returned batch.
-func (ing *Ingester) ensureVulnerabilitiesExist(ctx context.Context, es epssBatchStore, batch []*model.EPSSScore) []*model.EPSSScore {
-	// Collect unique CVE IDs from this batch
-	seen := make(map[string]struct{}, len(batch))
-	var cveIDs []string
-	for _, s := range batch {
-		if _, ok := seen[s.CVEID]; !ok {
-			seen[s.CVEID] = struct{}{}
-			if strings.HasPrefix(s.CVEID, "CVE-") {
-				cveIDs = append(cveIDs, s.CVEID)
-			}
-		}
-	}
-	if len(cveIDs) == 0 {
-		return batch
-	}
-
-	// Find which CVEs don't exist in DB yet
-	missingIDs, err := es.GetMissingVulnerabilityIDs(ctx, cveIDs)
-	if err != nil {
-		ing.logger.Printf("warning: failed to check missing vulnerabilities: %v", err)
-		return batch // proceed with the full batch; FK errors will surface from upsert
-	}
-	if len(missingIDs) == 0 {
-		return batch // all exist, nothing to do
-	}
-
-	// Attempt to fetch each missing CVE from cvelistV5 and insert
-	skipSet := make(map[string]struct{})
-	for _, cveID := range missingIDs {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		data, err := ing.fetcher.FetchCVEFromCvelistV5(ctx, cveID)
-		if err != nil {
-			ing.logger.Printf("warning: cvelistV5 fetch for %s failed: %v (skipping)", cveID, err)
-			skipSet[cveID] = struct{}{}
-			continue
-		}
-		if data == nil {
-			// Not found in cvelistV5 — skip this CVE
-			skipSet[cveID] = struct{}{}
-			continue
-		}
-
-		// Parse and insert
-		summary, published, modified := parseCvelistV5Record(data)
-		if err := es.InsertVulnerabilityFromCvelistV5(ctx, cveID, summary, published, modified); err != nil {
-			ing.logger.Printf("warning: failed to insert %s from cvelistV5: %v (skipping)", cveID, err)
-			skipSet[cveID] = struct{}{}
-		}
-	}
-
-	// Filter out scores for CVEs that couldn't be resolved
-	if len(skipSet) == 0 {
-		return batch
-	}
-
-	filtered := make([]*model.EPSSScore, 0, len(batch)-len(skipSet))
-	for _, s := range batch {
-		if _, skip := skipSet[s.CVEID]; !skip {
-			filtered = append(filtered, s)
-		}
-	}
-	return filtered
-}
-
-// parseCvelistV5Record extracts summary, published, and modified dates from a
-// cvelistV5 CVE record JSON. Returns empty/nil values if parsing fails.
-func parseCvelistV5Record(data []byte) (summary string, published, modified *time.Time) {
-	var record struct {
-		CVEMetadata struct {
-			DatePublished model.MITRETime `json:"datePublished"`
-			DateUpdated   model.MITRETime `json:"dateUpdated"`
-		} `json:"cveMetadata"`
-		Containers struct {
-			CNA *struct {
-				Descriptions []struct {
-					Lang  string `json:"lang"`
-					Value string `json:"value"`
-				} `json:"descriptions"`
-			} `json:"cna"`
-		} `json:"containers"`
-	}
-
-	if err := json.Unmarshal(data, &record); err != nil {
-		return "", nil, nil
-	}
-
-	// Extract English description as summary
-	if record.Containers.CNA != nil {
-		for _, desc := range record.Containers.CNA.Descriptions {
-			if desc.Lang == "en" || strings.HasPrefix(desc.Lang, "en") {
-				summary = desc.Value
-				break
-			}
-		}
-		// Fallback: use the first description if no English one found
-		if summary == "" && len(record.Containers.CNA.Descriptions) > 0 {
-			summary = record.Containers.CNA.Descriptions[0].Value
-		}
-	}
-
-	if !record.CVEMetadata.DatePublished.IsZero() {
-		t := record.CVEMetadata.DatePublished.Time
-		published = &t
-	}
-	if !record.CVEMetadata.DateUpdated.IsZero() {
-		t := record.CVEMetadata.DateUpdated.Time
-		modified = &t
-	}
-
-	return summary, published, modified
 }

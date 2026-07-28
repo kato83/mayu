@@ -68,9 +68,34 @@ func (s *PostgresStore) upsertEPSSChunk(ctx context.Context, scores []*model.EPS
 		return nil
 	}
 
-	// Bulk upsert EPSS scores.
-	// Assumes that all referenced vulnerability IDs already exist in the
-	// vulnerabilities table (ensured by the ingest layer's cvelistV5 fallback).
+	// --- Step 1: Bulk ensure vulnerability rows exist ---
+	// Deduplicate CVE IDs within this chunk
+	seen := make(map[string]struct{}, len(scores))
+	uniqueCVEs := make([]string, 0, len(scores))
+	for _, s := range scores {
+		if _, ok := seen[s.CVEID]; !ok {
+			seen[s.CVEID] = struct{}{}
+			uniqueCVEs = append(uniqueCVEs, s.CVEID)
+		}
+	}
+
+	vulnArgs := make([]interface{}, 0, len(uniqueCVEs))
+	vulnValues := make([]string, 0, len(uniqueCVEs))
+	for i, cveID := range uniqueCVEs {
+		vulnValues = append(vulnValues, fmt.Sprintf("($%d, NULL, NULL, NULL, NULL, NULL)", i+1))
+		vulnArgs = append(vulnArgs, cveID)
+	}
+
+	vulnQuery := `INSERT INTO vulnerabilities (id, summary, details, published, modified, withdrawn) VALUES ` +
+		strings.Join(vulnValues, ", ") +
+		` ON CONFLICT (id) DO NOTHING`
+
+	_, err := s.db.ExecContext(ctx, vulnQuery, vulnArgs...)
+	if err != nil {
+		return fmt.Errorf("bulk ensure vulnerabilities: %w", err)
+	}
+
+	// --- Step 2: Bulk upsert EPSS scores ---
 	const colsPerRow = 6
 	epssArgs := make([]interface{}, 0, len(scores)*colsPerRow)
 	epssValues := make([]string, 0, len(scores))
@@ -97,7 +122,7 @@ func (s *PostgresStore) upsertEPSSChunk(ctx context.Context, scores []*model.EPS
 			percentile = EXCLUDED.percentile,
 			raw_json = EXCLUDED.raw_json`
 
-	_, err := s.db.ExecContext(ctx, epssQuery, epssArgs...)
+	_, err = s.db.ExecContext(ctx, epssQuery, epssArgs...)
 	if err != nil {
 		return fmt.Errorf("bulk upsert epss_scores: %w", err)
 	}
@@ -407,63 +432,4 @@ func (s *PostgresStore) CleanupOldEPSSScores(ctx context.Context, retentionDays 
 	}
 
 	return deleted, nil
-}
-
-// GetMissingVulnerabilityIDs returns CVE IDs from the given list that do NOT exist
-// in the vulnerabilities table. Used by EPSS ingest to identify CVEs that need
-// to be fetched from cvelistV5 before EPSS scores can be stored.
-func (s *PostgresStore) GetMissingVulnerabilityIDs(ctx context.Context, cveIDs []string) ([]string, error) {
-	if len(cveIDs) == 0 {
-		return nil, nil
-	}
-
-	// Build parameterized query
-	placeholders := make([]string, len(cveIDs))
-	args := make([]interface{}, len(cveIDs))
-	for i, id := range cveIDs {
-		placeholders[i] = fmt.Sprintf("$%d", i+1)
-		args[i] = id
-	}
-
-	// Use EXCEPT to find IDs not in the table
-	query := fmt.Sprintf(`
-		SELECT unnest(ARRAY[%s]::text[])
-		EXCEPT
-		SELECT id FROM vulnerabilities WHERE id IN (%s)`,
-		strings.Join(placeholders, ", "),
-		strings.Join(placeholders, ", "))
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("get missing vulnerability IDs: %w", err)
-	}
-	defer func() { _ = rows.Close() }()
-
-	var result []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, fmt.Errorf("scan missing vulnerability ID: %w", err)
-		}
-		result = append(result, id)
-	}
-	return result, rows.Err()
-}
-
-// InsertVulnerabilityFromCvelistV5 inserts a new vulnerability record with data
-// fetched from the cvelistV5 repository (summary, published, modified).
-func (s *PostgresStore) InsertVulnerabilityFromCvelistV5(ctx context.Context, id, summary string, published, modified *time.Time) error {
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO vulnerabilities (id, summary, details, published, modified, withdrawn)
-		VALUES ($1, $2, NULL, $3, $4, NULL)
-		ON CONFLICT (id) DO UPDATE SET
-			summary = COALESCE(NULLIF(EXCLUDED.summary, ''), vulnerabilities.summary),
-			published = LEAST(EXCLUDED.published, vulnerabilities.published),
-			modified = GREATEST(EXCLUDED.modified, vulnerabilities.modified)`,
-		id, nullIfEmpty(summary), published, modified,
-	)
-	if err != nil {
-		return fmt.Errorf("insert vulnerability from cvelistV5: %w", err)
-	}
-	return nil
 }
