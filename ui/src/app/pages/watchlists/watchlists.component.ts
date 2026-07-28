@@ -40,7 +40,7 @@ import {
               <span i18n="@@watchlists.createTitle">Create New Watchlist</span>
             }
           </h2>
-          <form (ngSubmit)="onSubmitForm()" class="space-y-4">
+          <form #watchlistForm="ngForm" (ngSubmit)="onSubmitForm()" class="space-y-4">
             <div>
               <label for="wlName" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" i18n="@@watchlists.nameLabel">
                 Name
@@ -51,10 +51,15 @@ import {
                 [(ngModel)]="formName"
                 name="wlName"
                 required
-                class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                #wlNameCtrl="ngModel"
+                class="w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class]="wlNameCtrl.invalid && (wlNameCtrl.dirty || wlNameCtrl.touched) ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'"
                 placeholder="e.g. My Go Packages"
                 i18n-placeholder="@@watchlists.namePlaceholder"
               />
+              @if (wlNameCtrl.invalid && (wlNameCtrl.dirty || wlNameCtrl.touched)) {
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400" i18n="@@watchlists.nameRequired">Name is required.</p>
+              }
             </div>
 
             <div>
@@ -66,13 +71,18 @@ import {
                 [(ngModel)]="formMatchType"
                 name="wlMatchType"
                 required
-                class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                #wlMatchTypeCtrl="ngModel"
+                class="w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class]="wlMatchTypeCtrl.invalid && (wlMatchTypeCtrl.dirty || wlMatchTypeCtrl.touched) ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'"
               >
                 <option value="package" i18n="@@watchlists.matchType.package">Package</option>
                 <option value="purl" i18n="@@watchlists.matchType.purl">PURL</option>
                 <option value="cpe" i18n="@@watchlists.matchType.cpe">CPE</option>
                 <option value="ecosystem" i18n="@@watchlists.matchType.ecosystem">Ecosystem</option>
               </select>
+              @if (wlMatchTypeCtrl.invalid && (wlMatchTypeCtrl.dirty || wlMatchTypeCtrl.touched)) {
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400" i18n="@@watchlists.matchTypeRequired">Match type is required.</p>
+              }
             </div>
 
             <!-- Conditional fields based on match type -->
@@ -199,7 +209,7 @@ import {
             <div class="flex gap-2">
               <button
                 type="submit"
-                [disabled]="submitting()"
+                [disabled]="submitting() || watchlistForm.invalid"
                 class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-md transition-colors cursor-pointer disabled:cursor-not-allowed"
                 i18n="@@watchlists.submitButton"
               >

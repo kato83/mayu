@@ -10,7 +10,7 @@ Mayuは新しい脆弱性が取り込まれた際に、HTTP POSTリクエスト�
 Webhookは脆弱性データのインジェスト後にトリガーされます。新しい脆弱性が検出されると、Mayuはイベントタイプに一致するすべての登録済みWebhook URLにPOSTリクエストを送信します。
 
 主な機能:
-- Go `text/template` 構文による柔軟なペイロード生成
+- [Mustache](https://mustache.github.io/) テンプレート構文による柔軟なペイロード生成
 - HMAC-SHA256署名検証（`X-Webhook-Signature` ヘッダー）
 - 指数バックオフによる自動リトライ（最大3回: 1秒 → 5秒 → 30秒）
 - ワイルドカードイベント購読（`*`）
@@ -29,7 +29,7 @@ webhooks:
     events: ["new_critical", "new_high"]
     content_type: "application/json"
     body_template: |
-      {"text": "🚨 {{.ID}} ({{.Severity}}) - {{.Summary}}"}
+      {"text": "🚨 {{ID}} ({{Severity}}) - {{Summary}}"}
 
   - name: "all-vulns"
     url: "https://example.com/api/webhook"
@@ -38,13 +38,13 @@ webhooks:
     secret: "my-shared-secret"
     body_template: |
       {
-        "event": "{{.Event}}",
+        "event": "{{Event}}",
         "vulnerability": {
-          "id": "{{.ID}}",
-          "severity": "{{.Severity}}",
-          "epss": {{.EPSS}},
-          "lev": {{.LEV}},
-          "summary": "{{.Summary}}"
+          "id": "{{ID}}",
+          "severity": "{{Severity}}",
+          "epss": {{EPSS}},
+          "lev": {{LEV}},
+          "summary": "{{Summary}}"
         }
       }
 ```
@@ -57,7 +57,7 @@ mayu webhook create \
   --name "slack-alerts" \
   --url "https://hooks.slack.com/services/T00/B00/xxxx" \
   --events "new_critical,new_high" \
-  --body-template '{"text": "{{.ID}} ({{.Severity}}) - {{.Summary}}"}' \
+  --body-template '{"text": "{{ID}} ({{Severity}}) - {{Summary}}"}' \
   --secret "optional-hmac-secret"
 
 # Webhook一覧表示
@@ -90,25 +90,25 @@ mayu webhook test --id 1
 
 ## テンプレート変数
 
-`body_template` フィールドはGoの [`text/template`](https://pkg.go.dev/text/template) 構文を使用します。テンプレートコンテキストで利用可能な変数は以下のとおりです。
+`body_template` フィールドは [Mustache](https://mustache.github.io/) テンプレート構文を使用します。テンプレートコンテキストで利用可能な変数は以下のとおりです。
 
 | 変数 | 型 | 説明 | 値の例 |
 |------|-----|------|--------|
-| `{{.Event}}` | string | このWebhookをトリガーしたイベントタイプ。 | `"new_critical"` |
-| `{{.ID}}` | string | 脆弱性の識別子。 | `"CVE-2024-1234"` |
-| `{{.Severity}}` | string | 人間が読みやすい重大度レベル。 | `"CRITICAL"`, `"HIGH"`, `"MEDIUM"`, `"LOW"`, `"NONE"` |
-| `{{.EPSS}}` | float64 | EPSSスコア（0.0〜1.0）。悪用予測スコアリングシステムの確率値。 | `0.94218` |
-| `{{.LEV}}` | float64 | LEVスコア（0.0〜1.0）。悪用された可能性の確率値。 | `0.85` |
-| `{{.Summary}}` | string | 脆弱性の短い説明文。 | `"Remote code execution in ..."` |
+| `{{Event}}` | string | このWebhookをトリガーしたイベントタイプ。 | `"new_critical"` |
+| `{{ID}}` | string | 脆弱性の識別子。 | `"CVE-2024-1234"` |
+| `{{Severity}}` | string | 人間が読みやすい重大度レベル。 | `"CRITICAL"`, `"HIGH"`, `"MEDIUM"`, `"LOW"`, `"NONE"` |
+| `{{EPSS}}` | float64 | EPSSスコア（0.0〜1.0）。悪用予測スコアリングシステムの確率値。 | `0.94218` |
+| `{{LEV}}` | float64 | LEVスコア（0.0〜1.0）。悪用された可能性の確率値。 | `0.85` |
+| `{{Summary}}` | string | 脆弱性の短い説明文。 | `"Remote code execution in ..."` |
 
-> **注意:** `{{.EPSS}}` と `{{.LEV}}` は数値（float64）です。JSON文字列内で使用する場合、引用符は**不要**です。テキストコンテキストで使用する場合、小数として出力されます（例: `0.94218`）。
+> **注意:** `{{EPSS}}` と `{{LEV}}` は数値（float64）です。JSON文字列内で使用する場合、引用符は**不要**です。テキストコンテキストで使用する場合、小数として出力されます（例: `0.94218`）。
 
 ### テンプレート例
 
 **Slack Incoming Webhook:**
 
 ```
-{"text": "🚨 {{.ID}} ({{.Severity}}) - {{.Summary}}"}
+{"text": "🚨 {{ID}} ({{Severity}}) - {{Summary}}"}
 ```
 
 **Microsoft Teams:**
@@ -116,14 +116,14 @@ mayu webhook test --id 1
 ```json
 {
   "@type": "MessageCard",
-  "summary": "New Vulnerability: {{.ID}}",
+  "summary": "New Vulnerability: {{ID}}",
   "sections": [{
-    "activityTitle": "{{.ID}} — {{.Severity}}",
+    "activityTitle": "{{ID}} — {{Severity}}",
     "facts": [
-      {"name": "EPSS", "value": "{{.EPSS}}"},
-      {"name": "LEV", "value": "{{.LEV}}"}
+      {"name": "EPSS", "value": "{{EPSS}}"},
+      {"name": "LEV", "value": "{{LEV}}"}
     ],
-    "text": "{{.Summary}}"
+    "text": "{{Summary}}"
   }]
 }
 ```
@@ -132,32 +132,34 @@ mayu webhook test --id 1
 
 ```json
 {
-  "event": "{{.Event}}",
-  "id": "{{.ID}}",
-  "severity": "{{.Severity}}",
-  "epss": {{.EPSS}},
-  "lev": {{.LEV}},
-  "summary": "{{.Summary}}"
+  "event": "{{Event}}",
+  "id": "{{ID}}",
+  "severity": "{{Severity}}",
+  "epss": {{EPSS}},
+  "lev": {{LEV}},
+  "summary": "{{Summary}}"
 }
 ```
 
 **プレーンテキスト（メールゲートウェイ等）:**
 
 ```
-[{{.Severity}}] {{.ID}}: {{.Summary}} (EPSS: {{.EPSS}})
+[{{Severity}}] {{ID}}: {{Summary}} (EPSS: {{EPSS}})
 ```
 
-### 条件分岐
+### セクション（条件ブロック）
 
-Goテンプレートは条件分岐をサポートしています。例えば、EPSSが0以外の場合のみ含める:
+Mustacheはセクションによる条件レンダリングをサポートしています。セクションは `{{#variable}}` で開始し `{{/variable}}` で終了します。ブロックは変数が真値（0でない、空でない）の場合のみレンダリングされます:
 
 ```
 {
-  "id": "{{.ID}}",
-  "severity": "{{.Severity}}"{{if gt .EPSS 0.0}},
-  "epss": {{.EPSS}}{{end}}
+  "id": "{{ID}}",
+  "severity": "{{Severity}}"{{#EPSS}},
+  "epss": {{EPSS}}{{/EPSS}}
 }
 ```
+
+> **注記:** Mustacheはロジックレスなテンプレートエンジンです。複雑な条件式（数値比較など）はサポートされていません。高度な変換が必要な場合は、Mayuと送信先の間に中間サービスを配置してください。
 
 ## 署名検証
 
@@ -211,12 +213,12 @@ def verify_signature(body: bytes, secret: str, signature: str) -> bool:
 
 | 変数 | テスト値 |
 |------|---------|
-| `{{.Event}}` | `"test"` |
-| `{{.ID}}` | `"CVE-0000-0000"` |
-| `{{.Severity}}` | `"MEDIUM"` |
-| `{{.EPSS}}` | `0.5` |
-| `{{.LEV}}` | `0.3` |
-| `{{.Summary}}` | `"Test webhook delivery"` |
+| `{{Event}}` | `"test"` |
+| `{{ID}}` | `"CVE-0000-0000"` |
+| `{{Severity}}` | `"MEDIUM"` |
+| `{{EPSS}}` | `0.5` |
+| `{{LEV}}` | `0.3` |
+| `{{Summary}}` | `"Test webhook delivery"` |
 
 ## 配信ログ
 

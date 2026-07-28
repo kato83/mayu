@@ -10,9 +10,9 @@ import (
 	"os"
 	"strings"
 	"text/tabwriter"
-	"text/template"
 	"time"
 
+	"github.com/cbroglie/mustache"
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/webhook"
@@ -49,7 +49,7 @@ func runWebhookCreate(args []string, cfg *config.Config) error {
 	url := fs.String("url", "", "Webhook URL (required)")
 	events := fs.String("events", "", "Comma-separated list of events (required, e.g., 'new_critical,new_high' or '*')")
 	contentType := fs.String("content-type", "application/json", "Content-Type header for the webhook request")
-	bodyTemplate := fs.String("body-template", "", "Go text/template for the request body")
+	bodyTemplate := fs.String("body-template", "", "Mustache template for the request body")
 	secret := fs.String("secret", "", "HMAC secret for webhook signature verification")
 	enabled := fs.Bool("enabled", true, "Whether the webhook is enabled")
 
@@ -62,7 +62,7 @@ func runWebhookCreate(args []string, cfg *config.Config) error {
 		fs.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  mayu webhook create --name 'Slack Alert' --url 'https://hooks.slack.com/...' --events 'new_critical,new_high' --body-template '{\"text\": \"{{.ID}} ({{.Severity}})\"}'")
+		fmt.Println("  mayu webhook create --name 'Slack Alert' --url 'https://hooks.slack.com/...' --events 'new_critical,new_high' --body-template '{\"text\": \"{{ID}} ({{Severity}})\"}'")
 		fmt.Println("  mayu webhook create --name 'All Events' --url 'https://example.com/webhook' --events '*'")
 	}
 
@@ -230,15 +230,12 @@ func runWebhookTest(args []string, cfg *config.Config) error {
 		Summary:  "Test webhook delivery",
 	}
 
-	tmpl, err := template.New("test").Parse(wh.BodyTemplate)
+	rendered, err := mustache.Render(wh.BodyTemplate, sampleEvent)
 	if err != nil {
-		return fmt.Errorf("parse body template: %w", err)
+		return fmt.Errorf("render body template: %w", err)
 	}
 
-	var body bytes.Buffer
-	if err := tmpl.Execute(&body, sampleEvent); err != nil {
-		return fmt.Errorf("execute body template: %w", err)
-	}
+	body := bytes.NewBufferString(rendered)
 
 	fmt.Printf("Testing webhook %q (ID: %d)...\n", wh.Name, wh.ID)
 	fmt.Printf("  URL: %s\n", wh.URL)

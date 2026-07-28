@@ -10,7 +10,7 @@ Mayu can send HTTP POST notifications when new vulnerabilities are ingested. Thi
 Webhooks are triggered after vulnerability data is ingested. When new vulnerabilities are found, Mayu dispatches POST requests to all registered webhook URLs that match the event type.
 
 Key features:
-- Go `text/template` syntax for flexible payload formatting
+- [Mustache](https://mustache.github.io/) template syntax for flexible payload formatting
 - HMAC-SHA256 signature verification (`X-Webhook-Signature` header)
 - Automatic retry with exponential backoff (3 attempts: 1s → 5s → 30s)
 - Wildcard event subscription (`*`)
@@ -29,7 +29,7 @@ webhooks:
     events: ["new_critical", "new_high"]
     content_type: "application/json"
     body_template: |
-      {"text": "🚨 {{.ID}} ({{.Severity}}) - {{.Summary}}"}
+      {"text": "🚨 {{ID}} ({{Severity}}) - {{Summary}}"}
 
   - name: "all-vulns"
     url: "https://example.com/api/webhook"
@@ -38,13 +38,13 @@ webhooks:
     secret: "my-shared-secret"
     body_template: |
       {
-        "event": "{{.Event}}",
+        "event": "{{Event}}",
         "vulnerability": {
-          "id": "{{.ID}}",
-          "severity": "{{.Severity}}",
-          "epss": {{.EPSS}},
-          "lev": {{.LEV}},
-          "summary": "{{.Summary}}"
+          "id": "{{ID}}",
+          "severity": "{{Severity}}",
+          "epss": {{EPSS}},
+          "lev": {{LEV}},
+          "summary": "{{Summary}}"
         }
       }
 ```
@@ -57,7 +57,7 @@ mayu webhook create \
   --name "slack-alerts" \
   --url "https://hooks.slack.com/services/T00/B00/xxxx" \
   --events "new_critical,new_high" \
-  --body-template '{"text": "{{.ID}} ({{.Severity}}) - {{.Summary}}"}' \
+  --body-template '{"text": "{{ID}} ({{Severity}}) - {{Summary}}"}' \
   --secret "optional-hmac-secret"
 
 # List all webhooks
@@ -90,25 +90,25 @@ mayu webhook test --id 1
 
 ## Template Variables
 
-The `body_template` field uses Go's [`text/template`](https://pkg.go.dev/text/template) syntax. The following variables are available in the template context:
+The `body_template` field uses [Mustache](https://mustache.github.io/) template syntax. The following variables are available in the template context:
 
 | Variable | Type | Description | Example Value |
 |----------|------|-------------|---------------|
-| `{{.Event}}` | string | The event type that triggered this webhook. | `"new_critical"` |
-| `{{.ID}}` | string | The vulnerability identifier. | `"CVE-2024-1234"` |
-| `{{.Severity}}` | string | Human-readable severity level. | `"CRITICAL"`, `"HIGH"`, `"MEDIUM"`, `"LOW"`, `"NONE"` |
-| `{{.EPSS}}` | float64 | EPSS score (0.0 to 1.0). Exploit Prediction Scoring System probability. | `0.94218` |
-| `{{.LEV}}` | float64 | LEV score (0.0 to 1.0). Likely Exploited Vulnerability probability. | `0.85` |
-| `{{.Summary}}` | string | Short description of the vulnerability. | `"Remote code execution in ..."` |
+| `{{Event}}` | string | The event type that triggered this webhook. | `"new_critical"` |
+| `{{ID}}` | string | The vulnerability identifier. | `"CVE-2024-1234"` |
+| `{{Severity}}` | string | Human-readable severity level. | `"CRITICAL"`, `"HIGH"`, `"MEDIUM"`, `"LOW"`, `"NONE"` |
+| `{{EPSS}}` | float64 | EPSS score (0.0 to 1.0). Exploit Prediction Scoring System probability. | `0.94218` |
+| `{{LEV}}` | float64 | LEV score (0.0 to 1.0). Likely Exploited Vulnerability probability. | `0.85` |
+| `{{Summary}}` | string | Short description of the vulnerability. | `"Remote code execution in ..."` |
 
-> **Note:** `{{.EPSS}}` and `{{.LEV}}` are numeric values (float64). When used inside a JSON string, they do **not** need quotes. When used in a text context, they render as decimal numbers (e.g., `0.94218`).
+> **Note:** `{{EPSS}}` and `{{LEV}}` are numeric values (float64). When used inside a JSON string, they do **not** need quotes. When used in a text context, they render as decimal numbers (e.g., `0.94218`).
 
 ### Template Examples
 
 **Slack Incoming Webhook:**
 
 ```
-{"text": "🚨 {{.ID}} ({{.Severity}}) - {{.Summary}}"}
+{"text": "🚨 {{ID}} ({{Severity}}) - {{Summary}}"}
 ```
 
 **Microsoft Teams:**
@@ -116,14 +116,14 @@ The `body_template` field uses Go's [`text/template`](https://pkg.go.dev/text/te
 ```json
 {
   "@type": "MessageCard",
-  "summary": "New Vulnerability: {{.ID}}",
+  "summary": "New Vulnerability: {{ID}}",
   "sections": [{
-    "activityTitle": "{{.ID}} — {{.Severity}}",
+    "activityTitle": "{{ID}} — {{Severity}}",
     "facts": [
-      {"name": "EPSS", "value": "{{.EPSS}}"},
-      {"name": "LEV", "value": "{{.LEV}}"}
+      {"name": "EPSS", "value": "{{EPSS}}"},
+      {"name": "LEV", "value": "{{LEV}}"}
     ],
-    "text": "{{.Summary}}"
+    "text": "{{Summary}}"
   }]
 }
 ```
@@ -132,32 +132,34 @@ The `body_template` field uses Go's [`text/template`](https://pkg.go.dev/text/te
 
 ```json
 {
-  "event": "{{.Event}}",
-  "id": "{{.ID}}",
-  "severity": "{{.Severity}}",
-  "epss": {{.EPSS}},
-  "lev": {{.LEV}},
-  "summary": "{{.Summary}}"
+  "event": "{{Event}}",
+  "id": "{{ID}}",
+  "severity": "{{Severity}}",
+  "epss": {{EPSS}},
+  "lev": {{LEV}},
+  "summary": "{{Summary}}"
 }
 ```
 
 **Plain text (for email gateways, etc.):**
 
 ```
-[{{.Severity}}] {{.ID}}: {{.Summary}} (EPSS: {{.EPSS}})
+[{{Severity}}] {{ID}}: {{Summary}} (EPSS: {{EPSS}})
 ```
 
-### Conditional Logic
+### Sections (Conditional Blocks)
 
-Go templates support conditionals. For example, to only include EPSS when it's non-zero:
+Mustache supports sections for conditional rendering. A section begins with `{{#variable}}` and ends with `{{/variable}}`. The block is rendered only when the variable is truthy (non-zero, non-empty):
 
 ```
 {
-  "id": "{{.ID}}",
-  "severity": "{{.Severity}}"{{if gt .EPSS 0.0}},
-  "epss": {{.EPSS}}{{end}}
+  "id": "{{ID}}",
+  "severity": "{{Severity}}"{{#EPSS}},
+  "epss": {{EPSS}}{{/EPSS}}
 }
 ```
+
+> **Note:** Mustache is a logic-less template engine. Complex conditionals (e.g., numeric comparisons) are not supported. For advanced transformations, use an intermediary service between Mayu and your destination.
 
 ## Signature Verification
 
@@ -211,12 +213,12 @@ Use `mayu webhook test --id <webhook-id>` to send a test payload. The test uses 
 
 | Variable | Test Value |
 |----------|-----------|
-| `{{.Event}}` | `"test"` |
-| `{{.ID}}` | `"CVE-0000-0000"` |
-| `{{.Severity}}` | `"MEDIUM"` |
-| `{{.EPSS}}` | `0.5` |
-| `{{.LEV}}` | `0.3` |
-| `{{.Summary}}` | `"Test webhook delivery"` |
+| `{{Event}}` | `"test"` |
+| `{{ID}}` | `"CVE-0000-0000"` |
+| `{{Severity}}` | `"MEDIUM"` |
+| `{{EPSS}}` | `0.5` |
+| `{{LEV}}` | `0.3` |
+| `{{Summary}}` | `"Test webhook delivery"` |
 
 ## Delivery Logs
 

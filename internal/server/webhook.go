@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"text/template"
 	"time"
 
+	"github.com/cbroglie/mustache"
 	"github.com/go-chi/chi/v5"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/webhook"
@@ -347,23 +347,17 @@ func (s *Server) handleTestWebhook(w http.ResponseWriter, r *http.Request) {
 		Summary:  "Test webhook delivery",
 	}
 
-	tmpl, err := template.New("test").Parse(wh.BodyTemplate)
+	rendered, err := mustache.Render(wh.BodyTemplate, sampleEvent)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid body template: %v", err))
 		return
 	}
 
-	var body bytes.Buffer
-	if err := tmpl.Execute(&body, sampleEvent); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("template execution failed: %v", err))
-		return
-	}
-
-	renderedBody := body.String()
+	renderedBody := rendered
 
 	// Send the actual HTTP POST
 	start := time.Now()
-	req2, err := http.NewRequestWithContext(r.Context(), http.MethodPost, wh.URL, bytes.NewReader(body.Bytes()))
+	req2, err := http.NewRequestWithContext(r.Context(), http.MethodPost, wh.URL, bytes.NewReader([]byte(rendered)))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, fmt.Sprintf("failed to create request: %v", err))
 		return

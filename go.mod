@@ -4,14 +4,17 @@ go 1.26.5
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
+	github.com/cbroglie/mustache v1.4.0
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-chi/cors v1.2.2
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/jackc/pgx/v5 v5.10.0
+	github.com/lib/pq v1.10.9
 	github.com/package-url/packageurl-go v0.1.6
 	github.com/pandatix/go-cvss v0.6.2
 	github.com/testcontainers/testcontainers-go v0.43.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.43.0
+	github.com/yuin/goldmark v1.8.4
 	golang.org/x/crypto v0.54.0
 	golang.org/x/sync v0.22.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -42,7 +45,6 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
-	github.com/lib/pq v1.10.9 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
@@ -63,7 +65,6 @@ require (
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect
-	github.com/yuin/goldmark v1.8.4 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0 // indirect

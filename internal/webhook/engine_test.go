@@ -155,7 +155,7 @@ func TestDispatch_SuccessfulDelivery(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"new_critical"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id": "{{.ID}}"}`,
+		BodyTemplate: `{"id": "{{ID}}"}`,
 		Enabled:      true,
 	})
 
@@ -210,7 +210,7 @@ func TestDispatch_TemplateRendering(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"new_vulnerability"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"event":"{{.Event}}","id":"{{.ID}}","severity":"{{.Severity}}","epss":{{.EPSS}},"lev":{{.LEV}},"summary":"{{.Summary}}"}`,
+		BodyTemplate: `{"event":"{{Event}}","id":"{{ID}}","severity":"{{Severity}}","epss":{{EPSS}},"lev":{{LEV}},"summary":"{{Summary}}"}`,
 		Enabled:      true,
 	})
 
@@ -260,7 +260,7 @@ func TestDispatch_RetryOn500(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"new_high"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id": "{{.ID}}"}`,
+		BodyTemplate: `{"id": "{{ID}}"}`,
 		Enabled:      true,
 	})
 
@@ -318,7 +318,7 @@ func TestDispatch_NoRetryOn4xx(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"new_critical"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id": "{{.ID}}"}`,
+		BodyTemplate: `{"id": "{{ID}}"}`,
 		Enabled:      true,
 	})
 
@@ -358,7 +358,7 @@ func TestDispatch_WildcardEventMatching(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"*"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id": "{{.ID}}"}`,
+		BodyTemplate: `{"id": "{{ID}}"}`,
 		Enabled:      true,
 	})
 
@@ -400,7 +400,7 @@ func TestDispatch_DisabledWebhookSkipped(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"new_critical"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id": "{{.ID}}"}`,
+		BodyTemplate: `{"id": "{{ID}}"}`,
 		Enabled:      false,
 	})
 	// Enabled webhook
@@ -410,7 +410,7 @@ func TestDispatch_DisabledWebhookSkipped(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"new_critical"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id": "{{.ID}}"}`,
+		BodyTemplate: `{"id": "{{ID}}"}`,
 		Enabled:      true,
 	})
 
@@ -450,7 +450,7 @@ func TestDispatch_HMACSignature(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"new_critical"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id": "{{.ID}}"}`,
+		BodyTemplate: `{"id": "{{ID}}"}`,
 		Secret:       secret,
 		Enabled:      true,
 	})
@@ -502,7 +502,7 @@ func TestDispatch_MaxRetriesExhausted(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"new_critical"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id": "{{.ID}}"}`,
+		BodyTemplate: `{"id": "{{ID}}"}`,
 		Enabled:      true,
 	})
 
@@ -554,7 +554,7 @@ func TestNotifyNewVulnerabilities(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"new_critical"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id":"{{.ID}}","sev":"{{.Severity}}"}`,
+		BodyTemplate: `{"id":"{{ID}}","sev":"{{Severity}}"}`,
 		Enabled:      true,
 	})
 	store.webhooks = append(store.webhooks, &model.Webhook{
@@ -563,7 +563,7 @@ func TestNotifyNewVulnerabilities(t *testing.T) {
 		URL:          server.URL,
 		Events:       []string{"new_vulnerability"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id":"{{.ID}}","event":"{{.Event}}"}`,
+		BodyTemplate: `{"id":"{{ID}}","event":"{{Event}}"}`,
 		Enabled:      true,
 	})
 

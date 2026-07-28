@@ -84,7 +84,7 @@ func TestIngestToWebhook_E2E(t *testing.T) {
 		URL:          webhookReceiver.URL,
 		Events:       []string{"*"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"event":"{{.Event}}","id":"{{.ID}}","severity":"{{.Severity}}"}`,
+		BodyTemplate: `{"event":"{{Event}}","id":"{{ID}}","severity":"{{Severity}}"}`,
 		Enabled:      true,
 	})
 	if err != nil {
@@ -240,7 +240,7 @@ func TestIngestToWebhook_WithSeverity_E2E(t *testing.T) {
 		URL:          webhookReceiver.URL,
 		Events:       []string{"new_critical", "new_vulnerability"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"event":"{{.Event}}","id":"{{.ID}}","severity":"{{.Severity}}","summary":"{{.Summary}}"}`,
+		BodyTemplate: `{"event":"{{Event}}","id":"{{ID}}","severity":"{{Severity}}","summary":"{{Summary}}"}`,
 		Enabled:      true,
 	})
 	if err != nil {

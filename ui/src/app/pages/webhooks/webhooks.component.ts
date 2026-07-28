@@ -72,7 +72,7 @@ import { WebhookService, Webhook } from '../../services/webhook.service';
               <span i18n="@@webhooks.createTitle">Create New Webhook</span>
             }
           </h2>
-          <form (ngSubmit)="onSubmit()" class="space-y-4">
+          <form #webhookForm="ngForm" (ngSubmit)="onSubmit()" class="space-y-4">
             <div>
               <label for="webhookName" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" i18n="@@webhooks.nameLabel">
                 Name
@@ -83,10 +83,15 @@ import { WebhookService, Webhook } from '../../services/webhook.service';
                 [(ngModel)]="formName"
                 name="webhookName"
                 required
-                class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                #nameCtrl="ngModel"
+                class="w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class]="nameCtrl.invalid && (nameCtrl.dirty || nameCtrl.touched) ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'"
                 placeholder="e.g. security-team-slack"
                 i18n-placeholder="@@webhooks.namePlaceholder"
               />
+              @if (nameCtrl.invalid && (nameCtrl.dirty || nameCtrl.touched)) {
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400" i18n="@@webhooks.nameRequired">Name is required.</p>
+              }
             </div>
             <div>
               <label for="webhookUrl" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" i18n="@@webhooks.urlLabel">
@@ -98,10 +103,20 @@ import { WebhookService, Webhook } from '../../services/webhook.service';
                 [(ngModel)]="formUrl"
                 name="webhookUrl"
                 required
-                class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                pattern="https?://.+"
+                #urlCtrl="ngModel"
+                class="w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class]="urlCtrl.invalid && (urlCtrl.dirty || urlCtrl.touched) ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'"
                 placeholder="https://hooks.slack.com/services/..."
                 i18n-placeholder="@@webhooks.urlPlaceholder"
               />
+              @if (urlCtrl.invalid && (urlCtrl.dirty || urlCtrl.touched)) {
+                @if (urlCtrl.errors?.['required']) {
+                  <p class="mt-1 text-xs text-red-600 dark:text-red-400" i18n="@@webhooks.urlRequired">URL is required.</p>
+                } @else {
+                  <p class="mt-1 text-xs text-red-600 dark:text-red-400" i18n="@@webhooks.urlInvalid">Please enter a valid URL (http:// or https://).</p>
+                }
+              }
             </div>
             <div>
               <label for="webhookEvents" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" i18n="@@webhooks.eventsLabel">
@@ -113,10 +128,15 @@ import { WebhookService, Webhook } from '../../services/webhook.service';
                 [(ngModel)]="formEvents"
                 name="webhookEvents"
                 required
-                class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                #eventsCtrl="ngModel"
+                class="w-full px-3 py-2 border rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class]="eventsCtrl.invalid && (eventsCtrl.dirty || eventsCtrl.touched) ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'"
                 placeholder="new_critical, new_high, *"
                 i18n-placeholder="@@webhooks.eventsPlaceholder"
               />
+              @if (eventsCtrl.invalid && (eventsCtrl.dirty || eventsCtrl.touched)) {
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400" i18n="@@webhooks.eventsRequired">Events are required.</p>
+              }
             </div>
             <div>
               <label for="webhookContentType" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" i18n="@@webhooks.contentTypeLabel">
@@ -174,7 +194,7 @@ import { WebhookService, Webhook } from '../../services/webhook.service';
             <div class="flex gap-2">
               <button
                 type="submit"
-                [disabled]="submitting()"
+                [disabled]="submitting() || webhookForm.invalid"
                 class="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-md transition-colors cursor-pointer disabled:cursor-not-allowed"
                 i18n="@@webhooks.saveButton"
               >

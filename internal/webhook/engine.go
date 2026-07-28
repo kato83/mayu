@@ -10,9 +10,9 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"text/template"
 	"time"
 
+	"github.com/cbroglie/mustache"
 	"github.com/kato83/mayu/internal/model"
 )
 
@@ -104,20 +104,14 @@ func (e *Engine) Dispatch(ctx context.Context, event string, data []WebhookEvent
 	}
 
 	for _, wh := range webhooks {
-		tmpl, err := template.New("body").Parse(wh.BodyTemplate)
-		if err != nil {
-			e.logger.Printf("webhook: failed to parse template for webhook %q: %v", wh.Name, err)
-			continue
-		}
-
 		for _, item := range data {
-			var body bytes.Buffer
-			if err := tmpl.Execute(&body, item); err != nil {
+			rendered, err := mustache.Render(wh.BodyTemplate, item)
+			if err != nil {
 				e.logger.Printf("webhook: failed to render template for webhook %q, item %s: %v", wh.Name, item.ID, err)
 				continue
 			}
 
-			e.deliver(ctx, wh, event, body.Bytes())
+			e.deliver(ctx, wh, event, []byte(rendered))
 		}
 	}
 }

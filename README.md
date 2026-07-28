@@ -461,7 +461,7 @@ Create a new webhook for notifications.
 **Examples:**
 
 ```bash
-mayu webhook create --name "security-team-slack" --url "https://hooks.slack.com/services/T00/B00/xxxx" --events "new_critical,new_high" --body-template '{"text": "{{.ID}} ({{.Severity}}) - {{.Summary}}"}'
+mayu webhook create --name "security-team-slack" --url "https://hooks.slack.com/services/T00/B00/xxxx" --events "new_critical,new_high" --body-template '{"text": "{{ID}} ({{Severity}}) - {{Summary}}"}'
 mayu webhook create --name "all-vulns" --url "https://example.com/webhook" --events "*"
 ```
 
@@ -570,7 +570,7 @@ webhooks:
     events: ["new_critical", "new_high"]
     content_type: "application/json"
     body_template: |
-      {"text": "🚨 {{.ID}} ({{.Severity}}) - {{.Summary}}"}
+      {"text": "🚨 {{ID}} ({{Severity}}) - {{Summary}}"}
 
   - name: "all-vulns-generic"
     url: "https://my-internal-system.example.com/api/webhook"
@@ -578,13 +578,13 @@ webhooks:
     content_type: "application/json"
     body_template: |
       {
-        "event": "{{.Event}}",
+        "event": "{{Event}}",
         "vulnerability": {
-          "id": "{{.ID}}",
-          "severity": "{{.Severity}}",
-          "epss": {{.EPSS}},
-          "lev": {{.LEV}},
-          "summary": "{{.Summary}}"
+          "id": "{{ID}}",
+          "severity": "{{Severity}}",
+          "epss": {{EPSS}},
+          "lev": {{LEV}},
+          "summary": "{{Summary}}"
         }
       }
 ```

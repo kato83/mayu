@@ -17,7 +17,7 @@ func TestMockStore_CreateWebhook(t *testing.T) {
 		URL:          "https://example.com/webhook",
 		Events:       []string{"new_critical", "new_high"},
 		ContentType:  "application/json",
-		BodyTemplate: `{"id": "{{.ID}}"}`,
+		BodyTemplate: `{"id": "{{ID}}"}`,
 		Secret:       "secret123",
 		Enabled:      true,
 	}

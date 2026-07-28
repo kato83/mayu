@@ -167,7 +167,7 @@ func TestCreateWebhook(t *testing.T) {
 	ws := newMockWebhookStore()
 	srv := newTestServerWithWebhook(ws)
 
-	body := `{"name":"test-webhook","url":"https://example.com/hook","events":["new_critical","new_high"],"content_type":"application/json","body_template":"{\"text\":\"{{.ID}}\"}","enabled":true}`
+	body := `{"name":"test-webhook","url":"https://example.com/hook","events":["new_critical","new_high"],"content_type":"application/json","body_template":"{\"text\":\"{{ID}}\"}","enabled":true}`
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -481,7 +481,7 @@ func TestTestWebhook(t *testing.T) {
 			URL:          testServer.URL,
 			Events:       []string{"*"},
 			ContentType:  "application/json",
-			BodyTemplate: `{"event":"{{.Event}}","id":"{{.ID}}","severity":"{{.Severity}}"}`,
+			BodyTemplate: `{"event":"{{Event}}","id":"{{ID}}","severity":"{{Severity}}"}`,
 			Enabled:      true,
 			CreatedAt:    time.Now(),
 			UpdatedAt:    time.Now(),
