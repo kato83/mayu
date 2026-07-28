@@ -322,6 +322,14 @@ SBOM の脆弱性監査を実行します。
 - CycloneDX 1.7 (JSON) — `scope` および `cdx:npm:package:development` プロパティで開発依存を検出
 - SPDX 2.3 (JSON) — 全パッケージを本番依存として扱う（SPDXにはdev/prod区別なし）
 
+### `mayu sbom` 認証
+
+全ての `mayu sbom` サブコマンドは `MAYU_API_KEY` 環境変数に有効な API キーを設定する必要があります。API キーはユーザーの認証・識別に使用されます。
+
+```bash
+export MAYU_API_KEY=your-api-key
+```
+
 ### `mayu sbom upload`
 
 SBOM ファイルをアップロードし、脆弱性スキャンを実行します。
@@ -336,6 +344,7 @@ SBOM ファイルをアップロードし、脆弱性スキャンを実行しま
 **使用例:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu sbom upload --project my-app --version 1.0.0 --sbom bom.json
 mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment production
 ```
@@ -352,6 +361,7 @@ mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment 
 **使用例:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu sbom scan --project my-app
 mayu sbom scan --project my-app --version 1.0.0
 ```
@@ -367,6 +377,7 @@ SBOM プロジェクト一覧またはプロジェクト内のバージョン一
 **使用例:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu sbom list                    # 全プロジェクト一覧
 mayu sbom list --project my-app   # プロジェクト内のバージョン一覧
 ```

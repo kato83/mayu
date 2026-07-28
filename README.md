@@ -321,6 +321,14 @@ Audit an SBOM for known vulnerabilities.
 - CycloneDX 1.7 (JSON) — dev dependencies detected via `scope` and `cdx:npm:package:development` property
 - SPDX 2.3 (JSON) — all packages treated as production (SPDX lacks dev/prod distinction)
 
+### `mayu sbom` Authentication
+
+All `mayu sbom` subcommands require the `MAYU_API_KEY` environment variable to be set with a valid API key. The API key is used to authenticate and identify the user.
+
+```bash
+export MAYU_API_KEY=your-api-key
+```
+
 ### `mayu sbom upload`
 
 Upload an SBOM file and run a vulnerability scan.
@@ -335,6 +343,7 @@ Upload an SBOM file and run a vulnerability scan.
 **Examples:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu sbom upload --project my-app --version 1.0.0 --sbom bom.json
 mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment production
 ```
@@ -351,6 +360,7 @@ Re-scan an existing SBOM version for vulnerabilities using the latest vulnerabil
 **Examples:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu sbom scan --project my-app
 mayu sbom scan --project my-app --version 1.0.0
 ```
@@ -366,6 +376,7 @@ List SBOM projects or versions within a project.
 **Examples:**
 
 ```bash
+export MAYU_API_KEY=your-api-key
 mayu sbom list                    # List all projects
 mayu sbom list --project my-app   # List versions for a project
 ```

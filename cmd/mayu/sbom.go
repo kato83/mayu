@@ -46,19 +46,22 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 	version := fs.String("version", "", "SBOM version (required)")
 	sbomPath := fs.String("sbom", "", "Path to SBOM file (required)")
 	environment := fs.String("environment", "", "Environment (e.g., 'production', 'staging')")
-	userEmail := fs.String("user-email", "", "Email of the user who owns this project (required)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu sbom upload [options]")
 		fmt.Println()
 		fmt.Println("Upload an SBOM file and run vulnerability scan.")
 		fmt.Println()
+		fmt.Println("Authentication:")
+		fmt.Println("  Set MAYU_API_KEY environment variable with a valid API key.")
+		fmt.Println()
 		fmt.Println("Options:")
 		fs.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  mayu sbom upload --project my-app --version 1.0.0 --sbom bom.json --user-email admin@example.com")
-		fmt.Println("  mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment production --user-email admin@example.com")
+		fmt.Println("  export MAYU_API_KEY=your-api-key")
+		fmt.Println("  mayu sbom upload --project my-app --version 1.0.0 --sbom bom.json")
+		fmt.Println("  mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment production")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -74,8 +77,11 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 	if *sbomPath == "" {
 		return fmt.Errorf("--sbom is required")
 	}
-	if *userEmail == "" {
-		return fmt.Errorf("--user-email is required")
+
+	// Authenticate via API key
+	apiKey := os.Getenv("MAYU_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("MAYU_API_KEY environment variable is required for authentication")
 	}
 
 	// Read SBOM file
@@ -97,14 +103,12 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 		return fmt.Errorf("connect to database: %w", err)
 	}
 
-	// Lookup user by email
+	// Validate API key and resolve user
 	authStore := auth.NewPostgresAuthStore(db)
-	user, err := authStore.GetUserByEmail(ctx, *userEmail)
+	authProvider := auth.NewLocalAuthProvider(authStore, authStore, authStore, 0)
+	user, err := authProvider.ValidateAPIKey(ctx, apiKey)
 	if err != nil {
-		return fmt.Errorf("lookup user: %w", err)
-	}
-	if user == nil {
-		return fmt.Errorf("user not found with email: %s", *userEmail)
+		return fmt.Errorf("authenticate: %w", err)
 	}
 	userID := user.ID
 
@@ -196,19 +200,22 @@ func runSBOMScan(args []string, cfg *config.Config) error {
 
 	project := fs.String("project", "", "Project name (required)")
 	version := fs.String("version", "", "Version to scan (default: latest)")
-	userEmail := fs.String("user-email", "", "Email of the user who owns this project (required)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu sbom scan [options]")
 		fmt.Println()
 		fmt.Println("Re-scan an existing SBOM version for vulnerabilities.")
 		fmt.Println()
+		fmt.Println("Authentication:")
+		fmt.Println("  Set MAYU_API_KEY environment variable with a valid API key.")
+		fmt.Println()
 		fmt.Println("Options:")
 		fs.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  mayu sbom scan --project my-app --user-email admin@example.com")
-		fmt.Println("  mayu sbom scan --project my-app --version 1.0.0 --user-email admin@example.com")
+		fmt.Println("  export MAYU_API_KEY=your-api-key")
+		fmt.Println("  mayu sbom scan --project my-app")
+		fmt.Println("  mayu sbom scan --project my-app --version 1.0.0")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -218,8 +225,11 @@ func runSBOMScan(args []string, cfg *config.Config) error {
 	if *project == "" {
 		return fmt.Errorf("--project is required")
 	}
-	if *userEmail == "" {
-		return fmt.Errorf("--user-email is required")
+
+	// Authenticate via API key
+	apiKey := os.Getenv("MAYU_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("MAYU_API_KEY environment variable is required for authentication")
 	}
 
 	// Connect to database
@@ -235,14 +245,12 @@ func runSBOMScan(args []string, cfg *config.Config) error {
 		return fmt.Errorf("connect to database: %w", err)
 	}
 
-	// Lookup user by email
+	// Validate API key and resolve user
 	authStore := auth.NewPostgresAuthStore(db)
-	user, err := authStore.GetUserByEmail(ctx, *userEmail)
+	authProvider := auth.NewLocalAuthProvider(authStore, authStore, authStore, 0)
+	user, err := authProvider.ValidateAPIKey(ctx, apiKey)
 	if err != nil {
-		return fmt.Errorf("lookup user: %w", err)
-	}
-	if user == nil {
-		return fmt.Errorf("user not found with email: %s", *userEmail)
+		return fmt.Errorf("authenticate: %w", err)
 	}
 	userID := user.ID
 
@@ -335,27 +343,32 @@ func runSBOMList(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("sbom list", flag.ContinueOnError)
 
 	project := fs.String("project", "", "Project name (if omitted, lists all projects)")
-	userEmail := fs.String("user-email", "", "Email of the user who owns the projects (required)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu sbom list [options]")
 		fmt.Println()
 		fmt.Println("List SBOM projects or versions.")
 		fmt.Println()
+		fmt.Println("Authentication:")
+		fmt.Println("  Set MAYU_API_KEY environment variable with a valid API key.")
+		fmt.Println()
 		fmt.Println("Options:")
 		fs.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  mayu sbom list --user-email admin@example.com")
-		fmt.Println("  mayu sbom list --project my-app --user-email admin@example.com")
+		fmt.Println("  export MAYU_API_KEY=your-api-key")
+		fmt.Println("  mayu sbom list")
+		fmt.Println("  mayu sbom list --project my-app")
 	}
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	if *userEmail == "" {
-		return fmt.Errorf("--user-email is required")
+	// Authenticate via API key
+	apiKey := os.Getenv("MAYU_API_KEY")
+	if apiKey == "" {
+		return fmt.Errorf("MAYU_API_KEY environment variable is required for authentication")
 	}
 
 	// Connect to database
@@ -371,14 +384,12 @@ func runSBOMList(args []string, cfg *config.Config) error {
 		return fmt.Errorf("connect to database: %w", err)
 	}
 
-	// Lookup user by email
+	// Validate API key and resolve user
 	authStore := auth.NewPostgresAuthStore(db)
-	user, err := authStore.GetUserByEmail(ctx, *userEmail)
+	authProvider := auth.NewLocalAuthProvider(authStore, authStore, authStore, 0)
+	user, err := authProvider.ValidateAPIKey(ctx, apiKey)
 	if err != nil {
-		return fmt.Errorf("lookup user: %w", err)
-	}
-	if user == nil {
-		return fmt.Errorf("user not found with email: %s", *userEmail)
+		return fmt.Errorf("authenticate: %w", err)
 	}
 	userID := user.ID
 
@@ -436,6 +447,9 @@ func printSBOMUsage() {
 	fmt.Println("Usage: mayu sbom <subcommand> [options]")
 	fmt.Println()
 	fmt.Println("Manage SBOM continuous monitoring.")
+	fmt.Println()
+	fmt.Println("Authentication:")
+	fmt.Println("  All subcommands require the MAYU_API_KEY environment variable to be set.")
 	fmt.Println()
 	fmt.Println("Subcommands:")
 	fmt.Println("  upload    Upload an SBOM file and run vulnerability scan")
