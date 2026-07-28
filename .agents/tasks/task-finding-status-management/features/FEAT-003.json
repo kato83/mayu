@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Add Angular UI components for finding status management: a status dropdown per finding row in the scan detail view, a justification modal for risk_accepted status, and status filter controls in the findings list.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Add FindingStatusUpdate interface and FindingStatusEntry interface to ui/src/app/models/sbom.model.ts. FindingStatusUpdate: { status: string, justification?: string, purl: string, expires_at?: string }. FindingStatusEntry: { id: number, version_id: number, vuln_id: string, purl: string, status: string, justification?: string, updated_by: number, updated_at: string, expires_at?: string }.",
     "Add updateFindingStatus(scanId: number, vulnId: string, body: FindingStatusUpdate) and listFindingStatuses(scanId: number, statusFilter?: string[]) methods to ui/src/app/services/sbom.service.ts.",
@@ -23,5 +23,5 @@
     "cd /projects/sandbox/mayu && go test ./internal/sbommon/ -v -count=1"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "TypeScript compiles cleanly with tsc --noEmit. All 146 UI tests pass. Go build and tests also pass. pnpm and node v22.23.1 were available in this sandbox."
 }
