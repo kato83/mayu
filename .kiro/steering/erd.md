@@ -427,6 +427,7 @@ erDiagram
 
     webhooks {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT user_id FK "→ users(id) CASCADE (nullable)"
         TEXT name "NOT NULL"
         TEXT url "NOT NULL"
         TEXT_ARRAY events "NOT NULL"
@@ -476,6 +477,39 @@ erDiagram
         TIMESTAMPTZ notified_at "nullable"
     }
 
+    sbom_projects {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT user_id FK "→ users(id) CASCADE"
+        TEXT name "NOT NULL"
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+        TIMESTAMPTZ updated_at "DEFAULT NOW()"
+    }
+
+    sbom_versions {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT project_id FK "→ sbom_projects(id) CASCADE"
+        TEXT version "NOT NULL"
+        TEXT environment "nullable"
+        TEXT sbom_format "NOT NULL"
+        JSONB raw_sbom "NOT NULL"
+        INT component_count "NOT NULL"
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+    }
+
+    sbom_scan_results {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT version_id FK "→ sbom_versions(id) CASCADE"
+        TIMESTAMPTZ scanned_at "DEFAULT NOW()"
+        INT total_packages "NOT NULL"
+        INT vulnerable_packages "NOT NULL"
+        INT total_findings "NOT NULL"
+        INT new_findings "NOT NULL DEFAULT 0"
+        INT resolved_findings "NOT NULL DEFAULT 0"
+        JSONB findings "NOT NULL"
+        TEXT status "NOT NULL DEFAULT completed: completed, failed"
+        TEXT trigger "NOT NULL DEFAULT manual: manual, ingest, api"
+    }
+
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--|| vulnerability_summary : "has"
     vulnerabilities ||--o{ product_identifiers : "has"
@@ -508,9 +542,13 @@ erDiagram
     users ||--o{ api_keys : "has"
     users ||--o{ sessions : "has"
     webhooks ||--o{ webhook_delivery_logs : "has"
+    users ||--o{ webhooks : "has"
     users ||--o{ watchlists : "has"
     watchlists ||--o{ watchlist_matches : "has"
     vulnerabilities ||--o{ watchlist_matches : "has"
+    users ||--o{ sbom_projects : "has"
+    sbom_projects ||--o{ sbom_versions : "has"
+    sbom_versions ||--o{ sbom_scan_results : "has"
     eol_products ||--o{ eol_releases : "has"
     eol_products ||--o{ eol_identifiers : "has"
 
@@ -1026,6 +1064,7 @@ erDiagram
 
     webhooks {
         BIGINT id PK
+        BIGINT user_id FK
         TEXT name
         TEXT url
         TEXT_ARRAY events
@@ -1065,11 +1104,48 @@ erDiagram
         BOOLEAN notified
     }
 
+    sbom_projects {
+        BIGINT id PK
+        BIGINT user_id FK
+        TEXT name
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    sbom_versions {
+        BIGINT id PK
+        BIGINT project_id FK
+        TEXT version
+        TEXT environment
+        TEXT sbom_format
+        JSONB raw_sbom
+        INT component_count
+        TIMESTAMPTZ created_at
+    }
+
+    sbom_scan_results {
+        BIGINT id PK
+        BIGINT version_id FK
+        TIMESTAMPTZ scanned_at
+        INT total_packages
+        INT vulnerable_packages
+        INT total_findings
+        INT new_findings
+        INT resolved_findings
+        JSONB findings
+        TEXT status
+        TEXT trigger
+    }
+
     users ||--o{ api_keys : "has"
     users ||--o{ sessions : "has"
+    users ||--o{ webhooks : "has"
     users ||--o{ watchlists : "has"
+    users ||--o{ sbom_projects : "has"
     webhooks ||--o{ webhook_delivery_logs : "has"
     watchlists ||--o{ watchlist_matches : "has"
+    sbom_projects ||--o{ sbom_versions : "has"
+    sbom_versions ||--o{ sbom_scan_results : "has"
 ```
 
 ### Translation (i18n)
