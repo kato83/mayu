@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 
 import { IngestService } from '../../services/ingest.service';
 import { VulnerabilityService } from '../../services/vulnerability.service';
+import { AuthService } from '../../services/auth.service';
 import { IngestType, IngestEvent } from '../../models/ingest.model';
 
 interface IngestOption {
@@ -29,6 +30,15 @@ interface IngestOption {
           Import vulnerability data from various sources into the local database.
         </p>
       </div>
+
+      <!-- Admin-only notice -->
+      @if (!isAdmin()) {
+        <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <p class="text-sm font-medium text-amber-800 dark:text-amber-200" i18n="@@ingest.adminOnly">
+            Data ingest is restricted to admin users. Contact your administrator for access.
+          </p>
+        </div>
+      }
 
       <!-- Configuration panel -->
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
@@ -129,7 +139,7 @@ interface IngestOption {
           <div>
             <button
               (click)="startIngest()"
-              [disabled]="!canStart()"
+              [disabled]="!canStart() || !isAdmin()"
               class="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               @if (running()) {
@@ -210,6 +220,9 @@ export class IngestComponent implements OnInit, OnDestroy {
   private readonly ingestService = inject(IngestService);
   private readonly vulnerabilityService = inject(VulnerabilityService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly authService = inject(AuthService);
+
+  readonly isAdmin = computed(() => this.authService.currentUser()?.role === 'admin');
 
   private streamSub: Subscription | null = null;
   readonly ingestOptions: IngestOption[] = [

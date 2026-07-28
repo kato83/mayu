@@ -496,6 +496,34 @@
           <context context-type="linenumber">148,149</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="apiKeys.deleteConfirmTitle" datatype="html">
+        <source> Delete API Key </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/api-keys/api-keys.component.ts</context>
+          <context context-type="linenumber">163,165</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="apiKeys.deleteConfirmMessage" datatype="html">
+        <source> Are you sure you want to delete this API key? Any integrations using this key will stop working immediately. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/api-keys/api-keys.component.ts</context>
+          <context context-type="linenumber">166,168</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="apiKeys.cancelDeleteButton" datatype="html">
+        <source> Cancel </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/api-keys/api-keys.component.ts</context>
+          <context context-type="linenumber">174,176</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="apiKeys.confirmDeleteButton" datatype="html">
+        <source> Delete </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/api-keys/api-keys.component.ts</context>
+          <context context-type="linenumber">181,183</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="dashboard.totalVulnerabilities" datatype="html">
         <source>Total Vulnerabilities</source>
         <context-group purpose="location">
@@ -830,217 +858,224 @@
         <source>Data Ingest</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">27,28</context>
+          <context context-type="linenumber">28,29</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.description" datatype="html">
         <source> Import vulnerability data from various sources into the local database. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">29,31</context>
+          <context context-type="linenumber">30,32</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ingest.adminOnly" datatype="html">
+        <source> Data ingest is restricted to admin users. Contact your administrator for access. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
+          <context context-type="linenumber">38,40</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.typeLabel" datatype="html">
         <source> Ingest Type </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">39,40</context>
+          <context context-type="linenumber">49,50</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.ecosystemLabel" datatype="html">
         <source> Ecosystem </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">57,58</context>
+          <context context-type="linenumber">67,68</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.ecosystemLoading" datatype="html">
         <source>Loading ecosystems...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">60,62</context>
+          <context context-type="linenumber">70,72</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.ecosystemPlaceholder" datatype="html">
         <source>-- All Ecosystems --</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">68,69</context>
+          <context context-type="linenumber">78,79</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.repoLabel" datatype="html">
         <source> Repository (owner/repo) </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">81,82</context>
+          <context context-type="linenumber">91,92</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.repoPlaceholder" datatype="html">
         <source>e.g. WordPress/wordpress-develop</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">88,89</context>
+          <context context-type="linenumber">98,99</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.fromLabel" datatype="html">
         <source> From (YYYY-MM-DD) </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">100,101</context>
+          <context context-type="linenumber">110,111</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.toLabel" datatype="html">
         <source> To (YYYY-MM-DD) </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">112,113</context>
+          <context context-type="linenumber">122,123</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.datesHint" datatype="html">
         <source> Leave empty to use defaults (2023-03-07 to today). </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">124,126</context>
+          <context context-type="linenumber">134,136</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.running" datatype="html">
         <source>Running...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">140,141</context>
+          <context context-type="linenumber">150,151</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.startButton" datatype="html">
         <source>Start Ingest</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">142,144</context>
+          <context context-type="linenumber">152,154</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.progressTitle" datatype="html">
         <source>Progress</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">152,154</context>
+          <context context-type="linenumber">162,164</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.statusDone" datatype="html">
         <source>Ingest completed successfully.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">175,177</context>
+          <context context-type="linenumber">185,187</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.statusError" datatype="html">
         <source>Ingest failed.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">183,185</context>
+          <context context-type="linenumber">193,195</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.logTitle" datatype="html">
         <source>Event Log</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">189,190</context>
+          <context context-type="linenumber">199,200</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.osv" datatype="html">
         <source>OSV (Full)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">216</context>
+          <context context-type="linenumber">229</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.osvUpdate" datatype="html">
         <source>OSV (Delta Update)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">217</context>
+          <context context-type="linenumber">230</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.osvNvd" datatype="html">
         <source>OSV - NVD (Converted)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">218</context>
+          <context context-type="linenumber">231</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.osvDebian" datatype="html">
         <source>OSV - Debian (Converted)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">219</context>
+          <context context-type="linenumber">232</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.nvd" datatype="html">
         <source>NVD (Native)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">220</context>
+          <context context-type="linenumber">233</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.nvdUpdate" datatype="html">
         <source>NVD (Delta Update)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">221</context>
+          <context context-type="linenumber">234</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.mitre" datatype="html">
         <source>MITRE</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">222</context>
+          <context context-type="linenumber">235</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.mitreUpdate" datatype="html">
         <source>MITRE (Delta Update)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">223</context>
+          <context context-type="linenumber">236</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.epss" datatype="html">
         <source>EPSS</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">224</context>
+          <context context-type="linenumber">237</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.epssUpdate" datatype="html">
         <source>EPSS (Delta Update)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">225</context>
+          <context context-type="linenumber">238</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.epssBackfill" datatype="html">
         <source>EPSS (Backfill)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">226</context>
+          <context context-type="linenumber">239</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.kev" datatype="html">
         <source>KEV</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">227</context>
+          <context context-type="linenumber">240</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.kevUpdate" datatype="html">
         <source>KEV (Delta Update)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">228</context>
+          <context context-type="linenumber">241</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingest.option.ghsa" datatype="html">
         <source>GitHub Security Advisories</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/ingest/ingest.component.ts</context>
-          <context context-type="linenumber">229</context>
+          <context context-type="linenumber">242</context>
         </context-group>
       </trans-unit>
       <trans-unit id="login.title" datatype="html">
@@ -1546,11 +1581,11 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">115,116</context>
+          <context context-type="linenumber">117,118</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">158,159</context>
+          <context context-type="linenumber">162,163</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.scan.col.version" datatype="html">
@@ -1561,11 +1596,11 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">116,117</context>
+          <context context-type="linenumber">118,119</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">159,160</context>
+          <context context-type="linenumber">163,164</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.scan.col.vulnId" datatype="html">
@@ -1576,11 +1611,11 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">117,118</context>
+          <context context-type="linenumber">119,120</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">160,161</context>
+          <context context-type="linenumber">164,165</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.scan.col.severity" datatype="html">
@@ -1591,11 +1626,11 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">118,119</context>
+          <context context-type="linenumber">120,121</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">161,162</context>
+          <context context-type="linenumber">165,166</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.scan.col.summary" datatype="html">
@@ -1606,32 +1641,32 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">119,121</context>
+          <context context-type="linenumber">121,123</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">162,164</context>
+          <context context-type="linenumber">166,168</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.scan.resolvedFindings" datatype="html">
         <source> Resolved Findings </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">109,110</context>
+          <context context-type="linenumber">111,112</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.scan.findingsTitle" datatype="html">
         <source> All Findings </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">146,149</context>
+          <context context-type="linenumber">150,153</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.scan.noFindings" datatype="html">
         <source> No vulnerabilities found in this scan. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-scan-detail.component.ts</context>
-          <context context-type="linenumber">151,153</context>
+          <context context-type="linenumber">155,157</context>
         </context-group>
       </trans-unit>
       <trans-unit id="status.title" datatype="html">

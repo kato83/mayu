@@ -154,6 +154,36 @@ import { ApiKeyService, APIKey } from '../../services/api-key.service';
           </table>
         </div>
       }
+
+      <!-- Delete confirmation dialog -->
+      @if (confirmDelete()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div class="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-2" i18n="@@apiKeys.deleteConfirmTitle">
+              Delete API Key
+            </h3>
+            <p class="text-sm text-slate-600 dark:text-slate-400 mb-4" i18n="@@apiKeys.deleteConfirmMessage">
+              Are you sure you want to delete this API key? Any integrations using this key will stop working immediately.
+            </p>
+            <div class="flex gap-2 justify-end">
+              <button
+                (click)="confirmDelete.set(null)"
+                class="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-md transition-colors cursor-pointer"
+                i18n="@@apiKeys.cancelDeleteButton"
+              >
+                Cancel
+              </button>
+              <button
+                (click)="onConfirmDelete()"
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition-colors cursor-pointer"
+                i18n="@@apiKeys.confirmDeleteButton"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
 })
@@ -166,6 +196,7 @@ export class ApiKeysComponent implements OnInit {
   readonly showCreateForm = signal(false);
   readonly createdKey = signal<string>('');
   readonly copied = signal(false);
+  readonly confirmDelete = signal<APIKey | null>(null);
 
   newKeyName = '';
   newKeyExpiry = '';
@@ -210,8 +241,15 @@ export class ApiKeysComponent implements OnInit {
   }
 
   onDelete(key: APIKey): void {
+    this.confirmDelete.set(key);
+  }
+
+  onConfirmDelete(): void {
+    const key = this.confirmDelete();
+    if (!key) return;
     this.apiKeyService.delete(key.id).subscribe({
       next: () => {
+        this.confirmDelete.set(null);
         this.loadKeys();
       },
     });

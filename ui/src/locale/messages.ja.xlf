@@ -490,6 +490,10 @@
         <source> Import vulnerability data from various sources into the local database. </source>
         <target>各種ソースから脆弱性データをローカルデータベースに取り込みます。</target>
       </trans-unit>
+      <trans-unit id="ingest.adminOnly" datatype="html">
+        <source> Data ingest is restricted to admin users. Contact your administrator for access. </source>
+        <target>データ取込は管理者ユーザーに制限されています。アクセスが必要な場合は管理者にお問い合わせください。</target>
+      </trans-unit>
       <trans-unit id="ingest.typeLabel" datatype="html">
         <source> Ingest Type </source>
         <target>取込タイプ</target>
@@ -943,6 +947,22 @@
         <target>無期限</target>
       </trans-unit>
       <trans-unit id="apiKeys.deleteButton" datatype="html">
+        <source> Delete </source>
+        <target>削除</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.deleteConfirmTitle" datatype="html">
+        <source> Delete API Key </source>
+        <target>APIキーの削除</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.deleteConfirmMessage" datatype="html">
+        <source> Are you sure you want to delete this API key? Any integrations using this key will stop working immediately. </source>
+        <target>このAPIキーを削除してもよろしいですか？このキーを使用しているすべての連携が即座に停止します。</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.cancelDeleteButton" datatype="html">
+        <source> Cancel </source>
+        <target>キャンセル</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.confirmDeleteButton" datatype="html">
         <source> Delete </source>
         <target>削除</target>
       </trans-unit>
