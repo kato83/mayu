@@ -23,8 +23,8 @@ type epssBatchStore interface {
 	RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error
 	RefreshEPSSDailyStats(ctx context.Context, dates []string) error
 	CleanupOldEPSSScores(ctx context.Context, retentionDays int) (int64, error)
-	GetEmptyVulnerabilityIDs(ctx context.Context, cveIDs []string) ([]string, error)
-	UpdateVulnerabilityFromCvelistV5(ctx context.Context, id, summary string, published, modified *time.Time) error
+	GetMissingVulnerabilityIDs(ctx context.Context, cveIDs []string) ([]string, error)
+	InsertVulnerabilityFromCvelistV5(ctx context.Context, id, summary string, published, modified *time.Time) error
 }
 
 // ImportEPSS performs a full import of EPSS scores from the bulk CSV download.
@@ -235,18 +235,23 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 		}
 
 		batch := scores[i:end]
+
+		// Ensure all referenced vulnerabilities exist in DB.
+		// For missing CVEs, attempt to fetch from cvelistV5; skip those not found.
+		batch = ing.ensureVulnerabilitiesExist(ctx, es, batch)
+		if len(batch) == 0 {
+			continue
+		}
+
 		if err := es.UpsertEPSSBatch(ctx, batch); err != nil {
 			return inserted, fmt.Errorf("upsert EPSS batch at offset %d: %w", i, err)
 		}
 
-		// Fetch metadata from cvelistV5 for newly created empty vulnerability records.
+		// Refresh summary immediately for this batch to avoid accumulating IDs in memory.
 		batchIDs := make([]string, len(batch))
 		for j, s := range batch {
 			batchIDs[j] = s.CVEID
 		}
-		ing.fillEmptyVulnerabilitiesFromCvelistV5(ctx, es, batchIDs)
-
-		// Refresh summary immediately for this batch to avoid accumulating IDs in memory.
 		if err := es.RefreshEPSSSummary(ctx, batchIDs); err != nil {
 			ing.logger.Printf("warning: failed to refresh EPSS summary at offset %d: %v", i, err)
 		}
@@ -526,66 +531,77 @@ func (ing *Ingester) cleanupOldEPSSScores(ctx context.Context) {
 	}
 }
 
-// fillEmptyVulnerabilitiesFromCvelistV5 finds vulnerability records that were created
-// as empty placeholders (by EPSS ingest's ON CONFLICT DO NOTHING) and attempts to
-// fill them with metadata from the cvelistV5 GitHub repository.
-//
-// For each empty vulnerability:
-//  1. Fetch the CVE record from cvelistV5 raw GitHub
-//  2. Parse summary (English description), datePublished, dateUpdated
-//  3. Update the vulnerability record in the database
-//
-// CVEs not found in cvelistV5 are silently skipped (logged at debug level).
-func (ing *Ingester) fillEmptyVulnerabilitiesFromCvelistV5(ctx context.Context, es epssBatchStore, cveIDs []string) {
-	// Only process CVE-format IDs
-	var cveFormatIDs []string
-	for _, id := range cveIDs {
-		if strings.HasPrefix(id, "CVE-") {
-			cveFormatIDs = append(cveFormatIDs, id)
+// ensureVulnerabilitiesExist checks which CVE IDs in the batch are missing from the
+// vulnerabilities table, fetches their metadata from cvelistV5, inserts them, and
+// returns only the scores whose parent vulnerability now exists.
+// CVEs not found in cvelistV5 are excluded from the returned batch.
+func (ing *Ingester) ensureVulnerabilitiesExist(ctx context.Context, es epssBatchStore, batch []*model.EPSSScore) []*model.EPSSScore {
+	// Collect unique CVE IDs from this batch
+	seen := make(map[string]struct{}, len(batch))
+	var cveIDs []string
+	for _, s := range batch {
+		if _, ok := seen[s.CVEID]; !ok {
+			seen[s.CVEID] = struct{}{}
+			if strings.HasPrefix(s.CVEID, "CVE-") {
+				cveIDs = append(cveIDs, s.CVEID)
+			}
 		}
 	}
-	if len(cveFormatIDs) == 0 {
-		return
+	if len(cveIDs) == 0 {
+		return batch
 	}
 
-	// Find which ones are empty placeholders
-	emptyIDs, err := es.GetEmptyVulnerabilityIDs(ctx, cveFormatIDs)
+	// Find which CVEs don't exist in DB yet
+	missingIDs, err := es.GetMissingVulnerabilityIDs(ctx, cveIDs)
 	if err != nil {
-		ing.logger.Printf("warning: failed to find empty vulnerabilities for cvelistV5 fallback: %v", err)
-		return
+		ing.logger.Printf("warning: failed to check missing vulnerabilities: %v", err)
+		return batch // proceed with the full batch; FK errors will surface from upsert
 	}
-	if len(emptyIDs) == 0 {
-		return
+	if len(missingIDs) == 0 {
+		return batch // all exist, nothing to do
 	}
 
-	// Fetch and update each empty vulnerability from cvelistV5
-	for _, cveID := range emptyIDs {
+	// Attempt to fetch each missing CVE from cvelistV5 and insert
+	skipSet := make(map[string]struct{})
+	for _, cveID := range missingIDs {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		default:
 		}
 
 		data, err := ing.fetcher.FetchCVEFromCvelistV5(ctx, cveID)
 		if err != nil {
-			ing.logger.Printf("warning: cvelistV5 fallback for %s failed: %v", cveID, err)
+			ing.logger.Printf("warning: cvelistV5 fetch for %s failed: %v (skipping)", cveID, err)
+			skipSet[cveID] = struct{}{}
 			continue
 		}
 		if data == nil {
-			// CVE not found in cvelistV5, skip silently
+			// Not found in cvelistV5 — skip this CVE
+			skipSet[cveID] = struct{}{}
 			continue
 		}
 
-		// Parse the CVE record
+		// Parse and insert
 		summary, published, modified := parseCvelistV5Record(data)
-		if summary == "" && published == nil && modified == nil {
-			continue
-		}
-
-		if err := es.UpdateVulnerabilityFromCvelistV5(ctx, cveID, summary, published, modified); err != nil {
-			ing.logger.Printf("warning: failed to update %s from cvelistV5: %v", cveID, err)
+		if err := es.InsertVulnerabilityFromCvelistV5(ctx, cveID, summary, published, modified); err != nil {
+			ing.logger.Printf("warning: failed to insert %s from cvelistV5: %v (skipping)", cveID, err)
+			skipSet[cveID] = struct{}{}
 		}
 	}
+
+	// Filter out scores for CVEs that couldn't be resolved
+	if len(skipSet) == 0 {
+		return batch
+	}
+
+	filtered := make([]*model.EPSSScore, 0, len(batch)-len(skipSet))
+	for _, s := range batch {
+		if _, skip := skipSet[s.CVEID]; !skip {
+			filtered = append(filtered, s)
+		}
+	}
+	return filtered
 }
 
 // parseCvelistV5Record extracts summary, published, and modified dates from a
