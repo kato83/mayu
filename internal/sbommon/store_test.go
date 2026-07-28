@@ -224,3 +224,19 @@ func TestMockSBOMStore_ListAllVersions(t *testing.T) {
 		t.Errorf("ListAllVersions() len = %d, want 2", len(all))
 	}
 }
+
+func TestMockSBOMStore_ListAllVersionIDs(t *testing.T) {
+	store := newMockSBOMStore()
+	ctx := context.Background()
+
+	store.CreateVersion(ctx, &SBOMVersion{ProjectID: 1, Version: "1.0"})
+	store.CreateVersion(ctx, &SBOMVersion{ProjectID: 2, Version: "2.0"})
+
+	ids, err := store.ListAllVersionIDs(ctx)
+	if err != nil {
+		t.Fatalf("ListAllVersionIDs() error = %v", err)
+	}
+	if len(ids) != 2 {
+		t.Errorf("ListAllVersionIDs() len = %d, want 2", len(ids))
+	}
+}

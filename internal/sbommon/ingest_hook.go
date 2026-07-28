@@ -30,18 +30,24 @@ func NewSBOMReEvaluator(store SBOMStore, scanner *Scanner, logger *log.Logger) *
 // It computes diffs and returns the total number of new findings detected across
 // all versions. This method is designed to be called in a goroutine after ingest.
 func (r *SBOMReEvaluator) ReEvaluate(ctx context.Context, _ []string) {
-	versions, err := r.store.ListAllVersions(ctx)
+	versionIDs, err := r.store.ListAllVersionIDs(ctx)
 	if err != nil {
-		r.logger.Printf("sbom re-evaluator: failed to list versions: %v", err)
+		r.logger.Printf("sbom re-evaluator: failed to list version IDs: %v", err)
 		return
 	}
 
-	if len(versions) == 0 {
+	if len(versionIDs) == 0 {
 		return
 	}
 
-	for _, version := range versions {
-		if len(version.RawSBOM) == 0 {
+	for _, versionID := range versionIDs {
+		// Load the full version (including raw_sbom) on demand per-version
+		version, err := r.store.GetVersion(ctx, versionID)
+		if err != nil {
+			r.logger.Printf("sbom re-evaluator: failed to load version %d: %v", versionID, err)
+			continue
+		}
+		if version == nil || len(version.RawSBOM) == 0 {
 			continue
 		}
 

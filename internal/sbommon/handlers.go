@@ -227,6 +227,9 @@ func HandleUploadSBOM(sbomStore SBOMStore, scanner *Scanner) http.HandlerFunc {
 
 		contentType := r.Header.Get("Content-Type")
 		if contentType == "application/json" || contentType == "" {
+			// Apply body size limit for JSON path (50MB)
+			r.Body = http.MaxBytesReader(w, r.Body, 50*1024*1024)
+
 			// JSON body with sbom inline
 			var body struct {
 				Version     string          `json:"version"`
@@ -381,13 +384,24 @@ func HandleListScanResults(sbomStore SBOMStore) http.HandlerFunc {
 			return
 		}
 
-		// Verify the version exists and belongs to the user's project
+		// Verify the version exists
 		version, err := sbomStore.GetVersion(r.Context(), versionID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to get version")
 			return
 		}
 		if version == nil {
+			writeError(w, http.StatusNotFound, "version not found")
+			return
+		}
+
+		// Verify the version's parent project belongs to the authenticated user
+		project, err := sbomStore.GetProject(r.Context(), version.ProjectID, user.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify project ownership")
+			return
+		}
+		if project == nil {
 			writeError(w, http.StatusNotFound, "version not found")
 			return
 		}
@@ -433,6 +447,26 @@ func HandleGetScanResult(sbomStore SBOMStore) http.HandlerFunc {
 			return
 		}
 
+		// Verify ownership: scan -> version -> project -> user
+		version, err := sbomStore.GetVersion(r.Context(), sr.VersionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify ownership")
+			return
+		}
+		if version == nil {
+			writeError(w, http.StatusNotFound, "scan result not found")
+			return
+		}
+		project, err := sbomStore.GetProject(r.Context(), version.ProjectID, user.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify ownership")
+			return
+		}
+		if project == nil {
+			writeError(w, http.StatusNotFound, "scan result not found")
+			return
+		}
+
 		writeJSON(w, http.StatusOK, toScanResultResponse(sr))
 	}
 }
@@ -460,6 +494,26 @@ func HandleGetScanDiff(sbomStore SBOMStore) http.HandlerFunc {
 			return
 		}
 		if current == nil {
+			writeError(w, http.StatusNotFound, "scan result not found")
+			return
+		}
+
+		// Verify ownership: scan -> version -> project -> user
+		version, err := sbomStore.GetVersion(r.Context(), current.VersionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify ownership")
+			return
+		}
+		if version == nil {
+			writeError(w, http.StatusNotFound, "scan result not found")
+			return
+		}
+		project, err := sbomStore.GetProject(r.Context(), version.ProjectID, user.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify ownership")
+			return
+		}
+		if project == nil {
 			writeError(w, http.StatusNotFound, "scan result not found")
 			return
 		}

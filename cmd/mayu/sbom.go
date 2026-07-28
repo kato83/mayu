@@ -9,6 +9,7 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/sbommon"
 	"github.com/kato83/mayu/internal/store"
@@ -45,6 +46,7 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 	version := fs.String("version", "", "SBOM version (required)")
 	sbomPath := fs.String("sbom", "", "Path to SBOM file (required)")
 	environment := fs.String("environment", "", "Environment (e.g., 'production', 'staging')")
+	userEmail := fs.String("user-email", "", "Email of the user who owns this project (required)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu sbom upload [options]")
@@ -55,8 +57,8 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 		fs.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  mayu sbom upload --project my-app --version 1.0.0 --sbom bom.json")
-		fmt.Println("  mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment production")
+		fmt.Println("  mayu sbom upload --project my-app --version 1.0.0 --sbom bom.json --user-email admin@example.com")
+		fmt.Println("  mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment production --user-email admin@example.com")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -71,6 +73,9 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 	}
 	if *sbomPath == "" {
 		return fmt.Errorf("--sbom is required")
+	}
+	if *userEmail == "" {
+		return fmt.Errorf("--user-email is required")
 	}
 
 	// Read SBOM file
@@ -92,6 +97,17 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 		return fmt.Errorf("connect to database: %w", err)
 	}
 
+	// Lookup user by email
+	authStore := auth.NewPostgresAuthStore(db)
+	user, err := authStore.GetUserByEmail(ctx, *userEmail)
+	if err != nil {
+		return fmt.Errorf("lookup user: %w", err)
+	}
+	if user == nil {
+		return fmt.Errorf("user not found with email: %s", *userEmail)
+	}
+	userID := user.ID
+
 	// Initialize stores
 	sbomStore := sbommon.NewPostgresSBOMStore(db)
 	mainStore, err := store.NewPostgresStore(ctx, databaseURL)
@@ -102,8 +118,7 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 
 	scanner := sbommon.NewScanner(mainStore)
 
-	// Get or create project (using user_id=1 for CLI, as no-auth creates synthetic admin)
-	var userID int64 = 1
+	// Get or create project
 	proj, err := sbomStore.GetProjectByName(ctx, *project, userID)
 	if err != nil {
 		return fmt.Errorf("get project: %w", err)
@@ -181,6 +196,7 @@ func runSBOMScan(args []string, cfg *config.Config) error {
 
 	project := fs.String("project", "", "Project name (required)")
 	version := fs.String("version", "", "Version to scan (default: latest)")
+	userEmail := fs.String("user-email", "", "Email of the user who owns this project (required)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu sbom scan [options]")
@@ -191,8 +207,8 @@ func runSBOMScan(args []string, cfg *config.Config) error {
 		fs.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  mayu sbom scan --project my-app")
-		fmt.Println("  mayu sbom scan --project my-app --version 1.0.0")
+		fmt.Println("  mayu sbom scan --project my-app --user-email admin@example.com")
+		fmt.Println("  mayu sbom scan --project my-app --version 1.0.0 --user-email admin@example.com")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -201,6 +217,9 @@ func runSBOMScan(args []string, cfg *config.Config) error {
 
 	if *project == "" {
 		return fmt.Errorf("--project is required")
+	}
+	if *userEmail == "" {
+		return fmt.Errorf("--user-email is required")
 	}
 
 	// Connect to database
@@ -216,6 +235,17 @@ func runSBOMScan(args []string, cfg *config.Config) error {
 		return fmt.Errorf("connect to database: %w", err)
 	}
 
+	// Lookup user by email
+	authStore := auth.NewPostgresAuthStore(db)
+	user, err := authStore.GetUserByEmail(ctx, *userEmail)
+	if err != nil {
+		return fmt.Errorf("lookup user: %w", err)
+	}
+	if user == nil {
+		return fmt.Errorf("user not found with email: %s", *userEmail)
+	}
+	userID := user.ID
+
 	// Initialize stores
 	sbomStore := sbommon.NewPostgresSBOMStore(db)
 	mainStore, err := store.NewPostgresStore(ctx, databaseURL)
@@ -227,7 +257,6 @@ func runSBOMScan(args []string, cfg *config.Config) error {
 	scanner := sbommon.NewScanner(mainStore)
 
 	// Find project
-	var userID int64 = 1
 	proj, err := sbomStore.GetProjectByName(ctx, *project, userID)
 	if err != nil {
 		return fmt.Errorf("get project: %w", err)
@@ -306,6 +335,7 @@ func runSBOMList(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("sbom list", flag.ContinueOnError)
 
 	project := fs.String("project", "", "Project name (if omitted, lists all projects)")
+	userEmail := fs.String("user-email", "", "Email of the user who owns the projects (required)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu sbom list [options]")
@@ -316,12 +346,16 @@ func runSBOMList(args []string, cfg *config.Config) error {
 		fs.PrintDefaults()
 		fmt.Println()
 		fmt.Println("Examples:")
-		fmt.Println("  mayu sbom list")
-		fmt.Println("  mayu sbom list --project my-app")
+		fmt.Println("  mayu sbom list --user-email admin@example.com")
+		fmt.Println("  mayu sbom list --project my-app --user-email admin@example.com")
 	}
 
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	if *userEmail == "" {
+		return fmt.Errorf("--user-email is required")
 	}
 
 	// Connect to database
@@ -337,8 +371,18 @@ func runSBOMList(args []string, cfg *config.Config) error {
 		return fmt.Errorf("connect to database: %w", err)
 	}
 
+	// Lookup user by email
+	authStore := auth.NewPostgresAuthStore(db)
+	user, err := authStore.GetUserByEmail(ctx, *userEmail)
+	if err != nil {
+		return fmt.Errorf("lookup user: %w", err)
+	}
+	if user == nil {
+		return fmt.Errorf("user not found with email: %s", *userEmail)
+	}
+	userID := user.ID
+
 	sbomStore := sbommon.NewPostgresSBOMStore(db)
-	var userID int64 = 1
 
 	if *project == "" {
 		// List all projects

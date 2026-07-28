@@ -59,4 +59,8 @@ type SBOMStore interface {
 	// ListAllVersions returns all SBOM versions across all projects.
 	// Used by the ingest re-evaluator to re-scan all tracked SBOMs.
 	ListAllVersions(ctx context.Context) ([]*SBOMVersion, error)
+
+	// ListAllVersionIDs returns the IDs of all SBOM versions across all projects.
+	// This is a lightweight query that avoids loading raw_sbom data into memory.
+	ListAllVersionIDs(ctx context.Context) ([]int64, error)
 }

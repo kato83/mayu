@@ -174,6 +174,14 @@ func (m *mockSBOMStore) ListAllVersions(_ context.Context) ([]*SBOMVersion, erro
 	return result, nil
 }
 
+func (m *mockSBOMStore) ListAllVersionIDs(_ context.Context) ([]int64, error) {
+	var ids []int64
+	for id := range m.versions {
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
 // helper to create a request with auth context
 func reqWithUser(method, path string, body []byte) *http.Request {
 	var r *http.Request
@@ -296,6 +304,10 @@ func TestHandleDeleteProject(t *testing.T) {
 
 func TestHandleGetScanDiff(t *testing.T) {
 	store := newMockSBOMStore()
+	// Set up project and version ownership for user 1
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+
 	store.scanResults[1] = &SBOMScanResult{
 		ID:        1,
 		VersionID: 10,
@@ -359,5 +371,140 @@ func TestHandleCreateProject_Unauthorized(t *testing.T) {
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", w.Code, http.StatusUnauthorized)
+	}
+}
+
+// reqWithUserID creates a request with auth context for a specific user ID.
+func reqWithUserID(method, path string, body []byte, userID int64) *http.Request {
+	var r *http.Request
+	if body != nil {
+		r = httptest.NewRequest(method, path, bytes.NewReader(body))
+	} else {
+		r = httptest.NewRequest(method, path, nil)
+	}
+	r.Header.Set("Content-Type", "application/json")
+	user := &auth.User{ID: userID, Email: "user@example.com", Name: "User", Role: "viewer"}
+	ctx := auth.ContextWithUser(r.Context(), user)
+	return r.WithContext(ctx)
+}
+
+func TestHandleListScanResults_IDORProtection(t *testing.T) {
+	store := newMockSBOMStore()
+	// User 1 owns project 100, which contains version 10
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "user1-proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{{VulnID: "CVE-1", Name: "pkg-a", Version: "1.0", Ecosystem: "npm"}},
+		Status: "completed", Trigger: "api",
+	}
+
+	handler := HandleListScanResults(store)
+
+	// User 2 tries to access user 1's scan results via version ID
+	req := reqWithUserID("GET", "/api/v1/sbom/versions/10/scans", nil, 2)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("versionID", "10")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d (IDOR protection); body: %s", w.Code, http.StatusNotFound, w.Body.String())
+	}
+}
+
+func TestHandleGetScanResult_IDORProtection(t *testing.T) {
+	store := newMockSBOMStore()
+	// User 1 owns project 100, which contains version 10
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "user1-proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{{VulnID: "CVE-1", Name: "pkg-a", Version: "1.0", Ecosystem: "npm"}},
+		Status: "completed", Trigger: "api",
+	}
+
+	handler := HandleGetScanResult(store)
+
+	// User 2 tries to access user 1's scan result by ID
+	req := reqWithUserID("GET", "/api/v1/sbom/scans/1", nil, 2)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("scanID", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d (IDOR protection); body: %s", w.Code, http.StatusNotFound, w.Body.String())
+	}
+}
+
+func TestHandleGetScanDiff_IDORProtection(t *testing.T) {
+	store := newMockSBOMStore()
+	// User 1 owns project 100, which contains version 10
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "user1-proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now().Add(-time.Hour),
+		Findings: []ScanFinding{{VulnID: "CVE-1", Name: "pkg-a", Version: "1.0", Ecosystem: "npm"}},
+		Status: "completed", Trigger: "api",
+	}
+	store.scanResults[2] = &SBOMScanResult{
+		ID: 2, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{{VulnID: "CVE-2", Name: "pkg-b", Version: "2.0", Ecosystem: "npm"}},
+		Status: "completed", Trigger: "api",
+	}
+
+	handler := HandleGetScanDiff(store)
+
+	// User 2 tries to access user 1's scan diff
+	req := reqWithUserID("GET", "/api/v1/sbom/scans/2/diff", nil, 2)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("scanID", "2")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d (IDOR protection); body: %s", w.Code, http.StatusNotFound, w.Body.String())
+	}
+}
+
+func TestHandleListScanResults_OwnerCanAccess(t *testing.T) {
+	store := newMockSBOMStore()
+	// User 1 owns project 100, which contains version 10
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "user1-proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{{VulnID: "CVE-1", Name: "pkg-a", Version: "1.0", Ecosystem: "npm"}},
+		Status: "completed", Trigger: "api",
+	}
+
+	handler := HandleListScanResults(store)
+
+	// User 1 (owner) should be able to access their own scan results
+	req := reqWithUser("GET", "/api/v1/sbom/versions/10/scans", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("versionID", "10")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp []scanResultResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp) != 1 {
+		t.Errorf("len(resp) = %d, want 1", len(resp))
 	}
 }

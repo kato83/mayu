@@ -346,7 +346,7 @@ func (s *PostgresSBOMStore) GetPreviousScanResult(ctx context.Context, versionID
 // ListAllVersions returns all SBOM versions across all projects.
 func (s *PostgresSBOMStore) ListAllVersions(ctx context.Context) ([]*SBOMVersion, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, project_id, version, environment, sbom_format, raw_sbom, component_count, created_at
+		SELECT id, project_id, version, environment, sbom_format, component_count, created_at
 		FROM sbom_versions
 		ORDER BY id`)
 	if err != nil {
@@ -357,15 +357,37 @@ func (s *PostgresSBOMStore) ListAllVersions(ctx context.Context) ([]*SBOMVersion
 	var versions []*SBOMVersion
 	for rows.Next() {
 		var v SBOMVersion
-		var rawSBOM []byte
-		if err := rows.Scan(&v.ID, &v.ProjectID, &v.Version, &v.Environment, &v.SBOMFormat, &rawSBOM, &v.ComponentCount, &v.CreatedAt); err != nil {
+		if err := rows.Scan(&v.ID, &v.ProjectID, &v.Version, &v.Environment, &v.SBOMFormat, &v.ComponentCount, &v.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan sbom version: %w", err)
 		}
-		v.RawSBOM = rawSBOM
 		versions = append(versions, &v)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate all sbom versions: %w", err)
 	}
 	return versions, nil
+}
+
+// ListAllVersionIDs returns the IDs of all SBOM versions across all projects.
+// This is a lightweight query that avoids loading raw_sbom data into memory.
+func (s *PostgresSBOMStore) ListAllVersionIDs(ctx context.Context) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id FROM sbom_versions ORDER BY id`)
+	if err != nil {
+		return nil, fmt.Errorf("list all sbom version IDs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan sbom version id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate sbom version IDs: %w", err)
+	}
+	return ids, nil
 }
