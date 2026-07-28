@@ -1,0 +1,42 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Go backend: SBOM project/version management, scanning, diff detection, webhook user-scoping, and API endpoints. This is the core backend implementation covering the internal/sbommon package (SBOM monitoring logic), updates to the webhook system for user-scoping, API routes, and CLI commands.",
+  "status": "completed",
+  "steps": [
+    "Create internal/sbommon/ package (SBOM monitoring) with model types: SBOMProject, SBOMVersion, SBOMScanResult, ScanFinding (reuse audit.Finding structure), ScanDiff (new_findings []ScanFinding, resolved_findings []ScanFinding).",
+    "Create internal/sbommon/store.go with SBOMStore interface: CreateProject, GetProject, ListProjects (by user_id), UpdateProject, DeleteProject, CreateVersion, GetVersion, ListVersions (by project_id), GetLatestVersion, CreateScanResult, GetScanResult, ListScanResults (by version_id), GetLatestScanResult (by version_id), GetPreviousScanResult (by version_id, before given scan_id).",
+    "Create internal/sbommon/postgres.go implementing SBOMStore with database/sql + pgx stdlib, following patterns from internal/webhook/store.go and internal/watchlist/postgres.go.",
+    "Create internal/sbommon/scanner.go with Scanner struct that: (1) takes a VulnStore (audit.VulnStore interface) as dependency, (2) has Scan(ctx, sbomData []byte) method that parses SBOM via internal/sbom.Parse(), runs audit via internal/audit.Auditor, returns SBOMScanResult, (3) has ScanVersion(ctx, version *SBOMVersion) that loads raw_sbom from version and runs Scan, (4) has ComputeDiff(current, previous *SBOMScanResult) that compares findings to identify new and resolved vulnerabilities.",
+    "Create internal/sbommon/scanner_test.go with unit tests for Scanner.Scan (mock VulnStore), ComputeDiff logic (table-driven: no previous scan, new findings added, findings resolved, mixed).",
+    "Create internal/sbommon/handlers.go with HTTP handlers following internal/watchlist/handlers.go pattern: HandleCreateProject, HandleListProjects, HandleGetProject, HandleDeleteProject, HandleUploadSBOM (creates version + runs scan, returns result), HandleListVersions, HandleListScanResults, HandleGetScanResult, HandleGetScanDiff (compares two scan results or current vs previous).",
+    "Create internal/sbommon/handlers_test.go with unit tests for handlers using httptest, mock store.",
+    "Update internal/model/webhook.go: add UserID *int64 field to Webhook struct.",
+    "Update internal/webhook/store.go: (1) modify CreateWebhook SQL to include user_id, (2) modify UpdateWebhook to include user_id, (3) add ListWebhooksByUser(ctx, userID int64) method that filters by user_id, (4) modify GetWebhook to accept optional userID parameter or add GetWebhookByUser, (5) modify GetWebhooksByEvent to accept optional userID for scoping, (6) update all Scan calls to include user_id field.",
+    "Update internal/server/webhook.go handlers to use auth.UserFromContext to scope webhook CRUD to the authenticated user (following the watchlist pattern). Existing webhooks with NULL user_id remain accessible to admins.",
+    "Update internal/server/server.go routes() to register the new SBOM monitoring endpoints under /api/v1/sbom/ with auth middleware. Wire SBOMStore and Scanner as dependencies in server.Config.",
+    "Create internal/sbommon/ingest_hook.go implementing an IngestSBOMReEvaluator that satisfies a callback interface: after ingest completes, it queries all sbom_versions, re-scans them, computes diffs, and fires webhooks for 'sbom_new_finding' events if new vulnerabilities are detected.",
+    "Update internal/ingest/ingest.go to add a WithSBOMReEvaluator option that fires after consumeBatches completes (similar to WithWebhookNotifier pattern).",
+    "Create cmd/mayu/sbom.go with CLI commands: 'mayu sbom upload --project <name> --version <ver> --sbom <path> [--environment <env>]' (uploads SBOM, creates project if needed, runs scan), 'mayu sbom scan --project <name> [--version <ver>]' (re-scans latest or specified version), 'mayu sbom list [--project <name>]' (lists projects or versions).",
+    "Update cmd/mayu/main.go to add 'sbom' command dispatch.",
+    "Update cmd/mayu/serve.go to wire SBOMStore, Scanner, and IngestSBOMReEvaluator into the server config and ingest pipeline.",
+    "Create internal/sbommon/store_test.go with unit tests for PostgreSQL store methods (using mock/interface testing where possible).",
+    "Update internal/webhook/store_test.go to cover the new user_id-aware methods."
+  ],
+  "acceptance_criteria": [
+    "Running 'make build' succeeds with all new code compiling",
+    "Running 'make test' passes all unit tests including new ones in internal/sbommon/ and updated webhook tests",
+    "The SBOM monitoring store interface covers CRUD for projects, versions, and scan results",
+    "The Scanner correctly uses the existing audit.Auditor for vulnerability matching",
+    "The diff detection correctly identifies new findings (in current but not previous) and resolved findings (in previous but not current)",
+    "Webhook CRUD is user-scoped (handlers use auth.UserFromContext)",
+    "CLI 'mayu sbom' subcommands are registered in main.go",
+    "API routes for /api/v1/sbom/* are registered in server.go"
+  ],
+  "verification": [
+    "Run 'make build' to confirm compilation",
+    "Run 'make test' to confirm all tests pass"
+  ],
+  "blocked_reason": null,
+  "findings": "All steps completed. Build and tests pass. Key patterns followed: user-scoped CRUD via auth.UserFromContext, database/sql with pgx stdlib, TDD with table-driven tests. The webhook user_id column is nullable for backward compatibility with existing webhooks. The ingest hook uses context.WithoutCancel for non-blocking goroutine execution."
+}
