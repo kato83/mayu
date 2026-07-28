@@ -427,7 +427,7 @@ erDiagram
 
     webhooks {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
-        BIGINT user_id FK "→ users(id) CASCADE (nullable)"
+        BIGINT user_id FK "→ users(id) CASCADE NOT NULL"
         TEXT name "NOT NULL"
         TEXT url "NOT NULL"
         TEXT_ARRAY events "NOT NULL"
