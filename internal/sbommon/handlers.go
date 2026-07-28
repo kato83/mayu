@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -56,6 +57,25 @@ type scanDiffResponse struct {
 type uploadSBOMResponse struct {
 	Version    versionResponse    `json:"version"`
 	ScanResult scanResultResponse `json:"scan_result"`
+}
+
+type updateFindingStatusRequest struct {
+	Status        string  `json:"status"`
+	Justification string  `json:"justification"`
+	Purl          string  `json:"purl"`
+	ExpiresAt     *string `json:"expires_at"`
+}
+
+type findingStatusResponse struct {
+	ID            int64   `json:"id"`
+	VersionID     int64   `json:"version_id"`
+	VulnID        string  `json:"vuln_id"`
+	Purl          string  `json:"purl"`
+	Status        string  `json:"status"`
+	Justification string  `json:"justification"`
+	UpdatedBy     int64   `json:"updated_by"`
+	UpdatedAt     string  `json:"updated_at"`
+	ExpiresAt     *string `json:"expires_at,omitempty"`
 }
 
 // --- Handlers ---
@@ -537,6 +557,188 @@ func HandleGetScanDiff(sbomStore SBOMStore) http.HandlerFunc {
 	}
 }
 
+// HandleUpdateFindingStatus returns an http.HandlerFunc that creates or updates
+// the triage status of a specific vulnerability finding within a scan.
+func HandleUpdateFindingStatus(store SBOMStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		if user == nil {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		scanIDStr := chi.URLParam(r, "scanID")
+		scanID, err := strconv.ParseInt(scanIDStr, 10, 64)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid scan ID")
+			return
+		}
+
+		vulnID := chi.URLParam(r, "vulnID")
+		if vulnID == "" {
+			writeError(w, http.StatusBadRequest, "vulnerability ID is required")
+			return
+		}
+
+		// Look up scan to get version_id
+		sr, err := store.GetScanResult(r.Context(), scanID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get scan result")
+			return
+		}
+		if sr == nil {
+			writeError(w, http.StatusNotFound, "scan result not found")
+			return
+		}
+
+		// Verify ownership: scan -> version -> project -> user
+		version, err := store.GetVersion(r.Context(), sr.VersionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify ownership")
+			return
+		}
+		if version == nil {
+			writeError(w, http.StatusNotFound, "scan result not found")
+			return
+		}
+		project, err := store.GetProject(r.Context(), version.ProjectID, user.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify ownership")
+			return
+		}
+		if project == nil {
+			writeError(w, http.StatusNotFound, "scan result not found")
+			return
+		}
+
+		// Parse request body
+		var req updateFindingStatusRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		// Validate status
+		if !isValidFindingStatus(req.Status) {
+			writeError(w, http.StatusBadRequest, "invalid status value")
+			return
+		}
+
+		// Validate purl is provided
+		if req.Purl == "" {
+			writeError(w, http.StatusBadRequest, "purl is required")
+			return
+		}
+
+		// Justification required for risk_accepted
+		if req.Status == FindingStatusRiskAccepted && req.Justification == "" {
+			writeError(w, http.StatusBadRequest, "justification is required for risk_accepted status")
+			return
+		}
+
+		// Parse expires_at if provided
+		var expiresAt *time.Time
+		if req.ExpiresAt != nil && *req.ExpiresAt != "" {
+			t, err := time.Parse(time.RFC3339, *req.ExpiresAt)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, "invalid expires_at format, expected RFC3339")
+				return
+			}
+			expiresAt = &t
+		}
+
+		fs := &FindingStatus{
+			VersionID:     sr.VersionID,
+			VulnID:        vulnID,
+			Purl:          req.Purl,
+			Status:        req.Status,
+			Justification: req.Justification,
+			UpdatedBy:     user.ID,
+			ExpiresAt:     expiresAt,
+		}
+
+		result, err := store.UpsertFindingStatus(r.Context(), fs)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to update finding status")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, toFindingStatusResponse(result))
+	}
+}
+
+// HandleListFindingStatuses returns an http.HandlerFunc that lists finding statuses
+// for a scan, with optional status filtering.
+func HandleListFindingStatuses(store SBOMStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		if user == nil {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		scanIDStr := chi.URLParam(r, "scanID")
+		scanID, err := strconv.ParseInt(scanIDStr, 10, 64)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid scan ID")
+			return
+		}
+
+		// Look up scan to get version_id
+		sr, err := store.GetScanResult(r.Context(), scanID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get scan result")
+			return
+		}
+		if sr == nil {
+			writeError(w, http.StatusNotFound, "scan result not found")
+			return
+		}
+
+		// Verify ownership: scan -> version -> project -> user
+		version, err := store.GetVersion(r.Context(), sr.VersionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify ownership")
+			return
+		}
+		if version == nil {
+			writeError(w, http.StatusNotFound, "scan result not found")
+			return
+		}
+		project, err := store.GetProject(r.Context(), version.ProjectID, user.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify ownership")
+			return
+		}
+		if project == nil {
+			writeError(w, http.StatusNotFound, "scan result not found")
+			return
+		}
+
+		// Parse optional status filter
+		var statusFilter []string
+		if statusParam := r.URL.Query().Get("status"); statusParam != "" {
+			statusFilter = strings.Split(statusParam, ",")
+			for i := range statusFilter {
+				statusFilter[i] = strings.TrimSpace(statusFilter[i])
+			}
+		}
+
+		statuses, err := store.ListFindingStatuses(r.Context(), sr.VersionID, statusFilter)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to list finding statuses")
+			return
+		}
+
+		resp := make([]findingStatusResponse, 0, len(statuses))
+		for _, fs := range statuses {
+			resp = append(resp, toFindingStatusResponse(fs))
+		}
+
+		writeJSON(w, http.StatusOK, resp)
+	}
+}
+
 // --- Helpers ---
 
 func parseID(r *http.Request) (int64, error) {
@@ -596,6 +798,33 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
+}
+
+func isValidFindingStatus(status string) bool {
+	switch status {
+	case FindingStatusOpen, FindingStatusInTriage, FindingStatusSuppressed,
+		FindingStatusFalsePositive, FindingStatusRiskAccepted, FindingStatusResolved:
+		return true
+	}
+	return false
+}
+
+func toFindingStatusResponse(fs *FindingStatus) findingStatusResponse {
+	resp := findingStatusResponse{
+		ID:            fs.ID,
+		VersionID:     fs.VersionID,
+		VulnID:        fs.VulnID,
+		Purl:          fs.Purl,
+		Status:        fs.Status,
+		Justification: fs.Justification,
+		UpdatedBy:     fs.UpdatedBy,
+		UpdatedAt:     fs.UpdatedAt.Format(time.RFC3339),
+	}
+	if fs.ExpiresAt != nil {
+		s := fs.ExpiresAt.Format(time.RFC3339)
+		resp.ExpiresAt = &s
+	}
+	return resp
 }
 
 // parseSBOMFormat is a helper to parse just the SBOM format info.

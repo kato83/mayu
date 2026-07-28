@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -626,5 +627,257 @@ func TestHandleListScanResults_OwnerCanAccess(t *testing.T) {
 	}
 	if len(resp) != 1 {
 		t.Errorf("len(resp) = %d, want 1", len(resp))
+	}
+}
+
+func TestHandleUpdateFindingStatus_Success(t *testing.T) {
+	store := newMockSBOMStore()
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{{VulnID: "CVE-2024-1234", Purl: "pkg:npm/foo@1.0.0", Name: "foo", Version: "1.0.0", Ecosystem: "npm"}},
+		Status:   "completed", Trigger: "api",
+	}
+
+	handler := HandleUpdateFindingStatus(store)
+
+	body, _ := json.Marshal(updateFindingStatusRequest{
+		Status:        "in_triage",
+		Justification: "investigating",
+		Purl:          "pkg:npm/foo@1.0.0",
+	})
+
+	req := reqWithUser("PUT", "/api/v1/sbom/scans/1/findings/CVE-2024-1234/status", body)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("scanID", "1")
+	rctx.URLParams.Add("vulnID", "CVE-2024-1234")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp findingStatusResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.Status != "in_triage" {
+		t.Errorf("Status = %q, want %q", resp.Status, "in_triage")
+	}
+	if resp.VulnID != "CVE-2024-1234" {
+		t.Errorf("VulnID = %q, want %q", resp.VulnID, "CVE-2024-1234")
+	}
+	if resp.Purl != "pkg:npm/foo@1.0.0" {
+		t.Errorf("Purl = %q, want %q", resp.Purl, "pkg:npm/foo@1.0.0")
+	}
+	if resp.Justification != "investigating" {
+		t.Errorf("Justification = %q, want %q", resp.Justification, "investigating")
+	}
+	if resp.ID == 0 {
+		t.Error("ID should be non-zero")
+	}
+}
+
+func TestHandleUpdateFindingStatus_InvalidStatus(t *testing.T) {
+	store := newMockSBOMStore()
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{{VulnID: "CVE-2024-1234", Purl: "pkg:npm/foo@1.0.0", Name: "foo", Version: "1.0.0", Ecosystem: "npm"}},
+		Status:   "completed", Trigger: "api",
+	}
+
+	handler := HandleUpdateFindingStatus(store)
+
+	body, _ := json.Marshal(updateFindingStatusRequest{
+		Status: "invalid_status",
+		Purl:   "pkg:npm/foo@1.0.0",
+	})
+
+	req := reqWithUser("PUT", "/api/v1/sbom/scans/1/findings/CVE-2024-1234/status", body)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("scanID", "1")
+	rctx.URLParams.Add("vulnID", "CVE-2024-1234")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusBadRequest, w.Body.String())
+	}
+}
+
+func TestHandleUpdateFindingStatus_RiskAcceptedRequiresJustification(t *testing.T) {
+	store := newMockSBOMStore()
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{{VulnID: "CVE-2024-1234", Purl: "pkg:npm/foo@1.0.0", Name: "foo", Version: "1.0.0", Ecosystem: "npm"}},
+		Status:   "completed", Trigger: "api",
+	}
+
+	handler := HandleUpdateFindingStatus(store)
+
+	body, _ := json.Marshal(updateFindingStatusRequest{
+		Status: "risk_accepted",
+		Purl:   "pkg:npm/foo@1.0.0",
+		// No justification provided
+	})
+
+	req := reqWithUser("PUT", "/api/v1/sbom/scans/1/findings/CVE-2024-1234/status", body)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("scanID", "1")
+	rctx.URLParams.Add("vulnID", "CVE-2024-1234")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusBadRequest, w.Body.String())
+	}
+
+	var resp map[string]string
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !strings.Contains(resp["error"], "justification") {
+		t.Errorf("error message should mention justification, got: %q", resp["error"])
+	}
+}
+
+func TestHandleUpdateFindingStatus_IDORProtection(t *testing.T) {
+	store := newMockSBOMStore()
+	// User 1 owns project 100
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "user1-proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{{VulnID: "CVE-2024-1234", Purl: "pkg:npm/foo@1.0.0", Name: "foo", Version: "1.0.0", Ecosystem: "npm"}},
+		Status:   "completed", Trigger: "api",
+	}
+
+	handler := HandleUpdateFindingStatus(store)
+
+	body, _ := json.Marshal(updateFindingStatusRequest{
+		Status: "in_triage",
+		Purl:   "pkg:npm/foo@1.0.0",
+	})
+
+	// User 2 tries to update status for user 1's scan
+	req := reqWithUserID("PUT", "/api/v1/sbom/scans/1/findings/CVE-2024-1234/status", body, 2)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("scanID", "1")
+	rctx.URLParams.Add("vulnID", "CVE-2024-1234")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d (IDOR protection); body: %s", w.Code, http.StatusNotFound, w.Body.String())
+	}
+}
+
+func TestHandleListFindingStatuses_Success(t *testing.T) {
+	store := newMockSBOMStore()
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{
+			{VulnID: "CVE-2024-1234", Purl: "pkg:npm/foo@1.0.0", Name: "foo", Version: "1.0.0", Ecosystem: "npm"},
+			{VulnID: "CVE-2024-5678", Purl: "pkg:npm/bar@2.0.0", Name: "bar", Version: "2.0.0", Ecosystem: "npm"},
+		},
+		Status: "completed", Trigger: "api",
+	}
+
+	// Add some finding statuses
+	store.findingStatuses[1] = &FindingStatus{
+		ID: 1, VersionID: 10, VulnID: "CVE-2024-1234", Purl: "pkg:npm/foo@1.0.0",
+		Status: "in_triage", UpdatedBy: 1, UpdatedAt: time.Now(),
+	}
+	store.findingStatuses[2] = &FindingStatus{
+		ID: 2, VersionID: 10, VulnID: "CVE-2024-5678", Purl: "pkg:npm/bar@2.0.0",
+		Status: "risk_accepted", Justification: "low impact", UpdatedBy: 1, UpdatedAt: time.Now(),
+	}
+
+	handler := HandleListFindingStatuses(store)
+
+	req := reqWithUser("GET", "/api/v1/sbom/scans/1/findings/statuses", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("scanID", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp []findingStatusResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp) != 2 {
+		t.Errorf("len(resp) = %d, want 2", len(resp))
+	}
+}
+
+func TestHandleListFindingStatuses_FilterByStatus(t *testing.T) {
+	store := newMockSBOMStore()
+	store.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	store.versions[10] = &SBOMVersion{ID: 10, ProjectID: 100, Version: "1.0", CreatedAt: time.Now()}
+	store.scanResults[1] = &SBOMScanResult{
+		ID: 1, VersionID: 10, ScannedAt: time.Now(),
+		Findings: []ScanFinding{
+			{VulnID: "CVE-2024-1234", Purl: "pkg:npm/foo@1.0.0", Name: "foo", Version: "1.0.0", Ecosystem: "npm"},
+			{VulnID: "CVE-2024-5678", Purl: "pkg:npm/bar@2.0.0", Name: "bar", Version: "2.0.0", Ecosystem: "npm"},
+		},
+		Status: "completed", Trigger: "api",
+	}
+
+	// Add finding statuses with different statuses
+	store.findingStatuses[1] = &FindingStatus{
+		ID: 1, VersionID: 10, VulnID: "CVE-2024-1234", Purl: "pkg:npm/foo@1.0.0",
+		Status: "in_triage", UpdatedBy: 1, UpdatedAt: time.Now(),
+	}
+	store.findingStatuses[2] = &FindingStatus{
+		ID: 2, VersionID: 10, VulnID: "CVE-2024-5678", Purl: "pkg:npm/bar@2.0.0",
+		Status: "risk_accepted", Justification: "low impact", UpdatedBy: 1, UpdatedAt: time.Now(),
+	}
+
+	handler := HandleListFindingStatuses(store)
+
+	// Filter by in_triage only
+	req := reqWithUser("GET", "/api/v1/sbom/scans/1/findings/statuses?status=in_triage", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("scanID", "1")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp []findingStatusResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp) != 1 {
+		t.Errorf("len(resp) = %d, want 1", len(resp))
+	}
+	if len(resp) > 0 && resp[0].Status != "in_triage" {
+		t.Errorf("Status = %q, want %q", resp[0].Status, "in_triage")
 	}
 }

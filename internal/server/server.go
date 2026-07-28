@@ -330,6 +330,8 @@ func (s *Server) routes() http.Handler {
 			r.Get("/versions/{versionID}/scans", sbommon.HandleListScanResults(s.sbomStore))
 			r.Get("/scans/{scanID}", sbommon.HandleGetScanResult(s.sbomStore))
 			r.Get("/scans/{scanID}/diff", sbommon.HandleGetScanDiff(s.sbomStore))
+			r.Put("/scans/{scanID}/findings/{vulnID}/status", sbommon.HandleUpdateFindingStatus(s.sbomStore))
+			r.Get("/scans/{scanID}/findings/statuses", sbommon.HandleListFindingStatuses(s.sbomStore))
 		})
 	}
 
