@@ -2,8 +2,8 @@ pre-commit:
   commands:
     fmt:
       glob: "*.go"
-      run: make fmt
-      stage_fixed: true
+      run: go fmt ./... && git diff --exit-code
+      fail_text: "go fmt produced changes. Please stage the formatted files and retry."
     lint:
       glob: "*.go"
       run: make lint
