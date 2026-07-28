@@ -6,6 +6,7 @@ import "time"
 // It defines an HTTP POST notification endpoint with template-based payload formatting.
 type Webhook struct {
 	ID           int64
+	UserID       *int64
 	Name         string
 	URL          string
 	Events       []string

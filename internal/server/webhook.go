@@ -12,6 +12,7 @@ import (
 
 	"github.com/cbroglie/mustache"
 	"github.com/go-chi/chi/v5"
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/webhook"
 )
@@ -154,6 +155,12 @@ func (s *Server) handleCreateWebhook(w http.ResponseWriter, r *http.Request) {
 		Enabled:      enabled,
 	}
 
+	// Set user_id from authenticated user
+	user := auth.UserFromContext(r.Context())
+	if user != nil {
+		wh.UserID = &user.ID
+	}
+
 	created, err := s.webhookStore.CreateWebhook(r.Context(), wh)
 	if err != nil {
 		slog.Error("failed to create webhook", "error", err)
@@ -166,7 +173,20 @@ func (s *Server) handleCreateWebhook(w http.ResponseWriter, r *http.Request) {
 
 // handleListWebhooks handles GET /api/v1/webhooks
 func (s *Server) handleListWebhooks(w http.ResponseWriter, r *http.Request) {
-	webhooks, err := s.webhookStore.ListWebhooks(r.Context())
+	user := auth.UserFromContext(r.Context())
+
+	var webhooks []*model.Webhook
+	var err error
+
+	// Admins see all webhooks; regular users see only their own
+	if user != nil && user.Role == auth.RoleAdmin {
+		webhooks, err = s.webhookStore.ListWebhooks(r.Context())
+	} else if user != nil {
+		webhooks, err = s.webhookStore.ListWebhooksByUser(r.Context(), user.ID)
+	} else {
+		webhooks, err = s.webhookStore.ListWebhooks(r.Context())
+	}
+
 	if err != nil {
 		slog.Error("failed to list webhooks", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to list webhooks")

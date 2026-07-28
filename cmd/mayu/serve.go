@@ -14,6 +14,7 @@ import (
 	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/fetcher"
+	"github.com/kato83/mayu/internal/sbommon"
 	"github.com/kato83/mayu/internal/server"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/translate"
@@ -112,6 +113,10 @@ func runServe(args []string, cfg *config.Config) error {
 	webhookStore := webhook.NewPostgresWebhookStore(s.DB())
 	webhookEngine := webhook.NewEngine(webhookStore)
 
+	// Initialize SBOM monitoring system
+	sbomStore := sbommon.NewPostgresSBOMStore(s.DB())
+	sbomScanner := sbommon.NewScanner(s)
+
 	// Initialize translation service (if configured)
 	var translateService *translate.Service
 	var translateRateLimiter *translate.RateLimiter
@@ -180,6 +185,8 @@ func runServe(args []string, cfg *config.Config) error {
 		WebhookEngine:        webhookEngine,
 		WatchlistStore:       watchlist.NewPostgresWatchlistStore(s.DB()),
 		WatchlistMatcher:     watchlist.NewIngestMatcherAdapter(watchlist.NewMatcher(watchlist.NewPostgresWatchlistStore(s.DB()), watchlist.NewPostgresVulnDataProvider(s.DB()))),
+		SBOMStore:            sbomStore,
+		SBOMScanner:          sbomScanner,
 		TranslateService:     translateService,
 		TranslateRateLimiter: translateRateLimiter,
 		EPSSRetentionDays:    cfg.EPSS.EffectiveRetentionDays(),
