@@ -148,10 +148,10 @@ func TestGenerateSARIF(t *testing.T) {
 
 func TestGenerateSARIF_SeverityMapping(t *testing.T) {
 	tests := []struct {
-		name              string
-		severityLevel     int
-		wantLevel         string
-		wantSecSeverity   string
+		name            string
+		severityLevel   int
+		wantLevel       string
+		wantSecSeverity string
 	}{
 		{name: "CRITICAL", severityLevel: 5, wantLevel: "error", wantSecSeverity: "9.0"},
 		{name: "HIGH", severityLevel: 4, wantLevel: "error", wantSecSeverity: "7.0"},

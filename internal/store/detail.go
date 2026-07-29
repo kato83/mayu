@@ -172,7 +172,8 @@ func (s *PostgresStore) buildBaseDetail(ctx context.Context, vulnID string) (*mo
 		Details: details.String,
 	}
 	if modified.Valid {
-		detail.Modified = modified.Time
+		t := modified.Time
+		detail.Modified = &t
 	}
 	if published.Valid {
 		detail.Published = &published.Time

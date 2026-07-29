@@ -235,7 +235,10 @@ func outputCSV(vulns []*model.Vulnerability) {
 		aliases := strings.Join(vuln.Aliases, "; ")
 		sevStr := formatSeverity(vuln)
 
-		modified := vuln.Modified.Format("2006-01-02")
+		modified := ""
+		if vuln.Modified != nil {
+			modified = vuln.Modified.Format("2006-01-02")
+		}
 		published := ""
 		if vuln.Published != nil {
 			published = vuln.Published.Format("2006-01-02")
@@ -307,7 +310,10 @@ func outputTable(vulns []*model.Vulnerability) {
 		}
 		pkgStr := truncateString(strings.Join(pkgs, ", "), 25)
 
-		modified := vuln.Modified.Format("2006-01-02")
+		modified := ""
+		if vuln.Modified != nil {
+			modified = vuln.Modified.Format("2006-01-02")
+		}
 
 		fmt.Printf("%-20s %-15s %-10s %-12s %-30s %s\n", vuln.ID, aliasStr, sevStr, modified, summary, pkgStr)
 	}
@@ -382,7 +388,9 @@ func outputDetail(vulns []*model.Vulnerability) {
 		}
 
 		fmt.Printf("ID:        %s\n", vuln.ID)
-		fmt.Printf("Modified:  %s\n", vuln.Modified.Format(time.RFC3339))
+		if vuln.Modified != nil {
+			fmt.Printf("Modified:  %s\n", vuln.Modified.Format(time.RFC3339))
+		}
 		if vuln.Published != nil {
 			fmt.Printf("Published: %s\n", vuln.Published.Format(time.RFC3339))
 		}
@@ -520,7 +528,9 @@ func outputDetailEnriched(ctx context.Context, s *store.PostgresStore, results [
 
 		// Base info
 		fmt.Printf("ID:        %s\n", detail.ID)
-		fmt.Printf("Modified:  %s\n", detail.Modified.Format(time.RFC3339))
+		if detail.Modified != nil {
+			fmt.Printf("Modified:  %s\n", detail.Modified.Format(time.RFC3339))
+		}
 		if detail.Published != nil {
 			fmt.Printf("Published: %s\n", detail.Published.Format(time.RFC3339))
 		}

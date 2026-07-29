@@ -127,11 +127,12 @@ func ConvertGitHubToOSV(data []byte) (*model.Vulnerability, error) {
 
 	// Set timestamps
 	if adv.UpdatedAt != nil {
-		vuln.Modified = *adv.UpdatedAt
+		vuln.Modified = adv.UpdatedAt
 	} else if adv.PublishedAt != nil {
-		vuln.Modified = *adv.PublishedAt
+		vuln.Modified = adv.PublishedAt
 	} else {
-		vuln.Modified = time.Now().UTC()
+		now := time.Now().UTC()
+		vuln.Modified = &now
 	}
 
 	if adv.PublishedAt != nil {

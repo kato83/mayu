@@ -13,8 +13,8 @@ const (
 
 // sarifLog is the top-level SARIF document structure.
 type sarifLog struct {
-	Version string    `json:"version"`
-	Schema  string    `json:"$schema"`
+	Version string     `json:"version"`
+	Schema  string     `json:"$schema"`
 	Runs    []sarifRun `json:"runs"`
 }
 

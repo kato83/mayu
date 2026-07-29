@@ -94,7 +94,7 @@ func validate(vuln *model.Vulnerability) error {
 	if vuln.ID == "" {
 		return errors.New("missing required field: id")
 	}
-	if vuln.Modified.IsZero() {
+	if vuln.Modified == nil || vuln.Modified.IsZero() {
 		return errors.New("missing required field: modified")
 	}
 	return nil

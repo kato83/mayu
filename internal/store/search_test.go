@@ -20,7 +20,7 @@ func TestSearchWithSince(t *testing.T) {
 	// Insert old vulnerability
 	vulnOld := &model.Vulnerability{
 		ID:       "GO-2024-OLD1",
-		Modified: old,
+		Modified: timePtr(old),
 		Summary:  "Old vulnerability",
 		Affected: []model.Affected{{
 			Package: model.Package{Ecosystem: "Go", Name: "example.com/old"},
@@ -30,7 +30,7 @@ func TestSearchWithSince(t *testing.T) {
 	// Insert recent vulnerability
 	vulnNew := &model.Vulnerability{
 		ID:       "GO-2024-NEW1",
-		Modified: now,
+		Modified: timePtr(now),
 		Summary:  "New vulnerability",
 		Affected: []model.Affected{{
 			Package: model.Package{Ecosystem: "Go", Name: "example.com/new"},
@@ -69,7 +69,7 @@ func TestSearchWithVersion(t *testing.T) {
 	// Insert vulnerability with enumerated versions
 	vuln := &model.Vulnerability{
 		ID:       "GO-2024-VER1",
-		Modified: now,
+		Modified: timePtr(now),
 		Summary:  "Version-specific vulnerability",
 		Affected: []model.Affected{{
 			Package:  model.Package{Ecosystem: "Go", Name: "example.com/pkg"},
@@ -80,7 +80,7 @@ func TestSearchWithVersion(t *testing.T) {
 	// Insert vulnerability without the target version
 	vulnOther := &model.Vulnerability{
 		ID:       "GO-2024-VER2",
-		Modified: now,
+		Modified: timePtr(now),
 		Summary:  "Other vulnerability",
 		Affected: []model.Affected{{
 			Package:  model.Package{Ecosystem: "Go", Name: "example.com/other"},
@@ -129,7 +129,7 @@ func TestSearchWithOffset(t *testing.T) {
 	for i := range vulns {
 		vulns[i] = &model.Vulnerability{
 			ID:       "GO-2024-OFF" + string(rune('A'+i)),
-			Modified: now.Add(time.Duration(i) * time.Hour),
+			Modified: timePtr(now.Add(time.Duration(i) * time.Hour)),
 			Summary:  "Offset test vulnerability",
 			Affected: []model.Affected{{
 				Package: model.Package{Ecosystem: "Go", Name: "example.com/offset"},
@@ -187,7 +187,7 @@ func TestCount(t *testing.T) {
 	vulns := []*model.Vulnerability{
 		{
 			ID:       "GO-2024-CNT1",
-			Modified: now,
+			Modified: timePtr(now),
 			Summary:  "Count test 1",
 			Affected: []model.Affected{{
 				Package: model.Package{Ecosystem: "Go", Name: "example.com/count"},
@@ -195,7 +195,7 @@ func TestCount(t *testing.T) {
 		},
 		{
 			ID:       "GO-2024-CNT2",
-			Modified: now.Add(time.Hour),
+			Modified: timePtr(now.Add(time.Hour)),
 			Summary:  "Count test 2",
 			Affected: []model.Affected{{
 				Package: model.Package{Ecosystem: "Go", Name: "example.com/count"},
@@ -203,7 +203,7 @@ func TestCount(t *testing.T) {
 		},
 		{
 			ID:       "PYSEC-2024-CNT1",
-			Modified: now,
+			Modified: timePtr(now),
 			Summary:  "Count test PyPI",
 			Affected: []model.Affected{{
 				Package: model.Package{Ecosystem: "PyPI", Name: "example-pkg"},
@@ -281,7 +281,7 @@ func TestSearchWithSeverity(t *testing.T) {
 	// Insert vulnerabilities with severity scores stored in osv_severity table.
 	vulnCritical := &model.Vulnerability{
 		ID:       "GO-2024-SEV1",
-		Modified: now,
+		Modified: timePtr(now),
 		Summary:  "Critical severity",
 		Severity: []model.Severity{
 			{Type: model.SeverityTypeCVSSV3, Score: "9.8"},
@@ -293,7 +293,7 @@ func TestSearchWithSeverity(t *testing.T) {
 
 	vulnLow := &model.Vulnerability{
 		ID:       "GO-2024-SEV2",
-		Modified: now,
+		Modified: timePtr(now),
 		Summary:  "Low severity",
 		Severity: []model.Severity{
 			{Type: model.SeverityTypeCVSSV3, Score: "2.5"},
@@ -305,7 +305,7 @@ func TestSearchWithSeverity(t *testing.T) {
 
 	vulnNoSev := &model.Vulnerability{
 		ID:       "GO-2024-SEV3",
-		Modified: now,
+		Modified: timePtr(now),
 		Summary:  "No severity",
 		Affected: []model.Affected{{
 			Package: model.Package{Ecosystem: "Go", Name: "example.com/nosev"},

@@ -653,8 +653,8 @@ func (ing *Ingester) consumeBatches(ctx context.Context, batchCh <-chan []*model
 func findLatestModified(vulns []*model.Vulnerability) time.Time {
 	var latest time.Time
 	for _, v := range vulns {
-		if v.Modified.After(latest) {
-			latest = v.Modified
+		if v.Modified != nil && v.Modified.After(latest) {
+			latest = *v.Modified
 		}
 	}
 	return latest

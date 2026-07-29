@@ -813,7 +813,8 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 				Details: details.String,
 			}
 			if modified.Valid {
-				vuln.Modified = modified.Time
+				t := modified.Time
+				vuln.Modified = &t
 			}
 			if published.Valid {
 				vuln.Published = &published.Time
@@ -1428,7 +1429,8 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 			Summary: summary.String,
 		}
 		if modified.Valid {
-			vuln.Modified = modified.Time
+			t := modified.Time
+			vuln.Modified = &t
 		}
 		if published.Valid {
 			t := published.Time
