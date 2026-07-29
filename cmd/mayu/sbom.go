@@ -9,7 +9,6 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/sbommon"
 	"github.com/kato83/mayu/internal/store"
@@ -78,12 +77,6 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 		return fmt.Errorf("--sbom is required")
 	}
 
-	// Authenticate via API key
-	apiKey := os.Getenv("MAYU_API_KEY")
-	if apiKey == "" {
-		return fmt.Errorf("MAYU_API_KEY environment variable is required for authentication")
-	}
-
 	// Read SBOM file
 	sbomData, err := os.ReadFile(*sbomPath)
 	if err != nil {
@@ -103,12 +96,10 @@ func runSBOMUpload(args []string, cfg *config.Config) error {
 		return fmt.Errorf("connect to database: %w", err)
 	}
 
-	// Validate API key and resolve user
-	authStore := auth.NewPostgresAuthStore(db)
-	authProvider := auth.NewLocalAuthProvider(authStore, authStore, authStore, 0)
-	user, err := authProvider.ValidateAPIKey(ctx, apiKey)
+	// Authenticate user (API key, session token, or error)
+	user, err := resolveAuthUserWithDB(ctx, cfg, db)
 	if err != nil {
-		return fmt.Errorf("authenticate: %w", err)
+		return err
 	}
 	userID := user.ID
 
@@ -226,12 +217,6 @@ func runSBOMScan(args []string, cfg *config.Config) error {
 		return fmt.Errorf("--project is required")
 	}
 
-	// Authenticate via API key
-	apiKey := os.Getenv("MAYU_API_KEY")
-	if apiKey == "" {
-		return fmt.Errorf("MAYU_API_KEY environment variable is required for authentication")
-	}
-
 	// Connect to database
 	databaseURL := resolveDatabaseURL(cfg)
 	db, err := sql.Open("pgx", databaseURL)
@@ -245,12 +230,10 @@ func runSBOMScan(args []string, cfg *config.Config) error {
 		return fmt.Errorf("connect to database: %w", err)
 	}
 
-	// Validate API key and resolve user
-	authStore := auth.NewPostgresAuthStore(db)
-	authProvider := auth.NewLocalAuthProvider(authStore, authStore, authStore, 0)
-	user, err := authProvider.ValidateAPIKey(ctx, apiKey)
+	// Authenticate user (API key, session token, or error)
+	user, err := resolveAuthUserWithDB(ctx, cfg, db)
 	if err != nil {
-		return fmt.Errorf("authenticate: %w", err)
+		return err
 	}
 	userID := user.ID
 
@@ -365,12 +348,6 @@ func runSBOMList(args []string, cfg *config.Config) error {
 		return err
 	}
 
-	// Authenticate via API key
-	apiKey := os.Getenv("MAYU_API_KEY")
-	if apiKey == "" {
-		return fmt.Errorf("MAYU_API_KEY environment variable is required for authentication")
-	}
-
 	// Connect to database
 	databaseURL := resolveDatabaseURL(cfg)
 	db, err := sql.Open("pgx", databaseURL)
@@ -384,12 +361,10 @@ func runSBOMList(args []string, cfg *config.Config) error {
 		return fmt.Errorf("connect to database: %w", err)
 	}
 
-	// Validate API key and resolve user
-	authStore := auth.NewPostgresAuthStore(db)
-	authProvider := auth.NewLocalAuthProvider(authStore, authStore, authStore, 0)
-	user, err := authProvider.ValidateAPIKey(ctx, apiKey)
+	// Authenticate user (API key, session token, or error)
+	user, err := resolveAuthUserWithDB(ctx, cfg, db)
 	if err != nil {
-		return fmt.Errorf("authenticate: %w", err)
+		return err
 	}
 	userID := user.ID
 

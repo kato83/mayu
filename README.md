@@ -357,10 +357,17 @@ GHSA-xxxx-yyyy   # suppressed until 2025-03-01
 > [!WARNING]
 > The `mayu sbom` subcommands are **experimental**. Breaking changes to the CLI interface, API responses, or database schema may occur without notice. SBOM scan results stored in the database may be reset during schema migrations in future releases.
 
-All `mayu sbom` subcommands require the `MAYU_API_KEY` environment variable to be set with a valid API key. The API key is used to authenticate and identify the user.
+All `mayu sbom` subcommands require authentication. You can authenticate using either method:
+
+1. **API key (recommended for CI/CD):** Set the `MAYU_API_KEY` environment variable.
+2. **Session token:** Run `mayu login` to store a session locally.
 
 ```bash
+# Option 1: API key
 export MAYU_API_KEY=your-api-key
+
+# Option 2: Session-based login
+mayu login
 ```
 
 ### `mayu sbom upload`
@@ -537,10 +544,19 @@ mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90
 
 ### `mayu webhook` Authentication
 
-All `mayu webhook` subcommands require the `MAYU_API_KEY` environment variable to be set with a valid API key. The API key is used to authenticate and identify the user. Webhooks are scoped per user — each user can only manage their own webhooks.
+All `mayu webhook` subcommands require authentication. You can authenticate using either method:
+
+1. **API key (recommended for CI/CD):** Set the `MAYU_API_KEY` environment variable.
+2. **Session token:** Run `mayu login` to store a session locally.
+
+Webhooks are scoped per user -- each user can only manage their own webhooks.
 
 ```bash
+# Option 1: API key
 export MAYU_API_KEY=your-api-key
+
+# Option 2: Session-based login
+mayu login
 ```
 
 ### `mayu webhook create`
@@ -592,6 +608,52 @@ Send a test payload to a webhook to verify connectivity.
 ```bash
 export MAYU_API_KEY=your-api-key
 mayu webhook test --id 1
+```
+
+### `mayu login`
+
+Authenticate with a mayu server and store session credentials locally. Credentials are saved to `~/.config/mayu/credentials.json` with `0600` permissions.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--oidc` | Use OIDC browser-based login | `false` |
+| `--server` | Server URL | `http://localhost:8080` |
+
+**Modes:**
+
+- **Interactive (default):** Prompts for email and password on the terminal.
+- **OIDC (`--oidc`):** Opens the default browser for OIDC authentication. A temporary local HTTP server is started on a random port to receive the callback.
+
+**Authentication priority** (used by `mayu sbom`, `mayu webhook`, and other authenticated commands):
+
+1. `MAYU_API_KEY` environment variable (recommended for CI/CD)
+2. Stored session token from `mayu login` (`~/.config/mayu/credentials.json`)
+3. Error with a message suggesting `mayu login` or setting `MAYU_API_KEY`
+
+**Examples:**
+
+```bash
+# Interactive email/password login
+mayu login
+
+# Specify a server URL
+mayu login --server http://example.com:8080
+
+# OIDC browser-based login (requires auth.mode=oidc in config)
+mayu login --oidc
+
+# OIDC login with custom server
+mayu login --oidc --server http://example.com:8080
+```
+
+### `mayu logout`
+
+Remove stored session credentials. Optionally invalidates the session on the server (best-effort; does not fail if the server is unreachable).
+
+**Examples:**
+
+```bash
+mayu logout
 ```
 
 ### `mayu version`

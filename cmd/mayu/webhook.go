@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/cbroglie/mustache"
-	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/webhook"
@@ -43,32 +42,12 @@ func runWebhook(args []string, cfg *config.Config) error {
 	}
 }
 
-// authenticateWebhookUser validates the MAYU_API_KEY environment variable and
+// authenticateWebhookUser validates the user authentication and
 // returns the authenticated user's ID, the database connection, and the webhook store.
 func authenticateWebhookUser(ctx context.Context, cfg *config.Config) (int64, *sql.DB, *webhook.PostgresWebhookStore, error) {
-	apiKey := os.Getenv("MAYU_API_KEY")
-	if apiKey == "" {
-		return 0, nil, nil, fmt.Errorf("MAYU_API_KEY environment variable is required for authentication")
-	}
-
-	databaseURL := resolveDatabaseURL(cfg)
-	db, err := sql.Open("pgx", databaseURL)
+	user, db, err := resolveAuthUser(ctx, cfg)
 	if err != nil {
-		return 0, nil, nil, fmt.Errorf("open database: %w", err)
-	}
-
-	if err := db.PingContext(ctx); err != nil {
-		_ = db.Close()
-		return 0, nil, nil, fmt.Errorf("connect to database: %w", err)
-	}
-
-	// Validate API key and resolve user
-	authStore := auth.NewPostgresAuthStore(db)
-	authProvider := auth.NewLocalAuthProvider(authStore, authStore, authStore, 0)
-	user, err := authProvider.ValidateAPIKey(ctx, apiKey)
-	if err != nil {
-		_ = db.Close()
-		return 0, nil, nil, fmt.Errorf("authenticate: %w", err)
+		return 0, nil, nil, err
 	}
 
 	store := webhook.NewPostgresWebhookStore(db)

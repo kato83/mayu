@@ -358,10 +358,17 @@ GHSA-xxxx-yyyy   # 2025-03-01 まで抑制
 > [!WARNING]
 > `mayu sbom` サブコマンドは**試験的機能**です。CLIインターフェース、APIレスポンス、データベーススキーマに予告なく破壊的変更が行われる可能性があります。将来のリリースでスキーマ移行に伴い、データベースに保存されたSBOMスキャン結果がリセットされる場合があります。
 
-全ての `mayu sbom` サブコマンドは `MAYU_API_KEY` 環境変数に有効な API キーを設定する必要があります。API キーはユーザーの認証・識別に使用されます。
+全ての `mayu sbom` サブコマンドは認証が必要です。以下のいずれかの方法で認証できます：
+
+1. **API キー（CI/CD 推奨）:** `MAYU_API_KEY` 環境変数を設定します。
+2. **セッショントークン:** `mayu login` を実行してセッションをローカルに保存します。
 
 ```bash
+# 方法 1: API キー
 export MAYU_API_KEY=your-api-key
+
+# 方法 2: セッションベースログイン
+mayu login
 ```
 
 ### `mayu sbom upload`
@@ -538,10 +545,19 @@ mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90
 
 ### `mayu webhook` 認証
 
-すべての `mayu webhook` サブコマンドは、有効なAPIキーが設定された `MAYU_API_KEY` 環境変数を必要とします。APIキーはユーザーの認証と識別に使用されます。Webhookはユーザーごとにスコープされ、各ユーザーは自分のWebhookのみ管理できます。
+すべての `mayu webhook` サブコマンドは認証が必要です。以下のいずれかの方法で認証できます：
+
+1. **API キー（CI/CD 推奨）:** `MAYU_API_KEY` 環境変数を設定します。
+2. **セッショントークン:** `mayu login` を実行してセッションをローカルに保存します。
+
+Webhook はユーザーごとにスコープされ、各ユーザーは自分の Webhook のみ管理できます。
 
 ```bash
+# 方法 1: API キー
 export MAYU_API_KEY=your-api-key
+
+# 方法 2: セッションベースログイン
+mayu login
 ```
 
 ### `mayu webhook create`
@@ -593,6 +609,52 @@ Webhookにテストペイロードを送信して接続を確認します。
 ```bash
 export MAYU_API_KEY=your-api-key
 mayu webhook test --id 1
+```
+
+### `mayu login`
+
+mayu サーバーに認証し、セッション資格情報をローカルに保存します。資格情報は `~/.config/mayu/credentials.json` にパーミッション `0600` で保存されます。
+
+| フラグ | 説明 | デフォルト |
+|--------|------|-----------|
+| `--oidc` | OIDC ブラウザベースログインを使用 | `false` |
+| `--server` | サーバー URL | `http://localhost:8080` |
+
+**モード:**
+
+- **対話モード（デフォルト）:** ターミナルでメールアドレスとパスワードの入力を求めます。
+- **OIDC（`--oidc`）:** デフォルトブラウザを開いて OIDC 認証を行います。コールバック受信用に一時的なローカル HTTP サーバーがランダムポートで起動されます。
+
+**認証の優先順位**（`mayu sbom`、`mayu webhook` などの認証が必要なコマンドで使用）：
+
+1. `MAYU_API_KEY` 環境変数（CI/CD 推奨）
+2. `mayu login` で保存されたセッショントークン（`~/.config/mayu/credentials.json`）
+3. `mayu login` または `MAYU_API_KEY` の設定を促すエラーメッセージ
+
+**使用例:**
+
+```bash
+# 対話式メール/パスワードログイン
+mayu login
+
+# サーバー URL を指定
+mayu login --server http://example.com:8080
+
+# OIDC ブラウザベースログイン（config で auth.mode=oidc が必要）
+mayu login --oidc
+
+# カスタムサーバーで OIDC ログイン
+mayu login --oidc --server http://example.com:8080
+```
+
+### `mayu logout`
+
+保存されたセッション資格情報を削除します。サーバー側のセッション無効化も試みます（ベストエフォート; サーバーに接続できない場合でも失敗しません）。
+
+**使用例:**
+
+```bash
+mayu logout
 ```
 
 ### `mayu version`
