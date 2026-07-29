@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Webhook integration for EPSS trending alerts. When the trending detection identifies CVEs with significant EPSS spikes, fire a new webhook event type 'epss_spike' so users can receive notifications. This connects the trending detection (FEAT-001) with the existing webhook system (internal/webhook/engine.go).",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Add a new webhook event type 'epss_spike' to the system. The webhook engine already dispatches events via Engine.Dispatch(ctx, event, []WebhookEvent). Add documentation for the new event type. The WebhookEvent struct already has Event, ID, Severity, EPSS, LEV, Summary fields which are sufficient for spike notifications.",
     "2. Create a new package or add to existing: internal/trending/detector.go that encapsulates the trend detection logic. This should expose a function DetectEPSSSpikes(ctx, store, params) that queries the store for EPSS spikes and returns results. This can be called both by the API handler (FEAT-001) and by the ingest pipeline after EPSS updates.",
@@ -23,5 +23,5 @@
     "go vet ./..."
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Implementation complete. New internal/trending package created with DetectSpikes and FilterNewSpikes functions. The epss_spike event type is defined as a constant in trending.EventEPSSSpike. The webhook engine gained a NotifyEPSSSpikes method. The ingest pipeline has a new WithEPSSSpikeNotifier option that is wired into the server via epssSpikeNotifierOption. Spike notifications only fire for CVEs that were part of the current ingest cycle (via FilterNewSpikes). Backfill operations do not trigger spike notifications to avoid flooding. All tests pass including new tests in internal/trending and internal/webhook."
 }
