@@ -183,20 +183,22 @@ func outputAuditTable(result *audit.AuditResult, sbomFormat string) {
 	}
 
 	// Header
-	fmt.Printf("%-40s %-12s %-20s %-10s %s\n", "PACKAGE", "VERSION", "VULN ID", "SEVERITY", "SUMMARY")
-	fmt.Printf("%-40s %-12s %-20s %-10s %s\n",
+	fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n", "PACKAGE", "VERSION", "VULN ID", "SEVERITY", "FIXED", "SUMMARY")
+	fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n",
 		strings.Repeat("-", 40),
 		strings.Repeat("-", 12),
 		strings.Repeat("-", 20),
 		strings.Repeat("-", 10),
+		strings.Repeat("-", 14),
 		strings.Repeat("-", 40))
 
 	for _, f := range result.Findings {
 		pkg := truncateString(f.Component.Name, 40)
 		ver := truncateString(f.Component.Version, 12)
 		vulnID := truncateString(f.VulnID, 20)
+		fixed := truncateString(f.FixedVersion, 14)
 		summary := truncateString(f.Summary, 60)
-		fmt.Printf("%-40s %-12s %-20s %-10s %s\n", pkg, ver, vulnID, f.Severity, summary)
+		fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n", pkg, ver, vulnID, f.Severity, fixed, summary)
 	}
 
 	fmt.Printf("\n✗ %d vulnerability finding(s) in %d package(s) (%d total packages audited)\n",
@@ -205,13 +207,14 @@ func outputAuditTable(result *audit.AuditResult, sbomFormat string) {
 
 func outputAuditJSON(result *audit.AuditResult) {
 	type jsonFinding struct {
-		Package   string   `json:"package"`
-		Version   string   `json:"version"`
-		Ecosystem string   `json:"ecosystem"`
-		VulnID    string   `json:"vuln_id"`
-		Aliases   []string `json:"aliases,omitempty"`
-		Severity  string   `json:"severity"`
-		Summary   string   `json:"summary"`
+		Package      string   `json:"package"`
+		Version      string   `json:"version"`
+		Ecosystem    string   `json:"ecosystem"`
+		VulnID       string   `json:"vuln_id"`
+		Aliases      []string `json:"aliases,omitempty"`
+		Severity     string   `json:"severity"`
+		Summary      string   `json:"summary"`
+		FixedVersion string   `json:"fixed_version,omitempty"`
 	}
 
 	type jsonOutput struct {
@@ -226,13 +229,14 @@ func outputAuditJSON(result *audit.AuditResult) {
 	out := jsonOutput{}
 	for _, f := range result.Findings {
 		out.Findings = append(out.Findings, jsonFinding{
-			Package:   f.Component.Name,
-			Version:   f.Component.Version,
-			Ecosystem: f.Component.Ecosystem,
-			VulnID:    f.VulnID,
-			Aliases:   f.Aliases,
-			Severity:  f.Severity,
-			Summary:   f.Summary,
+			Package:      f.Component.Name,
+			Version:      f.Component.Version,
+			Ecosystem:    f.Component.Ecosystem,
+			VulnID:       f.VulnID,
+			Aliases:      f.Aliases,
+			Severity:     f.Severity,
+			Summary:      f.Summary,
+			FixedVersion: f.FixedVersion,
 		})
 	}
 	out.Summary.TotalPackages = result.TotalPackages
@@ -244,14 +248,15 @@ func outputAuditJSON(result *audit.AuditResult) {
 }
 
 func outputAuditCSV(result *audit.AuditResult) {
-	fmt.Println("package,version,ecosystem,vuln_id,severity,summary")
+	fmt.Println("package,version,ecosystem,vuln_id,severity,fixed_version,summary")
 	for _, f := range result.Findings {
-		fmt.Printf("%s,%s,%s,%s,%s,%s\n",
+		fmt.Printf("%s,%s,%s,%s,%s,%s,%s\n",
 			csvEscape(f.Component.Name),
 			csvEscape(f.Component.Version),
 			csvEscape(f.Component.Ecosystem),
 			csvEscape(f.VulnID),
 			csvEscape(f.Severity),
+			csvEscape(f.FixedVersion),
 			csvEscape(f.Summary),
 		)
 	}

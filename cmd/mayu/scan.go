@@ -195,20 +195,22 @@ func outputScanTable(result *audit.AuditResult, source string) {
 		return
 	}
 
-	fmt.Printf("%-40s %-12s %-20s %-10s %s\n", "PACKAGE", "VERSION", "VULN ID", "SEVERITY", "SUMMARY")
-	fmt.Printf("%-40s %-12s %-20s %-10s %s\n",
+	fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n", "PACKAGE", "VERSION", "VULN ID", "SEVERITY", "FIXED", "SUMMARY")
+	fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n",
 		"----------------------------------------",
 		"------------",
 		"--------------------",
 		"----------",
+		"--------------",
 		"----------------------------------------")
 
 	for _, f := range result.Findings {
 		pkg := truncateString(f.Component.Name, 40)
 		ver := truncateString(f.Component.Version, 12)
 		vulnID := truncateString(f.VulnID, 20)
+		fixed := truncateString(f.FixedVersion, 14)
 		summary := truncateString(f.Summary, 60)
-		fmt.Printf("%-40s %-12s %-20s %-10s %s\n", pkg, ver, vulnID, f.Severity, summary)
+		fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n", pkg, ver, vulnID, f.Severity, fixed, summary)
 	}
 
 	fmt.Printf("\n✗ %d vulnerability finding(s) in %d package(s) (%d total packages scanned)\n",
