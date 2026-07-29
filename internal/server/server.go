@@ -590,6 +590,10 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Compute next_cursor from the last result item
+	// Note: EPSS sort does not support cursor-based pagination because the Cursor
+	// struct only stores a *time.Time value which cannot represent a float score.
+	// When EPSS sort is active, we skip cursor generation and the client falls back
+	// to offset-based pagination.
 	var nextCursor string
 	if len(results) == limit {
 		last := results[len(results)-1]
@@ -597,7 +601,9 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		if sortKey == "" {
 			sortKey = "modified_desc"
 		}
-		if strings.HasPrefix(sortKey, "published") {
+		if strings.HasPrefix(sortKey, "epss") {
+			// Do not emit a cursor for EPSS sort; client uses offset pagination
+		} else if strings.HasPrefix(sortKey, "published") {
 			nextCursor = store.EncodeCursorWithSort("published", last.Published, last.ID)
 		} else {
 			var mod *time.Time
