@@ -321,6 +321,7 @@ func TestGetEPSSTrending_Defaults(t *testing.T) {
 					PreviousEPSS:      0.2,
 					Delta:             0.65,
 					CurrentPercentile: 0.99,
+					Severity:          "CRITICAL",
 					Summary:           "Critical vuln",
 				},
 			}, nil
@@ -340,22 +341,29 @@ func TestGetEPSSTrending_Defaults(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if resp["days"].(float64) != 7 {
-		t.Errorf("expected days 7, got %v", resp["days"])
+	query := resp["query"].(map[string]interface{})
+	if query["days"].(float64) != 7 {
+		t.Errorf("expected query.days 7, got %v", query["days"])
 	}
-	if resp["threshold"].(float64) != 0.1 {
-		t.Errorf("expected threshold 0.1, got %v", resp["threshold"])
+	if query["threshold"].(float64) != 0.1 {
+		t.Errorf("expected query.threshold 0.1, got %v", query["threshold"])
 	}
-	results := resp["results"].([]interface{})
-	if len(results) != 1 {
-		t.Fatalf("expected 1 result, got %d", len(results))
+	if query["limit"].(float64) != 20 {
+		t.Errorf("expected query.limit 20, got %v", query["limit"])
 	}
-	entry := results[0].(map[string]interface{})
+	entries := resp["entries"].([]interface{})
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	entry := entries[0].(map[string]interface{})
 	if entry["vulnerability_id"] != "CVE-2024-5678" {
 		t.Errorf("expected vulnerability_id CVE-2024-5678, got %v", entry["vulnerability_id"])
 	}
 	if entry["delta"].(float64) != 0.65 {
 		t.Errorf("expected delta 0.65, got %v", entry["delta"])
+	}
+	if entry["severity"] != "CRITICAL" {
+		t.Errorf("expected severity CRITICAL, got %v", entry["severity"])
 	}
 }
 
@@ -499,8 +507,8 @@ func TestGetEPSSTrending_EmptyResult(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	results := resp["results"].([]interface{})
-	if len(results) != 0 {
-		t.Errorf("expected empty results array, got %d entries", len(results))
+	entries := resp["entries"].([]interface{})
+	if len(entries) != 0 {
+		t.Errorf("expected empty entries array, got %d entries", len(entries))
 	}
 }

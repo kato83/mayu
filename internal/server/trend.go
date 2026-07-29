@@ -135,8 +135,11 @@ func (s *Server) handleGetEPSSTrending(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"days":      days,
-		"threshold": threshold,
-		"results":   results,
+		"entries": results,
+		"query": map[string]interface{}{
+			"days":      days,
+			"threshold": threshold,
+			"limit":     limit,
+		},
 	})
 }

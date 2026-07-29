@@ -564,5 +564,10 @@ func (ing *Ingester) notifyEPSSSpikes(ctx context.Context, scores []*model.EPSSS
 	}
 
 	// Fire in background so it does not block the ingest pipeline.
-	go ing.epssSpikeNotifier(context.WithoutCancel(ctx), ids)
+	// Use a timeout to prevent goroutine leaks from slow DB queries or webhook delivery.
+	go func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 60*time.Second)
+		defer cancel()
+		ing.epssSpikeNotifier(ctx, ids)
+	}()
 }

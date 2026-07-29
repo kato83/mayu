@@ -305,6 +305,7 @@ type EPSSTrendingEntry struct {
 	PreviousEPSS      float64 `json:"previous_epss"`
 	Delta             float64 `json:"delta"`
 	CurrentPercentile float64 `json:"current_percentile"`
+	Severity          string  `json:"severity"`
 	Summary           string  `json:"summary"`
 }
 
