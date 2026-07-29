@@ -570,11 +570,15 @@ export class SbomProjectDetailComponent implements OnInit, OnDestroy {
           next: (results) => {
             this.scanResults.set(results);
           },
+          error: (err) => {
+            console.error('Failed to reload scan results', err);
+            this.rescanError.set($localize`:@@sbom.detail.rescanReloadFailed:Failed to reload scan results`);
+          },
         });
       },
       error: (err) => {
         this.rescanning.set(false);
-        this.rescanError.set(err?.error?.error || 'Rescan failed');
+        this.rescanError.set(err?.error?.error || $localize`:@@sbom.detail.rescanFailed:Rescan failed`);
       },
     });
   }
