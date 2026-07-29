@@ -600,9 +600,8 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 			nextCursor = store.EncodeCursorWithSort("published", last.Published, last.ID)
 		} else {
 			var mod *time.Time
-			if !last.Modified.IsZero() {
-				m := last.Modified
-				mod = &m
+			if last.Modified != nil {
+				mod = last.Modified
 			}
 			nextCursor = store.EncodeCursorWithSort("modified", mod, last.ID)
 		}

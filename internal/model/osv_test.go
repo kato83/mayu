@@ -38,8 +38,8 @@ func TestVulnerabilityRoundtrip(t *testing.T) {
 			if vuln.ID == "" {
 				t.Error("ID is empty after unmarshal")
 			}
-			if vuln.Modified.IsZero() {
-				t.Error("Modified is zero after unmarshal")
+			if vuln.Modified == nil || vuln.Modified.IsZero() {
+				t.Error("Modified is nil or zero after unmarshal")
 			}
 
 			// Marshal back to JSON
@@ -116,8 +116,8 @@ func TestParseVulnerability(t *testing.T) {
 			if vuln.ID == "" {
 				t.Error("ID is empty")
 			}
-			if vuln.Modified.IsZero() {
-				t.Error("Modified is zero")
+			if vuln.Modified == nil || vuln.Modified.IsZero() {
+				t.Error("Modified is nil or zero")
 			}
 
 			// Verify RawJSON is populated and is valid JSON

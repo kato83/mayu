@@ -24,7 +24,7 @@ import (
 type Vulnerability struct {
 	SchemaVersion    string          `json:"schema_version,omitempty"`
 	ID               string          `json:"id"`
-	Modified         time.Time       `json:"modified"`
+	Modified         *time.Time      `json:"modified,omitempty"`
 	Published        *time.Time      `json:"published,omitempty"`
 	Withdrawn        *time.Time      `json:"withdrawn,omitempty"`
 	Aliases          []string        `json:"aliases,omitempty"`

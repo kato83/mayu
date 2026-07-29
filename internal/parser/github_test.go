@@ -111,8 +111,8 @@ func TestConvertGitHubToOSV(t *testing.T) {
 	}
 
 	// Check modified time
-	if vuln.Modified.IsZero() {
-		t.Error("Modified should not be zero")
+	if vuln.Modified == nil {
+		t.Fatal("Modified should not be nil")
 	}
 	if vuln.Modified.Day() != 2 {
 		t.Errorf("Modified day = %d, want 2 (from updated_at)", vuln.Modified.Day())

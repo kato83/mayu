@@ -275,7 +275,7 @@ func TestSearchVulnerabilities_Success(t *testing.T) {
 			return []*model.Vulnerability{
 				{
 					ID:       "GO-2024-2687",
-					Modified: now,
+					Modified: &now,
 					Summary:  "test vuln",
 					RawJSON:  rawJSON,
 				},
@@ -543,7 +543,7 @@ func TestGetVulnerability_FallbackMarshal(t *testing.T) {
 		getByIDFunc: func(ctx context.Context, id string) (*model.Vulnerability, error) {
 			return &model.Vulnerability{
 				ID:       "GO-2024-2687",
-				Modified: now,
+				Modified: &now,
 				Summary:  "fallback test",
 			}, nil
 		},
@@ -717,7 +717,7 @@ func TestSearchVulnerabilities_NextCursorInResponse(t *testing.T) {
 			for i := range results {
 				results[i] = &model.Vulnerability{
 					ID:        "GO-2024-2688",
-					Modified:  pub,
+					Modified:  &pub,
 					Published: &pub,
 					RawJSON:   rawJSON,
 				}
@@ -763,7 +763,7 @@ func TestSearchVulnerabilities_NoNextCursorWhenFewerResults(t *testing.T) {
 		},
 		searchFunc: func(ctx context.Context, query store.SearchQuery) ([]*model.Vulnerability, error) {
 			return []*model.Vulnerability{
-				{ID: "GO-2024-2687", Modified: pub, Published: &pub, RawJSON: rawJSON},
+				{ID: "GO-2024-2687", Modified: &pub, Published: &pub, RawJSON: rawJSON},
 			}, nil
 		},
 	}
