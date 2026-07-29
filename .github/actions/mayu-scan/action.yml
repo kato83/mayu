@@ -1,0 +1,371 @@
+name: 'Mayu Vulnerability Scan'
+description: 'Scan SBOM or lockfiles for known vulnerabilities using mayu'
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  sbom:
+    description: 'Path to SBOM file (CycloneDX or SPDX JSON)'
+    required: false
+    default: ''
+  lockfile:
+    description: 'Path to lockfile to scan'
+    required: false
+    default: ''
+  scan-dir:
+    description: 'Directory to scan for lockfiles (auto-detect)'
+    required: false
+    default: ''
+  fail-on:
+    description: 'Fail threshold (comma-separated: critical,high,medium,low,none)'
+    required: false
+    default: ''
+  ignore:
+    description: 'Path to ignore file (.mayu-ignore format)'
+    required: false
+    default: ''
+  format:
+    description: 'Output format (table, json, sarif)'
+    required: false
+    default: 'sarif'
+  mayu-version:
+    description: 'Mayu version to install (latest or specific tag e.g. v0.0.1-alpha.1)'
+    required: false
+    default: 'latest'
+  database-url:
+    description: 'PostgreSQL connection string'
+    required: true
+  ingest-sources:
+    description: 'Comma-separated list of sources to ingest (e.g. osv,nvd,epss,kev). Use "none" to skip ingestion.'
+    required: false
+    default: 'osv'
+  ingest-ecosystems:
+    description: 'Comma-separated ecosystems to ingest for OSV (e.g. Go,npm,PyPI). Use "all" to ingest all ecosystems.'
+    required: false
+    default: ''
+  upload-sarif:
+    description: 'Upload SARIF results to GitHub Code Scanning'
+    required: false
+    default: 'true'
+
+outputs:
+  findings-count:
+    description: 'Total number of vulnerability findings'
+    value: ${{ steps.audit.outputs.findings-count }}
+  sarif-file:
+    description: 'Path to the generated SARIF file (if format=sarif)'
+    value: ${{ steps.audit.outputs.sarif-file }}
+  exit-code:
+    description: 'Exit code from mayu audit (0=clean, 1=findings, 2=error)'
+    value: ${{ steps.audit.outputs.exit-code }}
+
+runs:
+  using: 'composite'
+  steps:
+    # Step 1: Determine platform and install mayu binary
+    - name: Install mayu
+      id: install
+      shell: bash
+      env:
+        MAYU_VERSION: ${{ inputs.mayu-version }}
+      run: |
+        set -euo pipefail
+
+        # Determine OS and architecture
+        OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+        ARCH="$(uname -m)"
+        case "${ARCH}" in
+          x86_64)  ARCH="amd64" ;;
+          aarch64) ARCH="arm64" ;;
+          arm64)   ARCH="arm64" ;;
+          *)       echo "::error::Unsupported architecture: ${ARCH}"; exit 1 ;;
+        esac
+
+        echo "Platform: ${OS}/${ARCH}"
+
+        # Determine download URL
+        if [ "${MAYU_VERSION}" = "latest" ]; then
+          RELEASE_URL="https://api.github.com/repos/kato83/mayu/releases/latest"
+        else
+          # Strip leading 'v' if present for tag lookup
+          TAG="${MAYU_VERSION}"
+          RELEASE_URL="https://api.github.com/repos/kato83/mayu/releases/tags/${TAG}"
+        fi
+
+        echo "Fetching release info from: ${RELEASE_URL}"
+
+        # Get release info
+        RELEASE_JSON=$(curl -sSL -H "Accept: application/vnd.github+json" "${RELEASE_URL}")
+        TAG_NAME=$(echo "${RELEASE_JSON}" | jq -r '.tag_name')
+
+        if [ "${TAG_NAME}" = "null" ] || [ -z "${TAG_NAME}" ]; then
+          echo "::error::Failed to find release for version: ${MAYU_VERSION}"
+          exit 1
+        fi
+
+        echo "Installing mayu ${TAG_NAME}"
+
+        # Determine archive name pattern: mayu_{version}_{os}_{arch}.tar.gz
+        # Strip leading 'v' from tag for filename
+        VERSION_STR="${TAG_NAME#v}"
+        if [ "${OS}" = "linux" ] || [ "${OS}" = "darwin" ]; then
+          ARCHIVE="mayu_${VERSION_STR}_${OS}_${ARCH}.tar.gz"
+        else
+          echo "::error::Unsupported OS: ${OS}"
+          exit 1
+        fi
+
+        # Find download URL from assets
+        DOWNLOAD_URL=$(echo "${RELEASE_JSON}" | jq -r ".assets[] | select(.name == \"${ARCHIVE}\") | .browser_download_url")
+
+        if [ -z "${DOWNLOAD_URL}" ] || [ "${DOWNLOAD_URL}" = "null" ]; then
+          echo "::error::Asset not found: ${ARCHIVE}"
+          echo "Available assets:"
+          echo "${RELEASE_JSON}" | jq -r '.assets[].name'
+          exit 1
+        fi
+
+        echo "Downloading: ${DOWNLOAD_URL}"
+
+        # Download and extract
+        INSTALL_DIR="${HOME}/.local/bin"
+        mkdir -p "${INSTALL_DIR}"
+        curl -sSL "${DOWNLOAD_URL}" | tar xz -C "${INSTALL_DIR}" mayu
+
+        # Add to PATH
+        echo "${INSTALL_DIR}" >> "${GITHUB_PATH}"
+
+        # Verify installation
+        "${INSTALL_DIR}/mayu" version
+        echo "mayu-path=${INSTALL_DIR}/mayu" >> "${GITHUB_OUTPUT}"
+        echo "mayu-version=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
+
+    # Step 2: Run database migrations
+    - name: Run migrations
+      shell: bash
+      env:
+        DATABASE_URL: ${{ inputs.database-url }}
+      run: |
+        set -euo pipefail
+        echo "Running database migrations..."
+        mayu migrate
+        echo "Migrations complete."
+
+    # Step 3: Ingest vulnerability data
+    - name: Ingest vulnerability data
+      shell: bash
+      env:
+        DATABASE_URL: ${{ inputs.database-url }}
+        INGEST_SOURCES: ${{ inputs.ingest-sources }}
+        INGEST_ECOSYSTEMS: ${{ inputs.ingest-ecosystems }}
+      run: |
+        set -euo pipefail
+
+        if [ "${INGEST_SOURCES}" = "none" ]; then
+          echo "Skipping ingestion (ingest-sources=none)"
+          exit 0
+        fi
+
+        IFS=',' read -ra SOURCES <<< "${INGEST_SOURCES}"
+        for SOURCE in "${SOURCES[@]}"; do
+          SOURCE=$(echo "${SOURCE}" | xargs)  # trim whitespace
+          case "${SOURCE}" in
+            osv)
+              if [ "${INGEST_ECOSYSTEMS}" = "all" ]; then
+                echo "Ingesting OSV: all ecosystems..."
+                mayu ingest --all --update
+              elif [ -n "${INGEST_ECOSYSTEMS}" ]; then
+                IFS=',' read -ra ECOS <<< "${INGEST_ECOSYSTEMS}"
+                for ECO in "${ECOS[@]}"; do
+                  ECO=$(echo "${ECO}" | xargs)
+                  echo "Ingesting OSV: ${ECO}..."
+                  mayu ingest --ecosystem "${ECO}" --update
+                done
+              else
+                echo "::warning::ingest-sources includes 'osv' but no ingest-ecosystems specified. Skipping OSV ingestion."
+              fi
+              ;;
+            nvd)
+              echo "Ingesting NVD (native)..."
+              mayu ingest --source nvd --native --update
+              ;;
+            mitre)
+              echo "Ingesting MITRE..."
+              mayu ingest --source mitre --update
+              ;;
+            epss)
+              echo "Ingesting EPSS..."
+              mayu ingest --source epss --update
+              ;;
+            kev)
+              echo "Ingesting KEV..."
+              mayu ingest --source kev --update
+              ;;
+            *)
+              echo "::warning::Unknown ingest source: ${SOURCE}"
+              ;;
+          esac
+        done
+
+        echo "Ingestion complete."
+
+    # Step 4: Run audit
+    - name: Run mayu audit
+      id: audit
+      shell: bash
+      env:
+        DATABASE_URL: ${{ inputs.database-url }}
+        INPUT_SBOM: ${{ inputs.sbom }}
+        INPUT_LOCKFILE: ${{ inputs.lockfile }}
+        INPUT_SCAN_DIR: ${{ inputs.scan-dir }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_IGNORE: ${{ inputs.ignore }}
+        INPUT_FORMAT: ${{ inputs.format }}
+      run: |
+        set -uo pipefail
+
+        SARIF_FILE=""
+        AUDIT_ARGS=()
+
+        # Determine scan target
+        if [ -n "${INPUT_SBOM}" ]; then
+          AUDIT_ARGS+=(--sbom "${INPUT_SBOM}")
+        elif [ -n "${INPUT_LOCKFILE}" ]; then
+          AUDIT_ARGS+=(--sbom "${INPUT_LOCKFILE}")
+        elif [ -n "${INPUT_SCAN_DIR}" ]; then
+          # Auto-detect SBOM/lockfiles in directory
+          FOUND=""
+          for PATTERN in "bom.json" "sbom.json" "sbom.cdx.json" "*.cdx.json" "sbom.spdx.json" "*.spdx.json"; do
+            MATCH=$(find "${INPUT_SCAN_DIR}" -maxdepth 1 -name "${PATTERN}" -print -quit 2>/dev/null || true)
+            if [ -n "${MATCH}" ]; then
+              FOUND="${MATCH}"
+              break
+            fi
+          done
+          if [ -z "${FOUND}" ]; then
+            echo "::error::No SBOM file found in directory: ${INPUT_SCAN_DIR}"
+            echo "exit-code=2" >> "${GITHUB_OUTPUT}"
+            echo "findings-count=0" >> "${GITHUB_OUTPUT}"
+            echo "sarif-file=" >> "${GITHUB_OUTPUT}"
+            exit 2
+          fi
+          echo "Auto-detected SBOM: ${FOUND}"
+          AUDIT_ARGS+=(--sbom "${FOUND}")
+        else
+          echo "::error::One of 'sbom', 'lockfile', or 'scan-dir' must be specified"
+          echo "exit-code=2" >> "${GITHUB_OUTPUT}"
+          echo "findings-count=0" >> "${GITHUB_OUTPUT}"
+          echo "sarif-file=" >> "${GITHUB_OUTPUT}"
+          exit 2
+        fi
+
+        # Add format
+        AUDIT_ARGS+=(--format "${INPUT_FORMAT}")
+
+        # Add fail-on threshold
+        if [ -n "${INPUT_FAIL_ON}" ]; then
+          AUDIT_ARGS+=(--fail-on "${INPUT_FAIL_ON}")
+        fi
+
+        # Add ignore file
+        if [ -n "${INPUT_IGNORE}" ]; then
+          AUDIT_ARGS+=(--ignore "${INPUT_IGNORE}")
+        fi
+
+        # Determine output file for SARIF
+        if [ "${INPUT_FORMAT}" = "sarif" ]; then
+          SARIF_FILE="${RUNNER_TEMP}/mayu-results.sarif"
+          echo "SARIF output: ${SARIF_FILE}"
+        fi
+
+        # Run audit
+        echo "Running: mayu audit ${AUDIT_ARGS[*]}"
+        EXIT_CODE=0
+        if [ "${INPUT_FORMAT}" = "sarif" ]; then
+          mayu audit "${AUDIT_ARGS[@]}" > "${SARIF_FILE}" || EXIT_CODE=$?
+        else
+          mayu audit "${AUDIT_ARGS[@]}" || EXIT_CODE=$?
+        fi
+
+        echo "exit-code=${EXIT_CODE}" >> "${GITHUB_OUTPUT}"
+        echo "sarif-file=${SARIF_FILE}" >> "${GITHUB_OUTPUT}"
+
+        # Count findings from SARIF if available
+        FINDINGS_COUNT=0
+        if [ -n "${SARIF_FILE}" ] && [ -f "${SARIF_FILE}" ]; then
+          FINDINGS_COUNT=$(jq '[.runs[].results // [] | length] | add // 0' "${SARIF_FILE}" 2>/dev/null || echo "0")
+        fi
+        echo "findings-count=${FINDINGS_COUNT}" >> "${GITHUB_OUTPUT}"
+
+        echo "Audit completed with exit code: ${EXIT_CODE}, findings: ${FINDINGS_COUNT}"
+
+        # Preserve exit code for later steps but don't fail here
+        # (allow SARIF upload and summary to run)
+        if [ "${EXIT_CODE}" -eq 2 ]; then
+          echo "::error::Mayu audit encountered an error"
+          exit 2
+        fi
+
+    # Step 5: Upload SARIF to GitHub Code Scanning
+    - name: Upload SARIF to Code Scanning
+      if: inputs.upload-sarif == 'true' && inputs.format == 'sarif' && steps.audit.outputs.sarif-file != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.audit.outputs.sarif-file }}
+        wait-for-processing: true
+      continue-on-error: true
+
+    # Step 6: Post Job Summary
+    - name: Post Job Summary
+      shell: bash
+      env:
+        FINDINGS_COUNT: ${{ steps.audit.outputs.findings-count }}
+        EXIT_CODE: ${{ steps.audit.outputs.exit-code }}
+        MAYU_VERSION: ${{ steps.install.outputs.mayu-version }}
+        INPUT_SBOM: ${{ inputs.sbom }}
+        INPUT_LOCKFILE: ${{ inputs.lockfile }}
+        INPUT_SCAN_DIR: ${{ inputs.scan-dir }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        set -uo pipefail
+
+        # Determine status emoji
+        if [ "${EXIT_CODE}" = "0" ]; then
+          STATUS="✅ Clean"
+        elif [ "${EXIT_CODE}" = "1" ]; then
+          STATUS="⚠️ Findings detected"
+        else
+          STATUS="❌ Error"
+        fi
+
+        # Determine scan target display
+        TARGET="${INPUT_SBOM:-${INPUT_LOCKFILE:-${INPUT_SCAN_DIR:-unknown}}}"
+
+        cat >> "${GITHUB_STEP_SUMMARY}" <<EOF
+        ## 🛡️ Mayu Vulnerability Scan
+
+        | Item | Value |
+        |------|-------|
+        | **Status** | ${STATUS} |
+        | **Findings** | ${FINDINGS_COUNT} |
+        | **Scan Target** | \`${TARGET}\` |
+        | **Fail Threshold** | ${INPUT_FAIL_ON:-_(none)_} |
+        | **Mayu Version** | ${MAYU_VERSION} |
+
+        EOF
+
+        if [ "${FINDINGS_COUNT}" -gt 0 ]; then
+          echo "::warning::Mayu found ${FINDINGS_COUNT} vulnerability finding(s)"
+        fi
+
+    # Step 7: Fail the workflow if threshold exceeded
+    - name: Check threshold
+      shell: bash
+      env:
+        EXIT_CODE: ${{ steps.audit.outputs.exit-code }}
+      run: |
+        if [ "${EXIT_CODE}" = "1" ]; then
+          echo "::error::Vulnerability findings exceed the configured threshold"
+          exit 1
+        fi
