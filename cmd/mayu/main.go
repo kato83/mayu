@@ -30,8 +30,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "version":
-		printBanner()
-		fmt.Printf("\nmayu %s\n", version)
+		fmt.Printf("mayu %s\n", version)
 	case "ingest":
 		// Check for sub-subcommand 'history'
 		if len(os.Args) > 2 && os.Args[2] == "history" {
