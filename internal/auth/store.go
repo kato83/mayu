@@ -32,6 +32,10 @@ type UserStore interface {
 	// GetUserByOIDCSubject retrieves a user by OIDC subject identifier.
 	// Returns nil, nil if not found.
 	GetUserByOIDCSubject(ctx context.Context, subject string) (*User, error)
+
+	// UpdatePasswordHash updates the password hash for a user identified by email.
+	// Returns the updated user, or an error if not found.
+	UpdatePasswordHash(ctx context.Context, email, passwordHash string) (*User, error)
 }
 
 // APIKeyStore defines the interface for API key persistence operations.

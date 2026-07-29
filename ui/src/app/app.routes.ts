@@ -102,6 +102,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/api-keys/api-keys.component').then((m) => m.ApiKeysComponent),
       },
       {
+        path: 'change-password',
+        title: $localize`:@@route.title.changePassword:Change Password`,
+        loadComponent: () =>
+          import('./pages/change-password/change-password.component').then((m) => m.ChangePasswordComponent),
+      },
+      {
         path: 'docs',
         redirectTo: 'docs/readme',
         pathMatch: 'full',

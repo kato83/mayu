@@ -18,7 +18,7 @@ import (
 func runUser(args []string, cfg *config.Config) error {
 	if len(args) == 0 {
 		printUserUsage()
-		return fmt.Errorf("no subcommand specified (use 'create', 'list', or 'update')")
+		return fmt.Errorf("no subcommand specified (use 'create', 'list', 'update', or 'reset-password')")
 	}
 
 	switch args[0] {
@@ -28,12 +28,14 @@ func runUser(args []string, cfg *config.Config) error {
 		return runUserList(args[1:], cfg)
 	case "update":
 		return runUserUpdate(args[1:], cfg)
+	case "reset-password":
+		return runUserResetPassword(args[1:], cfg)
 	case "help", "-h", "--help":
 		printUserUsage()
 		return nil
 	default:
 		printUserUsage()
-		return fmt.Errorf("unknown user subcommand: %q (use 'create', 'list', or 'update')", args[0])
+		return fmt.Errorf("unknown user subcommand: %q (use 'create', 'list', 'update', or 'reset-password')", args[0])
 	}
 }
 
@@ -169,9 +171,10 @@ func printUserUsage() {
 	fmt.Println("Manage user accounts.")
 	fmt.Println()
 	fmt.Println("Subcommands:")
-	fmt.Println("  create    Create a new user")
-	fmt.Println("  list      List all users")
-	fmt.Println("  update    Update an existing user")
+	fmt.Println("  create          Create a new user")
+	fmt.Println("  list            List all users")
+	fmt.Println("  update          Update an existing user")
+	fmt.Println("  reset-password  Reset a user's password (local auth mode only)")
 	fmt.Println()
 	fmt.Println("Run 'mayu user <subcommand> --help' for more information.")
 }
@@ -234,6 +237,81 @@ func runUserUpdate(args []string, cfg *config.Config) error {
 	}
 
 	fmt.Println("User updated successfully:")
+	fmt.Printf("  ID:    %d\n", user.ID)
+	fmt.Printf("  Email: %s\n", user.Email)
+	fmt.Printf("  Name:  %s\n", user.Name)
+	fmt.Printf("  Role:  %s\n", user.Role)
+
+	return nil
+}
+
+func runUserResetPassword(args []string, cfg *config.Config) error {
+	fs := flag.NewFlagSet("user reset-password", flag.ContinueOnError)
+
+	email := fs.String("email", "", "User email address (required)")
+	password := fs.String("password", "", "New password (required)")
+
+	fs.Usage = func() {
+		fmt.Println("Usage: mayu user reset-password [options]")
+		fmt.Println()
+		fmt.Println("Reset a user's password (admin operation).")
+		fmt.Println("Requires auth.mode=local in configuration.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fs.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  mayu user reset-password --email user@example.com --password newpassword")
+	}
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// Check auth mode — only allowed in local mode
+	authMode := strings.ToLower(cfg.Auth.Mode)
+	if authMode == "" {
+		authMode = "none"
+	}
+	if authMode != "local" {
+		return fmt.Errorf("reset-password is only available when auth.mode=local (current mode: %s)", authMode)
+	}
+
+	// Validate required fields
+	if *email == "" {
+		return fmt.Errorf("--email is required")
+	}
+	if *password == "" {
+		return fmt.Errorf("--password is required")
+	}
+
+	// Hash the new password
+	passwordHash, err := auth.HashPassword(*password)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+
+	// Connect to database
+	databaseURL := resolveDatabaseURL(cfg)
+	db, err := sql.Open("pgx", databaseURL)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	if err := db.PingContext(ctx); err != nil {
+		return fmt.Errorf("connect to database: %w", err)
+	}
+
+	// Update password
+	store := auth.NewPostgresAuthStore(db)
+	user, err := store.UpdatePasswordHash(ctx, *email, passwordHash)
+	if err != nil {
+		return fmt.Errorf("reset password: %w", err)
+	}
+
+	fmt.Println("Password reset successfully:")
 	fmt.Printf("  ID:    %d\n", user.ID)
 	fmt.Printf("  Email: %s\n", user.Email)
 	fmt.Printf("  Name:  %s\n", user.Name)

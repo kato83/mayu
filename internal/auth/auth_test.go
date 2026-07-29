@@ -12,13 +12,14 @@ import (
 // --- Mock stores ---
 
 type mockUserStore struct {
-	getUserByEmailFn    func(ctx context.Context, email string) (*UserWithPassword, error)
-	getUserByIDFn       func(ctx context.Context, id int64) (*User, error)
-	createUserFn        func(ctx context.Context, email, name, role, passwordHash string) (*User, error)
-	listUsersFn         func(ctx context.Context) ([]*User, error)
-	updateUserRoleFn    func(ctx context.Context, email, role string) (*User, error)
-	updateUserOIDCFn    func(ctx context.Context, userID int64, subject string) error
-	getUserByOIDCSubjFn func(ctx context.Context, subject string) (*User, error)
+	getUserByEmailFn     func(ctx context.Context, email string) (*UserWithPassword, error)
+	getUserByIDFn        func(ctx context.Context, id int64) (*User, error)
+	createUserFn         func(ctx context.Context, email, name, role, passwordHash string) (*User, error)
+	listUsersFn          func(ctx context.Context) ([]*User, error)
+	updateUserRoleFn     func(ctx context.Context, email, role string) (*User, error)
+	updateUserOIDCFn     func(ctx context.Context, userID int64, subject string) error
+	getUserByOIDCSubjFn  func(ctx context.Context, subject string) (*User, error)
+	updatePasswordHashFn func(ctx context.Context, email, passwordHash string) (*User, error)
 }
 
 func (m *mockUserStore) CreateUser(ctx context.Context, email, name, role, passwordHash string) (*User, error) {
@@ -66,6 +67,13 @@ func (m *mockUserStore) UpdateUserRole(ctx context.Context, email, role string) 
 func (m *mockUserStore) GetUserByOIDCSubject(ctx context.Context, subject string) (*User, error) {
 	if m.getUserByOIDCSubjFn != nil {
 		return m.getUserByOIDCSubjFn(ctx, subject)
+	}
+	return nil, nil
+}
+
+func (m *mockUserStore) UpdatePasswordHash(ctx context.Context, email, passwordHash string) (*User, error) {
+	if m.updatePasswordHashFn != nil {
+		return m.updatePasswordHashFn(ctx, email, passwordHash)
 	}
 	return nil, nil
 }

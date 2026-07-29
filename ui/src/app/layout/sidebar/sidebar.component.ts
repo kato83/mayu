@@ -236,14 +236,21 @@ export class SidebarComponent implements OnInit {
     { label: $localize`:@@sidebar.nav.webhooks:Webhooks`, route: '/webhooks', icon: '🔔' },
     { label: $localize`:@@sidebar.nav.watchlists:Watchlists`, route: '/watchlists', icon: '🏷️' },
     { label: $localize`:@@sidebar.nav.apiKeys:API Keys`, route: '/api-keys', icon: '🔑' },
+    { label: $localize`:@@sidebar.nav.changePassword:Change Password`, route: '/change-password', icon: '🔒' },
     { label: $localize`:@@sidebar.nav.docs:Docs`, route: '/docs', icon: '📖' },
   ];
 
   readonly navItems = computed(() => {
-    if (this.authService.authMode() === 'none') {
-      return this.allNavItems.filter((item) => item.route !== '/api-keys');
-    }
-    return this.allNavItems;
+    const mode = this.authService.authMode();
+    return this.allNavItems.filter((item) => {
+      if (item.route === '/api-keys' && mode === 'none') {
+        return false;
+      }
+      if (item.route === '/change-password' && mode !== 'local') {
+        return false;
+      }
+      return true;
+    });
   });
 
   setTheme(mode: ThemeMode): void {

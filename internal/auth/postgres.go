@@ -142,6 +142,29 @@ func (s *PostgresAuthStore) UpdateUserRole(ctx context.Context, email, role stri
 	return &user, nil
 }
 
+// UpdatePasswordHash updates the password hash for a user identified by email.
+func (s *PostgresAuthStore) UpdatePasswordHash(ctx context.Context, email, passwordHash string) (*User, error) {
+	var user User
+	var name sql.NullString
+
+	err := s.db.QueryRowContext(ctx, `
+		UPDATE users SET password_hash = $2, updated_at = NOW()
+		WHERE email = $1
+		RETURNING id, email, name, role`,
+		email, passwordHash,
+	).Scan(&user.ID, &user.Email, &name, &user.Role)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %s", email)
+		}
+		return nil, fmt.Errorf("update password hash: %w", err)
+	}
+	if name.Valid {
+		user.Name = name.String
+	}
+	return &user, nil
+}
+
 // UpdateUserOIDCSubject sets the OIDC subject identifier for a user.
 func (s *PostgresAuthStore) UpdateUserOIDCSubject(ctx context.Context, userID int64, subject string) error {
 	_, err := s.db.ExecContext(ctx, `
