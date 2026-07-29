@@ -188,6 +188,7 @@ const ALL_STATUSES = ['open', 'in_triage', 'suppressed', 'false_positive', 'risk
                     <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.scan.col.vulnId">Vulnerability</th>
                     <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.scan.col.severity">Severity</th>
                     <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.scan.col.findingStatus">Status</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.scan.col.note">Note</th>
                     <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.scan.col.summary">Summary</th>
                   </tr>
                 </thead>
@@ -215,6 +216,11 @@ const ALL_STATUSES = ['open', 'in_triage', 'suppressed', 'false_positive', 'risk
                             </option>
                           }
                         </select>
+                      </td>
+                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-xs">
+                        @if (getFindingJustification(finding)) {
+                          <span class="inline-block max-w-[200px] truncate" [title]="getFindingJustification(finding)!">{{ getFindingJustification(finding) }}</span>
+                        }
                       </td>
                       <td class="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-xs truncate">{{ finding.summary }}</td>
                     </tr>
@@ -388,6 +394,13 @@ export class SbomScanDetailComponent implements OnInit {
     const key = this.findingKey(finding);
     const entry = this.findingStatuses().get(key);
     return entry ? entry.status : 'open';
+  }
+
+  /** Get the justification (note/memo) of a finding. */
+  getFindingJustification(finding: ScanFinding): string | undefined {
+    const key = this.findingKey(finding);
+    const entry = this.findingStatuses().get(key);
+    return entry?.justification;
   }
 
   /** Handle status dropdown change. */
