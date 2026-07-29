@@ -61,6 +61,7 @@ mayu/
 - Test fixtures: place in `testdata/` directory
 - Use `net/http/httptest` for HTTP mocking
 - Use table-driven tests where applicable
+- **テスト実行時の出力確認**: `make test-integration` の出力が長い場合、全体を再実行せず `go test -tags integration ./internal/store/... 2>&1 | head -50` のようにパッケージを絞って実行する。ビルドエラーの場合は `go build -tags integration ./...` で素早く確認できる。
 
 ### Database
 

@@ -411,8 +411,8 @@ type StatsTrendQuery struct {
 
 // StatsTrendResponse is the API response for the stats trend endpoint.
 type StatsTrendResponse struct {
-	Range      string               `json:"range"`
-	GroupBy    string               `json:"group_by"`
+	Range      string                `json:"range"`
+	GroupBy    string                `json:"group_by"`
 	DataPoints []StatsTrendDataPoint `json:"data_points"`
 }
 

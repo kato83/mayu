@@ -34,8 +34,8 @@ type cycloneDXProperty struct {
 
 // cycloneDXXMLBOM represents the top-level CycloneDX XML BOM structure.
 type cycloneDXXMLBOM struct {
-	XMLName    xml.Name                 `xml:"bom"`
-	Components []cycloneDXXMLComponent  `xml:"components>component"`
+	XMLName    xml.Name                `xml:"bom"`
+	Components []cycloneDXXMLComponent `xml:"components>component"`
 }
 
 // cycloneDXXMLComponent represents a single component in a CycloneDX XML BOM.
@@ -43,14 +43,14 @@ type cycloneDXXMLBOM struct {
 // CycloneDX schema versions 1.4 and later. Older schema versions (< 1.4) may
 // represent bom-ref differently; those documents will have this field silently empty.
 type cycloneDXXMLComponent struct {
-	Type       string                  `xml:"type,attr"`
-	Name       string                  `xml:"name"`
-	Version    string                  `xml:"version"`
-	Purl       string                  `xml:"purl"`
-	BomRef     string                  `xml:"bom-ref,attr"`
-	Scope      string                  `xml:"scope"`
-	Group      string                  `xml:"group"`
-	Properties []cycloneDXXMLProperty  `xml:"properties>property"`
+	Type       string                 `xml:"type,attr"`
+	Name       string                 `xml:"name"`
+	Version    string                 `xml:"version"`
+	Purl       string                 `xml:"purl"`
+	BomRef     string                 `xml:"bom-ref,attr"`
+	Scope      string                 `xml:"scope"`
+	Group      string                 `xml:"group"`
+	Properties []cycloneDXXMLProperty `xml:"properties>property"`
 }
 
 // cycloneDXXMLProperty represents a property element in CycloneDX XML.
