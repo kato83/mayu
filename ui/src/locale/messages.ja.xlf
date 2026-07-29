@@ -1966,6 +1966,70 @@
         <source>Summary</source>
         <target>概要</target>
       </trans-unit>
+      <trans-unit id="sbom.scan.suppressedCount" datatype="html">
+        <source>Suppressed / False Positive</source>
+        <target>抑制 / 誤検知</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.filterByStatus" datatype="html">
+        <source>Filter by status:</source>
+        <target>ステータスで絞り込み:</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.col.findingStatus" datatype="html">
+        <source>Status</source>
+        <target>ステータス</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.status.open" datatype="html">
+        <source>Open</source>
+        <target>未対応</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.status.inTriage" datatype="html">
+        <source>In Triage</source>
+        <target>トリアージ中</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.status.suppressed" datatype="html">
+        <source>Suppressed</source>
+        <target>抑制済み</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.status.falsePositive" datatype="html">
+        <source>False Positive</source>
+        <target>誤検知</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.status.riskAccepted" datatype="html">
+        <source>Risk Accepted</source>
+        <target>リスク受容</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.status.resolved" datatype="html">
+        <source>Resolved</source>
+        <target>解決済み</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.statusUpdateError" datatype="html">
+        <source>Failed to update finding status. Please try again.</source>
+        <target>検出ステータスの更新に失敗しました。もう一度お試しください。</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.justificationTitle" datatype="html">
+        <source> Justification Required </source>
+        <target>理由の入力（必須）</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.justificationDescription" datatype="html">
+        <source> Please provide a justification for accepting this risk. </source>
+        <target>このリスクを受容する理由を入力してください。</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.justificationPlaceholder" datatype="html">
+        <source>Enter justification...</source>
+        <target>理由を入力...</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.justificationRequiredError" datatype="html">
+        <source> Justification is required for this status. </source>
+        <target>このステータスには理由の入力が必須です。</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.cancel" datatype="html">
+        <source> Cancel </source>
+        <target>キャンセル</target>
+      </trans-unit>
+      <trans-unit id="sbom.scan.confirm" datatype="html">
+        <source> Confirm </source>
+        <target>確認</target>
+      </trans-unit>
       <trans-unit id="sbom.detail.trendTitle" datatype="html">
         <source>Vulnerability Trend</source>
         <target>脆弱性トレンド</target>
