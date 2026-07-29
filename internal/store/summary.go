@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/kato83/mayu/internal/cvss"
 	"github.com/kato83/mayu/internal/model"
+	"github.com/kato83/mayu/internal/score"
 )
 
 // RefreshSummary recomputes vulnerability_summary rows for the given vulnerability IDs.
@@ -121,13 +123,43 @@ func (s *PostgresStore) refreshSingleSummary(ctx context.Context, tx *sql.Tx, vu
 		return err
 	}
 
-	// --- Step 9: UPSERT into vulnerability_summary ---
+	// --- Step 9: Compute composite risk score ---
+	var maxCVSS *float64
+	for _, sc := range scores {
+		if sc.Score != nil {
+			if maxCVSS == nil || *sc.Score > *maxCVSS {
+				v := *sc.Score
+				maxCVSS = &v
+			}
+		}
+	}
+
+	// Determine published date for age factor
+	var publishedAt time.Time
+	err = tx.QueryRowContext(ctx,
+		`SELECT published FROM vulnerabilities WHERE id = $1 AND published IS NOT NULL`,
+		vulnID).Scan(&publishedAt)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("fetch published date: %w", err)
+	}
+
+	compositeInput := score.Input{
+		CVSSScore:      maxCVSS,
+		EPSSScore:      epssScore,
+		LEVScore:       levScore,
+		InKEV:          inKEV,
+		PatchAvailable: false, // TODO: integrate patch availability data when available
+		PublishedAt:    publishedAt,
+	}
+	compositeScore := score.Compute(compositeInput, score.DefaultWeights())
+
+	// --- Step 10: UPSERT into vulnerability_summary ---
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO vulnerability_summary (
 			vulnerability_id, severity_worst, severity_best,
 			scores_detail, epss_score, epss_percentile,
-			in_kev, lev_score, ecosystem_list, cwe_list, computed_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+			in_kev, lev_score, ecosystem_list, cwe_list, composite_score, computed_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
 		ON CONFLICT (vulnerability_id) DO UPDATE SET
 			severity_worst = EXCLUDED.severity_worst,
 			severity_best = EXCLUDED.severity_best,
@@ -138,6 +170,7 @@ func (s *PostgresStore) refreshSingleSummary(ctx context.Context, tx *sql.Tx, vu
 			lev_score = EXCLUDED.lev_score,
 			ecosystem_list = EXCLUDED.ecosystem_list,
 			cwe_list = EXCLUDED.cwe_list,
+			composite_score = EXCLUDED.composite_score,
 			computed_at = EXCLUDED.computed_at`,
 		vulnID,
 		nullableInt(severityWorst),
@@ -149,6 +182,7 @@ func (s *PostgresStore) refreshSingleSummary(ctx context.Context, tx *sql.Tx, vu
 		levScore,
 		pgTextArray(ecosystemList),
 		pgTextArray(cweList),
+		compositeScore,
 	)
 	if err != nil {
 		return fmt.Errorf("upsert vulnerability_summary: %w", err)

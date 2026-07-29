@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -214,6 +215,10 @@ func runServe(args []string, cfg *config.Config) error {
 			}
 		}()
 	}
+
+	// Start periodic finding expiry check (reopens expired finding statuses)
+	findingExpirer := sbommon.NewFindingExpirer(s.DB(), log.Default())
+	go findingExpirer.RunPeriodicExpiry(ctx, 1*time.Hour)
 
 	// Start server in goroutine.
 	// errCh is buffered (cap 1) so the goroutine never blocks on send.
