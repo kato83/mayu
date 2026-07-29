@@ -1,0 +1,19 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    actionpack (7.1.0)
+      actionview (= 7.1.0)
+      rack (~> 2.2, >= 2.2.4)
+    actionview (7.1.0)
+      activesupport (= 7.1.0)
+    rack (2.2.8)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  actionpack (~> 7.1)
+  rack (~> 2.2)
+
+BUNDLED WITH
+   2.4.22
