@@ -1,8 +1,8 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DocsComponent } from './docs.component';
 import { DOCS_MANIFEST } from './docs-manifest';
@@ -16,9 +16,7 @@ describe('DocsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [DocsComponent],
       providers: [
-        provideRouter([
-          { path: 'docs/:slug', component: DocsComponent },
-        ]),
+        provideRouter([{ path: 'docs/:slug', component: DocsComponent }]),
         provideHttpClient(),
         provideHttpClientTesting(),
       ],

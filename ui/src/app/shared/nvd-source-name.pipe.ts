@@ -1,4 +1,4 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, type PipeTransform } from '@angular/core';
 
 /**
  * Maps NVD metric source identifiers (UUIDs or emails) to human-readable names.
@@ -27,8 +27,7 @@ export class NvdSourceNamePipe implements PipeTransform {
     'af854a3a-2127-422b-91ae-364da2661108': 'NVD-CNA',
   };
 
-  private static readonly UUID_PATTERN =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  private static readonly UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   transform(value: string | null | undefined): string {
     if (!value) {
@@ -42,7 +41,7 @@ export class NvdSourceNamePipe implements PipeTransform {
 
     // If it's an unmapped UUID, show a truncated form for readability
     if (NvdSourceNamePipe.UUID_PATTERN.test(value)) {
-      return value.substring(0, 8) + '…';
+      return `${value.substring(0, 8)}…`;
     }
 
     return value;

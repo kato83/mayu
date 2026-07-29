@@ -1,6 +1,6 @@
-import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, of } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
+import { catchError, Observable, of, tap } from 'rxjs';
 
 export interface User {
   id: number;
@@ -41,14 +41,12 @@ export class AuthService {
    * Log in with email and password (local auth mode).
    */
   login(email: string, password: string): Observable<{ user: User }> {
-    return this.http
-      .post<{ user: User }>('/auth/login', { email, password }, { withCredentials: true })
-      .pipe(
-        tap((response) => {
-          this.isAuthenticated.set(true);
-          this.currentUser.set(response.user);
-        }),
-      );
+    return this.http.post<{ user: User }>('/auth/login', { email, password }, { withCredentials: true }).pipe(
+      tap((response) => {
+        this.isAuthenticated.set(true);
+        this.currentUser.set(response.user);
+      }),
+    );
   }
 
   /**

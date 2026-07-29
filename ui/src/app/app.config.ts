@@ -1,13 +1,19 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, APP_INITIALIZER, inject, Injectable } from '@angular/core';
-import { provideRouter, TitleStrategy, RouterStateSnapshot } from '@angular/router';
-import { Title } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import {
+  APP_INITIALIZER,
+  type ApplicationConfig,
+  Injectable,
+  inject,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
+import { Title } from '@angular/platform-browser';
+import { provideRouter, type RouterStateSnapshot, TitleStrategy } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { routes } from './app.routes';
-import { AuthService } from './services/auth.service';
 import { acceptLanguageInterceptor } from './interceptors/accept-language.interceptor';
 import { httpErrorInterceptor } from './interceptors/http-error.interceptor';
+import { AuthService } from './services/auth.service';
 
 @Injectable()
 class MayuTitleStrategy extends TitleStrategy {
@@ -35,5 +41,5 @@ export const appConfig: ApplicationConfig = {
       useFactory: initializeAuth,
       multi: true,
     },
-  ]
+  ],
 };

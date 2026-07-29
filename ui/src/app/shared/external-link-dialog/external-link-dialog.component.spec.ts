@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ExternalLinkDialogComponent } from './external-link-dialog.component';
 
 describe('ExternalLinkDialogComponent', () => {

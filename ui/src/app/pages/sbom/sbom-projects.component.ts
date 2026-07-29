@@ -1,12 +1,11 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { Component, inject, type OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-
+import type { SBOMProject } from '../../models/sbom.model';
+import type { Team } from '../../models/team.model';
 import { SbomService } from '../../services/sbom.service';
 import { TeamService } from '../../services/team.service';
-import { SBOMProject } from '../../models/sbom.model';
-import { Team } from '../../models/team.model';
 
 @Component({
   selector: 'app-sbom-projects',
@@ -249,22 +248,24 @@ export class SbomProjectsComponent implements OnInit {
 
     const editing = this.editingProject();
     if (editing) {
-      this.sbomService.updateProject(editing.id, {
-        name: this.formName,
-        team_id: this.formTeamId,
-      }).subscribe({
-        next: () => {
-          this.showForm.set(false);
-          this.submitting.set(false);
-          this.formName = '';
-          this.formTeamId = null;
-          this.editingProject.set(null);
-          this.loadProjects();
-        },
-        error: () => {
-          this.submitting.set(false);
-        },
-      });
+      this.sbomService
+        .updateProject(editing.id, {
+          name: this.formName,
+          team_id: this.formTeamId,
+        })
+        .subscribe({
+          next: () => {
+            this.showForm.set(false);
+            this.submitting.set(false);
+            this.formName = '';
+            this.formTeamId = null;
+            this.editingProject.set(null);
+            this.loadProjects();
+          },
+          error: () => {
+            this.submitting.set(false);
+          },
+        });
     } else {
       this.sbomService.createProject(this.formName, this.formTeamId ?? undefined).subscribe({
         next: () => {

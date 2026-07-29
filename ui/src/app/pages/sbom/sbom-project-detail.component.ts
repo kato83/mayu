@@ -1,14 +1,22 @@
-import { Component, ElementRef, ViewChild, inject, signal, OnInit, OnDestroy, effect } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import {
+  Component,
+  type ElementRef,
+  effect,
+  inject,
+  type OnDestroy,
+  type OnInit,
+  signal,
+  ViewChild,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
-
+import type { SBOMProject, SBOMScanResult, SBOMVersion } from '../../models/sbom.model';
+import type { StatsTrendResponse } from '../../models/stats-trend.model';
 import { SbomService } from '../../services/sbom.service';
 import { StatsTrendService } from '../../services/stats-trend.service';
 import { ThemeService } from '../../services/theme.service';
-import { SBOMProject, SBOMVersion, SBOMScanResult } from '../../models/sbom.model';
-import { StatsTrendResponse } from '../../models/stats-trend.model';
 
 Chart.register(...registerables);
 

@@ -1,7 +1,7 @@
-import { Pipe, PipeTransform, inject } from '@angular/core';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Marked, Tokens } from 'marked';
+import { inject, Pipe, type PipeTransform } from '@angular/core';
+import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import DOMPurify from 'dompurify';
+import { Marked, type Tokens } from 'marked';
 
 /**
  * Converts Markdown text to sanitized HTML.
@@ -43,10 +43,7 @@ export class MarkdownPipe implements PipeTransform {
           return `<h${depth} id="${slug}">${text}</h${depth}>\n`;
         },
         image({ href, title, text }: Tokens.Image): string {
-          const isBadge =
-            href.includes('shields.io') ||
-            href.includes('badge.svg') ||
-            href.includes('img.shields.io');
+          const isBadge = href.includes('shields.io') || href.includes('badge.svg') || href.includes('img.shields.io');
           const badgeClass = isBadge ? ' class="badge"' : '';
           const titleAttr = title ? ` title="${title}"` : '';
           return `<img src="${href}" alt="${text}"${titleAttr}${badgeClass}>`;
@@ -92,9 +89,12 @@ export class MarkdownPipe implements PipeTransform {
   private sanitize(html: string): string {
     // DOMPurify default export is an instance in browser (with window),
     // but a factory function in Node.js environments (no window).
-    const purify = typeof DOMPurify === 'function' && !('sanitize' in DOMPurify)
-      ? (DOMPurify as unknown as (root?: unknown) => { sanitize: (html: string, config?: object) => string })(globalThis.window ?? globalThis)
-      : DOMPurify as unknown as { sanitize: (html: string, config?: object) => string };
+    const purify =
+      typeof DOMPurify === 'function' && !('sanitize' in DOMPurify)
+        ? (DOMPurify as unknown as (root?: unknown) => { sanitize: (html: string, config?: object) => string })(
+            globalThis.window ?? globalThis,
+          )
+        : (DOMPurify as unknown as { sanitize: (html: string, config?: object) => string });
 
     return purify.sanitize(html, {
       ADD_ATTR: ['target', 'rel', 'id'],

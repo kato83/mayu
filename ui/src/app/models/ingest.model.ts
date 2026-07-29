@@ -1,9 +1,17 @@
 export type IngestType =
-  | 'osv' | 'osv_update' | 'osv_nvd' | 'osv_debian'
-  | 'nvd' | 'nvd_update'
-  | 'mitre' | 'mitre_update'
-  | 'epss' | 'epss_update' | 'epss_backfill'
-  | 'kev' | 'kev_update'
+  | 'osv'
+  | 'osv_update'
+  | 'osv_nvd'
+  | 'osv_debian'
+  | 'nvd'
+  | 'nvd_update'
+  | 'mitre'
+  | 'mitre_update'
+  | 'epss'
+  | 'epss_update'
+  | 'epss_backfill'
+  | 'kev'
+  | 'kev_update'
   | 'ghsa';
 
 export interface IngestParams {

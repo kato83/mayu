@@ -1,8 +1,8 @@
-import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { LOCALE_ID } from '@angular/core';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { TestBed } from '@angular/core/testing';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { DocsService } from './docs.service';
 
@@ -13,11 +13,7 @@ describe('DocsService', () => {
 
     beforeEach(() => {
       TestBed.configureTestingModule({
-        providers: [
-          provideHttpClient(),
-          provideHttpClientTesting(),
-          { provide: LOCALE_ID, useValue: 'en' },
-        ],
+        providers: [provideHttpClient(), provideHttpClientTesting(), { provide: LOCALE_ID, useValue: 'en' }],
       });
 
       service = TestBed.inject(DocsService);
@@ -52,11 +48,7 @@ describe('DocsService', () => {
 
     beforeEach(() => {
       TestBed.configureTestingModule({
-        providers: [
-          provideHttpClient(),
-          provideHttpClientTesting(),
-          { provide: LOCALE_ID, useValue: 'ja' },
-        ],
+        providers: [provideHttpClient(), provideHttpClientTesting(), { provide: LOCALE_ID, useValue: 'ja' }],
       });
 
       service = TestBed.inject(DocsService);

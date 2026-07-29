@@ -1,10 +1,9 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Component, computed, inject, type OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import type { FindingStatusEntry, SBOMScanResult, ScanDiff, ScanFinding } from '../../models/sbom.model';
 import { SbomService } from '../../services/sbom.service';
-import { SBOMScanResult, ScanDiff, ScanFinding, FindingStatusEntry } from '../../models/sbom.model';
 
 /** All valid finding statuses. */
 const ALL_STATUSES = ['open', 'in_triage', 'suppressed', 'false_positive', 'risk_accepted', 'resolved'] as const;
@@ -458,7 +457,9 @@ export class SbomScanDetailComponent implements OnInit {
           this.findingStatuses.set(map);
         },
         error: () => {
-          this.statusUpdateError.set($localize`:@@sbom.scan.statusUpdateError:Failed to update finding status. Please try again.`);
+          this.statusUpdateError.set(
+            $localize`:@@sbom.scan.statusUpdateError:Failed to update finding status. Please try again.`,
+          );
           setTimeout(() => this.statusUpdateError.set(null), 5000);
         },
       });

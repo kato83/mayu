@@ -1,8 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, JsonPipe } from '@angular/common';
-
+import { Component, inject, type OnInit, signal } from '@angular/core';
+import type { IngestJob, IngestJobDetail } from '../../models/ingest.model';
 import { IngestService } from '../../services/ingest.service';
-import { IngestJob, IngestJobDetail } from '../../models/ingest.model';
 
 @Component({
   selector: 'app-ingest-jobs',

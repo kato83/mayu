@@ -1,13 +1,12 @@
-import { Component, inject, signal, OnInit, OnDestroy, DestroyRef, computed } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
+import { Component, computed, DestroyRef, inject, type OnDestroy, type OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subscription } from 'rxjs';
-
+import { FormsModule } from '@angular/forms';
+import type { Subscription } from 'rxjs';
+import type { IngestEvent, IngestType } from '../../models/ingest.model';
+import { AuthService } from '../../services/auth.service';
 import { IngestService } from '../../services/ingest.service';
 import { VulnerabilityService } from '../../services/vulnerability.service';
-import { AuthService } from '../../services/auth.service';
-import { IngestType, IngestEvent } from '../../models/ingest.model';
 
 interface IngestOption {
   value: IngestType;
@@ -226,20 +225,104 @@ export class IngestComponent implements OnInit, OnDestroy {
 
   private streamSub: Subscription | null = null;
   readonly ingestOptions: IngestOption[] = [
-    { value: 'osv', label: $localize`:@@ingest.option.osv:OSV (Full)`, needsEcosystem: true, needsRepo: false, needsDates: false },
-    { value: 'osv_update', label: $localize`:@@ingest.option.osvUpdate:OSV (Delta Update)`, needsEcosystem: true, needsRepo: false, needsDates: false },
-    { value: 'osv_nvd', label: $localize`:@@ingest.option.osvNvd:OSV - NVD (Converted)`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'osv_debian', label: $localize`:@@ingest.option.osvDebian:OSV - Debian (Converted)`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'nvd', label: $localize`:@@ingest.option.nvd:NVD (Native)`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'nvd_update', label: $localize`:@@ingest.option.nvdUpdate:NVD (Delta Update)`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'mitre', label: $localize`:@@ingest.option.mitre:MITRE`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'mitre_update', label: $localize`:@@ingest.option.mitreUpdate:MITRE (Delta Update)`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'epss', label: $localize`:@@ingest.option.epss:EPSS`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'epss_update', label: $localize`:@@ingest.option.epssUpdate:EPSS (Delta Update)`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'epss_backfill', label: $localize`:@@ingest.option.epssBackfill:EPSS (Backfill)`, needsEcosystem: false, needsRepo: false, needsDates: true },
-    { value: 'kev', label: $localize`:@@ingest.option.kev:KEV`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'kev_update', label: $localize`:@@ingest.option.kevUpdate:KEV (Delta Update)`, needsEcosystem: false, needsRepo: false, needsDates: false },
-    { value: 'ghsa', label: $localize`:@@ingest.option.ghsa:GitHub Security Advisories`, needsEcosystem: false, needsRepo: true, needsDates: false },
+    {
+      value: 'osv',
+      label: $localize`:@@ingest.option.osv:OSV (Full)`,
+      needsEcosystem: true,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'osv_update',
+      label: $localize`:@@ingest.option.osvUpdate:OSV (Delta Update)`,
+      needsEcosystem: true,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'osv_nvd',
+      label: $localize`:@@ingest.option.osvNvd:OSV - NVD (Converted)`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'osv_debian',
+      label: $localize`:@@ingest.option.osvDebian:OSV - Debian (Converted)`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'nvd',
+      label: $localize`:@@ingest.option.nvd:NVD (Native)`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'nvd_update',
+      label: $localize`:@@ingest.option.nvdUpdate:NVD (Delta Update)`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'mitre',
+      label: $localize`:@@ingest.option.mitre:MITRE`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'mitre_update',
+      label: $localize`:@@ingest.option.mitreUpdate:MITRE (Delta Update)`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'epss',
+      label: $localize`:@@ingest.option.epss:EPSS`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'epss_update',
+      label: $localize`:@@ingest.option.epssUpdate:EPSS (Delta Update)`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'epss_backfill',
+      label: $localize`:@@ingest.option.epssBackfill:EPSS (Backfill)`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: true,
+    },
+    {
+      value: 'kev',
+      label: $localize`:@@ingest.option.kev:KEV`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'kev_update',
+      label: $localize`:@@ingest.option.kevUpdate:KEV (Delta Update)`,
+      needsEcosystem: false,
+      needsRepo: false,
+      needsDates: false,
+    },
+    {
+      value: 'ghsa',
+      label: $localize`:@@ingest.option.ghsa:GitHub Security Advisories`,
+      needsEcosystem: false,
+      needsRepo: true,
+      needsDates: false,
+    },
   ];
 
   selectedType: IngestType = 'osv';
@@ -277,7 +360,8 @@ export class IngestComponent implements OnInit, OnDestroy {
     const opt = this.selectedOption();
     if (!opt) return false;
     // For osv/osv_update, ecosystem is optional (empty = all ecosystems)
-    if (opt.needsEcosystem && opt.value !== 'osv' && opt.value !== 'osv_update' && !this.selectedEcosystem) return false;
+    if (opt.needsEcosystem && opt.value !== 'osv' && opt.value !== 'osv_update' && !this.selectedEcosystem)
+      return false;
     if (opt.needsRepo && !this.repoInput.includes('/')) return false;
     return true;
   }
@@ -344,10 +428,7 @@ export class IngestComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           const msg = err?.error?.error ?? err?.message ?? 'Failed to start ingest';
-          this.events.update((prev) => [
-            ...prev,
-            { phase: 'error' as const, message: msg },
-          ]);
+          this.events.update((prev) => [...prev, { phase: 'error' as const, message: msg }]);
           this.status.set('error');
           this.running.set(false);
         },

@@ -1,10 +1,9 @@
-import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { StatsTrendResponse } from '../models/stats-trend.model';
 import { StatsTrendService } from './stats-trend.service';
-import { StatsTrendResponse } from '../models/stats-trend.model';
 
 describe('StatsTrendService', () => {
   let service: StatsTrendService;
@@ -12,10 +11,7 @@ describe('StatsTrendService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     });
 
     service = TestBed.inject(StatsTrendService);
@@ -58,12 +54,14 @@ describe('StatsTrendService', () => {
   });
 
   it('should send GET request with all params', () => {
-    service.getTrend({
-      range: '180d',
-      project_id: 5,
-      group_by: 'week',
-      metric: 'severity',
-    }).subscribe();
+    service
+      .getTrend({
+        range: '180d',
+        project_id: 5,
+        group_by: 'week',
+        metric: 'severity',
+      })
+      .subscribe();
 
     const req = httpTesting.expectOne((r) => r.url === '/api/v1/stats/trend');
     expect(req.request.method).toBe('GET');

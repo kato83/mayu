@@ -1,13 +1,13 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import {
-  Team,
-  TeamMember,
-  CreateTeamInput,
-  UpdateTeamInput,
+import { Injectable, inject } from '@angular/core';
+import type { Observable } from 'rxjs';
+import type {
   AddMemberInput,
+  CreateTeamInput,
+  Team,
   TeamDashboardSummary,
+  TeamMember,
+  UpdateTeamInput,
   UserInfo,
 } from '../models/team.model';
 

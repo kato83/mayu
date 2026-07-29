@@ -1,6 +1,6 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import type { Observable } from 'rxjs';
 
 export interface EpssTrendingEntry {
   vulnerability_id: string;
@@ -26,11 +26,7 @@ export interface EpssTrendingResponse {
 export class EpssTrendingService {
   private readonly http = inject(HttpClient);
 
-  getTrending(params: {
-    days?: number;
-    threshold?: number;
-    limit?: number;
-  } = {}): Observable<EpssTrendingResponse> {
+  getTrending(params: { days?: number; threshold?: number; limit?: number } = {}): Observable<EpssTrendingResponse> {
     let httpParams = new HttpParams();
     if (params.days !== undefined) {
       httpParams = httpParams.set('days', params.days.toString());

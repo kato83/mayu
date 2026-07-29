@@ -1,12 +1,11 @@
-import { Component, inject, OnInit, OnDestroy, signal, DestroyRef, LOCALE_ID } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { Title } from '@angular/platform-browser';
+import { Component, DestroyRef, inject, LOCALE_ID, type OnDestroy, type OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { map, switchMap, catchError, of } from 'rxjs';
-
-import { DocsService } from './docs.service';
-import { DOCS_MANIFEST, DocEntry } from './docs-manifest';
+import { Title } from '@angular/platform-browser';
+import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
+import { catchError, map, of, switchMap } from 'rxjs';
 import { MarkdownPipe } from '../../shared/markdown.pipe';
+import { DocsService } from './docs.service';
+import { DOCS_MANIFEST, type DocEntry } from './docs-manifest';
 
 interface TocEntry {
   id: string;
@@ -77,7 +76,6 @@ interface TocEntry {
 })
 export class DocsComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly docsService = inject(DocsService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly titleService = inject(Title);
@@ -146,7 +144,7 @@ export class DocsComponent implements OnInit, OnDestroy {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
       // Update URL fragment using the actual browser path (unaffected by <base>)
-      history.replaceState(null, '', location.pathname + '#' + id);
+      history.replaceState(null, '', `${location.pathname}#${id}`);
     }
   }
 
@@ -179,6 +177,7 @@ export class DocsComponent implements OnInit, OnDestroy {
     const headingRegex = /<h([1-6])\s+id="([^"]*)"[^>]*>(.*?)<\/h[1-6]>/g;
     let match: RegExpExecArray | null;
 
+    // biome-ignore lint/suspicious/noAssignInExpressions: standard regex exec loop pattern
     while ((match = headingRegex.exec(html)) !== null) {
       const depth = parseInt(match[1], 10);
       const id = match[2];
@@ -202,14 +201,11 @@ export class DocsComponent implements OnInit, OnDestroy {
 
     // Rewrite relative image paths (Markdown image syntax)
     // Matches ![alt](path) where path is relative (not absolute and not a URL)
-    return markdown.replace(
-      /!\[([^\]]*)\]\((\.[^)]+)\)/g,
-      (match, alt, relativePath) => {
-        // Resolve the relative path against the base directory
-        const resolved = this.resolveRelativePath(baseDir, relativePath);
-        return `![${alt}](${resolved})`;
-      },
-    );
+    return markdown.replace(/!\[([^\]]*)\]\((\.[^)]+)\)/g, (_match, alt, relativePath) => {
+      // Resolve the relative path against the base directory
+      const resolved = this.resolveRelativePath(baseDir, relativePath);
+      return `![${alt}](${resolved})`;
+    });
   }
 
   private resolveRelativePath(baseDir: string, relativePath: string): string {
@@ -249,29 +245,26 @@ export class DocsComponent implements OnInit, OnDestroy {
 
     // Match Markdown links: [text](path) where path ends with .md or .ja.md
     // Excludes image links (prefixed with !)
-    return markdown.replace(
-      /(?<!!)\[([^\]]*)\]\(([^)]*\.(?:ja\.)?md)\)/g,
-      (match, text, href) => {
-        // Extract filename from the href path
-        const fileName = href.split('/').pop() || '';
-        const baseName = fileName.replace(/\.md$/, '').toLowerCase();
-        const slug = fileToSlug.get(baseName);
+    return markdown.replace(/(?<!!)\[([^\]]*)\]\(([^)]*\.(?:ja\.)?md)\)/g, (match, text, href) => {
+      // Extract filename from the href path
+      const fileName = href.split('/').pop() || '';
+      const baseName = fileName.replace(/\.md$/, '').toLowerCase();
+      const slug = fileToSlug.get(baseName);
 
-        if (slug) {
-          const targetLocale = fileToLocale.get(baseName) || 'en';
+      if (slug) {
+        const targetLocale = fileToLocale.get(baseName) || 'en';
 
-          if (targetLocale === this.locale) {
-            // Same locale — use relative router link
-            return `[${text}](/docs/${slug})`;
-          } else {
-            // Cross-locale — use absolute path with locale prefix
-            // This triggers a full page navigation to the other locale's app
-            return `[${text}](/${targetLocale}/docs/${slug})`;
-          }
+        if (targetLocale === this.locale) {
+          // Same locale — use relative router link
+          return `[${text}](/docs/${slug})`;
+        } else {
+          // Cross-locale — use absolute path with locale prefix
+          // This triggers a full page navigation to the other locale's app
+          return `[${text}](/${targetLocale}/docs/${slug})`;
         }
-        // If no matching slug found, leave the link unchanged
-        return match;
-      },
-    );
+      }
+      // If no matching slug found, leave the link unchanged
+      return match;
+    });
   }
 }

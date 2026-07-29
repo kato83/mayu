@@ -1,17 +1,16 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { Component, inject, type OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-
-import { WatchlistService } from '../../services/watchlist.service';
-import { TeamService } from '../../services/team.service';
-import { Team } from '../../models/team.model';
-import {
-  Watchlist,
-  WatchlistMatch,
+import type { Team } from '../../models/team.model';
+import type {
   CreateWatchlistRequest,
   UpdateWatchlistRequest,
+  Watchlist,
+  WatchlistMatch,
 } from '../../models/watchlist.model';
+import { TeamService } from '../../services/team.service';
+import { WatchlistService } from '../../services/watchlist.service';
 
 @Component({
   selector: 'app-watchlists',
@@ -567,12 +566,18 @@ export class WatchlistsComponent implements OnInit {
 
   private severityLabel(value: number): string {
     switch (value) {
-      case 5: return 'CRITICAL';
-      case 4: return 'HIGH';
-      case 3: return 'MEDIUM';
-      case 2: return 'LOW';
-      case 1: return 'NONE';
-      default: return String(value);
+      case 5:
+        return 'CRITICAL';
+      case 4:
+        return 'HIGH';
+      case 3:
+        return 'MEDIUM';
+      case 2:
+        return 'LOW';
+      case 1:
+        return 'NONE';
+      default:
+        return String(value);
     }
   }
 

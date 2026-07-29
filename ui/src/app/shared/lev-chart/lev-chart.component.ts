@@ -1,14 +1,14 @@
 import {
+  type AfterViewInit,
   Component,
-  ElementRef,
-  Input,
-  OnChanges,
-  OnDestroy,
-  SimpleChanges,
-  ViewChild,
-  AfterViewInit,
-  inject,
+  type ElementRef,
   effect,
+  Input,
+  inject,
+  type OnChanges,
+  type OnDestroy,
+  type SimpleChanges,
+  ViewChild,
 } from '@angular/core';
 import { Chart, registerables } from 'chart.js';
 

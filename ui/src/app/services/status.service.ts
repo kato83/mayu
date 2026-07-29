@@ -1,8 +1,8 @@
-import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import type { Observable } from 'rxjs';
 
-import { StatusResponse } from '../models/status.model';
+import type { StatusResponse } from '../models/status.model';
 
 @Injectable({
   providedIn: 'root',

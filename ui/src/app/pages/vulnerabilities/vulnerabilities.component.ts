@@ -1,14 +1,13 @@
-import { Component, inject, OnInit, signal, DestroyRef } from '@angular/core';
-import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { DatePipe, UpperCasePipe } from '@angular/common';
+import { Component, DestroyRef, inject, type OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { DatePipe, UpperCasePipe } from '@angular/common';
-import { Subject, debounceTime } from 'rxjs';
-
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { debounceTime, Subject } from 'rxjs';
+import type { SearchParams } from '../../models/search-params.model';
+import type { SearchResponse, Vulnerability } from '../../models/vulnerability.model';
 import { VulnerabilityService } from '../../services/vulnerability.service';
-import { Vulnerability, SearchResponse } from '../../models/vulnerability.model';
-import { SearchParams } from '../../models/search-params.model';
-import { PaginationComponent, PageChangeEvent } from '../../shared/pagination/pagination.component';
+import { type PageChangeEvent, PaginationComponent } from '../../shared/pagination/pagination.component';
 
 const SEVERITIES = ['critical', 'high', 'medium', 'low', 'none', 'unknown'] as const;
 
@@ -24,7 +23,16 @@ interface FilterState {
 }
 
 function emptyFilters(): FilterState {
-  return { id: '', package: '', ecosystem: '', severity: '', since: '', version: '', kev: false, sort: 'modified_desc' };
+  return {
+    id: '',
+    package: '',
+    ecosystem: '',
+    severity: '',
+    since: '',
+    version: '',
+    kev: false,
+    sort: 'modified_desc',
+  };
 }
 
 @Component({
@@ -334,66 +342,60 @@ export class VulnerabilitiesComponent implements OnInit {
 
   ngOnInit(): void {
     // Load ecosystems from API
-    this.vulnService.getEcosystems()
+    this.vulnService
+      .getEcosystems()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((res) => {
         this.ecosystems.set(res.ecosystems);
       });
 
     // Debounced filter changes trigger search
-    this.filterChange$
-      .pipe(
-        debounceTime(300),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe(() => {
-        this.resetPagination();
-        this.syncUrlAndLoad();
-      });
+    this.filterChange$.pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.resetPagination();
+      this.syncUrlAndLoad();
+    });
 
     // Initialize from URL query params
-    this.route.queryParams
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => {
-        // Skip if this change was triggered programmatically by syncUrlAndLoad
-        if (this.skipNextParamsChange) {
-          this.skipNextParamsChange = false;
-          return;
-        }
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      // Skip if this change was triggered programmatically by syncUrlAndLoad
+      if (this.skipNextParamsChange) {
+        this.skipNextParamsChange = false;
+        return;
+      }
 
-        // Restore filters from URL
-        this.filters = {
-          id: params['id'] || '',
-          package: params['purl'] || params['package'] || '',
-          ecosystem: params['ecosystem'] || '',
-          severity: params['severity'] || '',
-          since: params['since'] || '',
-          version: params['version'] || '',
-          kev: params['kev'] === 'true',
-          sort: params['sort'] || 'modified_desc',
-        };
+      // Restore filters from URL
+      this.filters = {
+        id: params['id'] || '',
+        package: params['purl'] || params['package'] || '',
+        ecosystem: params['ecosystem'] || '',
+        severity: params['severity'] || '',
+        since: params['since'] || '',
+        version: params['version'] || '',
+        kev: params['kev'] === 'true',
+        sort: params['sort'] || 'modified_desc',
+      };
 
-        const limit = params['limit'] ? parseInt(params['limit'], 10) : 20;
-        this.limit.set(limit);
+      const limit = params['limit'] ? parseInt(params['limit'], 10) : 20;
+      this.limit.set(limit);
 
-        // Restore cursor from URL if present
-        const cursor = params['cursor'] || '';
-        this.currentCursor = cursor;
+      // Restore cursor from URL if present
+      const cursor = params['cursor'] || '';
+      this.currentCursor = cursor;
 
-        // Restore page number from URL
-        const page = params['page'] ? parseInt(params['page'], 10) : 1;
-        this.currentPage.set(page);
+      // Restore page number from URL
+      const page = params['page'] ? parseInt(params['page'], 10) : 1;
+      this.currentPage.set(page);
 
-        // If cursor is present, there's at least a first page to go back to
-        if (cursor) {
-          this.hasPreviousPage.set(true);
-        } else {
-          this.hasPreviousPage.set(false);
-          this.cursorStack = [];
-        }
+      // If cursor is present, there's at least a first page to go back to
+      if (cursor) {
+        this.hasPreviousPage.set(true);
+      } else {
+        this.hasPreviousPage.set(false);
+        this.cursorStack = [];
+      }
 
-        this.loadData();
-      });
+      this.loadData();
+    });
   }
 
   onFilterChange(key: keyof FilterState, value: string | boolean): void {
@@ -424,9 +426,7 @@ export class VulnerabilitiesComponent implements OnInit {
   }
 
   previousPageQueryParams(): Record<string, string | null> {
-    const prevCursor = this.cursorStack.length > 0
-      ? this.cursorStack[this.cursorStack.length - 1]
-      : null;
+    const prevCursor = this.cursorStack.length > 0 ? this.cursorStack[this.cursorStack.length - 1] : null;
     const prevPage = Math.max(1, this.currentPage() - 1);
     return { cursor: prevCursor || null, page: prevPage > 1 ? String(prevPage) : null };
   }
@@ -585,7 +585,8 @@ export class VulnerabilitiesComponent implements OnInit {
       params.sort = this.filters.sort as SearchParams['sort'];
     }
 
-    this.vulnService.search(params)
+    this.vulnService
+      .search(params)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response: SearchResponse) => {
@@ -600,9 +601,7 @@ export class VulnerabilitiesComponent implements OnInit {
             this.hasNextPage.set(response.total > this.currentPage() * this.limit());
           }
 
-          this.hasPreviousPage.set(
-            this.isEpssSort ? this.currentPage() > 1 : this.cursorStack.length > 0
-          );
+          this.hasPreviousPage.set(this.isEpssSort ? this.currentPage() > 1 : this.cursorStack.length > 0);
           this.loading.set(false);
         },
         error: () => {

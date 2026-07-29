@@ -1,29 +1,28 @@
+import { DecimalPipe } from '@angular/common';
 import {
+  type AfterViewInit,
   Component,
-  ElementRef,
-  ViewChild,
-  AfterViewInit,
-  OnDestroy,
-  inject,
-  signal,
+  type ElementRef,
   effect,
+  inject,
+  type OnDestroy,
+  signal,
+  ViewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { DecimalPipe } from '@angular/common';
-import { forkJoin } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
-
-import { DashboardService } from '../../services/dashboard.service';
-import { StatsTrendService } from '../../services/stats-trend.service';
-import { EpssTrendingService, EpssTrendingEntry } from '../../services/epss-trending.service';
-import { ThemeService } from '../../services/theme.service';
-import {
-  DashboardSummary,
-  DashboardTrends,
+import { forkJoin } from 'rxjs';
+import type {
   DashboardDistributions,
+  DashboardSummary,
   DashboardTopRisks,
+  DashboardTrends,
 } from '../../models/dashboard.model';
-import { StatsTrendResponse } from '../../models/stats-trend.model';
+import type { StatsTrendResponse } from '../../models/stats-trend.model';
+import { DashboardService } from '../../services/dashboard.service';
+import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss-trending.service';
+import { StatsTrendService } from '../../services/stats-trend.service';
+import { ThemeService } from '../../services/theme.service';
 
 Chart.register(...registerables);
 
@@ -304,7 +303,9 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.charts.forEach((c) => c.destroy());
+    this.charts.forEach((c) => {
+      c.destroy();
+    });
     if (this.trendChart) {
       this.trendChart.destroy();
     }
@@ -378,7 +379,9 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   }
 
   private renderAllCharts(): void {
-    this.charts.forEach((c) => c.destroy());
+    this.charts.forEach((c) => {
+      c.destroy();
+    });
     this.charts = [];
     this.renderTrendChart();
     this.renderSeverityChart();
@@ -394,15 +397,11 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   }
 
   private get tickColor(): string {
-    return this.isDark
-      ? 'rgba(226, 232, 240, 0.8)'
-      : 'rgba(100, 116, 139, 0.8)';
+    return this.isDark ? 'rgba(226, 232, 240, 0.8)' : 'rgba(100, 116, 139, 0.8)';
   }
 
   private get gridColor(): string {
-    return this.isDark
-      ? 'rgba(148, 163, 184, 0.15)'
-      : 'rgba(148, 163, 184, 0.2)';
+    return this.isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
   }
 
   private renderTrendChart(): void {
