@@ -69,4 +69,19 @@ type SBOMStore interface {
 	// ListAllVersionIDs returns the IDs of all SBOM versions across all projects.
 	// This is a lightweight query that avoids loading raw_sbom data into memory.
 	ListAllVersionIDs(ctx context.Context) ([]int64, error)
+
+	// UpsertFindingStatus inserts or updates a finding status record.
+	// When a status change occurs, an audit log entry is created.
+	// Returns the upserted FindingStatus record.
+	UpsertFindingStatus(ctx context.Context, fs *FindingStatus) (*FindingStatus, error)
+
+	// GetFindingStatus retrieves a finding status by version ID, vulnerability ID, and purl.
+	// Returns nil, nil if not found.
+	GetFindingStatus(ctx context.Context, versionID int64, vulnID string, purl string) (*FindingStatus, error)
+
+	// ListFindingStatuses returns all finding statuses for a version, optionally filtered by status.
+	ListFindingStatuses(ctx context.Context, versionID int64, statusFilter []string) ([]*FindingStatus, error)
+
+	// ListFindingStatusLog returns audit log entries for a given finding status ID.
+	ListFindingStatusLog(ctx context.Context, findingStatusID int64) ([]*FindingStatusLog, error)
 }

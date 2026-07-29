@@ -46,6 +46,25 @@ export interface ScanDiff {
   resolved_findings: ScanFinding[];
 }
 
+export interface FindingStatusUpdate {
+  status: string;
+  justification?: string;
+  purl: string;
+  expires_at?: string;
+}
+
+export interface FindingStatusEntry {
+  id: number;
+  version_id: number;
+  vuln_id: string;
+  purl: string;
+  status: string;
+  justification?: string;
+  updated_by: number;
+  updated_at: string;
+  expires_at?: string;
+}
+
 export interface CreateProjectRequest {
   name: string;
 }

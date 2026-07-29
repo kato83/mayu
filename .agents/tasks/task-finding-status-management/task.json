@@ -1,0 +1,14 @@
+{
+  "task_id": "task-finding-status-management",
+  "task_description": "Implement manual finding status management (suppress/accept/false-positive) for SBOM scan findings. This includes database schema, backend API endpoints, and Angular UI components as described in GitHub issue #60.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "go build ./... passes. All 31 tests pass in sbommon package. Review fixes verified: audit log on first assignment, filter validation, UI error handling."
+  }
+}

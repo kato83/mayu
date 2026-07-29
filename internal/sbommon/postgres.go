@@ -420,3 +420,178 @@ func (s *PostgresSBOMStore) ListAllVersionIDs(ctx context.Context) ([]int64, err
 	}
 	return ids, nil
 }
+
+// UpsertFindingStatus inserts or updates a finding status record.
+// When a status change occurs, an audit log entry is created in sbom_finding_status_log.
+// Returns the upserted FindingStatus record.
+func (s *PostgresSBOMStore) UpsertFindingStatus(ctx context.Context, fs *FindingStatus) (*FindingStatus, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx for upsert finding status: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Get the current status before upserting (if exists).
+	var oldStatus sql.NullString
+	err = tx.QueryRowContext(ctx, `
+		SELECT status FROM sbom_finding_statuses
+		WHERE version_id = $1 AND vuln_id = $2 AND purl = $3`,
+		fs.VersionID, fs.VulnID, fs.Purl,
+	).Scan(&oldStatus)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("get old finding status: %w", err)
+	}
+
+	// Upsert the finding status.
+	var result FindingStatus
+	var expiresAt sql.NullTime
+	err = tx.QueryRowContext(ctx, `
+		INSERT INTO sbom_finding_statuses (version_id, vuln_id, purl, status, justification, updated_by, updated_at, expires_at)
+		VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7)
+		ON CONFLICT (version_id, vuln_id, purl) DO UPDATE SET
+			status = EXCLUDED.status,
+			justification = EXCLUDED.justification,
+			updated_by = EXCLUDED.updated_by,
+			updated_at = NOW(),
+			expires_at = EXCLUDED.expires_at
+		RETURNING id, version_id, vuln_id, purl, status, justification, updated_by, updated_at, expires_at`,
+		fs.VersionID, fs.VulnID, fs.Purl, fs.Status, fs.Justification, fs.UpdatedBy, fs.ExpiresAt,
+	).Scan(&result.ID, &result.VersionID, &result.VulnID, &result.Purl, &result.Status,
+		&result.Justification, &result.UpdatedBy, &result.UpdatedAt, &expiresAt)
+	if err != nil {
+		return nil, fmt.Errorf("upsert finding status: %w", err)
+	}
+	if expiresAt.Valid {
+		result.ExpiresAt = &expiresAt.Time
+	}
+
+	// Log the status change.
+	// If no prior record exists and the new status is not "open" (the implicit default),
+	// log the transition from implicit "open" to create a complete audit trail.
+	// If a prior record exists and the status changed, log the transition.
+	if !oldStatus.Valid && result.Status != FindingStatusOpen {
+		// First time this finding is being triaged - log transition from implicit "open".
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO sbom_finding_status_log (finding_status_id, old_status, new_status, justification, changed_by, changed_at)
+			VALUES ($1, $2, $3, $4, $5, NOW())`,
+			result.ID, FindingStatusOpen, result.Status, fs.Justification, fs.UpdatedBy,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("insert finding status log: %w", err)
+		}
+	} else if oldStatus.Valid && oldStatus.String != result.Status {
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO sbom_finding_status_log (finding_status_id, old_status, new_status, justification, changed_by, changed_at)
+			VALUES ($1, $2, $3, $4, $5, NOW())`,
+			result.ID, oldStatus.String, result.Status, fs.Justification, fs.UpdatedBy,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("insert finding status log: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit upsert finding status: %w", err)
+	}
+	return &result, nil
+}
+
+// GetFindingStatus retrieves a finding status by version ID, vulnerability ID, and purl.
+// Returns nil, nil if not found.
+func (s *PostgresSBOMStore) GetFindingStatus(ctx context.Context, versionID int64, vulnID string, purl string) (*FindingStatus, error) {
+	var fs FindingStatus
+	var expiresAt sql.NullTime
+	err := s.db.QueryRowContext(ctx, `
+		SELECT id, version_id, vuln_id, purl, status, justification, updated_by, updated_at, expires_at
+		FROM sbom_finding_statuses
+		WHERE version_id = $1 AND vuln_id = $2 AND purl = $3`,
+		versionID, vulnID, purl,
+	).Scan(&fs.ID, &fs.VersionID, &fs.VulnID, &fs.Purl, &fs.Status,
+		&fs.Justification, &fs.UpdatedBy, &fs.UpdatedAt, &expiresAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get finding status: %w", err)
+	}
+	if expiresAt.Valid {
+		fs.ExpiresAt = &expiresAt.Time
+	}
+	return &fs, nil
+}
+
+// ListFindingStatuses returns all finding statuses for a version, optionally filtered by status.
+func (s *PostgresSBOMStore) ListFindingStatuses(ctx context.Context, versionID int64, statusFilter []string) ([]*FindingStatus, error) {
+	var rows *sql.Rows
+	var err error
+
+	if len(statusFilter) > 0 {
+		// Build query with status filter using ANY($2).
+		rows, err = s.db.QueryContext(ctx, `
+			SELECT id, version_id, vuln_id, purl, status, justification, updated_by, updated_at, expires_at
+			FROM sbom_finding_statuses
+			WHERE version_id = $1 AND status = ANY($2)
+			ORDER BY updated_at DESC`,
+			versionID, statusFilter,
+		)
+	} else {
+		rows, err = s.db.QueryContext(ctx, `
+			SELECT id, version_id, vuln_id, purl, status, justification, updated_by, updated_at, expires_at
+			FROM sbom_finding_statuses
+			WHERE version_id = $1
+			ORDER BY updated_at DESC`,
+			versionID,
+		)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("list finding statuses for version %d: %w", versionID, err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var statuses []*FindingStatus
+	for rows.Next() {
+		var fs FindingStatus
+		var expiresAt sql.NullTime
+		if err := rows.Scan(&fs.ID, &fs.VersionID, &fs.VulnID, &fs.Purl, &fs.Status,
+			&fs.Justification, &fs.UpdatedBy, &fs.UpdatedAt, &expiresAt); err != nil {
+			return nil, fmt.Errorf("scan finding status: %w", err)
+		}
+		if expiresAt.Valid {
+			fs.ExpiresAt = &expiresAt.Time
+		}
+		statuses = append(statuses, &fs)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate finding statuses: %w", err)
+	}
+	return statuses, nil
+}
+
+// ListFindingStatusLog returns audit log entries for a given finding status ID.
+func (s *PostgresSBOMStore) ListFindingStatusLog(ctx context.Context, findingStatusID int64) ([]*FindingStatusLog, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, finding_status_id, old_status, new_status, justification, changed_by, changed_at
+		FROM sbom_finding_status_log
+		WHERE finding_status_id = $1
+		ORDER BY changed_at DESC`,
+		findingStatusID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list finding status log for %d: %w", findingStatusID, err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var logs []*FindingStatusLog
+	for rows.Next() {
+		var l FindingStatusLog
+		if err := rows.Scan(&l.ID, &l.FindingStatusID, &l.OldStatus, &l.NewStatus,
+			&l.Justification, &l.ChangedBy, &l.ChangedAt); err != nil {
+			return nil, fmt.Errorf("scan finding status log: %w", err)
+		}
+		logs = append(logs, &l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate finding status log: %w", err)
+	}
+	return logs, nil
+}

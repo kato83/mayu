@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add database migration, domain types, store interface, and PostgreSQL implementation for finding status management. This feature creates the sbom_finding_statuses table with its audit log companion table, adds the corresponding Go domain types, extends the SBOMStore interface with CRUD methods for finding statuses, and implements them in PostgresSBOMStore.",
+  "status": "completed",
+  "steps": [
+    "Create migration file migrations/000032_create_sbom_finding_statuses.up.sql with: (1) sbom_finding_statuses table (id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, version_id BIGINT NOT NULL REFERENCES sbom_versions(id) ON DELETE CASCADE, vuln_id TEXT NOT NULL, purl TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_triage','suppressed','false_positive','risk_accepted','resolved')), justification TEXT, updated_by BIGINT REFERENCES users(id), updated_at TIMESTAMPTZ DEFAULT NOW(), expires_at TIMESTAMPTZ, UNIQUE(version_id, vuln_id, purl)). (2) sbom_finding_status_log table for audit trail (id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, finding_status_id BIGINT NOT NULL REFERENCES sbom_finding_statuses(id) ON DELETE CASCADE, old_status TEXT NOT NULL, new_status TEXT NOT NULL, justification TEXT, changed_by BIGINT REFERENCES users(id), changed_at TIMESTAMPTZ DEFAULT NOW()). (3) Appropriate indexes on version_id, status, and vuln_id columns.",
+    "Create migration file migrations/000032_create_sbom_finding_statuses.down.sql that drops sbom_finding_status_log first, then sbom_finding_statuses.",
+    "Add domain types in internal/sbommon/sbommon.go: FindingStatus struct (ID int64, VersionID int64, VulnID string, Purl string, Status string, Justification string, UpdatedBy int64, UpdatedAt time.Time, ExpiresAt *time.Time) and FindingStatusLog struct (ID int64, FindingStatusID int64, OldStatus string, NewStatus string, Justification string, ChangedBy int64, ChangedAt time.Time). Also add FindingStatus constants: FindingStatusOpen, FindingStatusInTriage, FindingStatusSuppressed, FindingStatusFalsePositive, FindingStatusRiskAccepted, FindingStatusResolved.",
+    "Extend the SBOMStore interface in internal/sbommon/store.go with methods: UpsertFindingStatus(ctx context.Context, fs *FindingStatus) (*FindingStatus, error), GetFindingStatus(ctx context.Context, versionID int64, vulnID string, purl string) (*FindingStatus, error), ListFindingStatuses(ctx context.Context, versionID int64, statusFilter []string) ([]*FindingStatus, error), ListFindingStatusLog(ctx context.Context, findingStatusID int64) ([]*FindingStatusLog, error).",
+    "Implement the new interface methods in internal/sbommon/postgres.go. UpsertFindingStatus should use INSERT ... ON CONFLICT (version_id, vuln_id, purl) DO UPDATE, log the status change to sbom_finding_status_log when the status actually changes, and return the upserted record.",
+    "Update the mockSBOMStore in internal/sbommon/handlers_test.go to implement the new interface methods (store findingStatuses in a map, implement CRUD logic).",
+    "Add unit tests in internal/sbommon/store_test.go for the mock store covering UpsertFindingStatus, GetFindingStatus, ListFindingStatuses, and ListFindingStatusLog.",
+    "Update .kiro/steering/erd.md to add the new sbom_finding_statuses and sbom_finding_status_log tables and their relationships to the existing SBOM domain diagram."
+  ],
+  "acceptance_criteria": [
+    "Migration 000032 up and down SQL files exist and are syntactically valid",
+    "FindingStatus and FindingStatusLog domain types are defined in sbommon.go",
+    "SBOMStore interface includes the four new methods",
+    "PostgresSBOMStore implements all new interface methods (compiles without error)",
+    "mockSBOMStore implements all new interface methods (compiles without error)",
+    "Unit tests for mock store pass covering upsert, get, list, and log operations",
+    "Running 'go build ./...' succeeds",
+    "Running 'go test ./internal/sbommon/ -v -count=1' passes all tests"
+  ],
+  "verification": [
+    "cd /projects/sandbox/mayu && go build ./...",
+    "cd /projects/sandbox/mayu && go test ./internal/sbommon/ -v -count=1"
+  ],
+  "blocked_reason": null,
+  "findings": "All acceptance criteria met. Build compiles cleanly, all 25 tests pass. The pgx stdlib driver supports []string natively for PostgreSQL TEXT[] parameters used in ListFindingStatuses filter. The UpsertFindingStatus implementation uses a transaction to atomically read old status, upsert, and create audit log entries."
+}

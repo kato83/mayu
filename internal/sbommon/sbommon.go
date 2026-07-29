@@ -82,3 +82,38 @@ type ScanDiff struct {
 	// ResolvedFindings are vulnerabilities present in the previous scan but not the current.
 	ResolvedFindings []ScanFinding `json:"resolved_findings"`
 }
+
+// Finding status constants define the allowed values for FindingStatus.Status.
+const (
+	FindingStatusOpen          = "open"
+	FindingStatusInTriage      = "in_triage"
+	FindingStatusSuppressed    = "suppressed"
+	FindingStatusFalsePositive = "false_positive"
+	FindingStatusRiskAccepted  = "risk_accepted"
+	FindingStatusResolved      = "resolved"
+)
+
+// FindingStatus represents the triage status of a specific vulnerability finding
+// within an SBOM version.
+type FindingStatus struct {
+	ID            int64
+	VersionID     int64
+	VulnID        string
+	Purl          string
+	Status        string
+	Justification string
+	UpdatedBy     int64
+	UpdatedAt     time.Time
+	ExpiresAt     *time.Time
+}
+
+// FindingStatusLog represents an audit log entry for a finding status change.
+type FindingStatusLog struct {
+	ID              int64
+	FindingStatusID int64
+	OldStatus       string
+	NewStatus       string
+	Justification   string
+	ChangedBy       int64
+	ChangedAt       time.Time
+}

@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-004",
+  "type": "fix",
+  "description": "Address review findings: (1) audit log gap on first status assignment in postgres.go, (2) UI error handling in sbom-scan-detail.component.ts, (3) filter validation in HandleListFindingStatuses handler.",
+  "status": "completed",
+  "steps": [
+    "Fix UpsertFindingStatus in postgres.go to create an audit log entry with old_status='open' when no prior record exists (first status assignment).",
+    "Fix confirmStatusChange in sbom-scan-detail.component.ts to add error handling to the subscribe call, showing feedback on failure and only clearing state on success.",
+    "Fix HandleListFindingStatuses in handlers.go to validate each status filter value against the allowed set and return 400 for invalid values.",
+    "Update the mock store UpsertFindingStatus to also create audit log entry on first status assignment (with old_status='open').",
+    "Add a test for invalid filter values in handlers_test.go."
+  ],
+  "acceptance_criteria": [
+    "UpsertFindingStatus creates an audit log entry with old_status='open' when inserting a new finding status for the first time",
+    "The Angular component handles errors from the status update HTTP call and shows user feedback",
+    "HandleListFindingStatuses returns 400 for invalid status filter values",
+    "All existing tests continue to pass",
+    "New test for invalid filter values passes",
+    "go build ./... succeeds"
+  ],
+  "verification": [
+    "cd /projects/sandbox/mayu && go build ./...",
+    "cd /projects/sandbox/mayu && go test ./internal/sbommon/ -v -count=1"
+  ],
+  "blocked_reason": null,
+  "findings": "All three review issues addressed. Build passes, all 31 tests pass including new TestHandleListFindingStatuses_InvalidFilterValue and TestMockSBOMStore_FirstStatusAssignmentAuditLog tests. The audit log on first assignment only triggers when the initial status differs from the implicit 'open' default."
+}

@@ -510,6 +510,28 @@ erDiagram
         TEXT trigger "NOT NULL DEFAULT manual: manual, ingest, api"
     }
 
+    sbom_finding_statuses {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT version_id FK "→ sbom_versions(id) CASCADE"
+        TEXT vuln_id "NOT NULL"
+        TEXT purl "NOT NULL"
+        TEXT status "NOT NULL DEFAULT open: open, in_triage, suppressed, false_positive, risk_accepted, resolved"
+        TEXT justification "nullable"
+        BIGINT updated_by FK "→ users(id)"
+        TIMESTAMPTZ updated_at "DEFAULT NOW()"
+        TIMESTAMPTZ expires_at "nullable"
+    }
+
+    sbom_finding_status_log {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT finding_status_id FK "→ sbom_finding_statuses(id) CASCADE"
+        TEXT old_status "NOT NULL"
+        TEXT new_status "NOT NULL"
+        TEXT justification "nullable"
+        BIGINT changed_by FK "→ users(id)"
+        TIMESTAMPTZ changed_at "DEFAULT NOW()"
+    }
+
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--|| vulnerability_summary : "has"
     vulnerabilities ||--o{ product_identifiers : "has"
@@ -549,6 +571,8 @@ erDiagram
     users ||--o{ sbom_projects : "has"
     sbom_projects ||--o{ sbom_versions : "has"
     sbom_versions ||--o{ sbom_scan_results : "has"
+    sbom_versions ||--o{ sbom_finding_statuses : "has"
+    sbom_finding_statuses ||--o{ sbom_finding_status_log : "has"
     eol_products ||--o{ eol_releases : "has"
     eol_products ||--o{ eol_identifiers : "has"
 
@@ -1137,6 +1161,28 @@ erDiagram
         TEXT trigger
     }
 
+    sbom_finding_statuses {
+        BIGINT id PK
+        BIGINT version_id FK
+        TEXT vuln_id
+        TEXT purl
+        TEXT status
+        TEXT justification
+        BIGINT updated_by FK
+        TIMESTAMPTZ updated_at
+        TIMESTAMPTZ expires_at
+    }
+
+    sbom_finding_status_log {
+        BIGINT id PK
+        BIGINT finding_status_id FK
+        TEXT old_status
+        TEXT new_status
+        TEXT justification
+        BIGINT changed_by FK
+        TIMESTAMPTZ changed_at
+    }
+
     users ||--o{ api_keys : "has"
     users ||--o{ sessions : "has"
     users ||--o{ webhooks : "has"
@@ -1146,6 +1192,8 @@ erDiagram
     watchlists ||--o{ watchlist_matches : "has"
     sbom_projects ||--o{ sbom_versions : "has"
     sbom_versions ||--o{ sbom_scan_results : "has"
+    sbom_versions ||--o{ sbom_finding_statuses : "has"
+    sbom_finding_statuses ||--o{ sbom_finding_status_log : "has"
 ```
 
 ### Translation (i18n)
