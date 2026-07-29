@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
+
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/sbom"
 	"github.com/kato83/mayu/internal/store"
@@ -37,6 +39,12 @@ type Finding struct {
 
 	// Summary is a short description of the vulnerability.
 	Summary string
+
+	// FixedVersion is the minimum version that fixes this vulnerability (empty if unknown).
+	FixedVersion string
+
+	// FixedVersions contains all known fixed versions across ranges.
+	FixedVersions []string
 }
 
 // AuditOptions controls the behavior of the audit process.
@@ -124,6 +132,7 @@ func (a *Auditor) Audit(ctx context.Context, components []sbom.Component, opts A
 
 		for _, vuln := range vulns {
 			if matchesComponent(comp, vuln, opts.NoVersionCheck) {
+				fixedVersions := extractFixedVersions(comp, vuln)
 				finding := Finding{
 					Component:     comp,
 					VulnID:        vuln.ID,
@@ -131,6 +140,8 @@ func (a *Auditor) Audit(ctx context.Context, components []sbom.Component, opts A
 					Severity:      severityLabel(vuln.SeverityLevel),
 					SeverityLevel: vuln.SeverityLevel,
 					Summary:       vuln.Summary,
+					FixedVersion:  selectMinFixedVersion(fixedVersions),
+					FixedVersions: fixedVersions,
 				}
 				findings = append(findings, finding)
 				vulnerableSet[key+"/"+comp.Version] = true
@@ -217,4 +228,66 @@ func SeverityFromLabel(label string) int {
 	default:
 		return 0
 	}
+}
+
+// extractFixedVersions collects all fixed version strings from the affected
+// entries that match the given component's ecosystem and package name.
+// Only SEMVER and ECOSYSTEM range types are considered.
+func extractFixedVersions(comp sbom.Component, vuln *model.Vulnerability) []string {
+	seen := make(map[string]bool)
+	var versions []string
+
+	for _, affected := range vuln.Affected {
+		if !matchesPackage(comp, affected) {
+			continue
+		}
+		for _, r := range affected.Ranges {
+			if r.Type != model.RangeTypeSemVer && r.Type != model.RangeTypeEcosystem {
+				continue
+			}
+			for _, event := range r.Events {
+				if event.Fixed != "" && !seen[event.Fixed] {
+					seen[event.Fixed] = true
+					versions = append(versions, event.Fixed)
+				}
+			}
+		}
+	}
+
+	return versions
+}
+
+// selectMinFixedVersion returns the minimum version from the given list using
+// semver comparison. If no versions can be parsed as semver, the first one is
+// returned. If the list is empty, an empty string is returned.
+func selectMinFixedVersion(versions []string) string {
+	if len(versions) == 0 {
+		return ""
+	}
+	if len(versions) == 1 {
+		return versions[0]
+	}
+
+	var minVer *semver.Version
+	var minRaw string
+
+	for _, v := range versions {
+		parsed, err := parseSemver(v)
+		if err != nil {
+			// Cannot parse — if we haven't found a parseable version yet, use first
+			if minVer == nil && minRaw == "" {
+				minRaw = v
+			}
+			continue
+		}
+		if minVer == nil || parsed.LessThan(minVer) {
+			minVer = parsed
+			minRaw = v
+		}
+	}
+
+	if minRaw == "" && len(versions) > 0 {
+		return versions[0]
+	}
+	return minRaw
 }

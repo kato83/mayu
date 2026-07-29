@@ -47,6 +47,7 @@ func (s *Scanner) Scan(ctx context.Context, sbomData []byte) (*SBOMScanResult, e
 			Severity:      f.Severity,
 			SeverityLevel: f.SeverityLevel,
 			Summary:       f.Summary,
+			FixedVersion:  f.FixedVersion,
 		})
 	}
 

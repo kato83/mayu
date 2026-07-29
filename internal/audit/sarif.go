@@ -52,11 +52,17 @@ type sarifRuleProperties struct {
 
 // sarifResult represents a single finding.
 type sarifResult struct {
-	RuleID    string          `json:"ruleId"`
-	RuleIndex int             `json:"ruleIndex"`
-	Level     string          `json:"level"`
-	Message   sarifMessage    `json:"message"`
-	Locations []sarifLocation `json:"locations"`
+	RuleID     string                 `json:"ruleId"`
+	RuleIndex  int                    `json:"ruleIndex"`
+	Level      string                 `json:"level"`
+	Message    sarifMessage           `json:"message"`
+	Locations  []sarifLocation        `json:"locations"`
+	Properties *sarifResultProperties `json:"properties,omitempty"`
+}
+
+// sarifResultProperties holds additional finding-level metadata.
+type sarifResultProperties struct {
+	FixedVersion string `json:"fixedVersion,omitempty"`
 }
 
 // sarifLocation represents a location associated with a result.
@@ -102,7 +108,7 @@ func GenerateSARIF(result *AuditResult, toolVersion string) ([]byte, error) {
 	// Build results (one per finding).
 	var results []sarifResult
 	for _, f := range result.Findings {
-		results = append(results, sarifResult{
+		r := sarifResult{
 			RuleID:    f.VulnID,
 			RuleIndex: ruleIndex[f.VulnID],
 			Level:     sarifLevel(f.SeverityLevel),
@@ -120,7 +126,11 @@ func GenerateSARIF(result *AuditResult, toolVersion string) ([]byte, error) {
 					},
 				},
 			},
-		})
+		}
+		if f.FixedVersion != "" {
+			r.Properties = &sarifResultProperties{FixedVersion: f.FixedVersion}
+		}
+		results = append(results, r)
 	}
 
 	// Ensure non-nil slices for valid JSON output.

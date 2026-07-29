@@ -73,6 +73,9 @@ type ScanFinding struct {
 
 	// Summary is a short description of the vulnerability.
 	Summary string `json:"summary"`
+
+	// FixedVersion is the minimum version that fixes this vulnerability (empty if unknown).
+	FixedVersion string `json:"fixed_version,omitempty"`
 }
 
 // ScanDiff represents the difference between two scan results.
