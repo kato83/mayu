@@ -21,6 +21,7 @@ type epssBatchStore interface {
 	RefreshEPSSSummary(ctx context.Context, vulnIDs []string) error
 	RefreshEPSSDailyStats(ctx context.Context, dates []string) error
 	CleanupOldEPSSScores(ctx context.Context, retentionDays int) (int64, error)
+	BatchComputeAndUpdateLEV(ctx context.Context, progressFn func(msg string)) error
 }
 
 // ImportEPSS performs a full import of EPSS scores from the bulk CSV download.
@@ -90,6 +91,9 @@ func (ing *Ingester) ImportEPSS(ctx context.Context) (*Stats, error) {
 
 	// Detect and notify EPSS spikes for CVEs updated in this ingest cycle.
 	ing.notifyEPSSSpikes(ctx, scores)
+
+	// Compute batch LEV scores from historical EPSS data (runs once at end).
+	ing.computeBatchLEV(ctx)
 
 	return stats, nil
 }
@@ -517,6 +521,9 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 	// Cleanup old EPSS scores based on retention policy
 	ing.cleanupOldEPSSScores(ctx)
 
+	// Compute batch LEV scores from historical EPSS data (runs once at end of backfill).
+	ing.computeBatchLEV(ctx)
+
 	return stats, nil
 }
 
@@ -570,4 +577,21 @@ func (ing *Ingester) notifyEPSSSpikes(ctx context.Context, scores []*model.EPSSS
 		defer cancel()
 		ing.epssSpikeNotifier(ctx, ids)
 	}()
+}
+
+// computeBatchLEV runs the batch LEV computation that updates all
+// vulnerability_summary.lev_score values from historical EPSS data.
+// Called once at the end of EPSS ingest (both full import and backfill).
+func (ing *Ingester) computeBatchLEV(ctx context.Context) {
+	es, ok := ing.store.(epssBatchStore)
+	if !ok {
+		return
+	}
+
+	err := es.BatchComputeAndUpdateLEV(ctx, func(msg string) {
+		ing.progress(Progress{Phase: "lev", Message: msg})
+	})
+	if err != nil {
+		ing.logger.Printf("warning: batch LEV computation failed: %v", err)
+	}
 }

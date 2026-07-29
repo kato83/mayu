@@ -228,3 +228,65 @@ func p30ToP1(p30 float64) float64 {
 	}
 	return 1 - math.Pow(1-p30, 1.0/30.0)
 }
+
+// BatchComputeAndUpdateLEV computes LEV scores for all CVEs that have EPSS
+// history, and updates vulnerability_summary.lev_score in bulk.
+//
+// This uses a pure-SQL approach for efficiency: the P30→P1 conversion and
+// probability compounding are performed entirely in PostgreSQL using
+// aggregate functions (SUM + LN + EXP), avoiding the need to fetch all
+// 100M+ EPSS rows into Go memory.
+//
+// Algorithm (matches NIST CSWP 41 rigorous approach):
+//   - P1 = 1 - (1 - P30)^(1/30)   for each daily EPSS score
+//   - LEV = 1 - exp(Σ ln(1 - P1))  compounded across all historical days
+//   - KEV entries are set to 1.0 (confirmed exploitation)
+//
+// The progressFn callback is called periodically with a status message.
+// Pass nil if progress reporting is not needed.
+func (s *PostgresStore) BatchComputeAndUpdateLEV(ctx context.Context, progressFn func(msg string)) error {
+	if progressFn == nil {
+		progressFn = func(string) {}
+	}
+
+	progressFn("Computing LEV scores for all CVEs with EPSS history...")
+
+	// Step 1: Compute LEV from EPSS history and update non-KEV entries
+	result, err := s.db.ExecContext(ctx, `
+		WITH lev_calc AS (
+			SELECT
+				vulnerability_id,
+				1.0 - EXP(SUM(LN(1.0 - (1.0 - POW(1.0 - epss, 1.0/30.0))))) AS lev_score
+			FROM epss_scores
+			WHERE epss > 0 AND epss < 1
+			GROUP BY vulnerability_id
+		)
+		UPDATE vulnerability_summary vs
+		SET lev_score = lc.lev_score,
+		    computed_at = NOW()
+		FROM lev_calc lc
+		WHERE vs.vulnerability_id = lc.vulnerability_id
+			AND (vs.in_kev = false OR vs.in_kev IS NULL)
+			AND lc.lev_score > 0`)
+	if err != nil {
+		return fmt.Errorf("batch compute LEV (non-KEV): %w", err)
+	}
+
+	nonKEVRows, _ := result.RowsAffected()
+	progressFn(fmt.Sprintf("Updated %d non-KEV vulnerability LEV scores", nonKEVRows))
+
+	// Step 2: Ensure KEV entries have LEV = 1.0
+	result, err = s.db.ExecContext(ctx, `
+		UPDATE vulnerability_summary
+		SET lev_score = 1.0,
+		    computed_at = NOW()
+		WHERE in_kev = true AND (lev_score IS NULL OR lev_score < 1.0)`)
+	if err != nil {
+		return fmt.Errorf("batch compute LEV (KEV): %w", err)
+	}
+
+	kevRows, _ := result.RowsAffected()
+	progressFn(fmt.Sprintf("Updated %d KEV entries to LEV=1.0 (total: %d updated)", kevRows, nonKEVRows+kevRows))
+
+	return nil
+}

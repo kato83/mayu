@@ -288,6 +288,28 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   private trendChart: Chart | null = null;
   private chartsRendered = false;
 
+  // Inline plugin to render values on top of each bar (avoids chartjs-plugin-datalabels dependency)
+  private readonly barValuePlugin = {
+    id: 'barValueLabels',
+    afterDatasetsDraw: (chart: Chart) => {
+      const { ctx: c } = chart;
+      chart.data.datasets.forEach((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        meta.data.forEach((bar, index) => {
+          const value = dataset.data[index] as number;
+          if (value <= 0) return;
+          c.save();
+          c.fillStyle = this.tickColor;
+          c.font = '9px sans-serif';
+          c.textAlign = 'center';
+          c.textBaseline = 'bottom';
+          c.fillText(value.toLocaleString(), bar.x, bar.y - 3);
+          c.restore();
+        });
+      });
+    },
+  };
+
   constructor() {
     effect(() => {
       // Track theme mode signal to trigger re-render on theme change
@@ -654,19 +676,33 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: { display: false },
+        },
         scales: {
           x: {
             ticks: { font: { size: 10 }, color: this.tickColor, maxRotation: 45 },
             grid: { display: false },
           },
           y: {
-            beginAtZero: true,
-            ticks: { font: { size: 10 }, color: this.tickColor },
+            type: 'logarithmic',
+            min: 1,
+            ticks: {
+              font: { size: 10 },
+              color: this.tickColor,
+              callback: (value: string | number) => {
+                const v = Number(value);
+                if ([1, 10, 100, 1000, 10000, 100000, 1000000].includes(v)) {
+                  return v.toLocaleString();
+                }
+                return '';
+              },
+            },
             grid: { color: this.gridColor },
           },
         },
       },
+      plugins: [this.barValuePlugin],
     });
     this.charts.push(chart);
   }
@@ -695,19 +731,33 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+          legend: { display: false },
+        },
         scales: {
           x: {
             ticks: { font: { size: 10 }, color: this.tickColor, maxRotation: 45 },
             grid: { display: false },
           },
           y: {
-            beginAtZero: true,
-            ticks: { font: { size: 10 }, color: this.tickColor },
+            type: 'logarithmic',
+            min: 1,
+            ticks: {
+              font: { size: 10 },
+              color: this.tickColor,
+              callback: (value: string | number) => {
+                const v = Number(value);
+                if ([1, 10, 100, 1000, 10000, 100000, 1000000].includes(v)) {
+                  return v.toLocaleString();
+                }
+                return '';
+              },
+            },
             grid: { color: this.gridColor },
           },
         },
       },
+      plugins: [this.barValuePlugin],
     });
     this.charts.push(chart);
   }
