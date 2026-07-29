@@ -48,6 +48,9 @@ func TestNeedsFullYearImport(t *testing.T) {
 		{"8 days 1 hour ago", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: now.Add(-8*24*time.Hour - time.Hour).Format(time.RFC3339)}, true},
 		{"7 days ago", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)}, false},
 		{"1 hour ago", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: now.Add(-1 * time.Hour).Format(time.RFC3339)}, false},
+		{"7 days ago (RFC3339Nano)", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: now.Add(-7 * 24 * time.Hour).Format(time.RFC3339Nano)}, false},
+		{"1 hour ago (RFC3339Nano)", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: now.Add(-1 * time.Hour).Format(time.RFC3339Nano)}, false},
+		{"9 days ago (RFC3339Nano)", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: now.Add(-9 * 24 * time.Hour).Format(time.RFC3339Nano)}, true},
 	}
 
 	for _, tt := range tests {

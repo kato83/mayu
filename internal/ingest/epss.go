@@ -162,7 +162,7 @@ func (ing *Ingester) UpdateEPSS(ctx context.Context) (*Stats, error) {
 	}
 
 	// Parse last sync time
-	lastSync, err := time.Parse(time.RFC3339, syncState.LastSyncedAt)
+	lastSync, err := parseSyncTime(syncState.LastSyncedAt)
 	if err != nil {
 		ing.progress(Progress{Phase: "download", Message: "Invalid last sync time, performing full import..."})
 		return ing.ImportEPSS(ctx)

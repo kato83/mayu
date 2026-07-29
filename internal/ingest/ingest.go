@@ -310,12 +310,9 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 		return ing.FullImport(ctx, ecosystem)
 	}
 
-	since, err := time.Parse(time.RFC3339Nano, syncState.LastSyncedAt)
+	since, err := parseSyncTime(syncState.LastSyncedAt)
 	if err != nil {
-		since, err = time.Parse(time.RFC3339, syncState.LastSyncedAt)
-		if err != nil {
-			return nil, fmt.Errorf("parse last_synced_at: %w", err)
-		}
+		return nil, fmt.Errorf("parse last_synced_at: %w", err)
 	}
 
 	// Phase 1: Download and parse CSV
@@ -758,4 +755,15 @@ func canonicalVulnID(v *model.Vulnerability) string {
 		}
 	}
 	return v.ID
+}
+
+// parseSyncTime parses a LastSyncedAt timestamp string, supporting both
+// RFC3339Nano and RFC3339 formats. GetSyncState formats timestamps with
+// RFC3339Nano, so we try that first and fall back to RFC3339.
+func parseSyncTime(s string) (time.Time, error) {
+	t, err := time.Parse(time.RFC3339Nano, s)
+	if err != nil {
+		t, err = time.Parse(time.RFC3339, s)
+	}
+	return t, err
 }

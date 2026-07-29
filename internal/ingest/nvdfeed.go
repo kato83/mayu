@@ -266,7 +266,7 @@ func needsFullYearImport(state *store.SyncState) bool {
 	if state.LastSyncedAt == "" {
 		return true
 	}
-	lastSync, err := time.Parse(time.RFC3339, state.LastSyncedAt)
+	lastSync, err := parseSyncTime(state.LastSyncedAt)
 	if err != nil {
 		return true
 	}
