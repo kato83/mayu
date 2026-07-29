@@ -932,3 +932,79 @@ func TestHandleListFindingStatuses_InvalidFilterValue(t *testing.T) {
 		t.Errorf("error message should mention invalid status filter value, got: %q", resp["error"])
 	}
 }
+
+func TestHandleRescanVersion_Success(t *testing.T) {
+	sbomStore := newMockSBOMStore()
+	scanner := NewScanner(&mockVulnStore{})
+
+	// User 1 owns project 100 with version 10 containing a valid CycloneDX SBOM
+	sbomStore.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	sbomStore.versions[10] = &SBOMVersion{
+		ID:        10,
+		ProjectID: 100,
+		Version:   "1.0",
+		RawSBOM:   []byte(`{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}`),
+		CreatedAt: time.Now(),
+	}
+
+	handler := HandleRescanVersion(sbomStore, scanner)
+
+	req := reqWithUser("POST", "/api/v1/sbom/versions/10/scans", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("versionID", "10")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d; body: %s", w.Code, http.StatusCreated, w.Body.String())
+	}
+
+	var resp scanResultResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.ID == 0 {
+		t.Error("ID should be non-zero")
+	}
+	if resp.VersionID != 10 {
+		t.Errorf("VersionID = %d, want 10", resp.VersionID)
+	}
+	if resp.Status != "completed" {
+		t.Errorf("Status = %q, want %q", resp.Status, "completed")
+	}
+	if resp.Trigger != "manual" {
+		t.Errorf("Trigger = %q, want %q", resp.Trigger, "manual")
+	}
+}
+
+func TestHandleRescanVersion_IDORProtection(t *testing.T) {
+	sbomStore := newMockSBOMStore()
+	scanner := NewScanner(&mockVulnStore{})
+
+	// User 1 owns project 100 with version 10
+	sbomStore.projects[100] = &SBOMProject{ID: 100, UserID: 1, Name: "proj", CreatedAt: time.Now(), UpdatedAt: time.Now()}
+	sbomStore.versions[10] = &SBOMVersion{
+		ID:        10,
+		ProjectID: 100,
+		Version:   "1.0",
+		RawSBOM:   []byte(`{"bomFormat":"CycloneDX","specVersion":"1.4","components":[]}`),
+		CreatedAt: time.Now(),
+	}
+
+	handler := HandleRescanVersion(sbomStore, scanner)
+
+	// User 2 tries to rescan user 1's version
+	req := reqWithUserID("POST", "/api/v1/sbom/versions/10/scans", nil, 2)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("versionID", "10")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d (IDOR protection); body: %s", w.Code, http.StatusNotFound, w.Body.String())
+	}
+}

@@ -74,6 +74,13 @@ export class SbomService {
   }
 
   /**
+   * Trigger a rescan of an existing SBOM version.
+   */
+  rescanVersion(versionId: number): Observable<SBOMScanResult> {
+    return this.http.post<SBOMScanResult>(`${this.baseUrl}/versions/${versionId}/scans`, {}, { withCredentials: true });
+  }
+
+  /**
    * Get a single scan result by ID.
    */
   getScanResult(id: number): Observable<SBOMScanResult> {
