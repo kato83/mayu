@@ -525,6 +525,24 @@ List all users in table format (ID, Email, Name, Role).
 mayu user list
 ```
 
+### `mayu user reset-password`
+
+Reset a user's password (admin operation). Only available when `auth.mode=local`.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--email` | User email address (required) | — |
+| `--password` | New password (required) | — |
+
+**Examples:**
+
+```bash
+mayu user reset-password --email user@example.com --password newpassword
+```
+
+> [!NOTE]
+> This command exits with an error if `auth.mode` is not `local` (i.e., `none` or `oidc`).
+
 ### `mayu apikey create`
 
 Create a new API key for a user. The generated key is displayed once and cannot be recovered.

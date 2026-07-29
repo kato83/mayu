@@ -73,6 +73,7 @@ func runServe(args []string, cfg *config.Config) error {
 	// Initialize auth provider based on config
 	var authProvider auth.AuthProvider
 	var apiKeyStore auth.APIKeyStore
+	var userStore auth.UserStore
 	var sessionCleanupStore auth.SessionStore
 	switch cfg.Auth.Mode {
 	case "local":
@@ -83,6 +84,7 @@ func runServe(args []string, cfg *config.Config) error {
 		}
 		authProvider = auth.NewLocalAuthProvider(authStore, authStore, authStore, maxAge)
 		apiKeyStore = authStore
+		userStore = authStore
 		sessionCleanupStore = authStore
 	case "oidc":
 		oidcCfg := cfg.Auth.OIDC
@@ -191,6 +193,7 @@ func runServe(args []string, cfg *config.Config) error {
 		TranslateService:     translateService,
 		TranslateRateLimiter: translateRateLimiter,
 		TeamStore:            team.NewPostgresTeamStore(s.DB()),
+		UserStore:            userStore,
 		EPSSRetentionDays:    cfg.EPSS.EffectiveRetentionDays(),
 	})
 

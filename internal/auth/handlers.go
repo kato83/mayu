@@ -173,3 +173,76 @@ func writeAuthJSON(w http.ResponseWriter, status int, v interface{}) {
 func writeAuthError(w http.ResponseWriter, status int, message string) {
 	writeAuthJSON(w, status, map[string]string{"error": message})
 }
+
+// changePasswordRequest is the JSON request body for PUT /api/v1/me/password.
+type changePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+// HandleChangePassword returns an http.HandlerFunc that allows the
+// authenticated user to change their own password.
+// Only available when auth mode is "local".
+func HandleChangePassword(provider AuthProvider, users UserStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Only allow in local auth mode
+		if provider.Mode() != "local" {
+			writeAuthError(w, http.StatusForbidden, "password change is only available in local auth mode")
+			return
+		}
+
+		user := UserFromContext(r.Context())
+		if user == nil {
+			writeAuthError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		var req changePasswordRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeAuthError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		if req.CurrentPassword == "" {
+			writeAuthError(w, http.StatusBadRequest, "current_password is required")
+			return
+		}
+		if req.NewPassword == "" {
+			writeAuthError(w, http.StatusBadRequest, "new_password is required")
+			return
+		}
+		if len(req.NewPassword) < 8 {
+			writeAuthError(w, http.StatusBadRequest, "new_password must be at least 8 characters")
+			return
+		}
+
+		// Verify current password
+		_, err := provider.Authenticate(r.Context(), user.Email, req.CurrentPassword)
+		if err != nil {
+			writeAuthError(w, http.StatusUnauthorized, "current password is incorrect")
+			return
+		}
+
+		// Hash new password and update
+		newHash, err := HashPassword(req.NewPassword)
+		if err != nil {
+			writeAuthError(w, http.StatusInternalServerError, "failed to hash password")
+			return
+		}
+
+		_, err = users.UpdatePasswordHash(r.Context(), user.Email, newHash)
+		if err != nil {
+			writeAuthError(w, http.StatusInternalServerError, "failed to update password")
+			return
+		}
+
+		slog.Info("password changed",
+			"event", "password_changed",
+			"user_id", user.ID,
+			"email", user.Email,
+			"remote_addr", r.RemoteAddr,
+		)
+
+		writeAuthJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}
+}

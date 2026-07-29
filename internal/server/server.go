@@ -113,6 +113,10 @@ type Config struct {
 	// After each EPSS ingest, older data is cleaned up.
 	// A value <= 0 means retain all data indefinitely.
 	EPSSRetentionDays int
+
+	// UserStore provides user persistence for password change operations.
+	// If nil, password change endpoint is not registered.
+	UserStore auth.UserStore
 }
 
 // Server is the HTTP API server.
@@ -135,6 +139,7 @@ type Server struct {
 	translateRateLimiter *translate.RateLimiter
 	teamStore            team.TeamStore
 	loginLimiter         *auth.LoginRateLimiter
+	userStore            auth.UserStore
 	epssRetentionDays    int
 	ingestRunning        atomic.Bool
 	runners              activeRunners
@@ -165,6 +170,7 @@ func New(cfg Config) *Server {
 		translateRateLimiter: cfg.TranslateRateLimiter,
 		teamStore:            cfg.TeamStore,
 		loginLimiter:         auth.NewLoginRateLimiter(10, 15*time.Minute),
+		userStore:            cfg.UserStore,
 		epssRetentionDays:    cfg.EPSSRetentionDays,
 	}
 
@@ -243,6 +249,11 @@ func (s *Server) routes() http.Handler {
 
 	// Protected auth endpoint
 	r.With(authMW).Get("/auth/me", auth.HandleMe())
+
+	// Password change endpoint (local auth only)
+	if s.userStore != nil {
+		r.With(authMW).Put("/api/v1/me/password", auth.HandleChangePassword(s.authProvider, s.userStore))
+	}
 
 	// API v1 routes (with 30s timeout and auth)
 	r.Route("/api/v1", func(r chi.Router) {

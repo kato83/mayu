@@ -108,4 +108,15 @@ export class AuthService {
   isConfigLoaded(): boolean {
     return this.configLoaded;
   }
+
+  /**
+   * Change the current user's password (local auth mode only).
+   */
+  changePassword(currentPassword: string, newPassword: string): Observable<{ status: string }> {
+    return this.http.put<{ status: string }>(
+      '/api/v1/me/password',
+      { current_password: currentPassword, new_password: newPassword },
+      { withCredentials: true },
+    );
+  }
 }

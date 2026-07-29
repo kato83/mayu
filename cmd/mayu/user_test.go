@@ -87,7 +87,7 @@ func TestRunUser_NoSubcommand(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for no subcommand, got nil")
 	}
-	if want := "no subcommand specified (use 'create', 'list', or 'update')"; err.Error() != want {
+	if want := "no subcommand specified (use 'create', 'list', 'update', or 'reset-password')"; err.Error() != want {
 		t.Errorf("got error %q, want %q", err.Error(), want)
 	}
 }
@@ -99,7 +99,7 @@ func TestRunUser_UnknownSubcommand(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for unknown subcommand, got nil")
 	}
-	if want := `unknown user subcommand: "delete" (use 'create', 'list', or 'update')`; err.Error() != want {
+	if want := `unknown user subcommand: "delete" (use 'create', 'list', 'update', or 'reset-password')`; err.Error() != want {
 		t.Errorf("got error %q, want %q", err.Error(), want)
 	}
 }
@@ -139,6 +139,59 @@ func TestRunUserUpdate_InvalidRole(t *testing.T) {
 		t.Fatal("expected error for invalid role, got nil")
 	}
 	if want := `invalid role "superuser": must be 'admin' or 'viewer'`; err.Error() != want {
+		t.Errorf("got error %q, want %q", err.Error(), want)
+	}
+}
+
+func TestRunUserResetPassword_NonLocalMode(t *testing.T) {
+	tests := []struct {
+		name string
+		mode string
+		want string
+	}{
+		{"none mode", "", "reset-password is only available when auth.mode=local (current mode: none)"},
+		{"none explicit", "none", "reset-password is only available when auth.mode=local (current mode: none)"},
+		{"oidc mode", "oidc", "reset-password is only available when auth.mode=local (current mode: oidc)"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := makeTestConfig()
+			cfg.Auth.Mode = tt.mode
+
+			err := runUserResetPassword([]string{"--email", "test@example.com", "--password", "newpass"}, cfg)
+			if err == nil {
+				t.Fatal("expected error for non-local mode, got nil")
+			}
+			if err.Error() != tt.want {
+				t.Errorf("got error %q, want %q", err.Error(), tt.want)
+			}
+		})
+	}
+}
+
+func TestRunUserResetPassword_MissingEmail(t *testing.T) {
+	cfg := makeTestConfig()
+	cfg.Auth.Mode = "local"
+
+	err := runUserResetPassword([]string{"--password", "newpass"}, cfg)
+	if err == nil {
+		t.Fatal("expected error for missing --email, got nil")
+	}
+	if want := "--email is required"; err.Error() != want {
+		t.Errorf("got error %q, want %q", err.Error(), want)
+	}
+}
+
+func TestRunUserResetPassword_MissingPassword(t *testing.T) {
+	cfg := makeTestConfig()
+	cfg.Auth.Mode = "local"
+
+	err := runUserResetPassword([]string{"--email", "test@example.com"}, cfg)
+	if err == nil {
+		t.Fatal("expected error for missing --password, got nil")
+	}
+	if want := "--password is required"; err.Error() != want {
 		t.Errorf("got error %q, want %q", err.Error(), want)
 	}
 }

@@ -526,6 +526,24 @@ mayu user update --email user@example.com --role viewer
 mayu user list
 ```
 
+### `mayu user reset-password`
+
+ユーザーのパスワードをリセットします（管理者操作）。`auth.mode=local` の場合のみ使用可能です。
+
+| フラグ | 説明 | デフォルト |
+|--------|------|-----------|
+| `--email` | ユーザーのメールアドレス（必須） | — |
+| `--password` | 新しいパスワード（必須） | — |
+
+**使用例:**
+
+```bash
+mayu user reset-password --email user@example.com --password newpassword
+```
+
+> [!NOTE]
+> `auth.mode` が `local` でない場合（`none` または `oidc`）、このコマンドはエラーで終了します。
+
 ### `mayu apikey create`
 
 ユーザー用の新しい API キーを作成します。生成されたキーは一度だけ表示され、復元できません。
