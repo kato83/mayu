@@ -107,6 +107,15 @@ func (s *PostgresStore) GetVulnerabilityDetail(ctx context.Context, id string) (
 		detail.EOL = eolEnrichment
 	}
 
+	// Step 10: Enrich with Exploit-DB data (public exploits)
+	exploitDBDetail, err := s.fetchExploitDBDetail(ctx, vulnID)
+	if err != nil {
+		// Non-fatal: continue without ExploitDB data
+		_ = err
+	} else if len(exploitDBDetail) > 0 {
+		detail.ExploitDB = exploitDBDetail
+	}
+
 	return detail, nil
 }
 
@@ -1100,6 +1109,78 @@ func (s *PostgresStore) fetchKEVDetail(ctx context.Context, vulnID string) (*mod
 		RequiredAction:             requiredAction,
 		KnownRansomwareCampaignUse: ransomware,
 	}, nil
+}
+
+// fetchExploitDBDetail retrieves Exploit-DB entries associated with a vulnerability.
+// Returns nil if no exploits are found for this vulnerability.
+func (s *PostgresStore) fetchExploitDBDetail(ctx context.Context, vulnID string) ([]model.ExploitDBDetail, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT edb_id, description, exploit_type, platform, author,
+		       COALESCE(date_published::text, ''), verified,
+		       COALESCE(port, 0), codes, tags,
+		       COALESCE(source_url, '')
+		FROM exploitdb_entries
+		WHERE vulnerability_id = $1
+		   OR $1 = ANY(codes)
+		ORDER BY date_published DESC`,
+		vulnID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query exploitdb_entries for detail: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var results []model.ExploitDBDetail
+	seen := make(map[int]bool) // deduplicate by EDB-ID
+
+	for rows.Next() {
+		var d model.ExploitDBDetail
+		var codes, tags []byte
+
+		if err := rows.Scan(
+			&d.EDBID,
+			&d.Description,
+			&d.ExploitType,
+			&d.Platform,
+			&d.Author,
+			&d.DatePublished,
+			&d.Verified,
+			&d.Port,
+			&codes,
+			&tags,
+			&d.SourceURL,
+		); err != nil {
+			return nil, fmt.Errorf("scan exploitdb_entries row: %w", err)
+		}
+
+		if seen[d.EDBID] {
+			continue
+		}
+		seen[d.EDBID] = true
+
+		// Parse TEXT[] columns
+		if codes != nil {
+			d.Codes = parseTextArray(string(codes))
+		}
+		if tags != nil {
+			d.Tags = parseTextArray(string(tags))
+		}
+
+		// Compute the Exploit-DB URL
+		d.URL = fmt.Sprintf("https://www.exploit-db.com/exploits/%d", d.EDBID)
+
+		results = append(results, d)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate exploitdb_entries rows: %w", err)
+	}
+
+	if len(results) == 0 {
+		return nil, nil
+	}
+
+	return results, nil
 }
 
 // parseTextArray parses a PostgreSQL TEXT[] literal (e.g., "{foo,bar}") into a Go string slice.
