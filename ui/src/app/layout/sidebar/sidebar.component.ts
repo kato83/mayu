@@ -1,5 +1,6 @@
 import { Component, input, output, inject, computed, signal, OnInit } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 import { ThemeService, ThemeMode } from '../../services/theme.service';
 import { AuthService } from '../../services/auth.service';
@@ -42,41 +43,62 @@ interface NavItem {
           @for (item of navItems(); track item.route) {
             <li>
               @if (item.children) {
-                <!-- Parent item with children -->
-                <a
-                  [routerLink]="item.route"
-                  routerLinkActive="bg-slate-700 text-white"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  (click)="closed.emit()"
-                  class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                <!-- Parent item with collapsible children -->
+                <button
+                  type="button"
+                  (click)="toggleSubnav(item.route)"
+                  class="flex items-center gap-3 px-3 py-2.5 w-full rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer select-none"
+                  [class.bg-slate-800]="isExpanded(item.route)"
+                  [attr.aria-expanded]="isExpanded(item.route)"
                 >
                   <span class="text-lg">{{ item.icon }}</span>
-                  <span>{{ item.label }}</span>
-                </a>
-                <!-- Children -->
-                <ul class="mt-1 space-y-1">
-                  @for (child of item.children; track child.route) {
+                  <span class="flex-1 text-left">{{ item.label }}</span>
+                  <svg
+                    class="w-4 h-4 transition-transform duration-200"
+                    [class.rotate-90]="isExpanded(item.route)"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <!-- Children (collapsible) -->
+                @if (isExpanded(item.route)) {
+                  <ul class="mt-1 space-y-1">
                     <li>
                       <a
-                        [routerLink]="child.route"
+                        [routerLink]="item.route"
                         routerLinkActive="bg-slate-700 text-white"
                         [routerLinkActiveOptions]="{ exact: true }"
                         (click)="closed.emit()"
-                        class="flex items-center gap-3 pl-6 pr-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                        class="flex items-center gap-3 pl-6 pr-3 py-2.5 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                       >
-                        <span class="text-lg">{{ child.icon }}</span>
-                        <span>{{ child.label }}</span>
+                        <span class="text-lg">{{ item.icon }}</span>
+                        <span>{{ item.label }}</span>
                       </a>
                     </li>
-                  }
-                </ul>
+                    @for (child of item.children; track child.route) {
+                      <li>
+                        <a
+                          [routerLink]="child.route"
+                          routerLinkActive="bg-slate-700 text-white"
+                          [routerLinkActiveOptions]="{ exact: true }"
+                          (click)="closed.emit()"
+                          class="flex items-center gap-3 pl-6 pr-3 py-2.5 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                        >
+                          <span class="text-lg">{{ child.icon }}</span>
+                          <span>{{ child.label }}</span>
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                }
               } @else {
                 <!-- Simple item without children -->
                 <a
                   [routerLink]="item.route"
                   routerLinkActive="bg-slate-700 text-white"
                   (click)="closed.emit()"
-                  class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                  class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                 >
                   <span class="text-lg">{{ item.icon }}</span>
                   <span>{{ item.label }}</span>
@@ -175,6 +197,9 @@ export class SidebarComponent implements OnInit {
   /** Application version loaded from API */
   readonly version = signal<string | null>(null);
 
+  /** Set of expanded parent routes */
+  private readonly expandedRoutes = signal<Set<string>>(new Set());
+
   /** Whether the sidebar is open (mobile) */
   open = input(false);
 
@@ -185,6 +210,14 @@ export class SidebarComponent implements OnInit {
     this.versionService.getVersion().subscribe({
       next: (res) => this.version.set(res.version),
       error: (err) => console.warn('Failed to fetch version:', err),
+    });
+
+    // Auto-expand subnav if current route matches a child
+    this.expandIfCurrentRouteIsChild(this.router.url);
+
+    // Listen to route changes for auto-expanding
+    this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((e) => {
+      this.expandIfCurrentRouteIsChild(e.urlAfterRedirects);
     });
   }
 
@@ -240,5 +273,35 @@ export class SidebarComponent implements OnInit {
         this.router.navigate(['/login']);
       },
     });
+  }
+
+  /** Toggle subnav expansion for a parent route */
+  toggleSubnav(route: string): void {
+    const current = new Set(this.expandedRoutes());
+    if (current.has(route)) {
+      current.delete(route);
+    } else {
+      current.add(route);
+    }
+    this.expandedRoutes.set(current);
+  }
+
+  /** Check if a subnav is expanded */
+  isExpanded(route: string): boolean {
+    return this.expandedRoutes().has(route);
+  }
+
+  /** Auto-expand subnav if current URL matches a parent or its children */
+  private expandIfCurrentRouteIsChild(url: string): void {
+    const items = this.allNavItems.filter((item) => item.children);
+    for (const item of items) {
+      const matches = url === item.route || url.startsWith(item.route + '/') ||
+        item.children!.some((child) => url === child.route || url.startsWith(child.route + '/'));
+      if (matches) {
+        const current = new Set(this.expandedRoutes());
+        current.add(item.route);
+        this.expandedRoutes.set(current);
+      }
+    }
   }
 }
