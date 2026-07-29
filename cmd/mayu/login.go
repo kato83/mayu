@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"net"
@@ -19,6 +21,7 @@ import (
 	"github.com/kato83/mayu/internal/credentials"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"golang.org/x/term"
 )
 
 func runLogin(args []string, cfg *config.Config) error {
@@ -76,11 +79,12 @@ func runLoginInteractive(cfg *config.Config, serverURL string) error {
 	}
 
 	fmt.Print("Password: ")
-	password, err := reader.ReadString('\n')
+	passwordBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println() // print newline after hidden input
 	if err != nil {
 		return fmt.Errorf("read password: %w", err)
 	}
-	password = strings.TrimSpace(password)
+	password := strings.TrimSpace(string(passwordBytes))
 	if password == "" {
 		return fmt.Errorf("password is required")
 	}
@@ -178,8 +182,13 @@ func runLoginOIDC(cfg *config.Config, serverURL string) error {
 	authStore := auth.NewPostgresAuthStore(db)
 	oidcProvider := auth.NewOIDCProvider(oidcCfg, authStore, authStore, authStore, cfg.Auth.SessionMaxAge)
 
-	// Generate state and build authorization URL
-	state := fmt.Sprintf("cli-%d", time.Now().UnixNano())
+	// Generate cryptographically random state to prevent CSRF
+	stateBytes := make([]byte, 16)
+	if _, err := rand.Read(stateBytes); err != nil {
+		_ = listener.Close()
+		return fmt.Errorf("generate state token: %w", err)
+	}
+	state := "cli-" + hex.EncodeToString(stateBytes)
 	authURL, err := oidcProvider.AuthorizationURL(state)
 	if err != nil {
 		_ = listener.Close()

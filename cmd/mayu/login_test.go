@@ -154,7 +154,7 @@ func TestResolveAuthUser_ExpiredCredentials(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error with expired credentials, got nil")
 	}
-	want := "authentication required: set MAYU_API_KEY environment variable or run 'mayu login'"
+	want := "session expired: run 'mayu login' to re-authenticate"
 	if err.Error() != want {
 		t.Errorf("got error %q, want %q", err.Error(), want)
 	}

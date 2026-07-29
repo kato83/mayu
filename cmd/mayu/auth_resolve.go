@@ -69,6 +69,8 @@ func resolveAuthUser(ctx context.Context, cfg *config.Config) (*auth.User, *sql.
 			}
 			return user, db, nil
 		}
+		// Session is expired
+		return nil, nil, fmt.Errorf("session expired: run 'mayu login' to re-authenticate")
 	}
 
 	// Priority 3: No auth available
@@ -107,6 +109,8 @@ func resolveAuthUserWithDB(ctx context.Context, cfg *config.Config, db *sql.DB) 
 			}
 			return user, nil
 		}
+		// Session is expired
+		return nil, fmt.Errorf("session expired: run 'mayu login' to re-authenticate")
 	}
 
 	// Priority 3: No auth available
