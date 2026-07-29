@@ -207,7 +207,7 @@ func printUsage() {
 	fmt.Println("Commands:")
 	fmt.Println("  login      Authenticate and store session credentials")
 	fmt.Println("  logout     Remove stored session credentials")
-	fmt.Println("  ingest     Import vulnerability data from OSV, NVD, MITRE, EPSS, KEV")
+	fmt.Println("  ingest     Import vulnerability data from OSV, NVD, MITRE, EPSS, KEV, Exploit-DB")
 	fmt.Println("  ingest history  Show ingest job history")
 	fmt.Println("  search     Search for vulnerabilities")
 	fmt.Println("  audit      Audit SBOM for known vulnerabilities")

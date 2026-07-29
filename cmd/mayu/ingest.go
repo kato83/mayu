@@ -54,6 +54,7 @@ func runIngest(args []string, cfg *config.Config) error {
 		fmt.Println("  --source mitre              Import MITRE CVE data from cvelistV5 GitHub Releases")
 		fmt.Println("  --source epss               Import EPSS scores (Exploit Prediction Scoring System)")
 		fmt.Println("  --source kev                Import CISA KEV catalog (Known Exploited Vulnerabilities)")
+		fmt.Println("  --source exploitdb          Import Exploit-DB entries (from official GitLab CSV)")
 		fmt.Println("  --source eol                Import endoflife.date product lifecycle data")
 		fmt.Println("  --source ghsa               Import GitHub Security Advisories (requires --repo)")
 		fmt.Println()
@@ -78,6 +79,8 @@ func runIngest(args []string, cfg *config.Config) error {
 		fmt.Println("  mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19")
 		fmt.Println("  mayu ingest --source kev                 # Import CISA KEV catalog")
 		fmt.Println("  mayu ingest --source kev --update        # Update KEV catalog if outdated")
+		fmt.Println("  mayu ingest --source exploitdb           # Import Exploit-DB entries (full CSV)")
+		fmt.Println("  mayu ingest --source exploitdb --update  # Update Exploit-DB if outdated")
 		fmt.Println("  mayu ingest --source eol                 # Import endoflife.date data")
 		fmt.Println("  mayu ingest --source ghsa --repo WordPress/wordpress-develop  # Import GitHub repo advisories")
 		fmt.Println("  mayu ingest --file vuln1.json vuln2.json # Import local OSV JSON files")
@@ -378,6 +381,27 @@ func runIngest(args []string, cfg *config.Config) error {
 			return nil
 		}
 
+		// Exploit-DB import from official GitLab CSV
+		if strings.ToLower(*source) == "exploitdb" {
+			fmt.Println("\n=== Importing Exploit-DB entries (files_exploits.csv) ===")
+			var stats *ingest.Stats
+			var err error
+			if *update {
+				stats, err = ing.UpdateExploitDB(ctx)
+			} else {
+				stats, err = ing.ImportExploitDB(ctx)
+			}
+			if err != nil {
+				if ctx.Err() != nil {
+					fmt.Fprintf(os.Stderr, "\nImport interrupted.\n")
+					return nil
+				}
+				return fmt.Errorf("Exploit-DB import: %w", err)
+			}
+			printStats(stats)
+			return nil
+		}
+
 		// endoflife.date import
 		if strings.ToLower(*source) == "eol" {
 			fmt.Println("\n=== Importing endoflife.date product lifecycle data ===")
@@ -523,7 +547,7 @@ func runIngest(args []string, cfg *config.Config) error {
 			return nil
 		}
 
-		return fmt.Errorf("unknown source: %q (supported: osv, nvd, mitre, epss, kev, eol, ghsa)", *source)
+		return fmt.Errorf("unknown source: %q (supported: osv, nvd, mitre, epss, kev, exploitdb, eol, ghsa)", *source)
 	}
 
 	// Handle bare --ecosystem (without --source): treat as --source osv --ecosystem X
