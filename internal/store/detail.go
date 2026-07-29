@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/kato83/mayu/internal/cvss"
 	"github.com/kato83/mayu/internal/model"
@@ -1032,15 +1033,28 @@ func (s *PostgresStore) fetchEPSSDetail(ctx context.Context, vulnID string) (*mo
 	}, nil
 }
 
-// GetEPSSHistory returns the full EPSS score history for a vulnerability, ordered by date.
-func (s *PostgresStore) GetEPSSHistory(ctx context.Context, vulnID string) ([]EPSSHistoryEntry, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT score_date::text, epss, percentile
-		FROM epss_scores
-		WHERE vulnerability_id = $1
-		ORDER BY score_date ASC`,
-		vulnID,
-	)
+// GetEPSSHistory returns the EPSS score history for a vulnerability, ordered by date.
+// If since is non-nil, only entries on or after that date are returned.
+func (s *PostgresStore) GetEPSSHistory(ctx context.Context, vulnID string, since *time.Time) ([]EPSSHistoryEntry, error) {
+	var rows *sql.Rows
+	var err error
+	if since != nil {
+		rows, err = s.db.QueryContext(ctx, `
+			SELECT score_date::text, epss, percentile
+			FROM epss_scores
+			WHERE vulnerability_id = $1 AND score_date >= $2
+			ORDER BY score_date ASC`,
+			vulnID, *since,
+		)
+	} else {
+		rows, err = s.db.QueryContext(ctx, `
+			SELECT score_date::text, epss, percentile
+			FROM epss_scores
+			WHERE vulnerability_id = $1
+			ORDER BY score_date ASC`,
+			vulnID,
+		)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("query epss_scores history: %w", err)
 	}
