@@ -272,10 +272,12 @@ func (ing *Ingester) storeEPSSBatches(ctx context.Context, scores []*model.EPSSS
 const EPSSv3StartDate = "2023-03-07"
 
 // epssBackfillStore extends epssBatchStore with the ability to query which
-// dates have already been imported (to avoid redundant downloads).
+// dates have already been imported (to avoid redundant downloads) and to detect
+// orphan dates (scores exist but daily stats are missing) for reconciliation.
 type epssBackfillStore interface {
 	epssBatchStore
 	GetEPSSImportedDates(ctx context.Context) (map[string]bool, error)
+	GetEPSSOrphanDates(ctx context.Context, from, to string) ([]string, error)
 }
 
 // BackfillEPSS imports historical EPSS daily scores from the EPSS v3 start date
@@ -363,6 +365,27 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 		if err != nil {
 			ing.logger.Printf("warning: could not fetch imported dates (will import all): %v", err)
 			importedDates = nil
+		}
+
+		// Reconciliation: heal any desync where epss_scores has data but
+		// epss_daily_stats does not (e.g., RefreshEPSSDailyStats failed previously).
+		orphanDates, orphanErr := bs.GetEPSSOrphanDates(ctx, from, toDate.Format("2006-01-02"))
+		if orphanErr != nil {
+			ing.logger.Printf("warning: could not check for orphan dates: %v", orphanErr)
+		} else if len(orphanDates) > 0 {
+			ing.logger.Printf("info: found %d orphan date(s) with scores but no daily stats, reconciling...", len(orphanDates))
+			if refreshErr := bs.RefreshEPSSDailyStats(ctx, orphanDates); refreshErr != nil {
+				ing.logger.Printf("warning: failed to reconcile orphan dates: %v", refreshErr)
+			} else {
+				// After reconciliation, these dates now have daily stats and should
+				// be treated as imported (no need to re-download).
+				if importedDates == nil {
+					importedDates = make(map[string]bool)
+				}
+				for _, d := range orphanDates {
+					importedDates[d] = true
+				}
+			}
 		}
 	}
 

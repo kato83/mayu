@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix EPSS backfill incorrectly skipping dates that appear missing on the coverage page. The root cause is a data inconsistency between two tables: GetEPSSCoverage() checks epss_daily_stats for missing dates (used by the coverage page), but GetEPSSImportedDates() checks epss_scores (used by backfill skip logic). When RefreshEPSSDailyStats() fails silently after storing scores, epss_scores has data but epss_daily_stats does not, causing the coverage page to show 'missing' while backfill skips the date. The fix changes GetEPSSImportedDates() to query epss_daily_stats instead of epss_scores, so both the coverage page and the backfill skip logic use the same source of truth. Additionally, as defense-in-depth, add a reconciliation step in BackfillEPSSRange that re-attempts RefreshEPSSDailyStats for any dates found in epss_scores but not in epss_daily_stats.",
+  "status": "in_progress",
+  "steps": [
+    "In internal/store/epss.go, modify GetEPSSImportedDates() to query from epss_daily_stats instead of epss_scores. Change the SQL from `SELECT DISTINCT score_date::text FROM epss_scores` to `SELECT score_date::text FROM epss_daily_stats`. This ensures that if epss_daily_stats lacks a row (which the coverage page would report as missing), the backfill will NOT skip that date.",
+    "In internal/ingest/epss.go, in the BackfillEPSSRange function, after fetching importedDates, add a reconciliation step: query epss_scores for dates that exist there but NOT in epss_daily_stats (within the from-to range), then call RefreshEPSSDailyStats for those orphan dates. This heals the desync for existing data without re-downloading. Add a new method to the epssBackfillStore interface: `GetEPSSOrphanDates(ctx context.Context, from, to string) ([]string, error)` and implement it in internal/store/epss.go.",
+    "In internal/store/epss.go, implement GetEPSSOrphanDates(ctx, from, to string) ([]string, error) that returns dates in the range [from, to] that exist in epss_scores but have no corresponding row in epss_daily_stats. Use a query like: SELECT DISTINCT score_date::text FROM epss_scores WHERE score_date BETWEEN $1 AND $2 AND score_date NOT IN (SELECT score_date FROM epss_daily_stats).",
+    "Add a unit test in internal/store/epss_unit_test.go (or similar non-integration test file) that verifies GetEPSSImportedDates SQL uses epss_daily_stats. Since the store tests require integration with PostgreSQL, instead write a test in internal/ingest/ that uses a mock implementing the epssBackfillStore interface to verify the reconciliation logic: when GetEPSSOrphanDates returns dates, RefreshEPSSDailyStats is called with those dates before the main backfill loop."
+  ],
+  "acceptance_criteria": [
+    "GetEPSSImportedDates() queries epss_daily_stats (not epss_scores), confirmed by reading the SQL in the function",
+    "BackfillEPSSRange calls GetEPSSOrphanDates and RefreshEPSSDailyStats for any orphan dates before the main loop",
+    "GetEPSSOrphanDates is implemented in internal/store/epss.go and added to the epssBackfillStore interface in internal/ingest/epss.go",
+    "go build ./... succeeds",
+    "go test ./... -count=1 -short passes"
+  ],
+  "verification": [
+    "go build ./...",
+    "go test ./... -count=1 -short"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,7 @@
+{
+  "task_id": "task-fix-epss-backfill-skip",
+  "task_description": "Fix bug where EPSS backfill skips dates that the coverage page reports as missing due to inconsistency between epss_scores and epss_daily_stats tables",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null
+}
