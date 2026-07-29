@@ -113,6 +113,16 @@ func WithEPSSRetentionDays(days int) Option {
 	}
 }
 
+// WithEPSSSpikeNotifier sets a callback invoked after EPSS ingest to detect
+// and dispatch 'epss_spike' webhook events for CVEs that cross the trending
+// threshold during the current ingest cycle. The callback receives the list
+// of CVE IDs that were just ingested so it can filter to only new spikes.
+func WithEPSSSpikeNotifier(fn func(ctx context.Context, ingestedCVEIDs []string)) Option {
+	return func(ing *Ingester) {
+		ing.epssSpikeNotifier = fn
+	}
+}
+
 // SBOMReEvaluator is the interface for re-evaluating SBOM versions after ingest.
 type SBOMReEvaluator interface {
 	// ReEvaluate re-scans all SBOM versions against the current vulnerability database.
@@ -144,6 +154,7 @@ type Ingester struct {
 	progressFn        func(Progress)
 	jobStore          store.Store // optional: enables ingest job recording
 	webhookNotifier   func(ctx context.Context, vulnIDs []string)
+	epssSpikeNotifier func(ctx context.Context, ingestedCVEIDs []string)
 	watchlistMatcher  WatchlistMatcher
 	sbomReEvaluator   SBOMReEvaluator
 	isUpdateMode      bool // when true, watchlist matching fires after ingest

@@ -601,3 +601,100 @@ func TestNotifyNewVulnerabilities(t *testing.T) {
 		t.Fatalf("expected 4 requests, got %d", requestCount.Load())
 	}
 }
+
+func TestNotifyEPSSSpikes(t *testing.T) {
+	var requestCount atomic.Int32
+	var receivedBodies []string
+	var mu sync.Mutex
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		body, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		receivedBodies = append(receivedBodies, string(body))
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	store := newMockStore()
+	store.webhooks = append(store.webhooks, &model.Webhook{
+		ID:           1,
+		Name:         "spike-hook",
+		URL:          server.URL,
+		Events:       []string{"epss_spike"},
+		ContentType:  "application/json",
+		BodyTemplate: `{"id":"{{ID}}","epss":{{EPSS}},"event":"{{Event}}","summary":"{{Summary}}"}`,
+		Enabled:      true,
+	})
+
+	engine := NewEngine(store,
+		WithHTTPClient(server.Client()),
+		WithRetrySleep(func(d time.Duration) {}),
+	)
+
+	engine.NotifyEPSSSpikes(context.Background(), []WebhookEvent{
+		{
+			Event:   "epss_spike",
+			ID:      "CVE-2024-5000",
+			EPSS:    0.85,
+			Summary: "EPSS increased by 0.7000 (0.1500 -> 0.8500)",
+		},
+		{
+			Event:   "epss_spike",
+			ID:      "CVE-2024-6000",
+			EPSS:    0.60,
+			Summary: "EPSS increased by 0.3000 (0.3000 -> 0.6000)",
+		},
+	})
+
+	if requestCount.Load() != 2 {
+		t.Fatalf("expected 2 requests, got %d", requestCount.Load())
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if len(receivedBodies) != 2 {
+		t.Fatalf("expected 2 bodies, got %d", len(receivedBodies))
+	}
+	if !strings.Contains(receivedBodies[0], "CVE-2024-5000") {
+		t.Errorf("expected first body to contain CVE-2024-5000, got: %s", receivedBodies[0])
+	}
+	if !strings.Contains(receivedBodies[1], "CVE-2024-6000") {
+		t.Errorf("expected second body to contain CVE-2024-6000, got: %s", receivedBodies[1])
+	}
+}
+
+func TestNotifyEPSSSpikes_Empty(t *testing.T) {
+	var requestCount atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	store := newMockStore()
+	store.webhooks = append(store.webhooks, &model.Webhook{
+		ID:           1,
+		Name:         "spike-hook",
+		URL:          server.URL,
+		Events:       []string{"epss_spike"},
+		ContentType:  "application/json",
+		BodyTemplate: `{"id":"{{ID}}"}`,
+		Enabled:      true,
+	})
+
+	engine := NewEngine(store,
+		WithHTTPClient(server.Client()),
+		WithRetrySleep(func(d time.Duration) {}),
+	)
+
+	// No spikes - should not fire any webhooks
+	engine.NotifyEPSSSpikes(context.Background(), nil)
+	engine.NotifyEPSSSpikes(context.Background(), []WebhookEvent{})
+
+	if requestCount.Load() != 0 {
+		t.Fatalf("expected 0 requests for empty spikes, got %d", requestCount.Load())
+	}
+}

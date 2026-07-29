@@ -190,6 +190,7 @@ export class SidebarComponent implements OnInit {
 
   private readonly allNavItems: NavItem[] = [
     { label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`, route: '/vulnerabilities', icon: '🛡️' },
+    { label: $localize`:@@sidebar.nav.epssTrending:EPSS Trending`, route: '/epss-trending', icon: '📈' },
     {
       label: $localize`:@@sidebar.nav.ingest:Ingest`, route: '/ingest', icon: '📥',
       children: [

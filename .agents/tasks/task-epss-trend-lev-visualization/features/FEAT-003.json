@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Webhook integration for EPSS trending alerts. When the trending detection identifies CVEs with significant EPSS spikes, fire a new webhook event type 'epss_spike' so users can receive notifications. This connects the trending detection (FEAT-001) with the existing webhook system (internal/webhook/engine.go).",
+  "status": "completed",
+  "steps": [
+    "1. Add a new webhook event type 'epss_spike' to the system. The webhook engine already dispatches events via Engine.Dispatch(ctx, event, []WebhookEvent). Add documentation for the new event type. The WebhookEvent struct already has Event, ID, Severity, EPSS, LEV, Summary fields which are sufficient for spike notifications.",
+    "2. Create a new package or add to existing: internal/trending/detector.go that encapsulates the trend detection logic. This should expose a function DetectEPSSSpikes(ctx, store, params) that queries the store for EPSS spikes and returns results. This can be called both by the API handler (FEAT-001) and by the ingest pipeline after EPSS updates.",
+    "3. Wire the trending detection into the EPSS ingest pipeline. In internal/ingest/ (or wherever EPSS ingest completes), after a successful EPSS data update, call the spike detector and dispatch 'epss_spike' webhook events for any newly detected spikes. Only fire for CVEs that cross the threshold during THIS ingest (not for already-known spikes). Add the webhook engine as a dependency to the ingest flow.",
+    "4. Update the server configuration to ensure the webhook engine is available for trending dispatch. The Engine.Dispatch method already accepts WebhookEvent with all needed fields. Populate Event='epss_spike', ID=CVE ID, EPSS=current score, Summary=delta info.",
+    "5. Write unit tests for the trending detector logic: test threshold detection, test that only new spikes fire webhooks, test edge cases (no history, insufficient data)."
+  ],
+  "acceptance_criteria": [
+    "go build ./... compiles without errors",
+    "go test ./... passes (excluding integration tests)",
+    "A new 'epss_spike' event type is available for webhook subscriptions",
+    "The trending detector correctly identifies CVEs with EPSS increases above threshold",
+    "Unit tests cover the spike detection logic"
+  ],
+  "verification": [
+    "go build ./...",
+    "go test ./internal/... -v -count=1 -short",
+    "go vet ./..."
+  ],
+  "blocked_reason": null,
+  "findings": "Implementation complete. New internal/trending package created with DetectSpikes and FilterNewSpikes functions. The epss_spike event type is defined as a constant in trending.EventEPSSSpike. The webhook engine gained a NotifyEPSSSpikes method. The ingest pipeline has a new WithEPSSSpikeNotifier option that is wired into the server via epssSpikeNotifierOption. Spike notifications only fire for CVEs that were part of the current ingest cycle (via FilterNewSpikes). Backfill operations do not trigger spike notifications to avoid flooding. All tests pass including new tests in internal/trending and internal/webhook."
+}

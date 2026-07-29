@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Backend API: EPSS history enhancement with period filtering, LEV history endpoint, and EPSS trending (spike detection) endpoint. This adds the three API endpoints specified in the issue: GET /api/v1/vulnerabilities/{id}/epss-history (enhanced with period filter), GET /api/v1/vulnerabilities/{id}/lev-history (LEV time-series), and GET /api/v1/epss/trending (CVEs with rapidly rising EPSS scores).",
+  "status": "completed",
+  "steps": [
+    "1. Add period query parameter support to the existing GET /api/v1/vulnerabilities/{id}/epss-history endpoint in internal/server/server.go handleGetEPSSHistory(). Support periods: 30d, 90d, 365d, all (default: all, preserving current behavior). Update the store method GetEPSSHistory in internal/store/store.go interface and internal/store/detail.go implementation to accept an optional 'since' date filter.",
+    "2. Create GET /api/v1/vulnerabilities/{id}/lev-history endpoint. Add new store method GetLEVHistory(ctx, vulnID string, since *time.Time) in internal/store/store.go interface. Implement in internal/store/lev.go: query epss_scores for the vulnerability ordered by date, compute cumulative LEV at each date point (running product of (1-P1_i)), and check KEV status. Return array of {date, lev_score, epss_score, is_kev}. Add handler handleGetLEVHistory in internal/server/server.go or a new file internal/server/trend.go. Register route in the /api/v1 route group.",
+    "3. Create GET /api/v1/epss/trending endpoint for spike detection. Add new store method GetEPSSTrending(ctx, params EPSSTrendingQuery) in internal/store/store.go interface. Define EPSSTrendingQuery struct with fields: days (lookback window, default 7), threshold (min EPSS delta, default 0.1), limit (max results, default 20). Implement in internal/store/epss.go or a new file internal/store/trending.go: SQL query that compares latest EPSS score vs score N days ago, filtering for delta >= threshold, ordered by delta descending. Return array of {vulnerability_id, cve_id, current_epss, previous_epss, delta, current_percentile, summary}. Add handler in internal/server/trend.go. Register route under /api/v1/epss/trending.",
+    "4. Add the new methods to the mockStore in internal/server/server_test.go to keep the interface satisfied. Add stub implementations that return empty/nil.",
+    "5. Write unit tests for the new handlers in internal/server/ (test parameter validation, error cases, response format). Follow the pattern in internal/server/stats_test.go and internal/server/server_test.go."
+  ],
+  "acceptance_criteria": [
+    "go build ./... compiles without errors",
+    "go test ./internal/server/ -v -count=1 passes with new test cases",
+    "GET /api/v1/vulnerabilities/{id}/epss-history?period=30d returns filtered results",
+    "GET /api/v1/vulnerabilities/{id}/lev-history returns LEV time-series data",
+    "GET /api/v1/epss/trending returns CVEs with EPSS spikes",
+    "All new store interface methods have corresponding mockStore implementations"
+  ],
+  "verification": [
+    "go build ./...",
+    "go test ./internal/server/ -v -count=1",
+    "go vet ./..."
+  ],
+  "blocked_reason": null,
+  "findings": "All implementation complete. Build passes (go build ./...), tests pass (go test ./internal/server/ ./internal/store/ -v -count=1), and go vet ./... is clean. The unused 'database/sql' import was already present in detail.go and is used by other functions. Added 'time' import to detail.go for the new since parameter. Added 'math' import to lev.go for the cumulative LEV computation. Created a local p30ToP1 helper in lev.go (store package) since the model version is unexported."
+}

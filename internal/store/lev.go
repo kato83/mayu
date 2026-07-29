@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/kato83/mayu/internal/model"
@@ -153,4 +154,77 @@ func (s *PostgresStore) GetLEVByCVEID(ctx context.Context, cveID string) (*model
 
 	lev := model.ComputeLEV(input)
 	return &lev, nil
+}
+
+// GetLEVHistory returns the LEV time-series for a vulnerability.
+// It queries all EPSS scores for the vulnerability, computes cumulative LEV at
+// each date point, and returns an array of data points. If since is non-nil,
+// only entries on or after that date are included in the response (but all
+// historical scores are still used for cumulative computation).
+func (s *PostgresStore) GetLEVHistory(ctx context.Context, vulnID string, since *time.Time) ([]LEVHistoryEntry, error) {
+	// Check KEV membership
+	inKEV, err := s.isInKEV(ctx, vulnID)
+	if err != nil {
+		return nil, fmt.Errorf("check KEV membership: %w", err)
+	}
+
+	// Fetch all historical EPSS scores (need full history for cumulative LEV)
+	epssScores, err := s.fetchAllEPSSScores(ctx, vulnID)
+	if err != nil {
+		return nil, fmt.Errorf("fetch EPSS history: %w", err)
+	}
+
+	if len(epssScores) == 0 {
+		return nil, nil
+	}
+
+	// Compute cumulative LEV at each date point
+	var entries []LEVHistoryEntry
+	var logProduct float64
+
+	for _, score := range epssScores {
+		p1 := p30ToP1(score.P30)
+		if p1 > 0 && p1 < 1.0 {
+			logProduct += math.Log(1 - p1)
+		}
+
+		levScore := 1 - math.Exp(logProduct)
+		if levScore < 0 {
+			levScore = 0
+		}
+		if levScore > 1 {
+			levScore = 1
+		}
+
+		// If in KEV, override LEV to 1.0
+		if inKEV {
+			levScore = 1.0
+		}
+
+		// Apply the since filter for the response
+		if since != nil && score.Date.Before(*since) {
+			continue
+		}
+
+		entries = append(entries, LEVHistoryEntry{
+			Date:      score.Date.Format("2006-01-02"),
+			LEVScore:  levScore,
+			EPSSScore: score.P30,
+			IsKEV:     inKEV,
+		})
+	}
+
+	return entries, nil
+}
+
+// p30ToP1 converts a 30-day exploitation probability (EPSS score) to a
+// daily probability using: P1 = 1 - (1 - P30)^(1/30)
+func p30ToP1(p30 float64) float64 {
+	if p30 <= 0 {
+		return 0
+	}
+	if p30 >= 1 {
+		return 1
+	}
+	return 1 - math.Pow(1-p30, 1.0/30.0)
 }

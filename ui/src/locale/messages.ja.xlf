@@ -2082,6 +2082,114 @@
         <source>Changes</source>
         <target>変更数</target>
       </trans-unit>
+      <trans-unit id="route.title.epssTrending" datatype="html">
+        <source>EPSS Trending</source>
+        <target>EPSSトレンド</target>
+      </trans-unit>
+      <trans-unit id="sidebar.nav.epssTrending" datatype="html">
+        <source>EPSS Trending</source>
+        <target>EPSSトレンド</target>
+      </trans-unit>
+      <trans-unit id="dashboard.epssTrendingTitle" datatype="html">
+        <source>EPSS Trending</source>
+        <target>EPSSトレンド</target>
+      </trans-unit>
+      <trans-unit id="dashboard.epssTrendingViewAll" datatype="html">
+        <source>View All</source>
+        <target>すべて表示</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendingColId" datatype="html">
+        <source>ID</source>
+        <target>ID</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendingColEpss" datatype="html">
+        <source>EPSS</source>
+        <target>EPSS</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendingColDelta" datatype="html">
+        <source>Delta</source>
+        <target>差分</target>
+      </trans-unit>
+      <trans-unit id="dashboard.trendingColSeverity" datatype="html">
+        <source>Severity</source>
+        <target>深刻度</target>
+      </trans-unit>
+      <trans-unit id="dashboard.epssTrendingEmpty" datatype="html">
+        <source>No trending data available.</source>
+        <target>トレンドデータがありません。</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.title" datatype="html">
+        <source>EPSS Trending</source>
+        <target>EPSSトレンド</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.periodLabel" datatype="html">
+        <source>Period:</source>
+        <target>期間:</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.thresholdLabel" datatype="html">
+        <source>Threshold:</source>
+        <target>しきい値:</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.colCveId" datatype="html">
+        <source>CVE ID</source>
+        <target>CVE ID</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.colCurrentEpss" datatype="html">
+        <source>Current EPSS</source>
+        <target>現在のEPSS</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.colPreviousEpss" datatype="html">
+        <source>Previous EPSS</source>
+        <target>以前のEPSS</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.colDelta" datatype="html">
+        <source>Delta</source>
+        <target>差分</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.colPercentile" datatype="html">
+        <source>Percentile</source>
+        <target>パーセンタイル</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.colSeverity" datatype="html">
+        <source>Severity</source>
+        <target>深刻度</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.empty" datatype="html">
+        <source>No trending CVEs found for the selected criteria.</source>
+        <target>選択した条件に一致するトレンドCVEが見つかりません。</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.days7" datatype="html">
+        <source>7 Days</source>
+        <target>7日間</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.days14" datatype="html">
+        <source>14 Days</source>
+        <target>14日間</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.days30" datatype="html">
+        <source>30 Days</source>
+        <target>30日間</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.levTrend" datatype="html">
+        <source>LEV Trend</source>
+        <target>LEVトレンド</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.period30d" datatype="html">
+        <source>30 Days</source>
+        <target>30日間</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.period90d" datatype="html">
+        <source>90 Days</source>
+        <target>90日間</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.period365d" datatype="html">
+        <source>1 Year</source>
+        <target>1年間</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.periodAll" datatype="html">
+        <source>All</source>
+        <target>全期間</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

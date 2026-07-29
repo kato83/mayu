@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Frontend UI: EPSS trend graph enhancement on vulnerability detail page (period selector), LEV cumulative graph, and new EPSS Trending page showing CVEs with rapidly rising scores. Integrates with the dashboard to show trending CVEs.",
+  "status": "completed",
+  "steps": [
+    "1. Enhance the existing EpssChartComponent (ui/src/app/shared/epss-chart/epss-chart.component.ts) or create a new wrapper in the vulnerability-detail page to add period selection buttons (30 days / 90 days / 1 year / All). Add a period input property and emit period change events. Update vulnerability-detail.component.ts to pass period to the API call (add period query param to getEPSSHistory in vulnerability.service.ts).",
+    "2. Create a LEV chart component (ui/src/app/shared/lev-chart/lev-chart.component.ts) following the same pattern as EpssChartComponent. Display LEV cumulative score over time as an area chart using Chart.js. Include period selection (30d/90d/365d/all). Add getLEVHistory method to vulnerability.service.ts. Integrate into vulnerability-detail.component.html below the EPSS chart section.",
+    "3. Create EPSS Trending page (ui/src/app/pages/epss-trending/epss-trending.component.ts). This page shows a table/list of CVEs with rapidly rising EPSS scores. Create a new service method in a new file ui/src/app/services/epss-trending.service.ts (or add to vulnerability.service.ts) calling GET /api/v1/epss/trending. Display results with columns: CVE ID (linked to detail), current EPSS, previous EPSS, delta, severity. Add controls for days (7/14/30) and threshold. Add route in app.routes.ts at path 'epss-trending' with title 'EPSS Trending'.",
+    "4. Add navigation link to the EPSS Trending page in the layout sidebar/nav (ui/src/app/layout/layout.component.ts or similar). Add the trending alerts section to the dashboard component to show top 5 trending CVEs (ui/src/app/pages/dashboard/dashboard.component.ts) - add a new section card with title 'EPSS Trending' showing the top rising CVEs.",
+    "5. Internationalize all new user-facing text using Angular i18n with custom IDs (@@component.purpose format). Source locale English. Run 'make ui-i18n-extract' to update messages.xlf, then add Japanese translations to ui/src/locale/messages.ja.xlf for all new entries."
+  ],
+  "acceptance_criteria": [
+    "The vulnerability detail page shows EPSS chart with period selector buttons (30d/90d/365d/All)",
+    "The vulnerability detail page shows a LEV cumulative time-series chart below the EPSS chart",
+    "A new /epss-trending route exists showing a table of CVEs with rising EPSS scores",
+    "The dashboard has a trending CVEs section",
+    "All new text is i18n-annotated with @@custom.id syntax",
+    "Japanese translations exist in messages.ja.xlf for all new text",
+    "pnpm run test --watch=false passes in the ui/ directory",
+    "No TypeScript compilation errors (pnpm exec ng build completes)"
+  ],
+  "verification": [
+    "cd ui && pnpm install && pnpm exec ng build 2>&1 | tail -5",
+    "cd ui && pnpm run test -- --watch=false 2>&1 | tail -20"
+  ],
+  "blocked_reason": null,
+  "findings": "Build and all 152 tests pass. Test command is 'pnpm exec ng test --no-watch' (not --watch=false). The i18n extract produced messages.xlf with 564 entries. Japanese translations added for all new UI text."
+}

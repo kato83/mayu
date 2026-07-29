@@ -1,0 +1,14 @@
+{
+  "task_id": "task-epss-trend-lev-visualization",
+  "task_description": "Implement EPSS trend graph, LEV time-series visualization, and trending CVE detection (GitHub issue #23). Adds three API endpoints (EPSS history with period filter, LEV history, EPSS trending), Angular UI components for graphs and alerts, and webhook integration for spike notifications.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "All verifications pass. go build ./... clean. go test ./... (19 internal packages, all pass). go vet ./... clean. Angular: ng build succeeds (zero errors). Angular: ng test passes (14 test files, 152 tests). Semantic review v2: APPROVED."
+  }
+}

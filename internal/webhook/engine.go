@@ -284,3 +284,18 @@ func severityName(level int) string {
 		return "UNKNOWN"
 	}
 }
+
+// NotifyEPSSSpikes dispatches 'epss_spike' webhook events for the given spike data.
+// Each spike item contains the CVE ID, current/previous EPSS scores, delta, and summary.
+func (e *Engine) NotifyEPSSSpikes(ctx context.Context, spikes []WebhookEvent) {
+	if len(spikes) == 0 {
+		return
+	}
+
+	e.Dispatch(ctx, "epss_spike", spikes)
+
+	// Prune old delivery logs (best-effort, keep 1000 per webhook)
+	if err := e.store.PruneDeliveryLogs(ctx, 1000); err != nil {
+		e.logger.Printf("webhook: failed to prune delivery logs: %v", err)
+	}
+}

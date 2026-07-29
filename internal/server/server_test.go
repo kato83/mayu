@@ -25,6 +25,9 @@ type mockStore struct {
 	listSyncStatesFunc         func(ctx context.Context) ([]store.SyncState, error)
 	getEPSSCoverageFunc        func(ctx context.Context) (*store.EPSSCoverage, error)
 	getStatsTrendFunc          func(ctx context.Context, query store.StatsTrendQuery) (*store.StatsTrendResponse, error)
+	getEPSSHistoryFunc         func(ctx context.Context, vulnID string, since *time.Time) ([]store.EPSSHistoryEntry, error)
+	getLEVHistoryFunc          func(ctx context.Context, vulnID string, since *time.Time) ([]store.LEVHistoryEntry, error)
+	getEPSSTrendingFunc        func(ctx context.Context, params store.EPSSTrendingQuery) ([]store.EPSSTrendingEntry, error)
 }
 
 func (m *mockStore) Insert(ctx context.Context, vuln *model.Vulnerability) error { return nil }
@@ -110,7 +113,22 @@ func (m *mockStore) GetEPSSCoverage(ctx context.Context) (*store.EPSSCoverage, e
 	return &store.EPSSCoverage{}, nil
 }
 
-func (m *mockStore) GetEPSSHistory(ctx context.Context, vulnID string) ([]store.EPSSHistoryEntry, error) {
+func (m *mockStore) GetEPSSHistory(ctx context.Context, vulnID string, since *time.Time) ([]store.EPSSHistoryEntry, error) {
+	if m.getEPSSHistoryFunc != nil {
+		return m.getEPSSHistoryFunc(ctx, vulnID, since)
+	}
+	return nil, nil
+}
+func (m *mockStore) GetLEVHistory(ctx context.Context, vulnID string, since *time.Time) ([]store.LEVHistoryEntry, error) {
+	if m.getLEVHistoryFunc != nil {
+		return m.getLEVHistoryFunc(ctx, vulnID, since)
+	}
+	return nil, nil
+}
+func (m *mockStore) GetEPSSTrending(ctx context.Context, params store.EPSSTrendingQuery) ([]store.EPSSTrendingEntry, error) {
+	if m.getEPSSTrendingFunc != nil {
+		return m.getEPSSTrendingFunc(ctx, params)
+	}
 	return nil, nil
 }
 func (m *mockStore) UpsertEOLProduct(ctx context.Context, product store.EOLProduct) error {

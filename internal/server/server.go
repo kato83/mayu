@@ -245,10 +245,12 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities", s.handleSearchVulnerabilities)
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/vulnerabilities/{id}/epss-history", s.handleGetEPSSHistory)
+		r.Get("/vulnerabilities/{id}/lev-history", s.handleGetLEVHistory)
 		r.With(s.translateRateLimitMiddleware(), middleware.Timeout(30*time.Second)).Post("/vulnerabilities/{id}/translate", s.handleTranslateVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
 		r.Get("/eol/{product}", s.handleGetEOLProduct)
 		r.Get("/eol/lookup", s.handleLookupEOL)
+		r.Get("/epss/trending", s.handleGetEPSSTrending)
 		r.Get("/status", s.handleStatus)
 		r.Get("/version", s.handleVersion)
 
@@ -737,7 +739,19 @@ func (s *Server) handleGetEPSSHistory(w http.ResponseWriter, r *http.Request) {
 		id = decoded
 	}
 
-	history, err := s.store.GetEPSSHistory(r.Context(), id)
+	// Parse period parameter (default: all, preserving current behavior)
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "all"
+	}
+	if !validPeriods[period] {
+		writeError(w, http.StatusBadRequest, "invalid period parameter: must be one of 30d, 90d, 365d, all")
+		return
+	}
+
+	since := periodToSince(period)
+
+	history, err := s.store.GetEPSSHistory(r.Context(), id, since)
 	if err != nil {
 		slog.Error("failed to get EPSS history", "id", id, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
@@ -750,6 +764,7 @@ func (s *Server) handleGetEPSSHistory(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"vulnerability_id": id,
+		"period":           period,
 		"history":          history,
 	})
 }

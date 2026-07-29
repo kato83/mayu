@@ -113,9 +113,18 @@ type Store interface {
 	// for the given IDs by querying the vulnerability_summary table.
 	GetSeveritiesByIDs(ctx context.Context, ids []string) (map[string]int, error)
 
-	// GetEPSSHistory returns the full EPSS score history for a vulnerability.
+	// GetEPSSHistory returns the EPSS score history for a vulnerability.
 	// Results are ordered by date ascending.
-	GetEPSSHistory(ctx context.Context, vulnID string) ([]EPSSHistoryEntry, error)
+	// If since is non-nil, only entries on or after that date are returned.
+	GetEPSSHistory(ctx context.Context, vulnID string, since *time.Time) ([]EPSSHistoryEntry, error)
+
+	// GetLEVHistory returns the LEV time-series for a vulnerability.
+	// It computes cumulative LEV at each date point using historical EPSS scores.
+	// If since is non-nil, only entries on or after that date are returned.
+	GetLEVHistory(ctx context.Context, vulnID string, since *time.Time) ([]LEVHistoryEntry, error)
+
+	// GetEPSSTrending returns CVEs with rapidly rising EPSS scores (spike detection).
+	GetEPSSTrending(ctx context.Context, params EPSSTrendingQuery) ([]EPSSTrendingEntry, error)
 
 	// UpsertEOLProduct upserts a product from endoflife.date.
 	UpsertEOLProduct(ctx context.Context, product EOLProduct) error
@@ -270,6 +279,33 @@ type EPSSHistoryEntry struct {
 	Date       string  `json:"date"`
 	EPSS       float64 `json:"epss"`
 	Percentile float64 `json:"percentile"`
+}
+
+// LEVHistoryEntry represents a single LEV time-series data point.
+type LEVHistoryEntry struct {
+	Date      string  `json:"date"`
+	LEVScore  float64 `json:"lev_score"`
+	EPSSScore float64 `json:"epss_score"`
+	IsKEV     bool    `json:"is_kev"`
+}
+
+// EPSSTrendingQuery defines parameters for the EPSS trending (spike detection) endpoint.
+type EPSSTrendingQuery struct {
+	Days      int     // Lookback window in days (default 7)
+	Threshold float64 // Minimum EPSS delta to qualify as trending (default 0.1)
+	Limit     int     // Maximum number of results (default 20)
+}
+
+// EPSSTrendingEntry represents a single CVE with a rapidly rising EPSS score.
+type EPSSTrendingEntry struct {
+	VulnerabilityID   string  `json:"vulnerability_id"`
+	CVEID             string  `json:"cve_id"`
+	CurrentEPSS       float64 `json:"current_epss"`
+	PreviousEPSS      float64 `json:"previous_epss"`
+	Delta             float64 `json:"delta"`
+	CurrentPercentile float64 `json:"current_percentile"`
+	Severity          string  `json:"severity"`
+	Summary           string  `json:"summary"`
 }
 
 // EOLProduct represents a product for storage.
