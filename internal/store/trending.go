@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	"github.com/kato83/mayu/internal/model"
 )
@@ -13,9 +12,10 @@ import (
 // It compares the latest EPSS score vs the score N days ago, filtering for
 // delta >= threshold, ordered by delta descending.
 //
-// The previous_scores CTE uses a bounded window (sinceDate +/- 3 days) to avoid
-// selecting stale scores from months ago for CVEs with sparse history.
-// CVEs with no score within the bounded window are excluded (INNER JOIN).
+// Instead of scanning the entire table with DISTINCT ON, this uses a two-step
+// approach: first identify the latest and previous score dates via index lookups,
+// then join only those specific date slices. This avoids full-table scans on the
+// 100M+ row epss_scores table.
 func (s *PostgresStore) GetEPSSTrending(ctx context.Context, params EPSSTrendingQuery) ([]EPSSTrendingEntry, error) {
 	// Apply defaults
 	if params.Days <= 0 {
@@ -28,46 +28,33 @@ func (s *PostgresStore) GetEPSSTrending(ctx context.Context, params EPSSTrending
 		params.Limit = 20
 	}
 
-	sinceDate := time.Now().UTC().AddDate(0, 0, -params.Days)
-	// Lower bound: 3 extra days of tolerance to handle gaps in ingested data.
-	sinceDateLower := sinceDate.AddDate(0, 0, -3)
-
 	rows, err := s.db.QueryContext(ctx, `
-		WITH latest_scores AS (
-			SELECT DISTINCT ON (vulnerability_id)
-				vulnerability_id,
-				epss AS current_epss,
-				percentile AS current_percentile,
-				score_date AS latest_date
-			FROM epss_scores
-			ORDER BY vulnerability_id, score_date DESC
+		WITH latest_date AS (
+			SELECT MAX(score_date) AS d FROM epss_scores
 		),
-		previous_scores AS (
-			SELECT DISTINCT ON (vulnerability_id)
-				vulnerability_id,
-				epss AS previous_epss,
-				score_date AS previous_date
-			FROM epss_scores
-			WHERE score_date BETWEEN $1 AND $2
-			ORDER BY vulnerability_id, score_date DESC
+		previous_date AS (
+			SELECT MAX(score_date) AS d FROM epss_scores
+			WHERE score_date <= (SELECT d FROM latest_date) - ($1::int)
 		)
 		SELECT
-			ls.vulnerability_id,
-			ls.vulnerability_id AS cve_id,
-			ls.current_epss,
-			ps.previous_epss,
-			ls.current_epss - ps.previous_epss AS delta,
-			ls.current_percentile,
+			cur.vulnerability_id,
+			cur.vulnerability_id AS cve_id,
+			cur.epss AS current_epss,
+			prev.epss AS previous_epss,
+			cur.epss - prev.epss AS delta,
+			cur.percentile AS current_percentile,
 			COALESCE(vs.severity_worst, 0) AS severity_worst,
 			COALESCE(v.summary, '') AS summary
-		FROM latest_scores ls
-		INNER JOIN previous_scores ps ON ps.vulnerability_id = ls.vulnerability_id
-		LEFT JOIN vulnerabilities v ON v.id = ls.vulnerability_id
-		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = ls.vulnerability_id
-		WHERE ls.current_epss - ps.previous_epss >= $3
-		ORDER BY delta DESC
-		LIMIT $4`,
-		sinceDateLower, sinceDate, params.Threshold, params.Limit,
+		FROM epss_scores cur
+		JOIN epss_scores prev ON prev.vulnerability_id = cur.vulnerability_id
+			AND prev.score_date = (SELECT d FROM previous_date)
+		LEFT JOIN vulnerabilities v ON v.id = cur.vulnerability_id
+		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = cur.vulnerability_id
+		WHERE cur.score_date = (SELECT d FROM latest_date)
+			AND cur.epss - prev.epss >= $2
+		ORDER BY cur.epss - prev.epss DESC
+		LIMIT $3`,
+		params.Days, params.Threshold, params.Limit,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query epss trending: %w", err)
