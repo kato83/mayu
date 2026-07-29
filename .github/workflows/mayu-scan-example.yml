@@ -1,0 +1,66 @@
+# Example workflow demonstrating the mayu-scan GitHub Action.
+# This workflow can be manually triggered via workflow_dispatch.
+#
+# Prerequisites:
+# - A CycloneDX or SPDX SBOM file in your repository (e.g., bom.json)
+# - GitHub Code Scanning enabled (for SARIF upload)
+
+name: 'Example: Mayu Vulnerability Scan'
+
+on:
+  workflow_dispatch:
+    inputs:
+      sbom-path:
+        description: 'Path to SBOM file'
+        required: true
+        default: 'bom.json'
+      ecosystems:
+        description: 'Ecosystems to ingest (comma-separated)'
+        required: true
+        default: 'Go'
+      fail-on:
+        description: 'Fail threshold (e.g., critical,high)'
+        required: false
+        default: 'critical,high'
+
+jobs:
+  vulnerability-scan:
+    runs-on: ubuntu-latest
+
+    # PostgreSQL service container for mayu
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: mayu
+          POSTGRES_PASSWORD: mayu
+          POSTGRES_DB: mayu
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mayu"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Mayu Vulnerability Scan
+        id: mayu-scan
+        uses: ./.github/actions/mayu-scan
+        with:
+          sbom: ${{ github.event.inputs.sbom-path }}
+          database-url: 'postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable'
+          ingest-ecosystems: ${{ github.event.inputs.ecosystems }}
+          fail-on: ${{ github.event.inputs.fail-on }}
+          format: 'sarif'
+          upload-sarif: 'true'
+
+      - name: Print scan results
+        if: always()
+        run: |
+          echo "Findings: ${{ steps.mayu-scan.outputs.findings-count }}"
+          echo "Exit code: ${{ steps.mayu-scan.outputs.exit-code }}"
+          echo "SARIF file: ${{ steps.mayu-scan.outputs.sarif-file }}"
