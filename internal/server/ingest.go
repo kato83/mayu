@@ -16,6 +16,8 @@ import (
 	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/parser"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/trending"
+	"github.com/kato83/mayu/internal/webhook"
 )
 
 // ingestRequest is the JSON request body for POST /api/v1/ingest.
@@ -205,6 +207,7 @@ func (s *Server) runIngestJob(runner *ingestRunner, job *store.IngestJob, req in
 	p := parser.New()
 	ing := ingest.New(s.fetcher, p, s.store, ingest.WithProgress(progressFn),
 		s.webhookNotifierOption(),
+		s.epssSpikeNotifierOption(),
 		s.watchlistMatcherOption(),
 		ingest.WithEPSSRetentionDays(s.epssRetentionDays),
 	)
@@ -607,4 +610,54 @@ func (s *Server) webhookNotifierOption() ingest.Option {
 	return ingest.WithWebhookNotifier(func(ctx context.Context, vulnIDs []string) {
 		s.webhookEngine.NotifyNewVulnerabilities(ctx, vulnIDs, s.store.GetSeveritiesByIDs)
 	})
+}
+
+// epssSpikeNotifierOption returns an ingest Option that wires up EPSS spike
+// webhook notifications. After EPSS data is imported, it runs spike detection
+// and dispatches 'epss_spike' events for CVEs that cross the threshold.
+func (s *Server) epssSpikeNotifierOption() ingest.Option {
+	if s.webhookEngine == nil {
+		return func(_ *ingest.Ingester) {} // no-op
+	}
+	return ingest.WithEPSSSpikeNotifier(func(ctx context.Context, ingestedCVEIDs []string) {
+		s.detectAndNotifyEPSSSpikes(ctx, ingestedCVEIDs)
+	})
+}
+
+// detectAndNotifyEPSSSpikes runs EPSS spike detection and dispatches webhook
+// events for CVEs that crossed the trending threshold during this ingest cycle.
+func (s *Server) detectAndNotifyEPSSSpikes(ctx context.Context, ingestedCVEIDs []string) {
+	if len(ingestedCVEIDs) == 0 {
+		return
+	}
+
+	// Detect spikes using the store's trending query
+	spikes, err := trending.DetectSpikes(ctx, s.store, trending.DetectorParams{
+		Days:      7,
+		Threshold: 0.1,
+		Limit:     100,
+	})
+	if err != nil {
+		slog.Error("failed to detect EPSS spikes for webhook", "error", err)
+		return
+	}
+
+	// Filter to only CVEs that were part of this ingest cycle
+	newSpikes := trending.FilterNewSpikes(spikes, ingestedCVEIDs)
+	if len(newSpikes) == 0 {
+		return
+	}
+
+	// Convert to webhook events
+	events := make([]webhook.WebhookEvent, 0, len(newSpikes))
+	for _, spike := range newSpikes {
+		events = append(events, webhook.WebhookEvent{
+			Event:   trending.EventEPSSSpike,
+			ID:      spike.VulnerabilityID,
+			EPSS:    spike.CurrentEPSS,
+			Summary: fmt.Sprintf("EPSS increased by %.4f (%.4f -> %.4f)", spike.Delta, spike.PreviousEPSS, spike.CurrentEPSS),
+		})
+	}
+
+	s.webhookEngine.NotifyEPSSSpikes(ctx, events)
 }

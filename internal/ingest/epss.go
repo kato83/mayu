@@ -88,6 +88,9 @@ func (ing *Ingester) ImportEPSS(ctx context.Context) (*Stats, error) {
 	// Cleanup old EPSS scores based on retention policy
 	ing.cleanupOldEPSSScores(ctx)
 
+	// Detect and notify EPSS spikes for CVEs updated in this ingest cycle.
+	ing.notifyEPSSSpikes(ctx, scores)
+
 	return stats, nil
 }
 
@@ -540,4 +543,26 @@ func (ing *Ingester) cleanupOldEPSSScores(ctx context.Context) {
 	if deleted > 0 {
 		ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Cleaned up %d old EPSS score records", deleted)})
 	}
+}
+
+// notifyEPSSSpikes calls the configured epssSpikeNotifier with the CVE IDs
+// from the just-imported EPSS scores. The notifier is responsible for detecting
+// which CVEs crossed the spike threshold and dispatching webhook events.
+func (ing *Ingester) notifyEPSSSpikes(ctx context.Context, scores []*model.EPSSScore) {
+	if ing.epssSpikeNotifier == nil || len(scores) == 0 {
+		return
+	}
+
+	// Collect unique CVE IDs from the imported scores
+	seen := make(map[string]struct{}, len(scores))
+	ids := make([]string, 0, len(scores))
+	for _, s := range scores {
+		if _, ok := seen[s.CVEID]; !ok {
+			seen[s.CVEID] = struct{}{}
+			ids = append(ids, s.CVEID)
+		}
+	}
+
+	// Fire in background so it does not block the ingest pipeline.
+	go ing.epssSpikeNotifier(context.WithoutCancel(ctx), ids)
 }
