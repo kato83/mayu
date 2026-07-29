@@ -21,7 +21,7 @@ import (
 func runSBOM(args []string, cfg *config.Config) error {
 	if len(args) == 0 {
 		printSBOMUsage()
-		return fmt.Errorf("no subcommand specified (use 'upload', 'scan', or 'list')")
+		return fmt.Errorf("no subcommand specified (use 'upload', 'scan', 'list', or 'generate')")
 	}
 
 	switch args[0] {
@@ -31,6 +31,8 @@ func runSBOM(args []string, cfg *config.Config) error {
 		return runSBOMScan(args[1:], cfg)
 	case "list":
 		return runSBOMList(args[1:], cfg)
+	case "generate":
+		return runSBOMGenerate(args[1:], cfg)
 	case "suppress":
 		return runSBOMSetStatus(args[1:], cfg, sbommon.FindingStatusSuppressed)
 	case "accept":
@@ -42,7 +44,7 @@ func runSBOM(args []string, cfg *config.Config) error {
 		return nil
 	default:
 		printSBOMUsage()
-		return fmt.Errorf("unknown sbom subcommand: %q (use 'upload', 'scan', 'list', 'suppress', 'accept', or 'status')", args[0])
+		return fmt.Errorf("unknown sbom subcommand: %q (use 'upload', 'scan', 'list', 'generate', 'suppress', 'accept', or 'status')", args[0])
 	}
 }
 
@@ -432,9 +434,11 @@ func printSBOMUsage() {
 	fmt.Println("Manage SBOM continuous monitoring.")
 	fmt.Println()
 	fmt.Println("Authentication:")
-	fmt.Println("  All subcommands require the MAYU_API_KEY environment variable to be set.")
+	fmt.Println("  Most subcommands require the MAYU_API_KEY environment variable to be set.")
+	fmt.Println("  Exception: 'generate' does not require authentication (local operation).")
 	fmt.Println()
 	fmt.Println("Subcommands:")
+	fmt.Println("  generate  Generate SBOM from lockfiles (CycloneDX/SPDX)")
 	fmt.Println("  upload    Upload an SBOM file and run vulnerability scan")
 	fmt.Println("  scan      Re-scan an existing SBOM version")
 	fmt.Println("  list      List projects or versions")
