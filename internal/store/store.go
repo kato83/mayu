@@ -155,6 +155,10 @@ type Store interface {
 	// GetDashboardTopRisks returns top risky CVEs by EPSS and LEV scores.
 	GetDashboardTopRisks(ctx context.Context, limit int) (*DashboardTopRisks, error)
 
+	// GetEOLReport returns products that have reached EOL and products approaching EOL
+	// within the specified number of days.
+	GetEOLReport(ctx context.Context, days int) (eolProducts []EOLReportProduct, upcoming []EOLUpcomingProduct, err error)
+
 	// GetTranslations retrieves available translations for a vulnerability detail
 	// in the requested locales. Returns nil if no locales are requested.
 	GetTranslations(ctx context.Context, q TranslationQuery) (*TranslationResult, error)
@@ -435,6 +439,23 @@ type RiskEntry struct {
 	Score           float64 `json:"score"`
 	Percentile      float64 `json:"percentile,omitempty"`
 	Severity        string  `json:"severity,omitempty"`
+}
+
+// EOLReportProduct represents a product that has reached EOL.
+type EOLReportProduct struct {
+	Name    string
+	Label   string
+	Release string
+	EOLDate string
+}
+
+// EOLUpcomingProduct represents a product approaching EOL.
+type EOLUpcomingProduct struct {
+	Name         string
+	Label        string
+	Release      string
+	EOLDate      string
+	DaysUntilEOL int
 }
 
 // StatsTrendQuery defines parameters for the stats trend endpoint.

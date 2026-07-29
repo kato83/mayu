@@ -364,3 +364,69 @@ func (s *PostgresStore) queryTopRisks(ctx context.Context, scoreColumn, whereCla
 
 	return entries, nil
 }
+
+// GetEOLReport returns products that have reached EOL and products approaching EOL
+// within the specified number of days.
+func (s *PostgresStore) GetEOLReport(ctx context.Context, days int) ([]EOLReportProduct, []EOLUpcomingProduct, error) {
+	// Products that are already EOL
+	eolRows, err := s.db.QueryContext(ctx, `
+		SELECT p.name, p.label, r.release_name, r.eol_from::TEXT
+		FROM eol_releases r
+		JOIN eol_products p ON p.name = r.product_name
+		WHERE r.is_eol = true AND r.eol_from IS NOT NULL AND r.eol_from <= CURRENT_DATE
+		ORDER BY r.eol_from DESC
+		LIMIT 100`)
+	if err != nil {
+		return nil, nil, fmt.Errorf("query EOL products: %w", err)
+	}
+	defer func() { _ = eolRows.Close() }()
+
+	var eolProducts []EOLReportProduct
+	for eolRows.Next() {
+		var p EOLReportProduct
+		if err := eolRows.Scan(&p.Name, &p.Label, &p.Release, &p.EOLDate); err != nil {
+			return nil, nil, fmt.Errorf("scan EOL product: %w", err)
+		}
+		eolProducts = append(eolProducts, p)
+	}
+	if err := eolRows.Err(); err != nil {
+		return nil, nil, fmt.Errorf("iterate EOL products: %w", err)
+	}
+	if eolProducts == nil {
+		eolProducts = []EOLReportProduct{}
+	}
+
+	// Products approaching EOL (within N days from today)
+	upcomingRows, err := s.db.QueryContext(ctx, `
+		SELECT p.name, p.label, r.release_name, r.eol_from::TEXT,
+		       (r.eol_from - CURRENT_DATE)::INT AS days_until_eol
+		FROM eol_releases r
+		JOIN eol_products p ON p.name = r.product_name
+		WHERE r.eol_from IS NOT NULL
+		  AND r.eol_from > CURRENT_DATE
+		  AND r.eol_from <= CURRENT_DATE + $1::INT
+		  AND (r.is_eol IS NULL OR r.is_eol = false)
+		ORDER BY r.eol_from ASC
+		LIMIT 100`, days)
+	if err != nil {
+		return nil, nil, fmt.Errorf("query upcoming EOL: %w", err)
+	}
+	defer func() { _ = upcomingRows.Close() }()
+
+	var upcoming []EOLUpcomingProduct
+	for upcomingRows.Next() {
+		var p EOLUpcomingProduct
+		if err := upcomingRows.Scan(&p.Name, &p.Label, &p.Release, &p.EOLDate, &p.DaysUntilEOL); err != nil {
+			return nil, nil, fmt.Errorf("scan upcoming EOL: %w", err)
+		}
+		upcoming = append(upcoming, p)
+	}
+	if err := upcomingRows.Err(); err != nil {
+		return nil, nil, fmt.Errorf("iterate upcoming EOL: %w", err)
+	}
+	if upcoming == nil {
+		upcoming = []EOLUpcomingProduct{}
+	}
+
+	return eolProducts, upcoming, nil
+}
