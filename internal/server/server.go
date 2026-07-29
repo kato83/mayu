@@ -631,16 +631,21 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		if sortKey == "" {
 			sortKey = "modified_desc"
 		}
+		// Extract direction from sort param (e.g., "modified_desc" -> "desc")
+		sortDirection := "desc"
+		if strings.HasSuffix(sortKey, "_asc") {
+			sortDirection = "asc"
+		}
 		if strings.HasPrefix(sortKey, "epss") {
 			// Do not emit a cursor for EPSS sort; client uses offset pagination
 		} else if strings.HasPrefix(sortKey, "published") {
-			nextCursor = store.EncodeCursorWithSort("published", last.Published, last.ID)
+			nextCursor = store.EncodeCursorWithSort("published", sortDirection, last.Published, last.ID)
 		} else {
 			var mod *time.Time
 			if last.Modified != nil {
 				mod = last.Modified
 			}
-			nextCursor = store.EncodeCursorWithSort("modified", mod, last.ID)
+			nextCursor = store.EncodeCursorWithSort("modified", sortDirection, mod, last.ID)
 		}
 	}
 

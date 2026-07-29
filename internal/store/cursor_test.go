@@ -9,7 +9,7 @@ func TestEncodeDecode_WithTimestamp(t *testing.T) {
 	ts := time.Date(2024, 6, 15, 10, 30, 0, 0, time.UTC)
 	id := "GO-2024-2687"
 
-	encoded := EncodeCursorWithSort("modified", &ts, id)
+	encoded := EncodeCursorWithSort("modified", "desc", &ts, id)
 	if encoded == "" {
 		t.Fatal("expected non-empty cursor")
 	}
@@ -24,6 +24,9 @@ func TestEncodeDecode_WithTimestamp(t *testing.T) {
 	if cursor.SortKey != "modified" {
 		t.Errorf("expected SortKey %q, got %q", "modified", cursor.SortKey)
 	}
+	if cursor.SortDirection != "desc" {
+		t.Errorf("expected SortDirection %q, got %q", "desc", cursor.SortDirection)
+	}
 	if cursor.Timestamp == nil {
 		t.Fatal("expected non-nil Timestamp")
 	}
@@ -35,7 +38,7 @@ func TestEncodeDecode_WithTimestamp(t *testing.T) {
 func TestEncodeDecode_NilTimestamp(t *testing.T) {
 	id := "CVE-2024-1234"
 
-	encoded := EncodeCursorWithSort("published", nil, id)
+	encoded := EncodeCursorWithSort("published", "desc", nil, id)
 	if encoded == "" {
 		t.Fatal("expected non-empty cursor")
 	}
@@ -49,6 +52,9 @@ func TestEncodeDecode_NilTimestamp(t *testing.T) {
 	}
 	if cursor.SortKey != "published" {
 		t.Errorf("expected SortKey %q, got %q", "published", cursor.SortKey)
+	}
+	if cursor.SortDirection != "desc" {
+		t.Errorf("expected SortDirection %q, got %q", "desc", cursor.SortDirection)
 	}
 	if cursor.Timestamp != nil {
 		t.Errorf("expected nil Timestamp, got %v", cursor.Timestamp)
@@ -116,8 +122,8 @@ func TestEncodeCursor_Deterministic(t *testing.T) {
 	ts := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	id := "TEST-001"
 
-	c1 := EncodeCursorWithSort("modified", &ts, id)
-	c2 := EncodeCursorWithSort("modified", &ts, id)
+	c1 := EncodeCursorWithSort("modified", "desc", &ts, id)
+	c2 := EncodeCursorWithSort("modified", "desc", &ts, id)
 	if c1 != c2 {
 		t.Errorf("expected deterministic encoding, got %q and %q", c1, c2)
 	}
@@ -127,8 +133,8 @@ func TestEncodeCursor_DifferentTimezonesSameInstant(t *testing.T) {
 	t1 := time.Date(2024, 6, 15, 10, 0, 0, 0, time.UTC)
 	t2 := time.Date(2024, 6, 15, 19, 0, 0, 0, time.FixedZone("JST", 9*3600))
 
-	c1 := EncodeCursorWithSort("published", &t1, "ID-1")
-	c2 := EncodeCursorWithSort("published", &t2, "ID-1")
+	c1 := EncodeCursorWithSort("published", "desc", &t1, "ID-1")
+	c2 := EncodeCursorWithSort("published", "desc", &t2, "ID-1")
 	if c1 != c2 {
 		t.Errorf("expected same cursor for same instant in different timezones, got %q and %q", c1, c2)
 	}
@@ -138,13 +144,16 @@ func TestEncodeDecode_PublishedSortKey(t *testing.T) {
 	ts := time.Date(2025, 3, 1, 12, 0, 0, 0, time.UTC)
 	id := "CVE-2025-1234"
 
-	encoded := EncodeCursorWithSort("published", &ts, id)
+	encoded := EncodeCursorWithSort("published", "asc", &ts, id)
 	cursor, err := DecodeCursor(encoded)
 	if err != nil {
 		t.Fatalf("DecodeCursor failed: %v", err)
 	}
 	if cursor.SortKey != "published" {
 		t.Errorf("expected SortKey %q, got %q", "published", cursor.SortKey)
+	}
+	if cursor.SortDirection != "asc" {
+		t.Errorf("expected SortDirection %q, got %q", "asc", cursor.SortDirection)
 	}
 	if cursor.ID != id {
 		t.Errorf("expected ID %q, got %q", id, cursor.ID)
