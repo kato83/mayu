@@ -532,10 +532,11 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		validSorts := map[string]bool{
 			"modified_desc": true, "modified_asc": true,
 			"published_desc": true, "published_asc": true,
+			"epss_desc": true, "epss_asc": true,
 		}
 		if !validSorts[sortParam] {
 			writeError(w, http.StatusBadRequest,
-				fmt.Sprintf("invalid sort %q (valid: modified_desc, modified_asc, published_desc, published_asc)", sortParam))
+				fmt.Sprintf("invalid sort %q (valid: modified_desc, modified_asc, published_desc, published_asc, epss_desc, epss_asc)", sortParam))
 			return
 		}
 		query.Sort = sortParam

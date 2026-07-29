@@ -694,7 +694,7 @@ func severityToLevel(level string) int {
 
 // buildOrderClause returns the ORDER BY clause for the given sort parameter.
 // prefix is the table alias prefix (e.g., "v." or "" depending on the query).
-// Valid sort values: "modified_desc" (default), "modified_asc", "published_desc", "published_asc".
+// Valid sort values: "modified_desc" (default), "modified_asc", "published_desc", "published_asc", "epss_desc", "epss_asc".
 func buildOrderClause(sort string, prefix string) string {
 	id := prefix + "id"
 	switch strings.ToLower(sort) {
@@ -704,6 +704,10 @@ func buildOrderClause(sort string, prefix string) string {
 		return "ORDER BY " + prefix + "published DESC NULLS LAST, " + id + " DESC"
 	case "published_asc":
 		return "ORDER BY " + prefix + "published ASC NULLS LAST, " + id + " ASC"
+	case "epss_desc":
+		return "ORDER BY vs.epss_score DESC NULLS LAST, " + id + " DESC"
+	case "epss_asc":
+		return "ORDER BY vs.epss_score ASC NULLS LAST, " + id + " ASC"
 	default: // "modified_desc" or empty
 		return "ORDER BY " + prefix + "modified DESC, " + id + " DESC"
 	}

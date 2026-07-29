@@ -240,7 +240,7 @@ type SearchQuery struct {
 	Fields []string
 
 	// Sort specifies the sort order for results.
-	// Valid values: "modified_desc" (default), "modified_asc", "published_desc", "published_asc"
+	// Valid values: "modified_desc" (default), "modified_asc", "published_desc", "published_asc", "epss_desc", "epss_asc"
 	Sort string
 
 	// Locale is a BCP 47 locale tag for translation (e.g., "ja").
