@@ -11,11 +11,13 @@
 -- 4. RefreshEPSSSummary: DISTINCT ON (vulnerability_id) ORDER BY vulnerability_id, score_date DESC
 --
 -- INCLUDE (epss, percentile) avoids heap lookups for the most common SELECT columns.
--- CONCURRENTLY avoids locking the table during index creation on production.
+--
+-- Note: Not using CONCURRENTLY because golang-migrate runs migrations inside
+-- a transaction block. For large tables, run this during a maintenance window.
 
-CREATE INDEX CONCURRENTLY idx_epss_scores_vuln_date
+-- Drop the old single-column index first (it will be replaced by the composite).
+DROP INDEX IF EXISTS idx_epss_scores_vulnerability_id;
+
+CREATE INDEX idx_epss_scores_vuln_date
     ON epss_scores (vulnerability_id, score_date DESC)
     INCLUDE (epss, percentile);
-
--- The old single-column index is now redundant (leading column of the new composite).
-DROP INDEX CONCURRENTLY idx_epss_scores_vulnerability_id;
