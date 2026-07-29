@@ -97,6 +97,16 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "login":
+		if err := runLogin(subcommandArgs(), cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	case "logout":
+		if err := runLogout(subcommandArgs(), cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "help", "-h", "--help":
 		printUsage()
 	default:
@@ -169,6 +179,8 @@ func printUsage() {
 	fmt.Println("  --config <path>  Path to config file (default: $HOME/.config/mayu/config.yaml)")
 	fmt.Println()
 	fmt.Println("Commands:")
+	fmt.Println("  login      Authenticate and store session credentials")
+	fmt.Println("  logout     Remove stored session credentials")
 	fmt.Println("  ingest     Import vulnerability data from OSV, NVD, MITRE, EPSS, KEV")
 	fmt.Println("  ingest history  Show ingest job history")
 	fmt.Println("  search     Search for vulnerabilities")
