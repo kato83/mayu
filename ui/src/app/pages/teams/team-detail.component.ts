@@ -1,14 +1,15 @@
-import { Component, inject, type OnInit, signal } from '@angular/core';
+import { Component, inject, type OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { Team, TeamDashboardSummary, TeamMember, UserInfo } from '../../models/team.model';
 import { AuthService } from '../../services/auth.service';
 import { TeamService } from '../../services/team.service';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-team-detail',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, ConfirmDialogComponent],
   template: `
     <div class="p-6">
       <!-- Back link -->
@@ -190,6 +191,8 @@ import { TeamService } from '../../services/team.service';
       @if (error()) {
         <p class="mt-4 text-sm text-red-600 dark:text-red-400">{{ error() }}</p>
       }
+
+      <app-confirm-dialog #confirmDialog />
     </div>
   `,
 })
@@ -198,6 +201,8 @@ export class TeamDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly teamService = inject(TeamService);
   readonly authService = inject(AuthService);
+
+  private readonly confirmDialog = viewChild.required(ConfirmDialogComponent);
 
   team = signal<Team | null>(null);
   members = signal<TeamMember[]>([]);
@@ -294,8 +299,14 @@ export class TeamDetailComponent implements OnInit {
     });
   }
 
-  onRemoveMember(userId: number): void {
-    if (!confirm($localize`:@@teamDetail.confirmRemove:Remove this member from the team?`)) return;
+  async onRemoveMember(userId: number): Promise<void> {
+    const confirmed = await this.confirmDialog().open({
+      title: $localize`:@@teamDetail.confirmRemoveTitle:Remove Member`,
+      message: $localize`:@@teamDetail.confirmRemove:Remove this member from the team?`,
+      confirmLabel: $localize`:@@teamDetail.confirmRemoveAction:Remove`,
+      destructive: true,
+    });
+    if (!confirmed) return;
 
     this.teamService.removeMember(this.teamId, userId).subscribe({
       next: () => this.loadMembers(),
@@ -305,8 +316,14 @@ export class TeamDetailComponent implements OnInit {
     });
   }
 
-  onLeaveTeam(): void {
-    if (!confirm($localize`:@@teamDetail.confirmLeave:Are you sure you want to leave this team?`)) return;
+  async onLeaveTeam(): Promise<void> {
+    const confirmed = await this.confirmDialog().open({
+      title: $localize`:@@teamDetail.confirmLeaveTitle:Leave Team`,
+      message: $localize`:@@teamDetail.confirmLeave:Are you sure you want to leave this team?`,
+      confirmLabel: $localize`:@@teamDetail.confirmLeaveAction:Leave`,
+      destructive: true,
+    });
+    if (!confirmed) return;
 
     const currentUserId = this.authService.currentUser()?.id;
     if (!currentUserId) return;
@@ -319,8 +336,14 @@ export class TeamDetailComponent implements OnInit {
     });
   }
 
-  onDeleteTeam(): void {
-    if (!confirm($localize`:@@teamDetail.confirmDelete:Are you sure you want to delete this team?`)) return;
+  async onDeleteTeam(): Promise<void> {
+    const confirmed = await this.confirmDialog().open({
+      title: $localize`:@@teamDetail.confirmDeleteTitle:Delete Team`,
+      message: $localize`:@@teamDetail.confirmDelete:Are you sure you want to delete this team?`,
+      confirmLabel: $localize`:@@teamDetail.confirmDeleteAction:Delete`,
+      destructive: true,
+    });
+    if (!confirmed) return;
 
     this.teamService.delete(this.teamId).subscribe({
       next: () => this.router.navigate(['/teams']),

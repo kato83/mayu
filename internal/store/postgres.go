@@ -699,7 +699,7 @@ func buildOrderClause(sort string, prefix string) string {
 	id := prefix + "id"
 	switch strings.ToLower(sort) {
 	case "modified_asc":
-		return "ORDER BY " + prefix + "modified ASC, " + id + " ASC"
+		return "ORDER BY " + prefix + "modified ASC NULLS LAST, " + id + " ASC"
 	case "published_desc":
 		return "ORDER BY " + prefix + "published DESC NULLS LAST, " + id + " DESC"
 	case "published_asc":
@@ -709,7 +709,7 @@ func buildOrderClause(sort string, prefix string) string {
 	case "epss_asc":
 		return "ORDER BY vs.epss_score ASC NULLS LAST, " + id + " ASC"
 	default: // "modified_desc" or empty
-		return "ORDER BY " + prefix + "modified DESC, " + id + " DESC"
+		return "ORDER BY " + prefix + "modified DESC NULLS LAST, " + id + " DESC"
 	}
 }
 
@@ -745,29 +745,54 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 			// original sortOrder and skip keyset conditions; the client should
 			// be using offset-based pagination instead.
 		} else {
-			// Determine sort column from cursor's sort key
+			// Determine sort column and direction from cursor
 			sortCol := "modified"
+			direction := cursor.SortDirection
+			if direction == "" {
+				direction = "desc"
+			}
 			if cursor.SortKey == "published" {
 				sortCol = "published"
-				sortOrder = "published_desc"
+				sortOrder = "published_" + direction
 			} else {
-				sortOrder = "modified_desc"
+				sortOrder = "modified_" + direction
 			}
 
-			// Keyset condition: (sort_col, id) < (cursor.timestamp, cursor.id) for DESC order
-			if cursor.Timestamp != nil {
-				argIdx++
-				tsArg := argIdx
-				argIdx++
-				idArg := argIdx
-				baseQuery += fmt.Sprintf(` AND (%s < $%d OR (%s = $%d AND v.id < $%d) OR (%s IS NULL))`,
-					sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
-				args = append(args, cursor.Timestamp.UTC(), cursor.ID)
+			// Keyset conditions depend on sort direction:
+			// DESC: next page items have (sort_col, id) < cursor values
+			// ASC: next page items have (sort_col, id) > cursor values
+			if direction == "asc" {
+				if cursor.Timestamp != nil {
+					argIdx++
+					tsArg := argIdx
+					argIdx++
+					idArg := argIdx
+					baseQuery += fmt.Sprintf(` AND (%s > $%d OR (%s = $%d AND v.id > $%d) OR (%s IS NULL))`,
+						sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
+					args = append(args, cursor.Timestamp.UTC(), cursor.ID)
+				} else {
+					// Cursor item had NULL sort column; in ASC NULLS LAST, NULLs are at the end
+					// so only items with NULL sort_col AND id > cursor.id come after
+					argIdx++
+					baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id > $%d)`, sortCol, argIdx)
+					args = append(args, cursor.ID)
+				}
 			} else {
-				// Cursor item had NULL sort column; only items with NULL sort_col AND id < cursor.id come after
-				argIdx++
-				baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id < $%d)`, sortCol, argIdx)
-				args = append(args, cursor.ID)
+				// DESC order
+				if cursor.Timestamp != nil {
+					argIdx++
+					tsArg := argIdx
+					argIdx++
+					idArg := argIdx
+					baseQuery += fmt.Sprintf(` AND (%s < $%d OR (%s = $%d AND v.id < $%d) OR (%s IS NULL))`,
+						sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
+					args = append(args, cursor.Timestamp.UTC(), cursor.ID)
+				} else {
+					// Cursor item had NULL sort column; only items with NULL sort_col AND id < cursor.id come after
+					argIdx++
+					baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id < $%d)`, sortCol, argIdx)
+					args = append(args, cursor.ID)
+				}
 			}
 		}
 	}
@@ -1379,25 +1404,45 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 			// be using offset-based pagination instead.
 		} else {
 			sortCol := "v.modified"
+			direction := cursor.SortDirection
+			if direction == "" {
+				direction = "desc"
+			}
 			if cursor.SortKey == "published" {
 				sortCol = "v.published"
-				sortOrder = "published_desc"
+				sortOrder = "published_" + direction
 			} else {
-				sortOrder = "modified_desc"
+				sortOrder = "modified_" + direction
 			}
 
-			if cursor.Timestamp != nil {
-				argIdx++
-				tsArg := argIdx
-				argIdx++
-				idArg := argIdx
-				baseQuery += fmt.Sprintf(` AND (%s < $%d OR (%s = $%d AND v.id < $%d) OR (%s IS NULL))`,
-					sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
-				args = append(args, cursor.Timestamp.UTC(), cursor.ID)
+			if direction == "asc" {
+				if cursor.Timestamp != nil {
+					argIdx++
+					tsArg := argIdx
+					argIdx++
+					idArg := argIdx
+					baseQuery += fmt.Sprintf(` AND (%s > $%d OR (%s = $%d AND v.id > $%d) OR (%s IS NULL))`,
+						sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
+					args = append(args, cursor.Timestamp.UTC(), cursor.ID)
+				} else {
+					argIdx++
+					baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id > $%d)`, sortCol, argIdx)
+					args = append(args, cursor.ID)
+				}
 			} else {
-				argIdx++
-				baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id < $%d)`, sortCol, argIdx)
-				args = append(args, cursor.ID)
+				if cursor.Timestamp != nil {
+					argIdx++
+					tsArg := argIdx
+					argIdx++
+					idArg := argIdx
+					baseQuery += fmt.Sprintf(` AND (%s < $%d OR (%s = $%d AND v.id < $%d) OR (%s IS NULL))`,
+						sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
+					args = append(args, cursor.Timestamp.UTC(), cursor.ID)
+				} else {
+					argIdx++
+					baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id < $%d)`, sortCol, argIdx)
+					args = append(args, cursor.ID)
+				}
 			}
 		}
 	}
