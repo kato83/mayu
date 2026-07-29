@@ -66,6 +66,30 @@
         <source>Modified since</source>
         <target>更新日以降</target>
       </trans-unit>
+      <trans-unit id="vulnList.sortFieldModified" datatype="html">
+        <source>Modified</source>
+        <target>更新日</target>
+      </trans-unit>
+      <trans-unit id="vulnList.sortFieldPublished" datatype="html">
+        <source>Published</source>
+        <target>公開日</target>
+      </trans-unit>
+      <trans-unit id="vulnList.sortFieldEpss" datatype="html">
+        <source>EPSS</source>
+        <target>EPSS</target>
+      </trans-unit>
+      <trans-unit id="vulnList.sortDirectionAriaLabel" datatype="html">
+        <source>Sort direction</source>
+        <target>ソート方向</target>
+      </trans-unit>
+      <trans-unit id="vulnList.sortDesc" datatype="html">
+        <source>DESC</source>
+        <target>降順</target>
+      </trans-unit>
+      <trans-unit id="vulnList.sortAsc" datatype="html">
+        <source>ASC</source>
+        <target>昇順</target>
+      </trans-unit>
       <trans-unit id="vulnList.clearFilters" datatype="html">
         <source> Clear filters </source>
         <target>フィルターをクリア</target>
