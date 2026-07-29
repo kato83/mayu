@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Add EPSS sort to the frontend and refactor the sort UI to split field selection from direction toggle. The current single <select> with combined values (modified_desc, modified_asc, etc.) should be replaced with: (1) a <select> for the sort field (modified, published, epss), and (2) a toggle switch button for ASC/DESC direction. The combined sort value (e.g., 'epss_desc') is still constructed and sent to the API.",
+  "status": "in_progress",
+  "steps": [
+    "In ui/src/app/models/search-params.model.ts, add 'epss_desc' | 'epss_asc' to the sort type union",
+    "In ui/src/app/pages/vulnerabilities/vulnerabilities.component.ts, update the FilterState interface: keep the 'sort' field as the combined value (string) but add helper logic to derive sortField and sortDirection from it, OR change the FilterState to have a separate sortField and sortDirection and combine them to produce the 'sort' value for API calls",
+    "Replace the current Sort <select> (which has options like modified_desc, modified_asc, published_desc, published_asc) with two UI elements: (a) a <select> with options: modified, published, epss (display labels should be localized using i18n attributes), and (b) a toggle switch/button for ASC/DESC direction, styled nicely with Tailwind. The toggle should visually indicate which direction is active.",
+    "Style the new sort UI with Tailwind CSS including dark mode support (dark: prefix). Use a pill-button style toggle or similar for the direction switch. Make it look cohesive with the rest of the filter panel.",
+    "Ensure the combined sort value (e.g., 'epss_desc') is properly constructed from field + direction and sent as params.sort to the API. Update the URL sync logic (syncUrlAndLoad, route.queryParams subscriber) to correctly parse/restore the sort field and direction from the combined 'sort' query param.",
+    "Update emptyFilters() default to remain 'modified_desc' (i.e., field=modified, direction=desc by default)"
+  ],
+  "acceptance_criteria": [
+    "pnpm build succeeds in ui/ directory with no errors",
+    "The sort UI shows a field selector (modified/published/epss) and a direction toggle (ASC/DESC)",
+    "The combined sort value sent to the API is correctly formed (e.g., 'epss_desc', 'modified_asc')",
+    "Dark mode styling is applied to the new sort controls",
+    "The sort state is properly synced with URL query params"
+  ],
+  "verification": [
+    "cd /projects/sandbox/mayu/ui && pnpm install && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

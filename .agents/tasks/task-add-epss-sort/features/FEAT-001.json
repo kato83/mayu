@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add EPSS sort support to the backend (Go) - add epss_desc and epss_asc sort options to the API validation, query builder, store type comment, and CLI help text",
+  "status": "completed",
+  "steps": [
+    "In internal/server/server.go around line 531, add 'epss_desc': true, 'epss_asc': true to the validSorts map and update the error message string to include epss_desc, epss_asc",
+    "In internal/store/postgres.go in the buildOrderClause function (line ~698), add cases for 'epss_desc' and 'epss_asc'. Since both Search and searchLight already have LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = v.id, use 'vs.epss_score'. For epss_desc: ORDER BY vs.epss_score DESC NULLS LAST, {prefix}id DESC. For epss_asc: ORDER BY vs.epss_score ASC NULLS LAST, {prefix}id ASC. The prefix parameter should only be applied to the 'id' column (not to 'vs.epss_score' since vs is always the alias).",
+    "In internal/store/store.go around line 243, update the Sort field comment to include epss_desc, epss_asc in the valid values list",
+    "In cmd/mayu/search.go around line 32, update the sort flag help text to include epss_desc, epss_asc"
+  ],
+  "acceptance_criteria": [
+    "go build ./... succeeds with no errors",
+    "go test ./internal/server/ passes (sort validation test if present should accept epss_desc/epss_asc)",
+    "The buildOrderClause function returns correct ORDER BY clauses for epss_desc and epss_asc"
+  ],
+  "verification": [
+    "cd /projects/sandbox/mayu && go build ./...",
+    "cd /projects/sandbox/mayu && go test ./internal/server/",
+    "cd /projects/sandbox/mayu && go test ./internal/store/"
+  ],
+  "blocked_reason": null,
+  "findings": "All changes applied cleanly. Build and both test suites pass without issues. The vulnerability_summary table is already joined as 'vs' in both Search and searchLight queries so no additional JOIN was needed."
+}

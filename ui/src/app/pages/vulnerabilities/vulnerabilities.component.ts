@@ -141,18 +141,40 @@ function emptyFilters(): FilterState {
 
           <!-- Sort -->
           <div>
-            <label for="filter-sort" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterSort">Sort</label>
-            <select
-              id="filter-sort"
-              [ngModel]="filters.sort"
-              (ngModelChange)="onFilterChange('sort', $event)"
-              class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-            >
-              <option value="modified_desc" i18n="@@vulnList.sortModifiedDesc">Modified (newest)</option>
-              <option value="modified_asc" i18n="@@vulnList.sortModifiedAsc">Modified (oldest)</option>
-              <option value="published_desc" i18n="@@vulnList.sortPublishedDesc">Published (newest)</option>
-              <option value="published_asc" i18n="@@vulnList.sortPublishedAsc">Published (oldest)</option>
-            </select>
+            <label for="filter-sort-field" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterSort">Sort</label>
+            <div class="flex items-center gap-2">
+              <select
+                id="filter-sort-field"
+                [ngModel]="sortField"
+                (ngModelChange)="onSortFieldChange($event)"
+                class="flex-1 rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              >
+                <option value="modified" i18n="@@vulnList.sortFieldModified">Modified</option>
+                <option value="published" i18n="@@vulnList.sortFieldPublished">Published</option>
+                <option value="epss" i18n="@@vulnList.sortFieldEpss">EPSS</option>
+              </select>
+              <button
+                type="button"
+                (click)="toggleSortDirection()"
+                [attr.aria-label]="sortDirection === 'desc' ? 'Descending' : 'Ascending'"
+                class="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:focus:ring-offset-slate-800"
+                [class]="sortDirection === 'desc'
+                  ? 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 dark:hover:bg-indigo-900/60'
+                  : 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60'"
+              >
+                @if (sortDirection === 'desc') {
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                  <span i18n="@@vulnList.sortDesc">DESC</span>
+                } @else {
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                  </svg>
+                  <span i18n="@@vulnList.sortAsc">ASC</span>
+                }
+              </button>
+            </div>
           </div>
         </div>
 
@@ -282,6 +304,18 @@ export class VulnerabilitiesComponent implements OnInit {
 
   filters: FilterState = emptyFilters();
 
+  /** Derived sort field from combined sort value */
+  get sortField(): string {
+    const parts = this.filters.sort.split('_');
+    return parts.slice(0, -1).join('_');
+  }
+
+  /** Derived sort direction from combined sort value */
+  get sortDirection(): string {
+    const parts = this.filters.sort.split('_');
+    return parts[parts.length - 1];
+  }
+
   /** Stack of cursors for previous pages. Index 0 = page 2's cursor, etc. */
   private cursorStack: string[] = [];
   /** The cursor for the current page (empty string = first page) */
@@ -359,6 +393,17 @@ export class VulnerabilitiesComponent implements OnInit {
   onFilterChange(key: keyof FilterState, value: string | boolean): void {
     this.filters = { ...this.filters, [key]: value };
     this.filterChange$.next();
+  }
+
+  onSortFieldChange(field: string): void {
+    const newSort = `${field}_${this.sortDirection}`;
+    this.onFilterChange('sort', newSort);
+  }
+
+  toggleSortDirection(): void {
+    const newDirection = this.sortDirection === 'desc' ? 'asc' : 'desc';
+    const newSort = `${this.sortField}_${newDirection}`;
+    this.onFilterChange('sort', newSort);
   }
 
   clearFilters(): void {

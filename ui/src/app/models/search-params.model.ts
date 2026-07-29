@@ -27,8 +27,8 @@ export interface SearchParams {
   /** Filter to only KEV (Known Exploited Vulnerabilities) entries */
   kev?: boolean;
 
-  /** Sort order: modified_desc (default), modified_asc, published_desc, published_asc */
-  sort?: 'modified_desc' | 'modified_asc' | 'published_desc' | 'published_asc';
+  /** Sort order: modified_desc (default), modified_asc, published_desc, published_asc, epss_desc, epss_asc */
+  sort?: 'modified_desc' | 'modified_asc' | 'published_desc' | 'published_asc' | 'epss_desc' | 'epss_asc';
 
   /** Maximum number of results (1-1000, default: 20) */
   limit?: number;

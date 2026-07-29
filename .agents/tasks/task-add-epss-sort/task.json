@@ -1,0 +1,7 @@
+{
+  "task_id": "task-add-epss-sort",
+  "task_description": "Add EPSS score sort (ascending/descending) to the vulnerability list page. Refactor the frontend sort UI to split sort field selection from direction toggle.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}
