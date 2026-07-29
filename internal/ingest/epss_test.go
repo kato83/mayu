@@ -49,6 +49,10 @@ func (m *mockEPSSBackfillStore) CleanupOldEPSSScores(ctx context.Context, retent
 	return 0, nil
 }
 
+func (m *mockEPSSBackfillStore) BatchComputeAndUpdateLEV(ctx context.Context, progressFn func(msg string)) error {
+	return nil
+}
+
 func (m *mockEPSSBackfillStore) GetEPSSImportedDates(ctx context.Context) (map[string]bool, error) {
 	if m.getImportedDatesErr != nil {
 		return nil, m.getImportedDatesErr
