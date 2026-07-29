@@ -156,7 +156,8 @@ function emptyFilters(): FilterState {
               <button
                 type="button"
                 (click)="toggleSortDirection()"
-                [attr.aria-label]="sortDirection === 'desc' ? 'Descending' : 'Ascending'"
+                aria-label="Sort direction"
+                i18n-aria-label="@@vulnList.sortDirectionAriaLabel"
                 class="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:focus:ring-offset-slate-800"
                 [class]="sortDirection === 'desc'
                   ? 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300 dark:hover:bg-indigo-900/60'
@@ -316,6 +317,11 @@ export class VulnerabilitiesComponent implements OnInit {
     return parts[parts.length - 1];
   }
 
+  /** Whether EPSS sort is currently active (server does not emit cursors for EPSS) */
+  get isEpssSort(): boolean {
+    return this.filters.sort.startsWith('epss');
+  }
+
   /** Stack of cursors for previous pages. Index 0 = page 2's cursor, etc. */
   private cursorStack: string[] = [];
   /** The cursor for the current page (empty string = first page) */
@@ -426,18 +432,30 @@ export class VulnerabilitiesComponent implements OnInit {
   }
 
   onPageChange(event: PageChangeEvent): void {
-    if (event.direction === 'next') {
-      // Push current cursor to stack before moving forward
-      this.cursorStack.push(this.currentCursor);
-      this.currentCursor = this.nextCursor;
-      this.currentPage.set(this.currentPage() + 1);
-    } else if (event.direction === 'previous') {
-      // Pop the previous cursor from stack
-      this.currentCursor = this.cursorStack.pop() || '';
-      this.currentPage.set(Math.max(1, this.currentPage() - 1));
+    if (this.isEpssSort) {
+      // EPSS sort uses offset-based pagination (server never emits cursors)
+      if (event.direction === 'next') {
+        this.currentPage.set(this.currentPage() + 1);
+      } else if (event.direction === 'previous') {
+        this.currentPage.set(Math.max(1, this.currentPage() - 1));
+      } else {
+        this.currentPage.set(1);
+      }
+      this.hasPreviousPage.set(this.currentPage() > 1);
     } else {
-      // 'first'
-      this.resetPagination();
+      if (event.direction === 'next') {
+        // Push current cursor to stack before moving forward
+        this.cursorStack.push(this.currentCursor);
+        this.currentCursor = this.nextCursor;
+        this.currentPage.set(this.currentPage() + 1);
+      } else if (event.direction === 'previous') {
+        // Pop the previous cursor from stack
+        this.currentCursor = this.cursorStack.pop() || '';
+        this.currentPage.set(Math.max(1, this.currentPage() - 1));
+      } else {
+        // 'first'
+        this.resetPagination();
+      }
     }
     this.syncUrlAndLoad();
   }
@@ -536,9 +554,17 @@ export class VulnerabilitiesComponent implements OnInit {
       fields: 'id,summary,published,modified,severity,ecosystem',
     };
 
-    // Use cursor if available, otherwise first page (no cursor needed)
-    if (this.currentCursor) {
-      params.cursor = this.currentCursor;
+    if (this.isEpssSort) {
+      // EPSS sort uses offset-based pagination (server never emits cursors for EPSS)
+      const offset = (this.currentPage() - 1) * this.limit();
+      if (offset > 0) {
+        params.offset = offset;
+      }
+    } else {
+      // Use cursor if available, otherwise first page (no cursor needed)
+      if (this.currentCursor) {
+        params.cursor = this.currentCursor;
+      }
     }
 
     // Apply filters
@@ -566,8 +592,17 @@ export class VulnerabilitiesComponent implements OnInit {
           this.vulnerabilities.set(response.vulnerabilities);
           this.total.set(response.total);
           this.nextCursor = response.next_cursor || '';
-          this.hasNextPage.set(!!this.nextCursor);
-          this.hasPreviousPage.set(this.cursorStack.length > 0);
+
+          if (this.nextCursor) {
+            this.hasNextPage.set(true);
+          } else {
+            // Fallback: determine hasNextPage from total when cursor is unavailable (e.g., EPSS sort)
+            this.hasNextPage.set(response.total > this.currentPage() * this.limit());
+          }
+
+          this.hasPreviousPage.set(
+            this.isEpssSort ? this.currentPage() > 1 : this.cursorStack.length > 0
+          );
           this.loading.set(false);
         },
         error: () => {

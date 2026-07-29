@@ -1,0 +1,23 @@
+{
+  "id": "FEAT-004",
+  "type": "fix",
+  "description": "Fix pagination for EPSS sort: fall back to offset-based pagination when the server does not emit next_cursor (which is intentional for EPSS sort). Also fix the aria-label i18n issue on the direction toggle button.",
+  "status": "in_progress",
+  "steps": [
+    "In vulnerabilities.component.ts loadData(), when sort starts with 'epss', send params.offset instead of cursor",
+    "In loadData() response handler, when nextCursor is empty, fall back to computing hasNextPage from total > currentPage * limit",
+    "In onPageChange(), when EPSS sort is active, use offset-based navigation instead of cursor stack manipulation",
+    "Fix the aria-label on the direction toggle button to remove the dynamic binding that bypasses i18n extraction"
+  ],
+  "acceptance_criteria": [
+    "pnpm build succeeds without errors",
+    "When EPSS sort is active and there are more results than the limit, hasNextPage is true",
+    "When EPSS sort is active, offset is sent to the API instead of cursor",
+    "The aria-label i18n issue is resolved"
+  ],
+  "verification": [
+    "cd /projects/sandbox/mayu/ui && pnpm build"
+  ],
+  "blocked_reason": null,
+  "findings": null
+}
