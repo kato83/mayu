@@ -369,14 +369,17 @@ func (s *PostgresStore) RefreshEPSSDailyStats(ctx context.Context, dates []strin
 	return nil
 }
 
-// GetEPSSImportedDates returns a set of dates (YYYY-MM-DD) for which EPSS scores
-// already exist in the database. This is used by the backfill process to skip
-// dates that have already been imported, avoiding redundant downloads.
+// GetEPSSImportedDates returns a set of dates (YYYY-MM-DD) for which EPSS daily
+// stats have been computed. This is used by the backfill process to skip dates
+// that have already been fully imported (scores stored AND daily stats refreshed).
+// By querying epss_daily_stats instead of epss_scores, the backfill skip logic
+// uses the same source of truth as the coverage page, preventing a desync where
+// scores exist but the coverage page still reports the date as missing.
 func (s *PostgresStore) GetEPSSImportedDates(ctx context.Context) (map[string]bool, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT DISTINCT score_date::text FROM epss_scores`)
+		`SELECT score_date::text FROM epss_daily_stats`)
 	if err != nil {
-		return nil, fmt.Errorf("query distinct EPSS dates: %w", err)
+		return nil, fmt.Errorf("query EPSS imported dates: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -393,6 +396,45 @@ func (s *PostgresStore) GetEPSSImportedDates(ctx context.Context) (map[string]bo
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate EPSS dates: %w", err)
+	}
+
+	return dates, nil
+}
+
+// GetEPSSOrphanDates returns dates within the range [from, to] that have rows
+// in epss_scores but no corresponding row in epss_daily_stats. These represent
+// a desync state where scores were stored but RefreshEPSSDailyStats failed.
+// The backfill reconciliation step uses this to heal such inconsistencies.
+//
+// Uses a LEFT JOIN so the planner can start from the smaller epss_daily_stats
+// table, avoiding a full DISTINCT scan on epss_scores for wide date ranges.
+func (s *PostgresStore) GetEPSSOrphanDates(ctx context.Context, from, to string) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT DISTINCT es.score_date::text
+		FROM epss_scores es
+		LEFT JOIN epss_daily_stats eds ON eds.score_date = es.score_date
+		WHERE es.score_date BETWEEN $1 AND $2
+		  AND eds.score_date IS NULL
+		ORDER BY es.score_date`,
+		from, to,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query EPSS orphan dates: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var dates []string
+	for rows.Next() {
+		var date string
+		if err := rows.Scan(&date); err != nil {
+			return nil, fmt.Errorf("scan EPSS orphan date: %w", err)
+		}
+		if len(date) >= 10 {
+			dates = append(dates, date[:10])
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate EPSS orphan dates: %w", err)
 	}
 
 	return dates, nil

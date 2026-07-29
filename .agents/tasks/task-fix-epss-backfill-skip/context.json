@@ -1,0 +1,20 @@
+{
+  "project_type": "Go CLI + REST API + Web UI vulnerability intelligence tool",
+  "language": "Go (1.26.5)",
+  "build_system": "make (Makefile), go build",
+  "test_framework": "go test with build tag integration for integration tests, testcontainers for DB tests",
+  "build_command": "go build ./...",
+  "test_command": "go test ./... -count=1 -short",
+  "verification_instructions": "1. Run go build ./... to verify compilation. 2. Run go test ./... -count=1 -short to run unit tests.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "go build ./... downloads dependencies automatically",
+  "environment_constraints": "No PostgreSQL available for integration tests. Unit tests only. No Docker daemon available.",
+  "contribution_requirements": "Follow Go conventions, use database/sql standard interface, run fmt and lint before push",
+  "key_patterns": "Store methods on *PostgresStore. Ingest pipeline uses type assertion against local interfaces (epssBatchStore, epssBackfillStore) to access store methods not in main Store interface. Coverage page checks epss_daily_stats table. Backfill skip logic checks epss_scores table via GetEPSSImportedDates.",
+  "relevant_files": [
+    "internal/store/epss.go",
+    "internal/ingest/epss.go",
+    "internal/store/store.go"
+  ],
+  "directory_structure": "cmd/mayu/ (CLI entrypoints), internal/ingest/ (pipeline orchestrators), internal/store/ (PostgreSQL persistence), internal/fetcher/ (HTTP data fetchers), internal/server/ (REST API), migrations/ (SQL migrations)"
+}
