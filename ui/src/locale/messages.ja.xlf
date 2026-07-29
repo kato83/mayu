@@ -1850,6 +1850,18 @@
         <source> Close </source>
         <target>閉じる</target>
       </trans-unit>
+      <trans-unit id="sbom.detail.rescanButton" datatype="html">
+        <source> Rescan </source>
+        <target>再スキャン</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.rescanFailed" datatype="html">
+        <source>Rescan failed</source>
+        <target>再スキャンに失敗しました</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.rescanReloadFailed" datatype="html">
+        <source>Failed to reload scan results</source>
+        <target>スキャン結果の再読み込みに失敗しました</target>
+      </trans-unit>
       <trans-unit id="sbom.detail.noScans" datatype="html">
         <source> No scan results available for this version. </source>
         <target>このバージョンのスキャン結果はありません。</target>

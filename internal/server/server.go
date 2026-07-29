@@ -328,6 +328,9 @@ func (s *Server) routes() http.Handler {
 				r.Post("/projects/{id}/versions", sbommon.HandleUploadSBOM(s.sbomStore, s.sbomScanner))
 			}
 			r.Get("/versions/{versionID}/scans", sbommon.HandleListScanResults(s.sbomStore))
+			if s.sbomScanner != nil {
+				r.Post("/versions/{versionID}/scans", sbommon.HandleRescanVersion(s.sbomStore, s.sbomScanner))
+			}
 			r.Get("/scans/{scanID}", sbommon.HandleGetScanResult(s.sbomStore))
 			r.Get("/scans/{scanID}/diff", sbommon.HandleGetScanDiff(s.sbomStore))
 			r.Put("/scans/{scanID}/findings/{vulnID}/status", sbommon.HandleUpdateFindingStatus(s.sbomStore))

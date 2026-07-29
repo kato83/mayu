@@ -343,6 +343,74 @@ func HandleUploadSBOM(sbomStore SBOMStore, scanner *Scanner) http.HandlerFunc {
 	}
 }
 
+// HandleRescanVersion returns an http.HandlerFunc that triggers a new scan for
+// an existing SBOM version. It re-scans the stored raw SBOM against the current
+// vulnerability database and stores the result as a new scan entry.
+func HandleRescanVersion(sbomStore SBOMStore, scanner *Scanner) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		if user == nil {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		versionIDStr := chi.URLParam(r, "versionID")
+		versionID, err := strconv.ParseInt(versionIDStr, 10, 64)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid version ID")
+			return
+		}
+
+		// Verify the version exists
+		version, err := sbomStore.GetVersion(r.Context(), versionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get version")
+			return
+		}
+		if version == nil {
+			writeError(w, http.StatusNotFound, "version not found")
+			return
+		}
+
+		// Verify ownership: version -> project -> user
+		project, err := sbomStore.GetProject(r.Context(), version.ProjectID, user.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to verify project ownership")
+			return
+		}
+		if project == nil {
+			writeError(w, http.StatusNotFound, "version not found")
+			return
+		}
+
+		// Run scan
+		result, err := scanner.ScanVersion(r.Context(), version)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to scan version: "+err.Error())
+			return
+		}
+
+		// Get previous scan for diff
+		prevResult, _ := sbomStore.GetLatestScanResult(r.Context(), version.ID)
+
+		// Compute diff
+		diff := ComputeDiff(result, prevResult)
+		result.Trigger = "manual"
+		result.NewFindings = len(diff.NewFindings)
+		result.ResolvedFindings = len(diff.ResolvedFindings)
+
+		// Store result
+		scanID, err := sbomStore.CreateScanResult(r.Context(), result)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to store scan result")
+			return
+		}
+		result.ID = scanID
+
+		writeJSON(w, http.StatusCreated, toScanResultResponse(result))
+	}
+}
+
 // HandleListVersions returns an http.HandlerFunc that lists versions for a project.
 func HandleListVersions(sbomStore SBOMStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

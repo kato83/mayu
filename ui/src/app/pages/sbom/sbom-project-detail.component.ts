@@ -193,6 +193,15 @@ Chart.register(...registerables);
             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
               <span i18n="@@sbom.detail.scanResultsFor">Scan Results for</span> {{ selectedVersion()!.version }}
             </h2>
+            <div class="flex items-center gap-2">
+            <button
+              (click)="onRescan()"
+              [disabled]="rescanning()"
+              class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-md transition-colors cursor-pointer disabled:cursor-not-allowed"
+              i18n="@@sbom.detail.rescanButton"
+            >
+              Rescan
+            </button>
             <button
               (click)="selectedVersion.set(null)"
               class="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
@@ -201,6 +210,11 @@ Chart.register(...registerables);
               Close
             </button>
           </div>
+          </div>
+
+          @if (rescanError()) {
+            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ rescanError() }}</p>
+          }
 
           @if (scansLoading()) {
             <p class="text-slate-500 dark:text-slate-400" i18n="@@sbom.detail.loading">Loading...</p>
@@ -281,6 +295,8 @@ export class SbomProjectDetailComponent implements OnInit, OnDestroy {
   readonly scanResults = signal<SBOMScanResult[]>([]);
   readonly scansLoading = signal(false);
   readonly selectedVersion = signal<SBOMVersion | null>(null);
+  readonly rescanning = signal(false);
+  readonly rescanError = signal<string | null>(null);
   readonly trendData = signal<StatsTrendResponse | null>(null);
   readonly selectedProjectTrendRange = signal('90d');
 
@@ -527,6 +543,7 @@ export class SbomProjectDetailComponent implements OnInit, OnDestroy {
   onViewScans(version: SBOMVersion): void {
     this.selectedVersion.set(version);
     this.scansLoading.set(true);
+    this.rescanError.set(null);
     this.sbomService.listScanResults(version.id).subscribe({
       next: (results) => {
         this.scanResults.set(results);
@@ -534,6 +551,34 @@ export class SbomProjectDetailComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.scansLoading.set(false);
+      },
+    });
+  }
+
+  onRescan(): void {
+    const version = this.selectedVersion();
+    if (!version) return;
+
+    this.rescanning.set(true);
+    this.rescanError.set(null);
+
+    this.sbomService.rescanVersion(version.id).subscribe({
+      next: () => {
+        this.rescanning.set(false);
+        // Reload scan results to show the new scan
+        this.sbomService.listScanResults(version.id).subscribe({
+          next: (results) => {
+            this.scanResults.set(results);
+          },
+          error: (err) => {
+            console.error('Failed to reload scan results', err);
+            this.rescanError.set($localize`:@@sbom.detail.rescanReloadFailed:Failed to reload scan results`);
+          },
+        });
+      },
+      error: (err) => {
+        this.rescanning.set(false);
+        this.rescanError.set(err?.error?.error || $localize`:@@sbom.detail.rescanFailed:Rescan failed`);
       },
     });
   }
