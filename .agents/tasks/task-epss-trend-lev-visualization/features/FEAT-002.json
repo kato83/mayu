@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Frontend UI: EPSS trend graph enhancement on vulnerability detail page (period selector), LEV cumulative graph, and new EPSS Trending page showing CVEs with rapidly rising scores. Integrates with the dashboard to show trending CVEs.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Enhance the existing EpssChartComponent (ui/src/app/shared/epss-chart/epss-chart.component.ts) or create a new wrapper in the vulnerability-detail page to add period selection buttons (30 days / 90 days / 1 year / All). Add a period input property and emit period change events. Update vulnerability-detail.component.ts to pass period to the API call (add period query param to getEPSSHistory in vulnerability.service.ts).",
     "2. Create a LEV chart component (ui/src/app/shared/lev-chart/lev-chart.component.ts) following the same pattern as EpssChartComponent. Display LEV cumulative score over time as an area chart using Chart.js. Include period selection (30d/90d/365d/all). Add getLEVHistory method to vulnerability.service.ts. Integrate into vulnerability-detail.component.html below the EPSS chart section.",
@@ -25,5 +25,5 @@
     "cd ui && pnpm run test -- --watch=false 2>&1 | tail -20"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Build and all 152 tests pass. Test command is 'pnpm exec ng test --no-watch' (not --watch=false). The i18n extract produced messages.xlf with 564 entries. Japanese translations added for all new UI text."
 }
