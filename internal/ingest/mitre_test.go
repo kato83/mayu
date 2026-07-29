@@ -32,6 +32,9 @@ func TestShouldFallbackToFullMITREImport(t *testing.T) {
 		{"6 days ago", &store.SyncState{Source: mitreSource, LastSyncedAt: now.Add(-6 * 24 * time.Hour).Format(time.RFC3339)}, false},
 		{"1 hour ago", &store.SyncState{Source: mitreSource, LastSyncedAt: now.Add(-1 * time.Hour).Format(time.RFC3339)}, false},
 		{"just now", &store.SyncState{Source: mitreSource, LastSyncedAt: now.Format(time.RFC3339)}, false},
+		{"6 days ago (RFC3339Nano)", &store.SyncState{Source: mitreSource, LastSyncedAt: now.Add(-6 * 24 * time.Hour).Format(time.RFC3339Nano)}, false},
+		{"1 hour ago (RFC3339Nano)", &store.SyncState{Source: mitreSource, LastSyncedAt: now.Add(-1 * time.Hour).Format(time.RFC3339Nano)}, false},
+		{"8 days ago (RFC3339Nano)", &store.SyncState{Source: mitreSource, LastSyncedAt: now.Add(-8 * 24 * time.Hour).Format(time.RFC3339Nano)}, true},
 	}
 
 	for _, tt := range tests {
