@@ -12,6 +12,7 @@ import (
 
 	"github.com/kato83/mayu/internal/audit"
 	"github.com/kato83/mayu/internal/config"
+	"github.com/kato83/mayu/internal/license"
 	"github.com/kato83/mayu/internal/policy"
 	"github.com/kato83/mayu/internal/sbom"
 	"github.com/kato83/mayu/internal/store"
@@ -36,6 +37,7 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 	ignorePath := fs.String("ignore", "", "Path to ignore file containing vulnerability IDs to suppress")
 	vexPath := fs.String("vex", "", "Path to OpenVEX file to suppress not_affected findings")
 	policyPath := fs.String("policy", "", "Path to policy YAML file for custom gating (block/warn/suppress)")
+	licensePolicyPath := fs.String("license-policy", "", "Path to license policy YAML file for license compliance checking")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu audit [options]")
@@ -60,6 +62,7 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --fail-on critical --ignore .mayu-ignore")
 		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --vex product.vex.json")
 		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --policy policy.yaml")
+		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --license-policy license-policy.yaml")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -207,6 +210,42 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 		result.VulnerablePackages = len(pkgSet)
 	}
 
+	// Apply license policy evaluation
+	var licenseViolations []license.Violation
+	var hasLicenseDeny bool
+
+	if *licensePolicyPath != "" {
+		licPolicy, err := license.LoadPolicy(*licensePolicyPath)
+		if err != nil {
+			return 2, err
+		}
+
+		// Read raw SBOM data again for license extraction
+		sbomData, err := os.ReadFile(*sbomPath)
+		if err != nil {
+			return 2, fmt.Errorf("read SBOM file for license check: %w", err)
+		}
+
+		var components []license.ComponentLicense
+		switch bom.Format {
+		case sbom.FormatCycloneDX:
+			components, err = license.ExtractFromCycloneDX(sbomData)
+		case sbom.FormatSPDX:
+			components, err = license.ExtractFromSPDX(sbomData)
+		}
+		if err != nil {
+			return 2, fmt.Errorf("extract licenses: %w", err)
+		}
+
+		licenseViolations = licPolicy.Evaluate(components)
+		for _, v := range licenseViolations {
+			if v.Action == "deny" {
+				hasLicenseDeny = true
+				break
+			}
+		}
+	}
+
 	// Output results
 	switch *format {
 	case "json":
@@ -237,6 +276,24 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 		return 2, fmt.Errorf("unknown format: %q (supported: table, json, csv, sarif)", *format)
 	}
 
+	// Output license violations (when --license-policy is specified)
+	if *licensePolicyPath != "" && len(licenseViolations) > 0 {
+		switch *format {
+		case "table":
+			outputLicenseViolationsTable(licenseViolations)
+		case "json":
+			outputLicenseViolationsJSON(licenseViolations)
+		case "csv":
+			outputLicenseViolationsCSV(licenseViolations)
+		default:
+			// sarif: license violations are not included in SARIF output
+		}
+	} else if *licensePolicyPath != "" && len(licenseViolations) == 0 {
+		if *format == "table" {
+			fmt.Println("\n✓ No license policy violations found")
+		}
+	}
+
 	// Exit code logic
 	// Policy --policy takes precedence for block decisions
 	if policyEval != nil {
@@ -247,7 +304,14 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 		if hasBlock {
 			return 1, nil
 		}
+		if hasLicenseDeny {
+			return 1, nil
+		}
 		return 0, nil
+	}
+
+	if hasLicenseDeny {
+		return 1, nil
 	}
 
 	if *failOn != "" {
@@ -476,6 +540,96 @@ func outputAuditCSVWithPolicy(result *audit.AuditResult, policyResults []auditPo
 			csvEscape(pr.Policy),
 			csvEscape(f.FixedVersion),
 			csvEscape(f.Summary),
+		)
+	}
+}
+
+func outputLicenseViolationsTable(violations []license.Violation) {
+	fmt.Printf("\n=== License Policy Violations ===\n\n")
+
+	fmt.Printf("%-40s %-12s %-20s %-10s %s\n", "PACKAGE", "VERSION", "LICENSE", "STATUS", "REASON")
+	fmt.Printf("%-40s %-12s %-20s %-10s %s\n",
+		strings.Repeat("-", 40),
+		strings.Repeat("-", 12),
+		strings.Repeat("-", 20),
+		strings.Repeat("-", 10),
+		strings.Repeat("-", 40))
+
+	var denyCount, reviewCount int
+	for _, v := range violations {
+		pkg := truncateString(v.Component.Name, 40)
+		ver := truncateString(v.Component.Version, 12)
+		lic := truncateString(v.Component.License.SPDXID, 20)
+		if lic == "" {
+			lic = "(unknown)"
+		}
+		status := strings.ToUpper(v.Action)
+		reason := truncateString(v.Reason, 60)
+		fmt.Printf("%-40s %-12s %-20s %-10s %s\n", pkg, ver, lic, status, reason)
+
+		switch v.Action {
+		case "deny":
+			denyCount++
+		case "review":
+			reviewCount++
+		}
+	}
+
+	fmt.Printf("\n✗ %d license violation(s): %d denied, %d need review\n", len(violations), denyCount, reviewCount)
+}
+
+func outputLicenseViolationsJSON(violations []license.Violation) {
+	type jsonViolation struct {
+		Package string `json:"package"`
+		Version string `json:"version"`
+		Purl    string `json:"purl,omitempty"`
+		License string `json:"license"`
+		Action  string `json:"action"`
+		Reason  string `json:"reason"`
+	}
+
+	type jsonOutput struct {
+		LicenseViolations []jsonViolation `json:"license_violations"`
+		Summary           struct {
+			Total  int `json:"total"`
+			Denied int `json:"denied"`
+			Review int `json:"review"`
+		} `json:"license_summary"`
+	}
+
+	out := jsonOutput{}
+	for _, v := range violations {
+		out.LicenseViolations = append(out.LicenseViolations, jsonViolation{
+			Package: v.Component.Name,
+			Version: v.Component.Version,
+			Purl:    v.Component.Purl,
+			License: v.Component.License.SPDXID,
+			Action:  v.Action,
+			Reason:  v.Reason,
+		})
+		switch v.Action {
+		case "deny":
+			out.Summary.Denied++
+		case "review":
+			out.Summary.Review++
+		}
+	}
+	out.Summary.Total = len(violations)
+
+	data, _ := json.MarshalIndent(out, "", "  ")
+	fmt.Println(string(data))
+}
+
+func outputLicenseViolationsCSV(violations []license.Violation) {
+	fmt.Println("package,version,purl,license,action,reason")
+	for _, v := range violations {
+		fmt.Printf("%s,%s,%s,%s,%s,%s\n",
+			csvEscape(v.Component.Name),
+			csvEscape(v.Component.Version),
+			csvEscape(v.Component.Purl),
+			csvEscape(v.Component.License.SPDXID),
+			csvEscape(v.Action),
+			csvEscape(v.Reason),
 		)
 	}
 }
