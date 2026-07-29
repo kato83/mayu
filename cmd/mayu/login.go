@@ -232,7 +232,7 @@ func runLoginOIDC(cfg *config.Config, serverURL string) error {
 
 		// Send success response to browser
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, `<html><body><h1>Login successful!</h1><p>You can close this window and return to the terminal.</p></body></html>`)
+		_, _ = fmt.Fprintf(w, `<html><body><h1>Login successful!</h1><p>You can close this window and return to the terminal.</p></body></html>`)
 		resultCh <- callbackResult{code: code}
 	})
 

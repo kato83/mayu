@@ -103,12 +103,10 @@ func TestResolveAuthUser_NoAuthAvailable(t *testing.T) {
 
 	// Ensure MAYU_API_KEY is not set
 	old := os.Getenv("MAYU_API_KEY")
-	os.Unsetenv("MAYU_API_KEY")
-	defer func() {
-		if old != "" {
-			os.Setenv("MAYU_API_KEY", old)
-		}
-	}()
+	t.Setenv("MAYU_API_KEY", "")
+	if old != "" {
+		defer t.Setenv("MAYU_API_KEY", old)
+	}
 
 	cfg := makeTestConfig()
 	ctx := t.Context()
@@ -139,13 +137,11 @@ func TestResolveAuthUser_ExpiredCredentials(t *testing.T) {
 	}
 
 	// Ensure MAYU_API_KEY is not set
-	old := os.Getenv("MAYU_API_KEY")
-	os.Unsetenv("MAYU_API_KEY")
-	defer func() {
-		if old != "" {
-			os.Setenv("MAYU_API_KEY", old)
-		}
-	}()
+	old2 := os.Getenv("MAYU_API_KEY")
+	t.Setenv("MAYU_API_KEY", "")
+	if old2 != "" {
+		defer t.Setenv("MAYU_API_KEY", old2)
+	}
 
 	cfg := makeTestConfig()
 	ctx := t.Context()
