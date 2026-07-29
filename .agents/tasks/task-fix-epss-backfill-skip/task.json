@@ -1,7 +1,14 @@
 {
   "task_id": "task-fix-epss-backfill-skip",
   "task_description": "Fix bug where EPSS backfill skips dates that the coverage page reports as missing due to inconsistency between epss_scores and epss_daily_stats tables",
-  "status": "in_progress",
+  "status": "completed",
   "feature_order": ["FEAT-001"],
-  "blocked_reason": null
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "go build ./... passes. go test ./... -count=1 -short passes (22 packages). 4 new unit tests cover reconciliation logic with mocks. Review feedback addressed: stale comment fixed, NOT IN query rewritten to LEFT JOIN."
+  }
 }

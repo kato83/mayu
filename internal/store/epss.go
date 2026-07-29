@@ -405,13 +405,17 @@ func (s *PostgresStore) GetEPSSImportedDates(ctx context.Context) (map[string]bo
 // in epss_scores but no corresponding row in epss_daily_stats. These represent
 // a desync state where scores were stored but RefreshEPSSDailyStats failed.
 // The backfill reconciliation step uses this to heal such inconsistencies.
+//
+// Uses a LEFT JOIN so the planner can start from the smaller epss_daily_stats
+// table, avoiding a full DISTINCT scan on epss_scores for wide date ranges.
 func (s *PostgresStore) GetEPSSOrphanDates(ctx context.Context, from, to string) ([]string, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT DISTINCT score_date::text
-		FROM epss_scores
-		WHERE score_date BETWEEN $1 AND $2
-		  AND score_date NOT IN (SELECT score_date FROM epss_daily_stats)
-		ORDER BY score_date`,
+		SELECT DISTINCT es.score_date::text
+		FROM epss_scores es
+		LEFT JOIN epss_daily_stats eds ON eds.score_date = es.score_date
+		WHERE es.score_date BETWEEN $1 AND $2
+		  AND eds.score_date IS NULL
+		ORDER BY es.score_date`,
 		from, to,
 	)
 	if err != nil {

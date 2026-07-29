@@ -420,7 +420,7 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 		case <-ctx.Done():
 			// Context cancelled (e.g., SIGINT). Update sync_state with progress so far
 			// so that subsequent runs correctly detect already-imported dates via
-			// GetEPSSImportedDates (which reads from epss_scores table directly).
+			// GetEPSSImportedDates (which reads from epss_daily_stats table).
 			if totalInserted > 0 {
 				partialState := &store.SyncState{
 					Source:         epssSource,
