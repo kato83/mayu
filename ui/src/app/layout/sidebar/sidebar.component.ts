@@ -1,9 +1,9 @@
-import { Component, input, output, inject, computed, signal, OnInit } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
+import { Component, computed, inject, input, type OnInit, output, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
-import { ThemeService, ThemeMode } from '../../services/theme.service';
 import { AuthService } from '../../services/auth.service';
+import { type ThemeMode, ThemeService } from '../../services/theme.service';
 import { VersionService } from '../../services/version.service';
 
 interface NavItem {
@@ -225,10 +225,10 @@ export class SidebarComponent implements OnInit {
     { label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`, route: '/vulnerabilities', icon: '🛡️' },
     { label: $localize`:@@sidebar.nav.epssTrending:EPSS Trending`, route: '/epss-trending', icon: '📈' },
     {
-      label: $localize`:@@sidebar.nav.ingest:Ingest`, route: '/ingest', icon: '📥',
-      children: [
-        { label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`, route: '/ingest/jobs', icon: '📋' },
-      ],
+      label: $localize`:@@sidebar.nav.ingest:Ingest`,
+      route: '/ingest',
+      icon: '📥',
+      children: [{ label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`, route: '/ingest/jobs', icon: '📋' }],
     },
     { label: $localize`:@@sidebar.nav.status:Status`, route: '/status', icon: '⚙️' },
     { label: $localize`:@@sidebar.nav.sbom:SBOM`, route: '/sbom', icon: '📦' },
@@ -259,7 +259,8 @@ export class SidebarComponent implements OnInit {
   }
 
   sidebarClasses(): string {
-    const base = 'fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 text-slate-100 flex flex-col transition-transform duration-200 ease-in-out';
+    const base =
+      'fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 text-slate-100 flex flex-col transition-transform duration-200 ease-in-out';
     if (this.open()) {
       return `${base} translate-x-0`;
     }
@@ -295,8 +296,10 @@ export class SidebarComponent implements OnInit {
   private expandIfCurrentRouteIsChild(url: string): void {
     const items = this.allNavItems.filter((item) => item.children);
     for (const item of items) {
-      const matches = url === item.route || url.startsWith(item.route + '/') ||
-        item.children!.some((child) => url === child.route || url.startsWith(child.route + '/'));
+      const matches =
+        url === item.route ||
+        url.startsWith(`${item.route}/`) ||
+        item.children!.some((child) => url === child.route || url.startsWith(`${child.route}/`));
       if (matches) {
         const current = new Set(this.expandedRoutes());
         current.add(item.route);

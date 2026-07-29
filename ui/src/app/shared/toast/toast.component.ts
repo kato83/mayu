@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 
-import { ToastService, ToastMessage } from './toast.service';
+import { type ToastMessage, ToastService } from './toast.service';
 
 @Component({
   selector: 'app-toast',

@@ -1,8 +1,8 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { Component, inject, type OnInit, signal } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
-import { WebhookService, WebhookDeliveryLog } from '../../services/webhook.service';
+import { type WebhookDeliveryLog, WebhookService } from '../../services/webhook.service';
 
 @Component({
   selector: 'app-webhook-deliveries',

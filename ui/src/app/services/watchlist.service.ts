@@ -1,11 +1,11 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import type { Observable } from 'rxjs';
 
-import {
-  Watchlist,
+import type {
   CreateWatchlistRequest,
   UpdateWatchlistRequest,
+  Watchlist,
   WatchlistMatchesResponse,
 } from '../models/watchlist.model';
 

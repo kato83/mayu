@@ -1,9 +1,9 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { PaginationComponent, PageChangeEvent } from './pagination.component';
+import { type PageChangeEvent, PaginationComponent } from './pagination.component';
 
 // Test host component to provide input signals
 @Component({
@@ -70,14 +70,14 @@ describe('PaginationComponent', () => {
   it('should show Next as a link when hasNext is true', () => {
     const el = fixture.nativeElement as HTMLElement;
     const links = el.querySelectorAll('a');
-    const nextLink = Array.from(links).find(a => a.textContent?.includes('Next'));
+    const nextLink = Array.from(links).find((a) => a.textContent?.includes('Next'));
     expect(nextLink).toBeTruthy();
   });
 
   it('should emit pageChange with direction next on Next click', () => {
     const el = fixture.nativeElement as HTMLElement;
     const links = el.querySelectorAll('a');
-    const nextLink = Array.from(links).find(a => a.textContent?.includes('Next'));
+    const nextLink = Array.from(links).find((a) => a.textContent?.includes('Next'));
     nextLink?.click();
     expect(host.lastEvent).toEqual({ direction: 'next' });
   });
@@ -89,7 +89,7 @@ describe('PaginationComponent', () => {
 
     const el = fixture.nativeElement as HTMLElement;
     const links = el.querySelectorAll('a');
-    const prevLink = Array.from(links).find(a => a.textContent?.includes('Previous'));
+    const prevLink = Array.from(links).find((a) => a.textContent?.includes('Previous'));
     prevLink?.click();
     expect(host.lastEvent).toEqual({ direction: 'previous' });
   });
@@ -100,7 +100,7 @@ describe('PaginationComponent', () => {
 
     const el = fixture.nativeElement as HTMLElement;
     const spans = el.querySelectorAll('span.cursor-not-allowed');
-    const nextSpan = Array.from(spans).find(s => s.textContent?.includes('Next'));
+    const nextSpan = Array.from(spans).find((s) => s.textContent?.includes('Next'));
     expect(nextSpan).toBeTruthy();
   });
 

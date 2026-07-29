@@ -12,7 +12,9 @@ const STORAGE_KEY = 'mayu-theme';
 export class ThemeService {
   readonly mode = signal<ThemeMode>(this.loadMode());
 
-  private mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)') ?? { matches: false, addEventListener: () => {} } as unknown as MediaQueryList;
+  private mediaQuery =
+    window.matchMedia?.('(prefers-color-scheme: dark)') ??
+    ({ matches: false, addEventListener: () => {} } as unknown as MediaQueryList);
 
   constructor() {
     this.applyTheme();
@@ -39,8 +41,7 @@ export class ThemeService {
   }
 
   private applyTheme(): void {
-    const isDark = this.mode() === 'dark' ||
-      (this.mode() === 'system' && this.mediaQuery.matches);
+    const isDark = this.mode() === 'dark' || (this.mode() === 'system' && this.mediaQuery.matches);
 
     document.documentElement.classList.toggle('dark', isDark);
   }

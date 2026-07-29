@@ -1,8 +1,8 @@
-import { Injectable, inject, LOCALE_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, of } from 'rxjs';
+import { Injectable, inject, LOCALE_ID } from '@angular/core';
+import { catchError, type Observable, of } from 'rxjs';
 
-import { DOCS_MANIFEST, DocEntry } from './docs-manifest';
+import { DOCS_MANIFEST, type DocEntry } from './docs-manifest';
 
 @Injectable({
   providedIn: 'root',
@@ -18,9 +18,9 @@ export class DocsService {
     }
 
     if (this.locale === 'ja' && entry.filenameJa) {
-      return this.http.get(entry.filenameJa, { responseType: 'text' }).pipe(
-        catchError(() => this.http.get(entry.filename, { responseType: 'text' })),
-      );
+      return this.http
+        .get(entry.filenameJa, { responseType: 'text' })
+        .pipe(catchError(() => this.http.get(entry.filename, { responseType: 'text' })));
     }
 
     return this.http.get(entry.filename, { responseType: 'text' });

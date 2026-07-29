@@ -1,10 +1,9 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, type OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-
-import { WebhookService, Webhook } from '../../services/webhook.service';
+import type { Team } from '../../models/team.model';
 import { TeamService } from '../../services/team.service';
-import { Team } from '../../models/team.model';
+import { type Webhook, WebhookService } from '../../services/webhook.service';
 
 @Component({
   selector: 'app-webhooks',
@@ -364,7 +363,10 @@ export class WebhooksComponent implements OnInit {
     if (!this.formName || !this.formUrl || !this.formEvents) return;
 
     this.submitting.set(true);
-    const events = this.formEvents.split(',').map((e) => e.trim()).filter((e) => e.length > 0);
+    const events = this.formEvents
+      .split(',')
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0);
     const payload: Partial<Webhook> = {
       name: this.formName,
       url: this.formUrl,

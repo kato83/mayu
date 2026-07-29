@@ -1,11 +1,11 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import {
-  DashboardSummary,
-  DashboardTrends,
+import { Injectable, inject } from '@angular/core';
+import type { Observable } from 'rxjs';
+import type {
   DashboardDistributions,
+  DashboardSummary,
   DashboardTopRisks,
+  DashboardTrends,
 } from '../models/dashboard.model';
 
 @Injectable({ providedIn: 'root' })
@@ -17,20 +17,14 @@ export class DashboardService {
   }
 
   getTrends(days: number = 30): Observable<DashboardTrends> {
-    return this.http.get<DashboardTrends>(
-      `/api/v1/dashboard/trends?days=${days}`,
-    );
+    return this.http.get<DashboardTrends>(`/api/v1/dashboard/trends?days=${days}`);
   }
 
   getDistributions(): Observable<DashboardDistributions> {
-    return this.http.get<DashboardDistributions>(
-      '/api/v1/dashboard/distributions',
-    );
+    return this.http.get<DashboardDistributions>('/api/v1/dashboard/distributions');
   }
 
   getTopRisks(limit: number = 10): Observable<DashboardTopRisks> {
-    return this.http.get<DashboardTopRisks>(
-      `/api/v1/dashboard/top-risks?limit=${limit}`,
-    );
+    return this.http.get<DashboardTopRisks>(`/api/v1/dashboard/top-risks?limit=${limit}`);
   }
 }

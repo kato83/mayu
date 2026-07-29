@@ -1,8 +1,14 @@
-import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { IngestParams, IngestEvent, IngestStartResponse, IngestJobsResponse, IngestJobDetail } from '../models/ingest.model';
+import type {
+  IngestEvent,
+  IngestJobDetail,
+  IngestJobsResponse,
+  IngestParams,
+  IngestStartResponse,
+} from '../models/ingest.model';
 
 @Injectable({
   providedIn: 'root',

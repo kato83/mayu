@@ -1,19 +1,18 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-
-import { VulnerabilitiesComponent } from './vulnerabilities.component';
-import { SearchResponse } from '../../models/vulnerability.model';
-import { ToastService } from '../../shared/toast/toast.service';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { httpErrorInterceptor } from '../../interceptors/http-error.interceptor';
+import type { SearchResponse } from '../../models/vulnerability.model';
+import { ToastService } from '../../shared/toast/toast.service';
+import { VulnerabilitiesComponent } from './vulnerabilities.component';
 
 describe('VulnerabilitiesComponent', () => {
   let fixture: ComponentFixture<VulnerabilitiesComponent>;
   let component: VulnerabilitiesComponent;
   let httpTesting: HttpTestingController;
-  let router: Router;
+  let _router: Router;
 
   const mockResponse: SearchResponse = {
     vulnerabilities: [
@@ -57,7 +56,7 @@ describe('VulnerabilitiesComponent', () => {
       ],
     }).compileComponents();
 
-    router = TestBed.inject(Router);
+    _router = TestBed.inject(Router);
     httpTesting = TestBed.inject(HttpTestingController);
 
     fixture = TestBed.createComponent(VulnerabilitiesComponent);
@@ -66,7 +65,9 @@ describe('VulnerabilitiesComponent', () => {
 
   afterEach(() => {
     // Flush any pending ecosystem requests before verify
-    httpTesting.match('/api/v1/ecosystems').forEach((r) => r.flush({ ecosystems: [] }));
+    httpTesting.match('/api/v1/ecosystems').forEach((r) => {
+      r.flush({ ecosystems: [] });
+    });
     httpTesting.verify();
   });
 
@@ -159,9 +160,7 @@ describe('VulnerabilitiesComponent', () => {
     // Simulate clicking Next
     component.onPageChange({ direction: 'next' });
 
-    const req = httpTesting.expectOne((r) =>
-      r.url === '/api/v1/vulnerabilities' && r.params.has('cursor'),
-    );
+    const req = httpTesting.expectOne((r) => r.url === '/api/v1/vulnerabilities' && r.params.has('cursor'));
     expect(req.request.params.get('cursor')).toBe('djF8MjAyNC0wNi0wMlQwMDowMDowMFp8R08tMjAyNC0yNjg4');
     req.flush({ ...mockResponse, next_cursor: 'nextCursor2' });
     fixture.detectChanges();
@@ -237,8 +236,8 @@ describe('VulnerabilitiesComponent', () => {
     component.onFilterChange('ecosystem', 'npm');
     vi.advanceTimersByTime(300); // debounce
 
-    const req = httpTesting.expectOne((r) =>
-      r.url === '/api/v1/vulnerabilities' && r.params.get('ecosystem') === 'npm',
+    const req = httpTesting.expectOne(
+      (r) => r.url === '/api/v1/vulnerabilities' && r.params.get('ecosystem') === 'npm',
     );
     expect(req.request.params.get('ecosystem')).toBe('npm');
     req.flush(emptyResponse);
@@ -257,8 +256,8 @@ describe('VulnerabilitiesComponent', () => {
     vi.advanceTimersByTime(300); // debounce fires
 
     // Only one request should be made after debounce
-    const req = httpTesting.expectOne((r) =>
-      r.url === '/api/v1/vulnerabilities' && r.params.get('package') === 'golang.org',
+    const req = httpTesting.expectOne(
+      (r) => r.url === '/api/v1/vulnerabilities' && r.params.get('package') === 'golang.org',
     );
     req.flush(emptyResponse);
     vi.useRealTimers();
@@ -278,8 +277,8 @@ describe('VulnerabilitiesComponent', () => {
     component.onFilterChange('severity', 'high');
     vi.advanceTimersByTime(300);
 
-    const req = httpTesting.expectOne((r) =>
-      r.url === '/api/v1/vulnerabilities' && r.params.get('severity') === 'high',
+    const req = httpTesting.expectOne(
+      (r) => r.url === '/api/v1/vulnerabilities' && r.params.get('severity') === 'high',
     );
     // No cursor should be sent (first page)
     expect(req.request.params.has('cursor')).toBe(false);
@@ -314,10 +313,11 @@ describe('VulnerabilitiesComponent', () => {
     component.onFilterChange('severity', 'critical');
     vi.advanceTimersByTime(300);
 
-    const req = httpTesting.expectOne((r) =>
-      r.url === '/api/v1/vulnerabilities' &&
-      r.params.get('ecosystem') === 'npm' &&
-      r.params.get('severity') === 'critical',
+    const req = httpTesting.expectOne(
+      (r) =>
+        r.url === '/api/v1/vulnerabilities' &&
+        r.params.get('ecosystem') === 'npm' &&
+        r.params.get('severity') === 'critical',
     );
     req.flush(emptyResponse);
     vi.useRealTimers();

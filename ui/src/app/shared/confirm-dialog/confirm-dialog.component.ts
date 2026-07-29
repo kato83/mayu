@@ -1,4 +1,4 @@
-import { Component, ElementRef, viewChild, signal } from '@angular/core';
+import { Component, type ElementRef, signal, viewChild } from '@angular/core';
 
 export interface ConfirmDialogOptions {
   title: string;

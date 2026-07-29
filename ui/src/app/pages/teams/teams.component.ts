@@ -1,10 +1,9 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { Component, inject, type OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-
+import type { Team } from '../../models/team.model';
 import { TeamService } from '../../services/team.service';
-import { Team } from '../../models/team.model';
 
 @Component({
   selector: 'app-teams',

@@ -1,8 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-
+import { Component, inject, type OnInit, signal } from '@angular/core';
+import type { EPSSCoverage, SyncState } from '../../models/status.model';
 import { StatusService } from '../../services/status.service';
-import { SyncState, EPSSCoverage } from '../../models/status.model';
 
 @Component({
   selector: 'app-status',
@@ -173,7 +172,7 @@ export class StatusComponent implements OnInit {
 
   coveragePercent(): string {
     const coverage = this.epssCoverage();
-    if (!coverage || !coverage.first_date || !coverage.last_date) {
+    if (!coverage?.first_date || !coverage.last_date) {
       return '0';
     }
     const first = new Date(coverage.first_date);

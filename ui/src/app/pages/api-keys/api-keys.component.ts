@@ -1,8 +1,8 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { Component, inject, type OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 
-import { ApiKeyService, APIKey } from '../../services/api-key.service';
+import { type APIKey, ApiKeyService } from '../../services/api-key.service';
 
 @Component({
   selector: 'app-api-keys',

@@ -7,3 +7,9 @@ pre-commit:
     lint:
       glob: "*.go"
       run: make lint
+    ui-check:
+      glob: "ui/src/**/*.{ts,css,json}"
+      root: "ui/"
+      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+      fail_text: "Biome check failed. Run 'cd ui && pnpm run check:fix' to fix."

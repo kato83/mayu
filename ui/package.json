@@ -12,7 +12,13 @@
     "prestart:ja": "pnpm run copy-docs",
     "pretest": "pnpm run copy-docs",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "check": "biome check .",
+    "check:fix": "biome check --write ."
   },
   "private": true,
   "packageManager": "pnpm@11.15.1",
@@ -35,11 +41,11 @@
     "@angular/build": "^22.0.7",
     "@angular/cli": "^22.0.7",
     "@angular/compiler-cli": "^22.0.0",
+    "@biomejs/biome": "2.5.1",
     "@tailwindcss/postcss": "^4.1.12",
     "@tailwindcss/typography": "^0.5.20",
     "jsdom": "^28.0.0",
     "postcss": "^8.5.3",
-    "prettier": "^3.8.1",
     "tailwindcss": "^4.1.12",
     "typescript": "~6.0.2",
     "vitest": "^4.0.8"

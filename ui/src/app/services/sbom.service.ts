@@ -1,16 +1,16 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import type { Observable } from 'rxjs';
 
-import {
-  SBOMProject,
-  SBOMVersion,
-  SBOMScanResult,
-  ScanDiff,
+import type {
   CreateProjectRequest,
-  UploadSBOMResponse,
-  FindingStatusUpdate,
   FindingStatusEntry,
+  FindingStatusUpdate,
+  SBOMProject,
+  SBOMScanResult,
+  SBOMVersion,
+  ScanDiff,
+  UploadSBOMResponse,
 } from '../models/sbom.model';
 
 @Injectable({

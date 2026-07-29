@@ -1,9 +1,9 @@
-import { Component, inject, OnInit, signal, DestroyRef } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
+import { Component, DestroyRef, inject, type OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 
-import { EpssTrendingService, EpssTrendingEntry } from '../../services/epss-trending.service';
+import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss-trending.service';
 
 @Component({
   selector: 'app-epss-trending',
@@ -160,11 +160,12 @@ export class EpssTrendingComponent implements OnInit {
 
   private loadData(): void {
     this.loading.set(true);
-    this.trendingService.getTrending({
-      days: this.selectedDays(),
-      threshold: this.selectedThreshold(),
-      limit: 50,
-    })
+    this.trendingService
+      .getTrending({
+        days: this.selectedDays(),
+        threshold: this.selectedThreshold(),
+        limit: 50,
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {

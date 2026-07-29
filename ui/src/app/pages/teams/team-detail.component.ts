@@ -1,10 +1,9 @@
-import { Component, inject, signal, OnInit, viewChild } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Component, inject, type OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
-import { TeamService } from '../../services/team.service';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import type { Team, TeamDashboardSummary, TeamMember, UserInfo } from '../../models/team.model';
 import { AuthService } from '../../services/auth.service';
-import { Team, TeamMember, TeamDashboardSummary, UserInfo } from '../../models/team.model';
+import { TeamService } from '../../services/team.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
@@ -275,11 +274,7 @@ export class TeamDetailComponent implements OnInit {
     // Filter available users for datalist (already excludes self)
     if (search) {
       this.availableUsers.set(
-        this.allUsers.filter(
-          (u) =>
-            u.email.toLowerCase().includes(search) ||
-            (u.name && u.name.toLowerCase().includes(search)),
-        ),
+        this.allUsers.filter((u) => u.email.toLowerCase().includes(search) || u.name?.toLowerCase().includes(search)),
       );
     } else {
       this.availableUsers.set(this.allUsers);
