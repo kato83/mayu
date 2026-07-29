@@ -1978,6 +1978,10 @@
         <source>Status</source>
         <target>ステータス</target>
       </trans-unit>
+      <trans-unit id="sbom.scan.col.note" datatype="html">
+        <source>Note</source>
+        <target>メモ</target>
+      </trans-unit>
       <trans-unit id="sbom.scan.status.open" datatype="html">
         <source>Open</source>
         <target>未対応</target>
