@@ -15,6 +15,7 @@ import { Chart, registerables } from 'chart.js';
 
 import { DashboardService } from '../../services/dashboard.service';
 import { StatsTrendService } from '../../services/stats-trend.service';
+import { EpssTrendingService, EpssTrendingEntry } from '../../services/epss-trending.service';
 import { ThemeService } from '../../services/theme.service';
 import {
   DashboardSummary,
@@ -131,6 +132,49 @@ Chart.register(...registerables);
         </div>
       </section>
 
+      <!-- EPSS Trending section -->
+      <section class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-200" i18n="@@dashboard.epssTrendingTitle">EPSS Trending</h2>
+          <a routerLink="/epss-trending" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline" i18n="@@dashboard.epssTrendingViewAll">View All</a>
+        </div>
+        @if (trendingEntries().length > 0) {
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead>
+                <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                  <th class="pb-2 font-medium" i18n="@@dashboard.trendingColId">ID</th>
+                  <th class="pb-2 font-medium" i18n="@@dashboard.trendingColEpss">EPSS</th>
+                  <th class="pb-2 font-medium" i18n="@@dashboard.trendingColDelta">Delta</th>
+                  <th class="pb-2 font-medium" i18n="@@dashboard.trendingColSeverity">Severity</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (entry of trendingEntries(); track entry.vulnerability_id) {
+                  <tr class="border-b border-slate-100 dark:border-slate-700/50">
+                    <td class="py-2">
+                      <a [routerLink]="['/vulnerabilities', entry.vulnerability_id]"
+                         class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">
+                        {{ entry.cve_id || entry.vulnerability_id }}
+                      </a>
+                    </td>
+                    <td class="py-2 font-mono text-xs text-slate-700 dark:text-slate-200">{{ (entry.current_epss * 100).toFixed(1) }}%</td>
+                    <td class="py-2">
+                      <span class="font-mono text-xs font-semibold text-green-600 dark:text-green-400">+{{ (entry.delta * 100).toFixed(2) }}%</span>
+                    </td>
+                    <td class="py-2">
+                      <span [class]="severityBadgeClass(entry.severity)">{{ entry.severity ?? '-' }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="text-sm text-slate-500 dark:text-slate-400" i18n="@@dashboard.epssTrendingEmpty">No trending data available.</p>
+        }
+      </section>
+
       <!-- Top risks tables -->
       <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Top EPSS -->
@@ -203,6 +247,7 @@ Chart.register(...registerables);
 export class DashboardComponent implements AfterViewInit, OnDestroy {
   private readonly dashboardService = inject(DashboardService);
   private readonly statsTrendService = inject(StatsTrendService);
+  private readonly epssTrendingService = inject(EpssTrendingService);
   private readonly themeService = inject(ThemeService);
 
   // State signals
@@ -212,6 +257,7 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   readonly distributions = signal<DashboardDistributions | null>(null);
   readonly topRisks = signal<DashboardTopRisks | null>(null);
   readonly statsTrend = signal<StatsTrendResponse | null>(null);
+  readonly trendingEntries = signal<EpssTrendingEntry[]>([]);
 
   // Trend chart controls
   readonly selectedTrendRange = signal('30d');
@@ -285,6 +331,16 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
       },
       error: () => {
         this.loading.set(false);
+      },
+    });
+
+    // Load trending data separately (non-blocking)
+    this.epssTrendingService.getTrending({ days: 7, threshold: 0.1, limit: 5 }).subscribe({
+      next: (res) => {
+        this.trendingEntries.set(res.entries || []);
+      },
+      error: () => {
+        this.trendingEntries.set([]);
       },
     });
   }

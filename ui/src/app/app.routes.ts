@@ -40,6 +40,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'epss-trending',
+        title: $localize`:@@route.title.epssTrending:EPSS Trending`,
+        loadComponent: () =>
+          import('./pages/epss-trending/epss-trending.component').then(
+            (m) => m.EpssTrendingComponent,
+          ),
+      },
+      {
         path: 'ingest/jobs',
         title: $localize`:@@route.title.ingestJobs:Ingest Jobs`,
         loadComponent: () =>
