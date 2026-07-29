@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/kato83/mayu/internal/ingest"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/parser"
+	"github.com/kato83/mayu/internal/sbommon"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/watchlist"
 )
@@ -294,6 +296,7 @@ func runIngest(args []string, cfg *config.Config) error {
 				return fmt.Errorf("NVD native import: %w", err)
 			}
 			printStats(stats)
+			triggerSBOMReEvaluation(ctx, s)
 			return nil
 		}
 
@@ -315,6 +318,7 @@ func runIngest(args []string, cfg *config.Config) error {
 				return fmt.Errorf("MITRE import: %w", err)
 			}
 			printStats(stats)
+			triggerSBOMReEvaluation(ctx, s)
 			return nil
 		}
 
@@ -370,6 +374,7 @@ func runIngest(args []string, cfg *config.Config) error {
 				return fmt.Errorf("KEV import: %w", err)
 			}
 			printStats(stats)
+			triggerSBOMReEvaluation(ctx, s)
 			return nil
 		}
 
@@ -671,6 +676,7 @@ func runOSVImport(ctx context.Context, _ *ingest.Ingester, f *fetcher.Fetcher, p
 		}
 	}
 
+	triggerSBOMReEvaluation(ctx, s)
 	return nil
 }
 
@@ -752,4 +758,18 @@ func resolveEcosystems(ctx context.Context, f *fetcher.Fetcher, all bool, ecosys
 // strPtr returns a pointer to the given string.
 func strPtr(s string) *string {
 	return &s
+}
+
+// triggerSBOMReEvaluation runs the SBOM re-evaluator in a background goroutine
+// after a successful ingest operation. This re-scans all tracked SBOM versions
+// against the updated vulnerability database.
+func triggerSBOMReEvaluation(ctx context.Context, s *store.PostgresStore) {
+	sbomStore := sbommon.NewPostgresSBOMStore(s.DB())
+	scanner := sbommon.NewScanner(s)
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+	reEvaluator := sbommon.NewSBOMReEvaluator(sbomStore, scanner, logger)
+
+	// Run in a background goroutine with a fresh context (not tied to signal handling)
+	go reEvaluator.ReEvaluate(context.Background(), nil)
+	fmt.Println("  SBOM re-evaluation triggered in background.")
 }
