@@ -14,6 +14,7 @@ import (
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/sbom"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/vex"
 )
 
 func runAudit(args []string, cfg *config.Config) (int, error) {
@@ -25,6 +26,7 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 	noVersionCheck := fs.Bool("no-version-check", false, "Skip version matching, report all vulnerabilities for package name")
 	failOn := fs.String("fail-on", "", "Fail with exit code 1 only for findings at or above severity (e.g., critical,high)")
 	ignorePath := fs.String("ignore", "", "Path to ignore file containing vulnerability IDs to suppress")
+	vexPath := fs.String("vex", "", "Path to OpenVEX file to suppress not_affected findings")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu audit [options]")
@@ -47,6 +49,7 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --format sarif > results.sarif")
 		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --fail-on critical,high")
 		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --fail-on critical --ignore .mayu-ignore")
+		fmt.Println("  mayu audit --sbom ./sbom.cdx.json --vex product.vex.json")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -110,6 +113,25 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 			return 2, fmt.Errorf("parse ignore file: %w", err)
 		}
 		result.Findings = audit.FilterFindings(result.Findings, ignored)
+
+		// Recalculate VulnerablePackages from remaining findings
+		pkgSet := make(map[string]bool)
+		for _, f := range result.Findings {
+			pkgSet[f.Component.Ecosystem+"/"+f.Component.Name+"/"+f.Component.Version] = true
+		}
+		result.VulnerablePackages = len(pkgSet)
+	}
+
+	// Apply VEX filtering
+	if *vexPath != "" {
+		vexData, err := os.ReadFile(*vexPath)
+		if err != nil {
+			return 2, fmt.Errorf("read VEX file: %w", err)
+		}
+		result.Findings, err = vex.FilterFindingsByVEX(result.Findings, vexData)
+		if err != nil {
+			return 2, fmt.Errorf("apply VEX filter: %w", err)
+		}
 
 		// Recalculate VulnerablePackages from remaining findings
 		pkgSet := make(map[string]bool)

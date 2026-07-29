@@ -1,0 +1,57 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "urn:example:vex:2024-001",
+  "author": "security-team@example.com",
+  "timestamp": "2024-06-15T10:00:00Z",
+  "statements": [
+    {
+      "vulnerability": {
+        "@id": "CVE-2024-1234"
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40angular/core@17.0.0"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The vulnerable function is not reachable in our usage"
+    },
+    {
+      "vulnerability": {
+        "@id": "CVE-2024-5678"
+      },
+      "products": [
+        {
+          "@id": "pkg:golang/golang.org/x/crypto@0.17.0"
+        }
+      ],
+      "status": "affected"
+    },
+    {
+      "vulnerability": {
+        "@id": "CVE-2024-9012"
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/lodash@4.17.20"
+        },
+        {
+          "@id": "pkg:npm/lodash@4.17.21"
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "vulnerability": {
+        "@id": "GHSA-xxxx-yyyy-zzzz"
+      },
+      "products": [
+        {
+          "@id": "pkg:pypi/requests@2.28.0"
+        }
+      ],
+      "status": "under_investigation"
+    }
+  ]
+}
