@@ -348,6 +348,7 @@ func (s *Server) routes() http.Handler {
 			if s.sbomScanner != nil {
 				r.Post("/projects/{id}/versions", sbommon.HandleUploadSBOM(s.sbomStore, s.sbomScanner))
 			}
+			r.Get("/projects/{id}/versions/{vid}/diff", s.handleSBOMVersionDiff)
 			r.Get("/versions/{versionID}/scans", sbommon.HandleListScanResults(s.sbomStore))
 			if s.sbomScanner != nil {
 				r.Post("/versions/{versionID}/scans", sbommon.HandleRescanVersion(s.sbomStore, s.sbomScanner))
@@ -368,6 +369,8 @@ func (s *Server) routes() http.Handler {
 		r.Get("/distributions", s.handleDashboardDistributions)
 		r.Get("/top-risks", s.handleDashboardTopRisks)
 		r.Get("/team-summary", s.handleDashboardTeamSummary)
+		r.Get("/portfolio", s.handleDashboardPortfolio)
+		r.Get("/eol-report", s.handleDashboardEOLReport)
 	})
 
 	// Team management endpoints
