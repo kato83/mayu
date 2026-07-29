@@ -2442,6 +2442,58 @@
         <source>— No team (personal) —</source>
         <target>— チームなし（個人） —</target>
       </trans-unit>
+      <trans-unit id="sidebar.nav.changePassword" datatype="html">
+        <source>Change Password</source>
+        <target>パスワード変更</target>
+      </trans-unit>
+      <trans-unit id="route.title.changePassword" datatype="html">
+        <source>Change Password</source>
+        <target>パスワード変更</target>
+      </trans-unit>
+      <trans-unit id="changePassword.title" datatype="html">
+        <source> Change Password </source>
+        <target> パスワード変更 </target>
+      </trans-unit>
+      <trans-unit id="changePassword.currentPasswordLabel" datatype="html">
+        <source> Current Password </source>
+        <target> 現在のパスワード </target>
+      </trans-unit>
+      <trans-unit id="changePassword.newPasswordLabel" datatype="html">
+        <source> New Password </source>
+        <target> 新しいパスワード </target>
+      </trans-unit>
+      <trans-unit id="changePassword.passwordHint" datatype="html">
+        <source> Minimum 8 characters </source>
+        <target> 8文字以上 </target>
+      </trans-unit>
+      <trans-unit id="changePassword.confirmPasswordLabel" datatype="html">
+        <source> Confirm New Password </source>
+        <target> 新しいパスワード（確認） </target>
+      </trans-unit>
+      <trans-unit id="changePassword.submitButton" datatype="html">
+        <source> Change Password </source>
+        <target> パスワードを変更 </target>
+      </trans-unit>
+      <trans-unit id="changePassword.error.allFieldsRequired" datatype="html">
+        <source>All fields are required</source>
+        <target>すべての項目を入力してください</target>
+      </trans-unit>
+      <trans-unit id="changePassword.error.tooShort" datatype="html">
+        <source>New password must be at least 8 characters</source>
+        <target>新しいパスワードは8文字以上で入力してください</target>
+      </trans-unit>
+      <trans-unit id="changePassword.error.mismatch" datatype="html">
+        <source>New passwords do not match</source>
+        <target>新しいパスワードが一致しません</target>
+      </trans-unit>
+      <trans-unit id="changePassword.success" datatype="html">
+        <source>Password changed successfully</source>
+        <target>パスワードを変更しました</target>
+      </trans-unit>
+      <trans-unit id="changePassword.error.failed" datatype="html">
+        <source>Failed to change password</source>
+        <target>パスワードの変更に失敗しました</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>
