@@ -1464,7 +1464,7 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">206,207</context>
+          <context context-type="linenumber">220,221</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.noVersions" datatype="html">
@@ -1517,7 +1517,7 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">222,224</context>
+          <context context-type="linenumber">236,238</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.viewScansButton" datatype="html">
@@ -1534,130 +1534,151 @@
           <context context-type="linenumber">194,195</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="sbom.detail.rescanButton" datatype="html">
+        <source> Rescan </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
+          <context context-type="linenumber">203,205</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="sbom.detail.closeScans" datatype="html">
         <source> Close </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">201,203</context>
+          <context context-type="linenumber">210,212</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.noScans" datatype="html">
         <source> No scan results available for this version. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">209,211</context>
+          <context context-type="linenumber">223,225</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.scannedAt" datatype="html">
         <source>Scanned At</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">216,217</context>
+          <context context-type="linenumber">230,231</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.status" datatype="html">
         <source>Status</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">217,218</context>
+          <context context-type="linenumber">231,232</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.findings" datatype="html">
         <source>Findings</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">218,219</context>
+          <context context-type="linenumber">232,233</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.new" datatype="html">
         <source>New</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">220</context>
+          <context context-type="linenumber">234</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.resolved" datatype="html">
         <source>Resolved</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">220,221</context>
+          <context context-type="linenumber">234,235</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.trigger" datatype="html">
         <source>Trigger</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">221,222</context>
+          <context context-type="linenumber">235,236</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.viewDetailButton" datatype="html">
         <source> Details </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">258,259</context>
+          <context context-type="linenumber">272,273</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.trendRange30d" datatype="html">
         <source>30d</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">288</context>
+          <context context-type="linenumber">304</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.trendRange90d" datatype="html">
         <source>90d</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">289</context>
+          <context context-type="linenumber">305</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.trendRange180d" datatype="html">
         <source>180d</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">290</context>
+          <context context-type="linenumber">306</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.trendRange365d" datatype="html">
         <source>365d</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">291</context>
+          <context context-type="linenumber">307</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.chartTotalFindings" datatype="html">
         <source>Total Findings</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">370</context>
+          <context context-type="linenumber">386</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.chartNewFindings" datatype="html">
         <source>New</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">384</context>
+          <context context-type="linenumber">400</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.chartResolved" datatype="html">
         <source>Resolved</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">395</context>
+          <context context-type="linenumber">411</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.axisTotal" datatype="html">
         <source>Total</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">430</context>
+          <context context-type="linenumber">446</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.axisChanges" datatype="html">
         <source>Changes</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">443</context>
+          <context context-type="linenumber">459</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sbom.detail.rescanReloadFailed" datatype="html">
+        <source>Failed to reload scan results</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
+          <context context-type="linenumber">575</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sbom.detail.rescanFailed" datatype="html">
+        <source>Rescan failed</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
+          <context context-type="linenumber">581</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.title" datatype="html">
@@ -2163,21 +2184,21 @@
         <source>Records</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
-          <context context-type="linenumber">114,116</context>
+          <context context-type="linenumber">113,115</context>
         </context-group>
       </trans-unit>
       <trans-unit id="status.loading" datatype="html">
         <source>Loading...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
-          <context context-type="linenumber">120,122</context>
+          <context context-type="linenumber">119,121</context>
         </context-group>
       </trans-unit>
       <trans-unit id="status.noData" datatype="html">
         <source>No sync data found. Run an ingest operation to populate data.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/status/status.component.ts</context>
-          <context context-type="linenumber">124,126</context>
+          <context context-type="linenumber">123,125</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.filterId" datatype="html">
@@ -2275,105 +2296,119 @@
         <source>Sort</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">144,146</context>
+          <context context-type="linenumber">144,145</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="vulnList.sortModifiedDesc" datatype="html">
-        <source>Modified (newest)</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">151,152</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="vulnList.sortModifiedAsc" datatype="html">
-        <source>Modified (oldest)</source>
+      <trans-unit id="vulnList.sortFieldModified" datatype="html">
+        <source>Modified</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
           <context context-type="linenumber">152,153</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="vulnList.sortPublishedDesc" datatype="html">
-        <source>Published (newest)</source>
+      <trans-unit id="vulnList.sortFieldPublished" datatype="html">
+        <source>Published</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
           <context context-type="linenumber">153,154</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="vulnList.sortPublishedAsc" datatype="html">
-        <source>Published (oldest)</source>
+      <trans-unit id="vulnList.sortFieldEpss" datatype="html">
+        <source>EPSS</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
           <context context-type="linenumber">154,156</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vulnList.sortDirectionAriaLabel" datatype="html">
+        <source>Sort direction</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
+          <context context-type="linenumber">159,160</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vulnList.sortDesc" datatype="html">
+        <source>DESC</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
+          <context context-type="linenumber">170,171</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vulnList.sortAsc" datatype="html">
+        <source>ASC</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
+          <context context-type="linenumber">175,177</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.clearFilters" datatype="html">
         <source> Clear filters </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">166,168</context>
+          <context context-type="linenumber">189,191</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.loading" datatype="html">
         <source>Loading vulnerabilities...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">174,178</context>
+          <context context-type="linenumber">197,201</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.empty" datatype="html">
         <source>No vulnerabilities found.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">183,184</context>
+          <context context-type="linenumber">206,207</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.emptyHint" datatype="html">
         <source>Try adjusting your filters.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">184,186</context>
+          <context context-type="linenumber">207,209</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colId" datatype="html">
         <source>ID</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">192</context>
+          <context context-type="linenumber">215</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colSummary" datatype="html">
         <source>Summary</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">192,193</context>
+          <context context-type="linenumber">215,216</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colEcosystem" datatype="html">
         <source>Ecosystem</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">193,194</context>
+          <context context-type="linenumber">216,217</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colSeverity" datatype="html">
         <source>Severity</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">194,195</context>
+          <context context-type="linenumber">217,218</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colPublished" datatype="html">
         <source>Published</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">195,196</context>
+          <context context-type="linenumber">218,219</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.colModified" datatype="html">
         <source>Modified</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/vulnerabilities/vulnerabilities.component.ts</context>
-          <context context-type="linenumber">196,198</context>
+          <context context-type="linenumber">219,221</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnDetail.breadcrumbList" datatype="html">
