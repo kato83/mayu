@@ -1706,123 +1706,158 @@
         <source> SBOM Projects </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">17,19</context>
+          <context context-type="linenumber">19,21</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.createButton" datatype="html">
         <source> Create Project </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">24,27</context>
+          <context context-type="linenumber">26,29</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sbom.projects.editTitle" datatype="html">
+        <source>Edit Project</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
+          <context context-type="linenumber">35,37</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.createTitle" datatype="html">
-        <source> Create New Project </source>
+        <source>Create New Project</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">32,34</context>
+          <context context-type="linenumber">37,40</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.nameLabel" datatype="html">
         <source> Project Name </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">37,38</context>
+          <context context-type="linenumber">43,44</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.namePlaceholder" datatype="html">
         <source>e.g. my-application</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">48,49</context>
+          <context context-type="linenumber">54,55</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.nameRequired" datatype="html">
         <source>Project name is required.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">52,55</context>
+          <context context-type="linenumber">58,61</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sbom.projects.teamLabel" datatype="html">
+        <source> Team (optional) </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
+          <context context-type="linenumber">63,64</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sbom.projects.noTeam" datatype="html">
+        <source>— No team (personal) —</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
+          <context context-type="linenumber">71,72</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.submitButton" datatype="html">
         <source> Create </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">62,64</context>
+          <context context-type="linenumber">84,86</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.cancelButton" datatype="html">
         <source> Cancel </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">70,72</context>
+          <context context-type="linenumber">92,94</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">138,140</context>
+          <context context-type="linenumber">169,171</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.loading" datatype="html">
         <source>Loading...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">79,80</context>
+          <context context-type="linenumber">101,102</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.noProjects" datatype="html">
         <source> No SBOM projects found. Create one to start monitoring. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">82,85</context>
+          <context context-type="linenumber">104,107</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.col.name" datatype="html">
         <source>Name</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">89,90</context>
+          <context context-type="linenumber">111,112</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sbom.projects.col.team" datatype="html">
+        <source>Team</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
+          <context context-type="linenumber">112,113</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.col.created" datatype="html">
         <source>Created</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">90,91</context>
+          <context context-type="linenumber">113,114</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.col.actions" datatype="html">
         <source>Actions</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">91,93</context>
+          <context context-type="linenumber">114,116</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sbom.projects.editButton" datatype="html">
+        <source> Edit </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
+          <context context-type="linenumber">136,137</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.deleteButton" datatype="html">
         <source> Delete </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">112,113</context>
+          <context context-type="linenumber">143,144</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.deleteConfirmTitle" datatype="html">
         <source> Delete Project </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">127,129</context>
+          <context context-type="linenumber">158,160</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.deleteConfirmMessage" datatype="html">
         <source> Are you sure you want to delete this project? All versions and scan results will be removed. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">130,132</context>
+          <context context-type="linenumber">161,163</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.confirmDeleteButton" datatype="html">
         <source> Delete </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-projects.component.ts</context>
-          <context context-type="linenumber">145,147</context>
+          <context context-type="linenumber">176,178</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.scan.backToProject" datatype="html">
@@ -2226,161 +2261,224 @@
         <source> ← Back to Teams </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">17,20</context>
+          <context context-type="linenumber">18,21</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.loading" datatype="html">
         <source>Loading...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">21,23</context>
+          <context context-type="linenumber">22,24</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.deleteButton" datatype="html">
         <source> Delete Team </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">36,38</context>
+          <context context-type="linenumber">37,39</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.projects" datatype="html">
         <source>Projects</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">44,45</context>
+          <context context-type="linenumber">45,46</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.findings" datatype="html">
         <source>Findings</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">48,49</context>
+          <context context-type="linenumber">49,50</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.critical" datatype="html">
         <source>Critical</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">52,53</context>
+          <context context-type="linenumber">53,54</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.high" datatype="html">
         <source>High</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">57</context>
+          <context context-type="linenumber">58</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.membersTitle" datatype="html">
         <source> Members </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">66,68</context>
+          <context context-type="linenumber">67,69</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.addMemberButton" datatype="html">
         <source> Add Member </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">73,75</context>
+          <context context-type="linenumber">74,76</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="teamDetail.userIdLabel" datatype="html">
-        <source> User ID </source>
+      <trans-unit id="teamDetail.userLabel" datatype="html">
+        <source> User </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">83,84</context>
+          <context context-type="linenumber">84,85</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.userSearchPlaceholder" datatype="html">
+        <source>Search by email or name...</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">94,95</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.roleLabel" datatype="html">
         <source> Role </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">95,96</context>
+          <context context-type="linenumber">105,106</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.roleMember" datatype="html">
         <source>Member</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">102,103</context>
+          <context context-type="linenumber">112,113</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.roleOwner" datatype="html">
         <source>Owner</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">103,104</context>
+          <context context-type="linenumber">113,114</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.addButton" datatype="html">
         <source> Add </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">112,113</context>
+          <context context-type="linenumber">122,123</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.cancelButton" datatype="html">
         <source> Cancel </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">120,121</context>
+          <context context-type="linenumber">130,131</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.noMembers" datatype="html">
         <source>No members yet.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">128,130</context>
+          <context context-type="linenumber">138,140</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.colEmail" datatype="html">
         <source>Email</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">134,135</context>
+          <context context-type="linenumber">144,145</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.colName" datatype="html">
         <source>Name</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">135,136</context>
+          <context context-type="linenumber">145,146</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.colRole" datatype="html">
         <source>Role</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">136,137</context>
+          <context context-type="linenumber">146,147</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.colActions" datatype="html">
         <source>Actions</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">137,139</context>
+          <context context-type="linenumber">147,149</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.leaveButton" datatype="html">
+        <source> Leave </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">170,171</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.removeButton" datatype="html">
         <source> Remove </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">159,160</context>
+          <context context-type="linenumber">178,179</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.confirmRemoveTitle" datatype="html">
+        <source>Remove Member</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">309</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmRemove" datatype="html">
         <source>Remove this member from the team?</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">246</context>
+          <context context-type="linenumber">310</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.confirmRemoveAction" datatype="html">
+        <source>Remove</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">311</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.confirmLeaveTitle" datatype="html">
+        <source>Leave Team</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">326</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.confirmLeave" datatype="html">
+        <source>Are you sure you want to leave this team?</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">327</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.confirmLeaveAction" datatype="html">
+        <source>Leave</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">328</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.confirmDeleteTitle" datatype="html">
+        <source>Delete Team</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">346</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmDelete" datatype="html">
         <source>Are you sure you want to delete this team?</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">257</context>
+          <context context-type="linenumber">347</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.confirmDeleteAction" datatype="html">
+        <source>Delete</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">348</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teams.title" datatype="html">
@@ -3267,411 +3365,425 @@
         <source> Watchlists </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">22,24</context>
+          <context context-type="linenumber">24,26</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.createButton" datatype="html">
         <source> Create Watchlist </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">29,31</context>
+          <context context-type="linenumber">31,33</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.editTitle" datatype="html">
         <source>Edit Watchlist</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">38,40</context>
+          <context context-type="linenumber">40,42</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.createTitle" datatype="html">
         <source>Create New Watchlist</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">40,42</context>
+          <context context-type="linenumber">42,44</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.nameLabel" datatype="html">
         <source> Name </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">46,47</context>
+          <context context-type="linenumber">48,49</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.namePlaceholder" datatype="html">
         <source>e.g. My Go Packages</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">57,58</context>
+          <context context-type="linenumber">59,60</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.nameRequired" datatype="html">
         <source>Name is required.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">61,63</context>
+          <context context-type="linenumber">63,65</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.matchTypeLabel" datatype="html">
         <source> Match Type </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">67,69</context>
+          <context context-type="linenumber">69,71</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.matchType.package" datatype="html">
         <source>Package</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">78,79</context>
+          <context context-type="linenumber">80,81</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.matchType.purl" datatype="html">
         <source>PURL</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">79,80</context>
+          <context context-type="linenumber">81,82</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.matchType.cpe" datatype="html">
         <source>CPE</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">80,81</context>
+          <context context-type="linenumber">82,83</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.matchType.ecosystem" datatype="html">
         <source>Ecosystem</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">81,83</context>
+          <context context-type="linenumber">83,85</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.matchTypeRequired" datatype="html">
         <source>Match type is required.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">84,88</context>
+          <context context-type="linenumber">86,90</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.ecosystemLabel" datatype="html">
         <source> Ecosystem </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">92,93</context>
+          <context context-type="linenumber">94,95</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.ecosystemPlaceholder" datatype="html">
         <source>e.g. Go, npm, PyPI</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">100,101</context>
+          <context context-type="linenumber">102,103</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.packageNameLabel" datatype="html">
         <source> Package Name </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">109,110</context>
+          <context context-type="linenumber">111,112</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.packageNamePlaceholder" datatype="html">
         <source>e.g. golang.org/x/crypto</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">117,118</context>
+          <context context-type="linenumber">119,120</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.purlPatternLabel" datatype="html">
         <source> PURL Pattern </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">126,127</context>
+          <context context-type="linenumber">128,129</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.purlPatternPlaceholder" datatype="html">
         <source>e.g. pkg:golang/golang.org/x/crypto</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">134,135</context>
+          <context context-type="linenumber">136,137</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.cpePatternLabel" datatype="html">
         <source> CPE Pattern </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">143,144</context>
+          <context context-type="linenumber">145,146</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.cpePatternPlaceholder" datatype="html">
         <source>e.g. cpe:2.3:a:apache:http_server</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">151,152</context>
+          <context context-type="linenumber">153,154</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.severityMinLabel" datatype="html">
         <source> Minimum Severity </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">159,161</context>
+          <context context-type="linenumber">161,163</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.severity.any" datatype="html">
         <source>Any</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">167,168</context>
+          <context context-type="linenumber">169,170</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.severity.critical" datatype="html">
         <source>Critical</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">168,169</context>
+          <context context-type="linenumber">170,171</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.severity.high" datatype="html">
         <source>High</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">169,170</context>
+          <context context-type="linenumber">171,172</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.severity.medium" datatype="html">
         <source>Medium</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">170,171</context>
+          <context context-type="linenumber">172,173</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.severity.low" datatype="html">
         <source>Low</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">171,172</context>
+          <context context-type="linenumber">173,174</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.severity.none" datatype="html">
         <source>None</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">172,174</context>
+          <context context-type="linenumber">174,176</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.epssThresholdLabel" datatype="html">
         <source> EPSS Threshold </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">178,180</context>
+          <context context-type="linenumber">180,182</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.epssThresholdPlaceholder" datatype="html">
         <source>e.g. 0.5</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">189,190</context>
+          <context context-type="linenumber">191,192</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.enabledLabel" datatype="html">
         <source> Enabled </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">204,205</context>
+          <context context-type="linenumber">206,207</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.teamLabel" datatype="html">
+        <source> Team (optional) </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">213,214</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="watchlists.noTeam" datatype="html">
+        <source>— No team (personal) —</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
+          <context context-type="linenumber">221,222</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.submitButton" datatype="html">
         <source> Save </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">216,217</context>
+          <context context-type="linenumber">235,236</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.cancelButton" datatype="html">
         <source> Cancel </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">224,225</context>
+          <context context-type="linenumber">243,244</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">381,382</context>
+          <context context-type="linenumber">400,401</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.loading" datatype="html">
         <source>Loading...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">233,234</context>
+          <context context-type="linenumber">252,253</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.noWatchlists" datatype="html">
         <source> No watchlists found. Create one to start monitoring vulnerabilities. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">236,238</context>
+          <context context-type="linenumber">255,257</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.col.name" datatype="html">
         <source>Name</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">243,244</context>
+          <context context-type="linenumber">262,263</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.col.type" datatype="html">
         <source>Type</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">244,245</context>
+          <context context-type="linenumber">263,264</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.col.conditions" datatype="html">
         <source>Conditions</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">245,246</context>
+          <context context-type="linenumber">264,265</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.col.enabled" datatype="html">
         <source>Enabled</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">246,247</context>
+          <context context-type="linenumber">265,266</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.col.created" datatype="html">
         <source>Created</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">247,248</context>
+          <context context-type="linenumber">266,267</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.col.actions" datatype="html">
         <source>Actions</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">248,250</context>
+          <context context-type="linenumber">267,269</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.yes" datatype="html">
         <source>Yes</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">265,266</context>
+          <context context-type="linenumber">284,285</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">348,349</context>
+          <context context-type="linenumber">367,368</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.no" datatype="html">
         <source>No</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">267,268</context>
+          <context context-type="linenumber">286,287</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">350,351</context>
+          <context context-type="linenumber">369,370</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.editButton" datatype="html">
         <source> Edit </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">278,279</context>
+          <context context-type="linenumber">297,298</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.deleteButton" datatype="html">
         <source> Delete </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">285,286</context>
+          <context context-type="linenumber">304,305</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.matchesButton" datatype="html">
         <source> Matches </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">292,293</context>
+          <context context-type="linenumber">311,312</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.matchHistory" datatype="html">
         <source> Match History </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">308,310</context>
+          <context context-type="linenumber">327,329</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.closeMatches" datatype="html">
         <source> Close </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">315,317</context>
+          <context context-type="linenumber">334,336</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.matchesLoading" datatype="html">
         <source>Loading matches...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">319,320</context>
+          <context context-type="linenumber">338,339</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.noMatches" datatype="html">
         <source> No matches found for this watchlist. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">322,324</context>
+          <context context-type="linenumber">341,343</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.match.vulnId" datatype="html">
         <source>Vulnerability ID</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">329,330</context>
+          <context context-type="linenumber">348,349</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.match.matchedAt" datatype="html">
         <source>Matched At</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">330,331</context>
+          <context context-type="linenumber">349,350</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.match.notified" datatype="html">
         <source>Notified</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">331,333</context>
+          <context context-type="linenumber">350,352</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.matchTotal" datatype="html">
         <source>Total matches:</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">359,360</context>
+          <context context-type="linenumber">378,379</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.deleteConfirmTitle" datatype="html">
         <source> Delete Watchlist </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">370,372</context>
+          <context context-type="linenumber">389,391</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.deleteConfirmMessage" datatype="html">
         <source> Are you sure you want to delete this watchlist? This action cannot be undone. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">373,375</context>
+          <context context-type="linenumber">392,394</context>
         </context-group>
       </trans-unit>
       <trans-unit id="watchlists.confirmDeleteButton" datatype="html">
         <source> Delete </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/watchlists/watchlists.component.ts</context>
-          <context context-type="linenumber">388,390</context>
+          <context context-type="linenumber">407,409</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.deliveries.backButton" datatype="html">
@@ -3748,266 +3860,280 @@
         <source> Webhooks </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">15,17</context>
+          <context context-type="linenumber">17,19</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.createButton" datatype="html">
         <source> Create Webhook </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">22,24</context>
+          <context context-type="linenumber">24,26</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.testSuccess" datatype="html">
         <source>Test webhook sent successfully.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">41,42</context>
+          <context context-type="linenumber">43,44</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.testFailed" datatype="html">
         <source>Test webhook failed.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">46,47</context>
+          <context context-type="linenumber">48,49</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.dismissAlert" datatype="html">
         <source> Dismiss </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">60,62</context>
+          <context context-type="linenumber">62,64</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.editTitle" datatype="html">
         <source>Edit Webhook</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">70,72</context>
+          <context context-type="linenumber">72,74</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.createTitle" datatype="html">
         <source>Create New Webhook</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">72,74</context>
+          <context context-type="linenumber">74,76</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.nameLabel" datatype="html">
         <source> Name </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">78,79</context>
+          <context context-type="linenumber">80,81</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.namePlaceholder" datatype="html">
         <source>e.g. security-team-slack</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">89,90</context>
+          <context context-type="linenumber">91,92</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.nameRequired" datatype="html">
         <source>Name is required.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">93,95</context>
+          <context context-type="linenumber">95,97</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.urlLabel" datatype="html">
         <source> URL </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">98,99</context>
+          <context context-type="linenumber">100,101</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.urlPlaceholder" datatype="html">
         <source>https://hooks.slack.com/services/...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">110,111</context>
+          <context context-type="linenumber">112,113</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.urlRequired" datatype="html">
         <source>URL is required.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">115,117</context>
+          <context context-type="linenumber">117,119</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.urlInvalid" datatype="html">
         <source>Please enter a valid URL (http:// or https://).</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">117,119</context>
+          <context context-type="linenumber">119,121</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.eventsLabel" datatype="html">
         <source> Events (comma-separated) </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">123,124</context>
+          <context context-type="linenumber">125,126</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.eventsPlaceholder" datatype="html">
         <source>new_critical, new_high, *</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">134,135</context>
+          <context context-type="linenumber">136,137</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.eventsRequired" datatype="html">
         <source>Events are required.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">138,140</context>
+          <context context-type="linenumber">140,142</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.contentTypeLabel" datatype="html">
         <source> Content Type </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">143,145</context>
+          <context context-type="linenumber">145,147</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.bodyTemplateLabel" datatype="html">
         <source> Body Template </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">156,158</context>
+          <context context-type="linenumber">158,160</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.bodyTemplatePlaceholder" datatype="html">
         <source>{&quot;text&quot;: &quot;...&quot;}</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">164,165</context>
+          <context context-type="linenumber">166,167</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.secretLabel" datatype="html">
         <source> Secret </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">170,171</context>
+          <context context-type="linenumber">172,173</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.secretPlaceholder" datatype="html">
         <source>Optional HMAC secret</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">178,179</context>
+          <context context-type="linenumber">180,181</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.enabledLabel" datatype="html">
         <source> Enabled </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">191,192</context>
+          <context context-type="linenumber">193,194</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.teamLabel" datatype="html">
+        <source> Team (optional) </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">198,199</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="webhooks.noTeam" datatype="html">
+        <source>— No team (personal) —</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
+          <context context-type="linenumber">206,207</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.saveButton" datatype="html">
         <source> Save </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">201,202</context>
+          <context context-type="linenumber">219,220</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.cancelButton" datatype="html">
         <source> Cancel </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">209,210</context>
+          <context context-type="linenumber">227,228</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.loading" datatype="html">
         <source>Loading...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">218,219</context>
+          <context context-type="linenumber">236,237</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.noWebhooks" datatype="html">
         <source> No webhooks found. Create one to get started. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">221,223</context>
+          <context context-type="linenumber">239,241</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.col.name" datatype="html">
         <source>Name</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">228,229</context>
+          <context context-type="linenumber">246,247</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.col.url" datatype="html">
         <source>URL</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">230</context>
+          <context context-type="linenumber">248</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.col.events" datatype="html">
         <source>Events</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">230,231</context>
+          <context context-type="linenumber">248,249</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.col.enabled" datatype="html">
         <source>Enabled</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">231,232</context>
+          <context context-type="linenumber">249,250</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.col.actions" datatype="html">
         <source>Actions</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">232,234</context>
+          <context context-type="linenumber">250,252</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.statusEnabled" datatype="html">
         <source> Enabled </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">252,253</context>
+          <context context-type="linenumber">270,271</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.statusDisabled" datatype="html">
         <source> Disabled </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">256,257</context>
+          <context context-type="linenumber">274,275</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.editButton" datatype="html">
         <source> Edit </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">267,268</context>
+          <context context-type="linenumber">285,286</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.testButton" datatype="html">
         <source> Test </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">275,276</context>
+          <context context-type="linenumber">293,294</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.deliveriesLink" datatype="html">
         <source> Logs </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">282,283</context>
+          <context context-type="linenumber">300,301</context>
         </context-group>
       </trans-unit>
       <trans-unit id="webhooks.deleteButton" datatype="html">
         <source> Delete </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/webhooks/webhooks.component.ts</context>
-          <context context-type="linenumber">289,290</context>
+          <context context-type="linenumber">307,308</context>
         </context-group>
       </trans-unit>
       <trans-unit id="externalLink.title" datatype="html">
