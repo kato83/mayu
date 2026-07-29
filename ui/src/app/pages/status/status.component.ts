@@ -110,18 +110,17 @@ import { SyncState, EPSSCoverage } from '../../models/status.model';
                 <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@status.col.sourceType">Type</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@status.col.source">Source</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@status.col.lastSynced">Last Synced</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@status.col.lastModified">Last Modified</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap" i18n="@@status.col.recordCount">Records</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
               @if (loading() && syncStates().length === 0) {
                 <tr>
-                  <td colspan="5" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400" i18n="@@status.loading">Loading...</td>
+                  <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400" i18n="@@status.loading">Loading...</td>
                 </tr>
               } @else if (syncStates().length === 0) {
                 <tr>
-                  <td colspan="5" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400" i18n="@@status.noData">No sync data found. Run an ingest operation to populate data.</td>
+                  <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400" i18n="@@status.noData">No sync data found. Run an ingest operation to populate data.</td>
                 </tr>
               } @else {
                 @for (state of syncStates(); track state.source) {
@@ -131,7 +130,6 @@ import { SyncState, EPSSCoverage } from '../../models/status.model';
                     </td>
                     <td class="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{{ state.source }}</td>
                     <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ state.last_synced_at | date:'yyyy-MM-dd HH:mm' }}</td>
-                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ state.last_modified_at | date:'yyyy-MM-dd HH:mm' }}</td>
                     <td class="px-4 py-3 text-sm text-right text-slate-700 dark:text-slate-300">{{ state.record_count | number }}</td>
                   </tr>
                 }

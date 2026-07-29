@@ -471,9 +471,9 @@ func TestSyncState(t *testing.T) {
 	// Create sync state
 	now := time.Now().UTC().Truncate(time.Second)
 	newState := &SyncState{
-		Source:         "Go",
-		LastModifiedAt: now.Format(time.RFC3339),
-		RecordCount:    42,
+		Source:       "Go",
+		LastSyncedAt: now.Format(time.RFC3339),
+		RecordCount:  42,
 	}
 	if err := store.UpdateSyncState(ctx, newState); err != nil {
 		t.Fatalf("UpdateSyncState failed: %v", err)
@@ -496,9 +496,9 @@ func TestSyncState(t *testing.T) {
 
 	// Update
 	updatedState := &SyncState{
-		Source:         "Go",
-		LastModifiedAt: now.Add(time.Hour).Format(time.RFC3339),
-		RecordCount:    100,
+		Source:       "Go",
+		LastSyncedAt: now.Add(time.Hour).Format(time.RFC3339),
+		RecordCount:  100,
 	}
 	if err := store.UpdateSyncState(ctx, updatedState); err != nil {
 		t.Fatalf("UpdateSyncState (update) failed: %v", err)

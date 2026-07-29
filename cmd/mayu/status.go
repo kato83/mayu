@@ -72,11 +72,10 @@ type statusJSON struct {
 }
 
 type syncStateJSON struct {
-	Source         string `json:"source"`
-	SourceType     string `json:"source_type"`
-	LastModifiedAt string `json:"last_modified_at"`
-	LastSyncedAt   string `json:"last_synced_at"`
-	RecordCount    int64  `json:"record_count"`
+	Source       string `json:"source"`
+	SourceType   string `json:"source_type"`
+	LastSyncedAt string `json:"last_synced_at"`
+	RecordCount  int64  `json:"record_count"`
 }
 
 type epssCoverageJSON struct {
@@ -93,11 +92,10 @@ func printStatusJSON(states []store.SyncState, coverage *store.EPSSCoverage) err
 	}
 	for _, s := range states {
 		out.SyncStates = append(out.SyncStates, syncStateJSON{
-			Source:         s.Source,
-			SourceType:     s.SourceType,
-			LastModifiedAt: s.LastModifiedAt,
-			LastSyncedAt:   s.LastSyncedAt,
-			RecordCount:    s.RecordCount,
+			Source:       s.Source,
+			SourceType:   s.SourceType,
+			LastSyncedAt: s.LastSyncedAt,
+			RecordCount:  s.RecordCount,
 		})
 	}
 	if coverage != nil {

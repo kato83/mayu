@@ -746,10 +746,6 @@
         <source>Last Synced</source>
         <target>最終同期</target>
       </trans-unit>
-      <trans-unit id="status.col.lastModified" datatype="html">
-        <source>Last Modified</source>
-        <target>最終更新</target>
-      </trans-unit>
       <trans-unit id="status.col.recordCount" datatype="html">
         <source>Records</source>
         <target>レコード数</target>

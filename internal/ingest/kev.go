@@ -93,10 +93,10 @@ func (ing *Ingester) ImportKEV(ctx context.Context) (*Stats, error) {
 
 	// Update sync state
 	syncState := &store.SyncState{
-		Source:         kevSource,
-		SourceType:     "kev",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-		RecordCount:    int64(inserted),
+		Source:       kevSource,
+		SourceType:   "kev",
+		LastSyncedAt: start.UTC().Format(time.RFC3339),
+		RecordCount:  int64(inserted),
 	}
 	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
 		ing.logger.Printf("warning: failed to update sync state: %v", err)
@@ -131,7 +131,7 @@ func (ing *Ingester) UpdateKEV(ctx context.Context) (*Stats, error) {
 	}
 
 	// Parse last sync time
-	lastSync, err := time.Parse(time.RFC3339, syncState.LastModifiedAt)
+	lastSync, err := time.Parse(time.RFC3339, syncState.LastSyncedAt)
 	if err != nil {
 		ing.progress(Progress{Phase: "download", Message: "Invalid last sync time, performing full import..."})
 		return ing.ImportKEV(ctx)

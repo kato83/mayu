@@ -72,10 +72,10 @@ func (ing *Ingester) ImportMITRE(ctx context.Context) (*Stats, error) {
 
 	// Update sync state.
 	syncState := &store.SyncState{
-		Source:         mitreSource,
-		SourceType:     "mitre",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-		RecordCount:    int64(inserted),
+		Source:       mitreSource,
+		SourceType:   "mitre",
+		LastSyncedAt: start.UTC().Format(time.RFC3339),
+		RecordCount:  int64(inserted),
 	}
 	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
 		ing.logger.Printf("warning: failed to update sync state: %v", err)
@@ -135,7 +135,7 @@ func (ing *Ingester) UpdateMITRE(ctx context.Context) (*Stats, error) {
 		}
 	}()
 
-	since, _ := time.Parse(time.RFC3339, syncState.LastModifiedAt)
+	since, _ := time.Parse(time.RFC3339, syncState.LastSyncedAt)
 
 	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Fetching MITRE delta zips since %s...", since.Format(time.RFC3339))})
 
@@ -150,10 +150,10 @@ func (ing *Ingester) UpdateMITRE(ctx context.Context) (*Stats, error) {
 
 		// Still update sync state timestamp.
 		newState := &store.SyncState{
-			Source:         mitreSource,
-			SourceType:     "mitre",
-			LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-			RecordCount:    syncState.RecordCount,
+			Source:       mitreSource,
+			SourceType:   "mitre",
+			LastSyncedAt: start.UTC().Format(time.RFC3339),
+			RecordCount:  syncState.RecordCount,
 		}
 		if err := ing.store.UpdateSyncState(ctx, newState); err != nil {
 			ing.logger.Printf("warning: failed to update sync state: %v", err)
@@ -201,10 +201,10 @@ func (ing *Ingester) UpdateMITRE(ctx context.Context) (*Stats, error) {
 
 	// Update sync state.
 	newState := &store.SyncState{
-		Source:         mitreSource,
-		SourceType:     "mitre",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-		RecordCount:    syncState.RecordCount + int64(totalInserted),
+		Source:       mitreSource,
+		SourceType:   "mitre",
+		LastSyncedAt: start.UTC().Format(time.RFC3339),
+		RecordCount:  syncState.RecordCount + int64(totalInserted),
 	}
 	if err := ing.store.UpdateSyncState(ctx, newState); err != nil {
 		ing.logger.Printf("warning: failed to update sync state: %v", err)
@@ -333,10 +333,10 @@ func shouldFallbackToFullMITREImport(state *store.SyncState) bool {
 	if state == nil {
 		return true
 	}
-	if state.LastModifiedAt == "" {
+	if state.LastSyncedAt == "" {
 		return true
 	}
-	lastSync, err := time.Parse(time.RFC3339, state.LastModifiedAt)
+	lastSync, err := time.Parse(time.RFC3339, state.LastSyncedAt)
 	if err != nil {
 		return true
 	}

@@ -324,7 +324,6 @@ erDiagram
     sync_state {
         TEXT source PK
         TEXT source_type "osv, nvd, mitre, epss, kev"
-        TIMESTAMPTZ last_modified_at
         TIMESTAMPTZ last_synced_at
         BIGINT record_count
     }

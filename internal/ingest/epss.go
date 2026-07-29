@@ -73,10 +73,10 @@ func (ing *Ingester) ImportEPSS(ctx context.Context) (*Stats, error) {
 
 	// Update sync state
 	syncState := &store.SyncState{
-		Source:         epssSource,
-		SourceType:     "epss",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-		RecordCount:    int64(inserted),
+		Source:       epssSource,
+		SourceType:   "epss",
+		LastSyncedAt: start.UTC().Format(time.RFC3339),
+		RecordCount:  int64(inserted),
 	}
 	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
 		ing.logger.Printf("warning: failed to update sync state: %v", err)
@@ -119,10 +119,10 @@ func (ing *Ingester) ImportEPSSByDate(ctx context.Context, date string) (*Stats,
 
 	// Update sync state
 	syncState := &store.SyncState{
-		Source:         epssSource,
-		SourceType:     "epss",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-		RecordCount:    int64(inserted),
+		Source:       epssSource,
+		SourceType:   "epss",
+		LastSyncedAt: start.UTC().Format(time.RFC3339),
+		RecordCount:  int64(inserted),
 	}
 	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
 		ing.logger.Printf("warning: failed to update sync state: %v", err)
@@ -155,7 +155,7 @@ func (ing *Ingester) UpdateEPSS(ctx context.Context) (*Stats, error) {
 	}
 
 	// Parse last sync time
-	lastSync, err := time.Parse(time.RFC3339, syncState.LastModifiedAt)
+	lastSync, err := time.Parse(time.RFC3339, syncState.LastSyncedAt)
 	if err != nil {
 		ing.progress(Progress{Phase: "download", Message: "Invalid last sync time, performing full import..."})
 		return ing.ImportEPSS(ctx)
@@ -423,10 +423,10 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 			// GetEPSSImportedDates (which reads from epss_daily_stats table).
 			if totalInserted > 0 {
 				partialState := &store.SyncState{
-					Source:         epssSource,
-					SourceType:     "epss",
-					LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-					RecordCount:    int64(totalInserted),
+					Source:       epssSource,
+					SourceType:   "epss",
+					LastSyncedAt: start.UTC().Format(time.RFC3339),
+					RecordCount:  int64(totalInserted),
 				}
 				// Use context.Background since original ctx is done
 				if err := ing.store.UpdateSyncState(context.Background(), partialState); err != nil {
@@ -492,10 +492,10 @@ func (ing *Ingester) BackfillEPSSRange(ctx context.Context, from, to string) (*S
 
 	// Update sync state
 	syncState := &store.SyncState{
-		Source:         epssSource,
-		SourceType:     "epss",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-		RecordCount:    int64(totalInserted),
+		Source:       epssSource,
+		SourceType:   "epss",
+		LastSyncedAt: start.UTC().Format(time.RFC3339),
+		RecordCount:  int64(totalInserted),
 	}
 	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
 		ing.logger.Printf("warning: failed to update sync state: %v", err)

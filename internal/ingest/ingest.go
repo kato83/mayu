@@ -231,10 +231,10 @@ func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, 
 
 	// Update sync state
 	syncState := &store.SyncState{
-		Source:         ecosystem,
-		SourceType:     "osv",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-		RecordCount:    int64(stats.Inserted),
+		Source:       ecosystem,
+		SourceType:   "osv",
+		LastSyncedAt: start.UTC().Format(time.RFC3339),
+		RecordCount:  int64(stats.Inserted),
 	}
 	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
 		ing.logger.Printf("warning: failed to update sync state: %v", err)
@@ -299,11 +299,11 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 		return ing.FullImport(ctx, ecosystem)
 	}
 
-	since, err := time.Parse(time.RFC3339Nano, syncState.LastModifiedAt)
+	since, err := time.Parse(time.RFC3339Nano, syncState.LastSyncedAt)
 	if err != nil {
-		since, err = time.Parse(time.RFC3339, syncState.LastModifiedAt)
+		since, err = time.Parse(time.RFC3339, syncState.LastSyncedAt)
 		if err != nil {
-			return nil, fmt.Errorf("parse last_modified_at: %w", err)
+			return nil, fmt.Errorf("parse last_synced_at: %w", err)
 		}
 	}
 
@@ -454,10 +454,10 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 			latest = latest.Truncate(time.Microsecond).Add(time.Microsecond)
 		}
 		newSyncState := &store.SyncState{
-			Source:         ecosystem,
-			SourceType:     "osv",
-			LastModifiedAt: latest.Format(time.RFC3339Nano),
-			RecordCount:    syncState.RecordCount + int64(stats.Inserted),
+			Source:       ecosystem,
+			SourceType:   "osv",
+			LastSyncedAt: latest.Format(time.RFC3339Nano),
+			RecordCount:  syncState.RecordCount + int64(stats.Inserted),
 		}
 		if err := ing.store.UpdateSyncState(ctx, newSyncState); err != nil {
 			ing.logger.Printf("warning: failed to update sync state: %v", err)

@@ -250,11 +250,10 @@ type SearchQuery struct {
 
 // SyncState tracks the incremental import state for a data source.
 type SyncState struct {
-	Source         string // e.g., "Go", "npm", "NVD:2024", "GHSA:owner/repo"
-	SourceType     string // osv, nvd, mitre, epss, kev, ghsa
-	LastModifiedAt string // ISO 8601 timestamp from modified_id.csv
-	LastSyncedAt   string // ISO 8601 timestamp when mayu last synced (from DB default NOW())
-	RecordCount    int64
+	Source       string // e.g., "Go", "npm", "NVD:2024", "GHSA:owner/repo"
+	SourceType   string // osv, nvd, mitre, epss, kev, ghsa
+	LastSyncedAt string // ISO 8601 timestamp captured at ingest start, written on success
+	RecordCount  int64
 }
 
 // EPSSCoverage holds summary statistics about EPSS data coverage.

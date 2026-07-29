@@ -1,0 +1,1 @@
+ALTER TABLE sync_state ADD COLUMN last_modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
