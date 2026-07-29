@@ -93,6 +93,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "notification":
+		if err := runNotification(subcommandArgs(), cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "sbom":
 		if err := runSBOM(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -213,6 +218,7 @@ func printUsage() {
 	fmt.Println("  user       Manage user accounts")
 	fmt.Println("  apikey     Manage API keys")
 	fmt.Println("  webhook    Manage webhooks")
+	fmt.Println("  notification  Manage notification channels and templates")
 	fmt.Println("  sbom       Manage SBOM continuous monitoring")
 	fmt.Println("  watch      Manage watchlist entries")
 	fmt.Println("  team       Manage teams and membership")
