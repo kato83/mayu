@@ -120,6 +120,30 @@ type ChunkingConfig struct {
 	MaxChars int `yaml:"max_chars"`
 }
 
+// EmailNotificationConfig holds SMTP email notification settings.
+type EmailNotificationConfig struct {
+	// Enabled controls whether email notifications are active.
+	Enabled bool `yaml:"enabled"`
+	// SMTPHost is the SMTP server hostname.
+	SMTPHost string `yaml:"smtp_host"`
+	// SMTPPort is the SMTP server port (default: 587).
+	SMTPPort int `yaml:"smtp_port"`
+	// Username for SMTP authentication.
+	Username string `yaml:"username"`
+	// Password for SMTP authentication.
+	Password string `yaml:"password"`
+	// From is the email address used as the sender (e.g., "Mayu <mayu@example.com>").
+	From string `yaml:"from"`
+	// TLS controls whether STARTTLS is attempted.
+	TLS bool `yaml:"tls"`
+}
+
+// NotificationConfig holds notification channel configuration.
+type NotificationConfig struct {
+	// Email holds SMTP email notification settings.
+	Email EmailNotificationConfig `yaml:"email"`
+}
+
 // EPSSConfig holds EPSS data retention configuration.
 type EPSSConfig struct {
 	// RetentionDays is the number of days of EPSS historical data to retain.
@@ -136,6 +160,8 @@ type Config struct {
 	Auth AuthConfig `yaml:"auth"`
 	// Translation holds LLM-based translation configuration.
 	Translation TranslationConfig `yaml:"translation"`
+	// Notification holds notification channel configuration.
+	Notification NotificationConfig `yaml:"notification"`
 	// EPSS holds EPSS data retention configuration.
 	EPSS EPSSConfig `yaml:"epss"`
 }
