@@ -15,6 +15,7 @@ import (
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/lockfile"
 	"github.com/kato83/mayu/internal/policy"
+	"github.com/kato83/mayu/internal/reachability"
 	"github.com/kato83/mayu/internal/sbom"
 	"github.com/kato83/mayu/internal/store"
 )
@@ -37,6 +38,7 @@ func runScan(args []string, cfg *config.Config) (int, error) {
 	includeDev := fs.Bool("include-dev", false, "Include development dependencies in scan")
 	noVersionCheck := fs.Bool("no-version-check", false, "Skip version matching, report all vulnerabilities for package name")
 	policyPath := fs.String("policy", "", "Path to policy YAML file for custom gating (block/warn/suppress)")
+	reachabilityFlag := fs.Bool("reachability", false, "Run reachability analysis on Go projects (checks if vulnerable symbols are actually used)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu scan [options]")
@@ -174,6 +176,16 @@ func runScan(args []string, cfg *config.Config) (int, error) {
 		result.VulnerablePackages = len(pkgSet)
 	}
 
+	// Run reachability analysis if requested and project is Go-based.
+	if *reachabilityFlag && len(result.Findings) > 0 {
+		projectDir := detectGoProjectDir(lockfiles, *dirPath)
+		if projectDir != "" {
+			if err := runReachabilityAnalysis(ctx, s, result, projectDir); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: reachability analysis failed: %v\n", err)
+			}
+		}
+	}
+
 	// Apply policy evaluation
 	var policyResults []scanPolicyResult
 	var hasBlock bool
@@ -283,22 +295,60 @@ func outputScanTable(result *audit.AuditResult, source string) {
 		return
 	}
 
-	fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n", "PACKAGE", "VERSION", "VULN ID", "SEVERITY", "FIXED", "SUMMARY")
-	fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n",
-		"----------------------------------------",
-		"------------",
-		"--------------------",
-		"----------",
-		"--------------",
-		"----------------------------------------")
-
+	// Check if reachability info is present.
+	hasReachability := false
 	for _, f := range result.Findings {
-		pkg := truncateString(f.Component.Name, 40)
-		ver := truncateString(f.Component.Version, 12)
-		vulnID := truncateString(f.VulnID, 20)
-		fixed := truncateString(f.FixedVersion, 14)
-		summary := truncateString(f.Summary, 60)
-		fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n", pkg, ver, vulnID, f.Severity, fixed, summary)
+		if f.Reachable != nil {
+			hasReachability = true
+			break
+		}
+	}
+
+	if hasReachability {
+		fmt.Printf("%-40s %-12s %-20s %-10s %-10s %-14s %s\n", "PACKAGE", "VERSION", "VULN ID", "SEVERITY", "REACHABLE", "FIXED", "SUMMARY")
+		fmt.Printf("%-40s %-12s %-20s %-10s %-10s %-14s %s\n",
+			"----------------------------------------",
+			"------------",
+			"--------------------",
+			"----------",
+			"----------",
+			"--------------",
+			"----------------------------------------")
+
+		for _, f := range result.Findings {
+			pkg := truncateString(f.Component.Name, 40)
+			ver := truncateString(f.Component.Version, 12)
+			vulnID := truncateString(f.VulnID, 20)
+			fixed := truncateString(f.FixedVersion, 14)
+			summary := truncateString(f.Summary, 60)
+			reachable := "N/A"
+			if f.Reachable != nil {
+				if *f.Reachable {
+					reachable = "YES"
+				} else {
+					reachable = "NO"
+				}
+			}
+			fmt.Printf("%-40s %-12s %-20s %-10s %-10s %-14s %s\n", pkg, ver, vulnID, f.Severity, reachable, fixed, summary)
+		}
+	} else {
+		fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n", "PACKAGE", "VERSION", "VULN ID", "SEVERITY", "FIXED", "SUMMARY")
+		fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n",
+			"----------------------------------------",
+			"------------",
+			"--------------------",
+			"----------",
+			"--------------",
+			"----------------------------------------")
+
+		for _, f := range result.Findings {
+			pkg := truncateString(f.Component.Name, 40)
+			ver := truncateString(f.Component.Version, 12)
+			vulnID := truncateString(f.VulnID, 20)
+			fixed := truncateString(f.FixedVersion, 14)
+			summary := truncateString(f.Summary, 60)
+			fmt.Printf("%-40s %-12s %-20s %-10s %-14s %s\n", pkg, ver, vulnID, f.Severity, fixed, summary)
+		}
 	}
 
 	fmt.Printf("\n✗ %d vulnerability finding(s) in %d package(s) (%d total packages scanned)\n",
@@ -440,4 +490,105 @@ func outputScanCSVWithPolicy(policyResults []scanPolicyResult) {
 			csvEscape(f.Summary),
 		)
 	}
+}
+
+// detectGoProjectDir determines if the scanned project is a Go project.
+// Returns the project directory if a go.sum is found among lockfiles or in dirPath.
+func detectGoProjectDir(lockfiles []string, dirPath string) string {
+	for _, lf := range lockfiles {
+		if filepath.Base(lf) == "go.sum" {
+			return filepath.Dir(lf)
+		}
+	}
+	if dirPath != "" {
+		goSumPath := filepath.Join(dirPath, "go.sum")
+		if _, err := os.Stat(goSumPath); err == nil {
+			return dirPath
+		}
+	}
+	return ""
+}
+
+// runReachabilityAnalysis performs Go symbol reachability analysis on findings.
+// It modifies the findings in-place, setting Reachable and ReachableEvidence fields.
+func runReachabilityAnalysis(ctx context.Context, s *store.PostgresStore, result *audit.AuditResult, projectDir string) error {
+	// Collect unique Go vulnerability IDs from findings.
+	goVulnIDs := make(map[string]bool)
+	for _, f := range result.Findings {
+		if f.Component.Ecosystem == "Go" {
+			goVulnIDs[f.VulnID] = true
+		}
+	}
+
+	if len(goVulnIDs) == 0 {
+		return nil
+	}
+
+	// Fetch vulnerability details to get ecosystem_specific data.
+	var allSymbols []reachability.VulnSymbol
+	for vulnID := range goVulnIDs {
+		vuln, err := s.GetByID(ctx, vulnID)
+		if err != nil || vuln == nil {
+			continue
+		}
+		for _, affected := range vuln.Affected {
+			if affected.Package.Ecosystem != "Go" {
+				continue
+			}
+			symbols := reachability.ExtractVulnSymbols(vulnID, affected.EcosystemSpecific)
+			allSymbols = append(allSymbols, symbols...)
+		}
+	}
+
+	if len(allSymbols) == 0 {
+		// No symbol info available — mark all Go findings as having no reachability data.
+		return nil
+	}
+
+	// Run the analyzer.
+	analyzer := reachability.NewGoAnalyzer()
+	results, err := analyzer.Analyze(ctx, projectDir, allSymbols)
+	if err != nil {
+		return fmt.Errorf("analyze: %w", err)
+	}
+
+	// Build a lookup map: (vulnID, package) → Result.
+	type rKey struct{ vulnID, pkg string }
+	resultMap := make(map[rKey]*reachability.Result)
+	for i := range results {
+		r := &results[i]
+		resultMap[rKey{r.VulnID, r.Package}] = r
+	}
+
+	// Apply results to findings.
+	for i := range result.Findings {
+		f := &result.Findings[i]
+		if f.Component.Ecosystem != "Go" {
+			continue
+		}
+
+		// Check if we have reachability data for this finding.
+		// Try matching by vuln ID + package name.
+		key := rKey{f.VulnID, f.Component.Name}
+		r, ok := resultMap[key]
+		if !ok {
+			// No symbol data for this finding — mark as analyzed but unknown.
+			reachable := false
+			f.Reachable = &reachable
+			continue
+		}
+
+		f.Reachable = &r.Reachable
+		if r.Reachable {
+			for _, ev := range r.Evidence {
+				f.ReachableEvidence = append(f.ReachableEvidence, audit.ReachableEvidence{
+					Symbol: ev.Symbol,
+					File:   ev.File,
+					Line:   ev.Line,
+				})
+			}
+		}
+	}
+
+	return nil
 }
