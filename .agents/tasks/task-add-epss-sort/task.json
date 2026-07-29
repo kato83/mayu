@@ -1,0 +1,14 @@
+{
+  "task_id": "task-add-epss-sort",
+  "task_description": "Add EPSS score sort (ascending/descending) to the vulnerability list page. Refactor the frontend sort UI to split sort field selection from direction toggle.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "go build ./... and go test ./... all pass (19 packages). Frontend pnpm build succeeds. Only i18n translation warnings for new strings (expected)."
+  }
+}

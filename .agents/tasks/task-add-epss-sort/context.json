@@ -1,0 +1,23 @@
+{
+  "project_type": "Go backend + Angular frontend monorepo for vulnerability tracking",
+  "language": "Go (backend), TypeScript/Angular (frontend)",
+  "build_system": "Go modules (backend), pnpm + Angular CLI (frontend)",
+  "test_framework": "Go testing with httptest mocks (backend), Angular test (frontend)",
+  "build_command": "cd /projects/sandbox/mayu && go build ./... && cd ui && pnpm install && pnpm build",
+  "test_command": "cd /projects/sandbox/mayu && go test ./internal/server/ && go test ./internal/store/",
+  "verification_instructions": "1. Run go build ./... from project root 2. Run go test ./internal/server/ 3. Run pnpm install && pnpm build in ui/",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "1. cd /projects/sandbox/mayu && go build ./... 2. cd ui && pnpm install",
+  "environment_constraints": "Open internet available for installing dependencies",
+  "contribution_requirements": "No specific constraints found affecting this task",
+  "key_patterns": "- buildOrderClause(sort, prefix) handles ORDER BY generation, prefix is 'v.' for searchLight and '' for Search. Both paths already JOIN vulnerability_summary as 'vs'. - Frontend uses Angular standalone components with inline templates, Tailwind CSS with dark: prefix, FormsModule with ngModel, i18n attributes for localization. - Sort select currently has 4 options: modified_desc, modified_asc, published_desc, published_asc. - FilterState interface groups all filter state, emptyFilters() provides defaults.",
+  "relevant_files": [
+    "internal/server/server.go (line ~531: validSorts map)",
+    "internal/store/postgres.go (line ~698: buildOrderClause function)",
+    "internal/store/store.go (line ~243: Sort field comment)",
+    "cmd/mayu/search.go (line ~32: CLI sort flag help text)",
+    "ui/src/app/models/search-params.model.ts (sort type union)",
+    "ui/src/app/pages/vulnerabilities/vulnerabilities.component.ts (sort UI select + FilterState)"
+  ],
+  "directory_structure": "cmd/mayu/ - CLI entry points, internal/server/ - HTTP server with chi router, internal/store/ - PostgreSQL data layer, internal/model/ - domain models, ui/src/app/ - Angular app with pages/, models/, services/, shared/"
+}

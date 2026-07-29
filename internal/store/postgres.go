@@ -694,7 +694,7 @@ func severityToLevel(level string) int {
 
 // buildOrderClause returns the ORDER BY clause for the given sort parameter.
 // prefix is the table alias prefix (e.g., "v." or "" depending on the query).
-// Valid sort values: "modified_desc" (default), "modified_asc", "published_desc", "published_asc".
+// Valid sort values: "modified_desc" (default), "modified_asc", "published_desc", "published_asc", "epss_desc", "epss_asc".
 func buildOrderClause(sort string, prefix string) string {
 	id := prefix + "id"
 	switch strings.ToLower(sort) {
@@ -704,6 +704,10 @@ func buildOrderClause(sort string, prefix string) string {
 		return "ORDER BY " + prefix + "published DESC NULLS LAST, " + id + " DESC"
 	case "published_asc":
 		return "ORDER BY " + prefix + "published ASC NULLS LAST, " + id + " ASC"
+	case "epss_desc":
+		return "ORDER BY vs.epss_score DESC NULLS LAST, " + id + " DESC"
+	case "epss_asc":
+		return "ORDER BY vs.epss_score ASC NULLS LAST, " + id + " ASC"
 	default: // "modified_desc" or empty
 		return "ORDER BY " + prefix + "modified DESC, " + id + " DESC"
 	}
@@ -735,29 +739,36 @@ func (s *PostgresStore) Search(ctx context.Context, query SearchQuery) ([]*model
 			return nil, fmt.Errorf("invalid cursor: %w", err)
 		}
 
-		// Determine sort column from cursor's sort key
-		sortCol := "modified"
-		if cursor.SortKey == "published" {
-			sortCol = "published"
-			sortOrder = "published_desc"
+		if cursor.SortKey == "epss" {
+			// EPSS sort does not support cursor-based pagination (cursor stores
+			// a *time.Time which cannot represent a float score). Preserve the
+			// original sortOrder and skip keyset conditions; the client should
+			// be using offset-based pagination instead.
 		} else {
-			sortOrder = "modified_desc"
-		}
+			// Determine sort column from cursor's sort key
+			sortCol := "modified"
+			if cursor.SortKey == "published" {
+				sortCol = "published"
+				sortOrder = "published_desc"
+			} else {
+				sortOrder = "modified_desc"
+			}
 
-		// Keyset condition: (sort_col, id) < (cursor.timestamp, cursor.id) for DESC order
-		if cursor.Timestamp != nil {
-			argIdx++
-			tsArg := argIdx
-			argIdx++
-			idArg := argIdx
-			baseQuery += fmt.Sprintf(` AND (%s < $%d OR (%s = $%d AND v.id < $%d) OR (%s IS NULL))`,
-				sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
-			args = append(args, cursor.Timestamp.UTC(), cursor.ID)
-		} else {
-			// Cursor item had NULL sort column; only items with NULL sort_col AND id < cursor.id come after
-			argIdx++
-			baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id < $%d)`, sortCol, argIdx)
-			args = append(args, cursor.ID)
+			// Keyset condition: (sort_col, id) < (cursor.timestamp, cursor.id) for DESC order
+			if cursor.Timestamp != nil {
+				argIdx++
+				tsArg := argIdx
+				argIdx++
+				idArg := argIdx
+				baseQuery += fmt.Sprintf(` AND (%s < $%d OR (%s = $%d AND v.id < $%d) OR (%s IS NULL))`,
+					sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
+				args = append(args, cursor.Timestamp.UTC(), cursor.ID)
+			} else {
+				// Cursor item had NULL sort column; only items with NULL sort_col AND id < cursor.id come after
+				argIdx++
+				baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id < $%d)`, sortCol, argIdx)
+				args = append(args, cursor.ID)
+			}
 		}
 	}
 
@@ -1361,26 +1372,33 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 			return nil, fmt.Errorf("invalid cursor: %w", err)
 		}
 
-		sortCol := "v.modified"
-		if cursor.SortKey == "published" {
-			sortCol = "v.published"
-			sortOrder = "published_desc"
+		if cursor.SortKey == "epss" {
+			// EPSS sort does not support cursor-based pagination (cursor stores
+			// a *time.Time which cannot represent a float score). Preserve the
+			// original sortOrder and skip keyset conditions; the client should
+			// be using offset-based pagination instead.
 		} else {
-			sortOrder = "modified_desc"
-		}
+			sortCol := "v.modified"
+			if cursor.SortKey == "published" {
+				sortCol = "v.published"
+				sortOrder = "published_desc"
+			} else {
+				sortOrder = "modified_desc"
+			}
 
-		if cursor.Timestamp != nil {
-			argIdx++
-			tsArg := argIdx
-			argIdx++
-			idArg := argIdx
-			baseQuery += fmt.Sprintf(` AND (%s < $%d OR (%s = $%d AND v.id < $%d) OR (%s IS NULL))`,
-				sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
-			args = append(args, cursor.Timestamp.UTC(), cursor.ID)
-		} else {
-			argIdx++
-			baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id < $%d)`, sortCol, argIdx)
-			args = append(args, cursor.ID)
+			if cursor.Timestamp != nil {
+				argIdx++
+				tsArg := argIdx
+				argIdx++
+				idArg := argIdx
+				baseQuery += fmt.Sprintf(` AND (%s < $%d OR (%s = $%d AND v.id < $%d) OR (%s IS NULL))`,
+					sortCol, tsArg, sortCol, tsArg, idArg, sortCol)
+				args = append(args, cursor.Timestamp.UTC(), cursor.ID)
+			} else {
+				argIdx++
+				baseQuery += fmt.Sprintf(` AND (%s IS NULL AND v.id < $%d)`, sortCol, argIdx)
+				args = append(args, cursor.ID)
+			}
 		}
 	}
 

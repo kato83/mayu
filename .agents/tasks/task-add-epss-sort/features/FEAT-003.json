@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-003",
+  "type": "fix",
+  "description": "Fix cursor-based pagination when EPSS sort is active. The Cursor struct stores a *time.Time which cannot represent a float EPSS score. The fix disables cursor emission for EPSS sort (client uses offset-based pagination) and adds defensive handling in the cursor decoding path to preserve the original sort order if an EPSS cursor is somehow encountered.",
+  "status": "completed",
+  "steps": [
+    "In internal/server/server.go, add a check for EPSS sort prefix before cursor generation: if sortKey starts with 'epss', skip cursor generation so the client falls back to offset-based pagination",
+    "In internal/store/postgres.go Search method, add a case for cursor.SortKey == 'epss' that preserves the original sortOrder and skips keyset conditions",
+    "In internal/store/postgres.go searchLight method, add the same defensive handling for cursor.SortKey == 'epss'"
+  ],
+  "acceptance_criteria": [
+    "go build ./... succeeds",
+    "go test ./internal/server/ passes",
+    "go test ./internal/store/ passes",
+    "When EPSS sort is active, no next_cursor is returned in the API response",
+    "If a cursor with SortKey 'epss' is decoded, the original sort order is preserved and no keyset condition is applied"
+  ],
+  "verification": [
+    "cd /projects/sandbox/mayu && go build ./...",
+    "cd /projects/sandbox/mayu && go test ./internal/server/",
+    "cd /projects/sandbox/mayu && go test ./internal/store/"
+  ],
+  "blocked_reason": null,
+  "findings": "Fix applied cleanly. Build passes and all tests pass. The approach avoids data corruption by not emitting cursors for EPSS sort, letting the client use offset-based pagination instead."
+}
