@@ -96,6 +96,9 @@ type VulnerabilityDetail struct {
 	// EOL enrichment: lifecycle status of affected products
 	EOL []EOLEnrichment `json:"eol,omitempty"`
 
+	// ExploitDB enrichment: public exploits from the Exploit Database
+	ExploitDB []ExploitDBDetail `json:"exploitdb,omitempty"`
+
 	// Translations contains translations for text fields when a non-English
 	// locale is requested via the Accept-Language header.
 	Translations []VulnerabilityTranslation `json:"translations,omitempty"`
@@ -420,4 +423,44 @@ type EOLReleaseStatus struct {
 
 	// LatestVersion is the latest patch version in this cycle
 	LatestVersion string `json:"latest_version,omitempty"`
+}
+
+// ExploitDBDetail contains Exploit-DB enrichment data for a vulnerability.
+// Each entry represents a public exploit associated with the CVE.
+type ExploitDBDetail struct {
+	// EDBID is the Exploit-DB identifier (e.g., 39446).
+	EDBID int `json:"edb_id"`
+
+	// Description is the exploit title (e.g., "MySQL 4.x/5.0 (Linux) - User-Defined Function (UDF)").
+	Description string `json:"description"`
+
+	// ExploitType is the exploit category (dos, local, remote, webapps, shellcode).
+	ExploitType string `json:"exploit_type"`
+
+	// Platform is the target platform (linux, windows, multiple, etc.).
+	Platform string `json:"platform"`
+
+	// Author is the exploit author.
+	Author string `json:"author"`
+
+	// DatePublished is the publication date (YYYY-MM-DD).
+	DatePublished string `json:"date_published,omitempty"`
+
+	// Verified indicates whether the exploit was verified by the EDB team.
+	Verified bool `json:"verified"`
+
+	// Port is the target port (0 if not applicable).
+	Port int `json:"port,omitempty"`
+
+	// Codes contains all reference codes (CVE, OSVDB, MS IDs).
+	Codes []string `json:"codes,omitempty"`
+
+	// Tags contains exploit tags (e.g., "Metasploit Framework (MSF)").
+	Tags []string `json:"tags,omitempty"`
+
+	// SourceURL is the original advisory or reference URL.
+	SourceURL string `json:"source_url,omitempty"`
+
+	// URL is the Exploit-DB page URL (computed from EDB-ID).
+	URL string `json:"url"`
 }
