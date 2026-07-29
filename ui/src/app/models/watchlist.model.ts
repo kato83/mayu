@@ -3,6 +3,7 @@ export interface Watchlist {
   user_id: number;
   name: string;
   match_type: 'package' | 'purl' | 'cpe' | 'ecosystem';
+  team_id?: number;
   ecosystem?: string;
   package_name?: string;
   purl_pattern?: string;
@@ -26,6 +27,7 @@ export interface WatchlistMatch {
 export interface CreateWatchlistRequest {
   name: string;
   match_type: 'package' | 'purl' | 'cpe' | 'ecosystem';
+  team_id?: number;
   ecosystem?: string;
   package_name?: string;
   purl_pattern?: string;

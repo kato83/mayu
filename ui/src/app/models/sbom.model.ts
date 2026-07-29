@@ -1,6 +1,7 @@
 export interface SBOMProject {
   id: number;
   name: string;
+  team_id?: number;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +68,7 @@ export interface FindingStatusEntry {
 
 export interface CreateProjectRequest {
   name: string;
+  team_id?: number;
 }
 
 export interface UploadSBOMRequest {

@@ -17,6 +17,7 @@ import (
 	"github.com/kato83/mayu/internal/sbommon"
 	"github.com/kato83/mayu/internal/server"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/team"
 	"github.com/kato83/mayu/internal/translate"
 	"github.com/kato83/mayu/internal/uiassets"
 	"github.com/kato83/mayu/internal/watchlist"
@@ -189,6 +190,7 @@ func runServe(args []string, cfg *config.Config) error {
 		SBOMScanner:          sbomScanner,
 		TranslateService:     translateService,
 		TranslateRateLimiter: translateRateLimiter,
+		TeamStore:            team.NewPostgresTeamStore(s.DB()),
 		EPSSRetentionDays:    cfg.EPSS.EffectiveRetentionDays(),
 	})
 

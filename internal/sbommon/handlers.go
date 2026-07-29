@@ -15,12 +15,14 @@ import (
 // --- Request/Response types ---
 
 type createProjectRequest struct {
-	Name string `json:"name"`
+	Name   string `json:"name"`
+	TeamID *int64 `json:"team_id,omitempty"`
 }
 
 type projectResponse struct {
 	ID        int64  `json:"id"`
 	Name      string `json:"name"`
+	TeamID    *int64 `json:"team_id,omitempty"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
 }
@@ -102,6 +104,7 @@ func HandleCreateProject(store SBOMStore) http.HandlerFunc {
 
 		p := &SBOMProject{
 			UserID: user.ID,
+			TeamID: req.TeamID,
 			Name:   req.Name,
 		}
 
@@ -178,6 +181,57 @@ func HandleGetProject(store SBOMStore) http.HandlerFunc {
 }
 
 // HandleDeleteProject returns an http.HandlerFunc that deletes an SBOM project.
+// HandleUpdateProject returns an http.HandlerFunc that updates an SBOM project (name, team_id).
+func HandleUpdateProject(store SBOMStore) http.HandlerFunc {
+	type updateProjectRequest struct {
+		Name   *string `json:"name,omitempty"`
+		TeamID *int64  `json:"team_id"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := auth.UserFromContext(r.Context())
+		if user == nil {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		id, err := parseID(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid project ID")
+			return
+		}
+
+		project, err := store.GetProject(r.Context(), id, user.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to get project")
+			return
+		}
+		if project == nil {
+			writeError(w, http.StatusNotFound, "project not found")
+			return
+		}
+
+		var req updateProjectRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+
+		if req.Name != nil {
+			project.Name = *req.Name
+		}
+		// team_id can be set to null (remove team) or a new value
+		project.TeamID = req.TeamID
+
+		if err := store.UpdateProject(r.Context(), project); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to update project")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, toProjectResponse(project))
+	}
+}
+
 func HandleDeleteProject(store SBOMStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := auth.UserFromContext(r.Context())
@@ -825,6 +879,7 @@ func toProjectResponse(p *SBOMProject) projectResponse {
 	return projectResponse{
 		ID:        p.ID,
 		Name:      p.Name,
+		TeamID:    p.TeamID,
 		CreatedAt: p.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: p.UpdatedAt.Format(time.RFC3339),
 	}

@@ -23,8 +23,8 @@ func NewPostgresWatchlistStore(db *sql.DB) *PostgresWatchlistStore {
 func (s *PostgresWatchlistStore) CreateWatchlist(ctx context.Context, w *Watchlist) (int64, error) {
 	var id int64
 	err := s.db.QueryRowContext(ctx, `
-		INSERT INTO watchlists (user_id, name, match_type, ecosystem, package_name, purl_pattern, cpe_pattern, severity_min, epss_threshold, enabled)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO watchlists (user_id, name, match_type, ecosystem, package_name, purl_pattern, cpe_pattern, severity_min, epss_threshold, enabled, team_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id`,
 		w.UserID,
 		w.Name,
@@ -36,6 +36,7 @@ func (s *PostgresWatchlistStore) CreateWatchlist(ctx context.Context, w *Watchli
 		nullableInt16(w.SeverityMin),
 		nullableFloat64(w.EpssThreshold),
 		w.Enabled,
+		w.TeamID,
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("insert watchlist: %w", err)
@@ -50,17 +51,19 @@ func (s *PostgresWatchlistStore) GetWatchlist(ctx context.Context, id int64, use
 	var ecosystem, packageName, purlPattern, cpePattern sql.NullString
 	var severityMin sql.NullInt16
 	var epssThreshold sql.NullFloat64
+	var teamID sql.NullInt64
 
 	err := s.db.QueryRowContext(ctx, `
 		SELECT id, user_id, name, match_type, ecosystem, package_name, purl_pattern, cpe_pattern,
-		       severity_min, epss_threshold, enabled, created_at, updated_at
+		       severity_min, epss_threshold, enabled, created_at, updated_at, team_id
 		FROM watchlists
-		WHERE id = $1 AND user_id = $2`,
+		WHERE id = $1 AND (user_id = $2 OR team_id IN (SELECT team_id FROM team_members WHERE user_id = $2))`,
 		id, userID,
 	).Scan(
 		&w.ID, &w.UserID, &w.Name, &w.MatchType,
 		&ecosystem, &packageName, &purlPattern, &cpePattern,
 		&severityMin, &epssThreshold, &w.Enabled, &w.CreatedAt, &w.UpdatedAt,
+		&teamID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -75,17 +78,23 @@ func (s *PostgresWatchlistStore) GetWatchlist(ctx context.Context, id int64, use
 	assignNullableString(&w.CpePattern, cpePattern)
 	assignNullableInt16(&w.SeverityMin, severityMin)
 	assignNullableFloat64(&w.EpssThreshold, epssThreshold)
+	if teamID.Valid {
+		w.TeamID = &teamID.Int64
+	}
 
 	return &w, nil
 }
 
-// ListWatchlists returns all watchlists for a user, ordered by creation time.
+// ListWatchlists returns all watchlists visible to a user:
+// - personal watchlists (user_id match)
+// - team watchlists (team_id in user's teams)
 func (s *PostgresWatchlistStore) ListWatchlists(ctx context.Context, userID int64) ([]*Watchlist, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, user_id, name, match_type, ecosystem, package_name, purl_pattern, cpe_pattern,
-		       severity_min, epss_threshold, enabled, created_at, updated_at
+		       severity_min, epss_threshold, enabled, created_at, updated_at, team_id
 		FROM watchlists
 		WHERE user_id = $1
+		   OR team_id IN (SELECT team_id FROM team_members WHERE user_id = $1)
 		ORDER BY created_at`,
 		userID,
 	)
@@ -100,11 +109,13 @@ func (s *PostgresWatchlistStore) ListWatchlists(ctx context.Context, userID int6
 		var ecosystem, packageName, purlPattern, cpePattern sql.NullString
 		var severityMin sql.NullInt16
 		var epssThreshold sql.NullFloat64
+		var teamID sql.NullInt64
 
 		if err := rows.Scan(
 			&w.ID, &w.UserID, &w.Name, &w.MatchType,
 			&ecosystem, &packageName, &purlPattern, &cpePattern,
 			&severityMin, &epssThreshold, &w.Enabled, &w.CreatedAt, &w.UpdatedAt,
+			&teamID,
 		); err != nil {
 			return nil, fmt.Errorf("scan watchlist: %w", err)
 		}
@@ -115,6 +126,9 @@ func (s *PostgresWatchlistStore) ListWatchlists(ctx context.Context, userID int6
 		assignNullableString(&w.CpePattern, cpePattern)
 		assignNullableInt16(&w.SeverityMin, severityMin)
 		assignNullableFloat64(&w.EpssThreshold, epssThreshold)
+		if teamID.Valid {
+			w.TeamID = &teamID.Int64
+		}
 
 		watchlists = append(watchlists, &w)
 	}
@@ -155,7 +169,7 @@ func (s *PostgresWatchlistStore) UpdateWatchlist(ctx context.Context, w *Watchli
 func (s *PostgresWatchlistStore) DeleteWatchlist(ctx context.Context, id int64, userID int64) error {
 	_, err := s.db.ExecContext(ctx, `
 		DELETE FROM watchlists
-		WHERE id = $1 AND user_id = $2`,
+		WHERE id = $1 AND (user_id = $2 OR team_id IN (SELECT team_id FROM team_members WHERE user_id = $2))`,
 		id, userID,
 	)
 	if err != nil {
@@ -281,7 +295,7 @@ func (s *PostgresWatchlistStore) RecordMatches(ctx context.Context, matches []Wa
 func (s *PostgresWatchlistStore) GetActiveWatchlists(ctx context.Context) ([]*Watchlist, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, user_id, name, match_type, ecosystem, package_name, purl_pattern, cpe_pattern,
-		       severity_min, epss_threshold, enabled, created_at, updated_at
+		       severity_min, epss_threshold, enabled, created_at, updated_at, team_id
 		FROM watchlists
 		WHERE enabled = true
 		ORDER BY id`)
@@ -296,11 +310,13 @@ func (s *PostgresWatchlistStore) GetActiveWatchlists(ctx context.Context) ([]*Wa
 		var ecosystem, packageName, purlPattern, cpePattern sql.NullString
 		var severityMin sql.NullInt16
 		var epssThreshold sql.NullFloat64
+		var teamID sql.NullInt64
 
 		if err := rows.Scan(
 			&w.ID, &w.UserID, &w.Name, &w.MatchType,
 			&ecosystem, &packageName, &purlPattern, &cpePattern,
 			&severityMin, &epssThreshold, &w.Enabled, &w.CreatedAt, &w.UpdatedAt,
+			&teamID,
 		); err != nil {
 			return nil, fmt.Errorf("scan active watchlist: %w", err)
 		}
@@ -311,6 +327,9 @@ func (s *PostgresWatchlistStore) GetActiveWatchlists(ctx context.Context) ([]*Wa
 		assignNullableString(&w.CpePattern, cpePattern)
 		assignNullableInt16(&w.SeverityMin, severityMin)
 		assignNullableFloat64(&w.EpssThreshold, epssThreshold)
+		if teamID.Valid {
+			w.TeamID = &teamID.Int64
+		}
 
 		watchlists = append(watchlists, &w)
 	}

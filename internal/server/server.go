@@ -30,6 +30,7 @@ import (
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/sbommon"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/team"
 	"github.com/kato83/mayu/internal/translate"
 	"github.com/kato83/mayu/internal/validate"
 	"github.com/kato83/mayu/internal/watchlist"
@@ -104,6 +105,10 @@ type Config struct {
 	// If nil, no rate limiting is applied to translation requests.
 	TranslateRateLimiter *translate.RateLimiter
 
+	// TeamStore provides team data persistence for team management endpoints.
+	// If nil, team management endpoints are not registered.
+	TeamStore team.TeamStore
+
 	// EPSSRetentionDays is the number of days of EPSS data to retain.
 	// After each EPSS ingest, older data is cleaned up.
 	// A value <= 0 means retain all data indefinitely.
@@ -128,6 +133,7 @@ type Server struct {
 	sbomScanner          *sbommon.Scanner
 	translateService     *translate.Service
 	translateRateLimiter *translate.RateLimiter
+	teamStore            team.TeamStore
 	loginLimiter         *auth.LoginRateLimiter
 	epssRetentionDays    int
 	ingestRunning        atomic.Bool
@@ -157,6 +163,7 @@ func New(cfg Config) *Server {
 		sbomScanner:          cfg.SBOMScanner,
 		translateService:     cfg.TranslateService,
 		translateRateLimiter: cfg.TranslateRateLimiter,
+		teamStore:            cfg.TeamStore,
 		loginLimiter:         auth.NewLoginRateLimiter(10, 15*time.Minute),
 		epssRetentionDays:    cfg.EPSSRetentionDays,
 	}
@@ -324,6 +331,7 @@ func (s *Server) routes() http.Handler {
 			r.Get("/projects", sbommon.HandleListProjects(s.sbomStore))
 			r.Post("/projects", sbommon.HandleCreateProject(s.sbomStore))
 			r.Get("/projects/{id}", sbommon.HandleGetProject(s.sbomStore))
+			r.Put("/projects/{id}", sbommon.HandleUpdateProject(s.sbomStore))
 			r.Delete("/projects/{id}", sbommon.HandleDeleteProject(s.sbomStore))
 			r.Get("/projects/{id}/versions", sbommon.HandleListVersions(s.sbomStore))
 			if s.sbomScanner != nil {
@@ -348,7 +356,24 @@ func (s *Server) routes() http.Handler {
 		r.Get("/trends", s.handleDashboardTrends)
 		r.Get("/distributions", s.handleDashboardDistributions)
 		r.Get("/top-risks", s.handleDashboardTopRisks)
+		r.Get("/team-summary", s.handleDashboardTeamSummary)
 	})
+
+	// Team management endpoints
+	if s.teamStore != nil {
+		r.Route("/api/v1/teams", func(r chi.Router) {
+			r.Use(authMW)
+			r.Get("/", team.HandleListTeams(s.teamStore))
+			r.Post("/", team.HandleCreateTeam(s.teamStore))
+			r.Get("/users", team.HandleListUsers(s.teamStore))
+			r.Get("/{id}", team.HandleGetTeam(s.teamStore))
+			r.Put("/{id}", team.HandleUpdateTeam(s.teamStore))
+			r.Delete("/{id}", team.HandleDeleteTeam(s.teamStore))
+			r.Get("/{id}/members", team.HandleListMembers(s.teamStore))
+			r.Post("/{id}/members", team.HandleAddMember(s.teamStore))
+			r.Delete("/{id}/members/{userId}", team.HandleRemoveMember(s.teamStore))
+		})
+	}
 
 	// Stats endpoints
 	r.Route("/api/v1/stats", func(r chi.Router) {

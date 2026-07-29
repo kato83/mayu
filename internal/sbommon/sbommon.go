@@ -12,6 +12,7 @@ import (
 type SBOMProject struct {
 	ID        int64
 	UserID    int64
+	TeamID    *int64
 	Name      string
 	CreatedAt time.Time
 	UpdatedAt time.Time

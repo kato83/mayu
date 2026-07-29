@@ -17,6 +17,7 @@ const (
 type Watchlist struct {
 	ID            int64
 	UserID        int64
+	TeamID        *int64
 	Name          string
 	MatchType     string // one of: package, purl, cpe, ecosystem
 	Ecosystem     *string
@@ -44,6 +45,7 @@ type WatchlistMatch struct {
 type CreateWatchlistInput struct {
 	Name          string
 	MatchType     string
+	TeamID        *int64
 	Ecosystem     *string
 	PackageName   *string
 	PurlPattern   *string

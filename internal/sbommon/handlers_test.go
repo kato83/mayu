@@ -72,6 +72,16 @@ func (m *mockSBOMStore) ListProjects(_ context.Context, userID int64) ([]*SBOMPr
 	return result, nil
 }
 
+func (m *mockSBOMStore) ListProjectsByTeam(_ context.Context, teamID int64) ([]*SBOMProject, error) {
+	var result []*SBOMProject
+	for _, p := range m.projects {
+		if p.TeamID != nil && *p.TeamID == teamID {
+			result = append(result, p)
+		}
+	}
+	return result, nil
+}
+
 func (m *mockSBOMStore) UpdateProject(_ context.Context, p *SBOMProject) error {
 	m.projects[p.ID] = p
 	return nil

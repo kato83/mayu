@@ -2214,6 +2214,210 @@
         <source>All</source>
         <target>全期間</target>
       </trans-unit>
+      <trans-unit id="route.title.teams" datatype="html">
+        <source>Teams</source>
+        <target>チーム</target>
+      </trans-unit>
+      <trans-unit id="route.title.teamDetail" datatype="html">
+        <source>Team Detail</source>
+        <target>チーム詳細</target>
+      </trans-unit>
+      <trans-unit id="sidebar.nav.teams" datatype="html">
+        <source>Teams</source>
+        <target>チーム</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.backToTeams" datatype="html">
+        <source> ← Back to Teams </source>
+        <target> ← チーム一覧に戻る </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.loading" datatype="html">
+        <source>Loading...</source>
+        <target>読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.deleteButton" datatype="html">
+        <source> Delete Team </source>
+        <target> チームを削除 </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.projects" datatype="html">
+        <source>Projects</source>
+        <target>プロジェクト</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.findings" datatype="html">
+        <source>Findings</source>
+        <target>検出結果</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.critical" datatype="html">
+        <source>Critical</source>
+        <target>Critical</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.high" datatype="html">
+        <source>High</source>
+        <target>High</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.membersTitle" datatype="html">
+        <source> Members </source>
+        <target> メンバー </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.addMemberButton" datatype="html">
+        <source> Add Member </source>
+        <target> メンバー追加 </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.userIdLabel" datatype="html">
+        <source> User ID </source>
+        <target> ユーザーID </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.roleLabel" datatype="html">
+        <source> Role </source>
+        <target> ロール </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.userLabel" datatype="html">
+        <source> User </source>
+        <target> ユーザー </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.userSearchPlaceholder" datatype="html">
+        <source>Search by email or name...</source>
+        <target>メールアドレスまたは名前で検索...</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.roleMember" datatype="html">
+        <source>Member</source>
+        <target>メンバー</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.roleOwner" datatype="html">
+        <source>Owner</source>
+        <target>オーナー</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.addButton" datatype="html">
+        <source> Add </source>
+        <target> 追加 </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.cancelButton" datatype="html">
+        <source> Cancel </source>
+        <target> キャンセル </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.noMembers" datatype="html">
+        <source>No members yet.</source>
+        <target>メンバーがいません。</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.colEmail" datatype="html">
+        <source>Email</source>
+        <target>メール</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.colName" datatype="html">
+        <source>Name</source>
+        <target>名前</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.colRole" datatype="html">
+        <source>Role</source>
+        <target>ロール</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.colActions" datatype="html">
+        <source>Actions</source>
+        <target>操作</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.removeButton" datatype="html">
+        <source> Remove </source>
+        <target> 削除 </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.leaveButton" datatype="html">
+        <source> Leave </source>
+        <target> 離脱 </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.confirmRemove" datatype="html">
+        <source>Remove this member from the team?</source>
+        <target>このメンバーをチームから削除しますか？</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.confirmLeave" datatype="html">
+        <source>Are you sure you want to leave this team?</source>
+        <target>このチームから離脱しますか？</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.confirmDelete" datatype="html">
+        <source>Are you sure you want to delete this team?</source>
+        <target>このチームを削除してもよろしいですか？</target>
+      </trans-unit>
+      <trans-unit id="teams.title" datatype="html">
+        <source> Teams </source>
+        <target> チーム </target>
+      </trans-unit>
+      <trans-unit id="teams.createButton" datatype="html">
+        <source> Create Team </source>
+        <target> チーム作成 </target>
+      </trans-unit>
+      <trans-unit id="teams.createTitle" datatype="html">
+        <source> Create New Team </source>
+        <target> 新しいチームを作成 </target>
+      </trans-unit>
+      <trans-unit id="teams.nameLabel" datatype="html">
+        <source> Name </source>
+        <target> 名前 </target>
+      </trans-unit>
+      <trans-unit id="teams.namePlaceholder" datatype="html">
+        <source>e.g. platform-team</source>
+        <target>例: platform-team</target>
+      </trans-unit>
+      <trans-unit id="teams.descriptionLabel" datatype="html">
+        <source> Description </source>
+        <target> 説明 </target>
+      </trans-unit>
+      <trans-unit id="teams.descriptionPlaceholder" datatype="html">
+        <source>Optional description</source>
+        <target>任意の説明</target>
+      </trans-unit>
+      <trans-unit id="teams.saveButton" datatype="html">
+        <source> Save </source>
+        <target> 保存 </target>
+      </trans-unit>
+      <trans-unit id="teams.cancelButton" datatype="html">
+        <source> Cancel </source>
+        <target> キャンセル </target>
+      </trans-unit>
+      <trans-unit id="teams.loading" datatype="html">
+        <source>Loading teams...</source>
+        <target>チームを読み込み中...</target>
+      </trans-unit>
+      <trans-unit id="teams.empty" datatype="html">
+        <source>No teams found. Create one to get started.</source>
+        <target>チームがありません。作成して始めましょう。</target>
+      </trans-unit>
+      <trans-unit id="teams.createdAt" datatype="html">
+        <source>Created</source>
+        <target>作成日</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.teamLabel" datatype="html">
+        <source> Team (optional) </source>
+        <target> チーム（任意） </target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.editTitle" datatype="html">
+        <source>Edit Project</source>
+        <target>プロジェクト編集</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.editButton" datatype="html">
+        <source> Edit </source>
+        <target> 編集 </target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.noTeam" datatype="html">
+        <source>— No team (personal) —</source>
+        <target>— チームなし（個人） —</target>
+      </trans-unit>
+      <trans-unit id="sbom.projects.col.team" datatype="html">
+        <source>Team</source>
+        <target>チーム</target>
+      </trans-unit>
+      <trans-unit id="webhooks.teamLabel" datatype="html">
+        <source> Team (optional) </source>
+        <target> チーム（任意） </target>
+      </trans-unit>
+      <trans-unit id="webhooks.noTeam" datatype="html">
+        <source>— No team (personal) —</source>
+        <target>— チームなし（個人） —</target>
+      </trans-unit>
+      <trans-unit id="watchlists.teamLabel" datatype="html">
+        <source> Team (optional) </source>
+        <target> チーム（任意） </target>
+      </trans-unit>
+      <trans-unit id="watchlists.noTeam" datatype="html">
+        <source>— No team (personal) —</source>
+        <target>— チームなし（個人） —</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

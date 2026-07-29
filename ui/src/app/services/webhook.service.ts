@@ -11,6 +11,7 @@ export interface Webhook {
   body_template: string;
   secret?: string;
   enabled: boolean;
+  team_id?: number;
   created_at: string;
   updated_at: string;
 }

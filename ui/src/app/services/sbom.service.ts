@@ -37,8 +37,8 @@ export class SbomService {
   /**
    * Create a new SBOM project.
    */
-  createProject(name: string): Observable<SBOMProject> {
-    const req: CreateProjectRequest = { name };
+  createProject(name: string, teamId?: number): Observable<SBOMProject> {
+    const req: CreateProjectRequest = { name, team_id: teamId || undefined };
     return this.http.post<SBOMProject>(`${this.baseUrl}/projects`, req, { withCredentials: true });
   }
 
@@ -47,6 +47,13 @@ export class SbomService {
    */
   deleteProject(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/projects/${id}`, { withCredentials: true });
+  }
+
+  /**
+   * Update an SBOM project (name, team_id).
+   */
+  updateProject(id: number, body: { name?: string; team_id?: number | null }): Observable<SBOMProject> {
+    return this.http.put<SBOMProject>(`${this.baseUrl}/projects/${id}`, body, { withCredentials: true });
   }
 
   /**

@@ -7,6 +7,7 @@ import "time"
 type Webhook struct {
 	ID           int64
 	UserID       *int64
+	TeamID       *int64
 	Name         string
 	URL          string
 	Events       []string

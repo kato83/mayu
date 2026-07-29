@@ -120,6 +120,22 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'teams',
+        title: $localize`:@@route.title.teams:Teams`,
+        loadComponent: () =>
+          import('./pages/teams/teams.component').then(
+            (m) => m.TeamsComponent,
+          ),
+      },
+      {
+        path: 'teams/:id',
+        title: $localize`:@@route.title.teamDetail:Team Detail`,
+        loadComponent: () =>
+          import('./pages/teams/team-detail.component').then(
+            (m) => m.TeamDetailComponent,
+          ),
+      },
+      {
         path: 'api-keys',
         title: $localize`:@@route.title.apiKeys:API Keys`,
         loadComponent: () =>

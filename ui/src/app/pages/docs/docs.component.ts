@@ -21,7 +21,7 @@ interface TocEntry {
   template: `
     <div class="flex flex-col md:flex-row gap-6">
       <!-- Document list sidebar -->
-      <nav class="w-full md:w-64 shrink-0 md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-2rem)] md:overflow-y-auto">
+      <nav class="w-full md:w-64 shrink-0 md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-6rem)] md:overflow-y-auto">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3" i18n="@@docs.title">Documentation</h2>
         <ul class="space-y-1">
           @for (doc of documents; track doc.slug) {

@@ -24,10 +24,10 @@ func NewPostgresSBOMStore(db *sql.DB) *PostgresSBOMStore {
 func (s *PostgresSBOMStore) CreateProject(ctx context.Context, p *SBOMProject) (int64, error) {
 	var id int64
 	err := s.db.QueryRowContext(ctx, `
-		INSERT INTO sbom_projects (user_id, name)
-		VALUES ($1, $2)
+		INSERT INTO sbom_projects (user_id, name, team_id)
+		VALUES ($1, $2, $3)
 		RETURNING id`,
-		p.UserID, p.Name,
+		p.UserID, p.Name, p.TeamID,
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("insert sbom project: %w", err)
@@ -35,15 +35,16 @@ func (s *PostgresSBOMStore) CreateProject(ctx context.Context, p *SBOMProject) (
 	return id, nil
 }
 
-// GetProject retrieves a project by ID, scoped to a user.
+// GetProject retrieves a project by ID, scoped to a user or their teams.
 func (s *PostgresSBOMStore) GetProject(ctx context.Context, id int64, userID int64) (*SBOMProject, error) {
 	var p SBOMProject
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, user_id, name, created_at, updated_at
+		SELECT id, user_id, name, team_id, created_at, updated_at
 		FROM sbom_projects
-		WHERE id = $1 AND user_id = $2`,
+		WHERE id = $1
+		  AND (user_id = $2 OR team_id IN (SELECT team_id FROM team_members WHERE user_id = $2))`,
 		id, userID,
-	).Scan(&p.ID, &p.UserID, &p.Name, &p.CreatedAt, &p.UpdatedAt)
+	).Scan(&p.ID, &p.UserID, &p.Name, &p.TeamID, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -53,15 +54,16 @@ func (s *PostgresSBOMStore) GetProject(ctx context.Context, id int64, userID int
 	return &p, nil
 }
 
-// GetProjectByName retrieves a project by name, scoped to a user.
+// GetProjectByName retrieves a project by name, scoped to a user or their teams.
 func (s *PostgresSBOMStore) GetProjectByName(ctx context.Context, name string, userID int64) (*SBOMProject, error) {
 	var p SBOMProject
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, user_id, name, created_at, updated_at
+		SELECT id, user_id, name, team_id, created_at, updated_at
 		FROM sbom_projects
-		WHERE name = $1 AND user_id = $2`,
+		WHERE name = $1
+		  AND (user_id = $2 OR team_id IN (SELECT team_id FROM team_members WHERE user_id = $2))`,
 		name, userID,
-	).Scan(&p.ID, &p.UserID, &p.Name, &p.CreatedAt, &p.UpdatedAt)
+	).Scan(&p.ID, &p.UserID, &p.Name, &p.TeamID, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -71,12 +73,15 @@ func (s *PostgresSBOMStore) GetProjectByName(ctx context.Context, name string, u
 	return &p, nil
 }
 
-// ListProjects returns all projects for a user, ordered by creation time.
+// ListProjects returns all projects visible to a user:
+// - projects owned by the user (user_id match)
+// - projects belonging to teams the user is a member of
 func (s *PostgresSBOMStore) ListProjects(ctx context.Context, userID int64) ([]*SBOMProject, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, user_id, name, created_at, updated_at
+		SELECT id, user_id, name, team_id, created_at, updated_at
 		FROM sbom_projects
 		WHERE user_id = $1
+		   OR team_id IN (SELECT team_id FROM team_members WHERE user_id = $1)
 		ORDER BY created_at`,
 		userID,
 	)
@@ -88,7 +93,35 @@ func (s *PostgresSBOMStore) ListProjects(ctx context.Context, userID int64) ([]*
 	var projects []*SBOMProject
 	for rows.Next() {
 		var p SBOMProject
-		if err := rows.Scan(&p.ID, &p.UserID, &p.Name, &p.CreatedAt, &p.UpdatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.UserID, &p.Name, &p.TeamID, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan sbom project: %w", err)
+		}
+		projects = append(projects, &p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate sbom projects: %w", err)
+	}
+	return projects, nil
+}
+
+// ListProjectsByTeam returns all projects for a team, ordered by creation time.
+func (s *PostgresSBOMStore) ListProjectsByTeam(ctx context.Context, teamID int64) ([]*SBOMProject, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, user_id, name, team_id, created_at, updated_at
+		FROM sbom_projects
+		WHERE team_id = $1
+		ORDER BY created_at`,
+		teamID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list sbom projects for team %d: %w", teamID, err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var projects []*SBOMProject
+	for rows.Next() {
+		var p SBOMProject
+		if err := rows.Scan(&p.ID, &p.UserID, &p.Name, &p.TeamID, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan sbom project: %w", err)
 		}
 		projects = append(projects, &p)
@@ -100,12 +133,14 @@ func (s *PostgresSBOMStore) ListProjects(ctx context.Context, userID int64) ([]*
 }
 
 // UpdateProject updates an existing project.
+// UpdateProject updates an existing project (name, team_id).
 func (s *PostgresSBOMStore) UpdateProject(ctx context.Context, p *SBOMProject) error {
 	_, err := s.db.ExecContext(ctx, `
 		UPDATE sbom_projects
-		SET name = $2, updated_at = NOW()
-		WHERE id = $1 AND user_id = $3`,
-		p.ID, p.Name, p.UserID,
+		SET name = $2, team_id = $3, updated_at = NOW()
+		WHERE id = $1
+		  AND (user_id = $4 OR team_id IN (SELECT team_id FROM team_members WHERE user_id = $4))`,
+		p.ID, p.Name, p.TeamID, p.UserID,
 	)
 	if err != nil {
 		return fmt.Errorf("update sbom project %d: %w", p.ID, err)
@@ -117,7 +152,8 @@ func (s *PostgresSBOMStore) UpdateProject(ctx context.Context, p *SBOMProject) e
 func (s *PostgresSBOMStore) DeleteProject(ctx context.Context, id int64, userID int64) error {
 	_, err := s.db.ExecContext(ctx, `
 		DELETE FROM sbom_projects
-		WHERE id = $1 AND user_id = $2`,
+		WHERE id = $1
+		  AND (user_id = $2 OR team_id IN (SELECT team_id FROM team_members WHERE user_id = $2))`,
 		id, userID,
 	)
 	if err != nil {

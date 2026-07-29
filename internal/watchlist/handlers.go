@@ -15,6 +15,7 @@ import (
 type createWatchlistRequest struct {
 	Name          string   `json:"name"`
 	MatchType     string   `json:"match_type"`
+	TeamID        *int64   `json:"team_id,omitempty"`
 	Ecosystem     *string  `json:"ecosystem,omitempty"`
 	PackageName   *string  `json:"package_name,omitempty"`
 	PurlPattern   *string  `json:"purl_pattern,omitempty"`
@@ -40,6 +41,7 @@ type watchlistResponse struct {
 	ID            int64    `json:"id"`
 	Name          string   `json:"name"`
 	MatchType     string   `json:"match_type"`
+	TeamID        *int64   `json:"team_id,omitempty"`
 	Ecosystem     *string  `json:"ecosystem,omitempty"`
 	PackageName   *string  `json:"package_name,omitempty"`
 	PurlPattern   *string  `json:"purl_pattern,omitempty"`
@@ -119,6 +121,7 @@ func HandleCreateWatchlist(store WatchlistStore) http.HandlerFunc {
 
 		wl := &Watchlist{
 			UserID:        user.ID,
+			TeamID:        req.TeamID,
 			Name:          req.Name,
 			MatchType:     req.MatchType,
 			Ecosystem:     req.Ecosystem,
@@ -422,6 +425,7 @@ func toWatchlistResponse(wl *Watchlist) watchlistResponse {
 		ID:            wl.ID,
 		Name:          wl.Name,
 		MatchType:     wl.MatchType,
+		TeamID:        wl.TeamID,
 		Ecosystem:     wl.Ecosystem,
 		PackageName:   wl.PackageName,
 		PurlPattern:   wl.PurlPattern,

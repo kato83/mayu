@@ -4,6 +4,8 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 import { WatchlistService } from '../../services/watchlist.service';
+import { TeamService } from '../../services/team.service';
+import { Team } from '../../models/team.model';
 import {
   Watchlist,
   WatchlistMatch,
@@ -206,6 +208,23 @@ import {
               </div>
             }
 
+            <div>
+              <label for="wlTeam" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" i18n="@@watchlists.teamLabel">
+                Team (optional)
+              </label>
+              <select
+                id="wlTeam"
+                [(ngModel)]="formTeamId"
+                name="wlTeam"
+                class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option [ngValue]="null" i18n="@@watchlists.noTeam">— No team (personal) —</option>
+                @for (t of teams(); track t.id) {
+                  <option [ngValue]="t.id">{{ t.name }}</option>
+                }
+              </select>
+            </div>
+
             <div class="flex gap-2">
               <button
                 type="submit"
@@ -396,8 +415,10 @@ import {
 })
 export class WatchlistsComponent implements OnInit {
   private readonly watchlistService = inject(WatchlistService);
+  private readonly teamService = inject(TeamService);
 
   readonly watchlists = signal<Watchlist[]>([]);
+  readonly teams = signal<Team[]>([]);
   readonly loading = signal(true);
   readonly submitting = signal(false);
   readonly showForm = signal(false);
@@ -420,9 +441,14 @@ export class WatchlistsComponent implements OnInit {
   formSeverityMin = '';
   formEpssThreshold: number | null = null;
   formEnabled = true;
+  formTeamId: number | null = null;
 
   ngOnInit(): void {
     this.loadWatchlists();
+    this.teamService.list().subscribe({
+      next: (teams) => this.teams.set(teams),
+      error: () => {},
+    });
   }
 
   private loadWatchlists(): void {
@@ -560,6 +586,7 @@ export class WatchlistsComponent implements OnInit {
     this.formSeverityMin = '';
     this.formEpssThreshold = null;
     this.formEnabled = true;
+    this.formTeamId = null;
     this.editingId.set(null);
   }
 
@@ -568,6 +595,7 @@ export class WatchlistsComponent implements OnInit {
       name: this.formName,
       match_type: this.formMatchType,
     };
+    if (this.formTeamId) req.team_id = this.formTeamId;
     if (this.formEcosystem) req.ecosystem = this.formEcosystem;
     if (this.formPackageName) req.package_name = this.formPackageName;
     if (this.formPurlPattern) req.purl_pattern = this.formPurlPattern;

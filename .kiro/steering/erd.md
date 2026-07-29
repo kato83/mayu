@@ -407,6 +407,21 @@ erDiagram
         TIMESTAMPTZ updated_at "DEFAULT NOW()"
     }
 
+    teams {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT name UK "UNIQUE NOT NULL"
+        TEXT description "nullable"
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+        TIMESTAMPTZ updated_at "DEFAULT NOW()"
+    }
+
+    team_members {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT team_id FK "→ teams(id) CASCADE"
+        BIGINT user_id FK "→ users(id) CASCADE"
+        TEXT role "NOT NULL DEFAULT 'member': owner, member"
+    }
+
     api_keys {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         BIGINT user_id FK "→ users(id) CASCADE"
@@ -427,6 +442,7 @@ erDiagram
     webhooks {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         BIGINT user_id FK "→ users(id) CASCADE NOT NULL"
+        BIGINT team_id FK "→ teams(id) SET NULL, nullable"
         TEXT name "NOT NULL"
         TEXT url "NOT NULL"
         TEXT_ARRAY events "NOT NULL"
@@ -441,6 +457,7 @@ erDiagram
     watchlists {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         BIGINT user_id FK "→ users(id) CASCADE"
+        BIGINT team_id FK "→ teams(id) SET NULL, nullable"
         TEXT name "NOT NULL"
         TEXT match_type "NOT NULL: package, purl, cpe, ecosystem"
         TEXT ecosystem "nullable, for package/ecosystem match"
@@ -479,6 +496,7 @@ erDiagram
     sbom_projects {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         BIGINT user_id FK "→ users(id) CASCADE"
+        BIGINT team_id FK "→ teams(id) SET NULL, nullable"
         TEXT name "NOT NULL"
         TIMESTAMPTZ created_at "DEFAULT NOW()"
         TIMESTAMPTZ updated_at "DEFAULT NOW()"
@@ -562,6 +580,11 @@ erDiagram
     ingest_jobs ||--o{ ingest_failures : "has"
     users ||--o{ api_keys : "has"
     users ||--o{ sessions : "has"
+    users ||--o{ team_members : "belongs to"
+    teams ||--o{ team_members : "has"
+    teams ||--o{ sbom_projects : "owns"
+    teams ||--o{ watchlists : "owns"
+    teams ||--o{ webhooks : "owns"
     webhooks ||--o{ webhook_delivery_logs : "has"
     users ||--o{ webhooks : "has"
     users ||--o{ watchlists : "has"
@@ -1088,6 +1111,7 @@ erDiagram
     webhooks {
         BIGINT id PK
         BIGINT user_id FK
+        BIGINT team_id FK
         TEXT name
         TEXT url
         TEXT_ARRAY events
@@ -1110,6 +1134,7 @@ erDiagram
     watchlists {
         BIGINT id PK
         BIGINT user_id FK
+        BIGINT team_id FK
         TEXT name
         TEXT match_type
         TEXT ecosystem
@@ -1130,6 +1155,7 @@ erDiagram
     sbom_projects {
         BIGINT id PK
         BIGINT user_id FK
+        BIGINT team_id FK
         TEXT name
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
@@ -1184,6 +1210,11 @@ erDiagram
 
     users ||--o{ api_keys : "has"
     users ||--o{ sessions : "has"
+    users ||--o{ team_members : "belongs to"
+    teams ||--o{ team_members : "has"
+    teams ||--o{ sbom_projects : "owns"
+    teams ||--o{ watchlists : "owns"
+    teams ||--o{ webhooks : "owns"
     users ||--o{ webhooks : "has"
     users ||--o{ watchlists : "has"
     users ||--o{ sbom_projects : "has"

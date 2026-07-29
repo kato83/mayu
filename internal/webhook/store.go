@@ -61,14 +61,14 @@ func (s *PostgresWebhookStore) CreateWebhook(ctx context.Context, w *model.Webho
 	}
 
 	err := s.db.QueryRowContext(ctx, `
-		INSERT INTO webhooks (name, url, events, content_type, body_template, secret, enabled, user_id)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id`,
-		w.Name, w.URL, pgTextArray(w.Events), w.ContentType, w.BodyTemplate, secret, w.Enabled, userID,
+		INSERT INTO webhooks (name, url, events, content_type, body_template, secret, enabled, user_id, team_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id, team_id`,
+		w.Name, w.URL, pgTextArray(w.Events), w.ContentType, w.BodyTemplate, secret, w.Enabled, userID, w.TeamID,
 	).Scan(
 		&result.ID, &result.Name, &result.URL, &eventScanner{&result.Events},
 		&result.ContentType, &result.BodyTemplate, &secret,
-		&result.Enabled, &result.CreatedAt, &result.UpdatedAt, &result.UserID,
+		&result.Enabled, &result.CreatedAt, &result.UpdatedAt, &result.UserID, &result.TeamID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert webhook: %w", err)
@@ -95,14 +95,14 @@ func (s *PostgresWebhookStore) UpdateWebhook(ctx context.Context, w *model.Webho
 	err := s.db.QueryRowContext(ctx, `
 		UPDATE webhooks
 		SET name = $2, url = $3, events = $4, content_type = $5,
-		    body_template = $6, secret = $7, enabled = $8, user_id = $9, updated_at = NOW()
+		    body_template = $6, secret = $7, enabled = $8, user_id = $9, team_id = $10, updated_at = NOW()
 		WHERE id = $1
-		RETURNING id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id`,
-		w.ID, w.Name, w.URL, pgTextArray(w.Events), w.ContentType, w.BodyTemplate, secret, w.Enabled, userID,
+		RETURNING id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id, team_id`,
+		w.ID, w.Name, w.URL, pgTextArray(w.Events), w.ContentType, w.BodyTemplate, secret, w.Enabled, userID, w.TeamID,
 	).Scan(
 		&result.ID, &result.Name, &result.URL, &eventScanner{&result.Events},
 		&result.ContentType, &result.BodyTemplate, &secret,
-		&result.Enabled, &result.CreatedAt, &result.UpdatedAt, &result.UserID,
+		&result.Enabled, &result.CreatedAt, &result.UpdatedAt, &result.UserID, &result.TeamID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -138,13 +138,13 @@ func (s *PostgresWebhookStore) GetWebhook(ctx context.Context, id int64) (*model
 	var secret sql.NullString
 
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id
+		SELECT id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id, team_id
 		FROM webhooks
 		WHERE id = $1`, id,
 	).Scan(
 		&w.ID, &w.Name, &w.URL, &eventScanner{&w.Events},
 		&w.ContentType, &w.BodyTemplate, &secret,
-		&w.Enabled, &w.CreatedAt, &w.UpdatedAt, &w.UserID,
+		&w.Enabled, &w.CreatedAt, &w.UpdatedAt, &w.UserID, &w.TeamID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -161,7 +161,7 @@ func (s *PostgresWebhookStore) GetWebhook(ctx context.Context, id int64) (*model
 // ListWebhooks returns all webhooks ordered by ID.
 func (s *PostgresWebhookStore) ListWebhooks(ctx context.Context) ([]*model.Webhook, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id
+		SELECT id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id, team_id
 		FROM webhooks
 		ORDER BY id`)
 	if err != nil {
@@ -176,7 +176,7 @@ func (s *PostgresWebhookStore) ListWebhooks(ctx context.Context) ([]*model.Webho
 		if err := rows.Scan(
 			&w.ID, &w.Name, &w.URL, &eventScanner{&w.Events},
 			&w.ContentType, &w.BodyTemplate, &secret,
-			&w.Enabled, &w.CreatedAt, &w.UpdatedAt, &w.UserID,
+			&w.Enabled, &w.CreatedAt, &w.UpdatedAt, &w.UserID, &w.TeamID,
 		); err != nil {
 			return nil, fmt.Errorf("scan webhook: %w", err)
 		}
@@ -191,12 +191,15 @@ func (s *PostgresWebhookStore) ListWebhooks(ctx context.Context) ([]*model.Webho
 	return webhooks, nil
 }
 
-// ListWebhooksByUser returns webhooks for a specific user, ordered by ID.
+// ListWebhooksByUser returns webhooks visible to a specific user:
+// - personal webhooks (user_id match)
+// - team webhooks (team_id in user's teams)
 func (s *PostgresWebhookStore) ListWebhooksByUser(ctx context.Context, userID int64) ([]*model.Webhook, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id
+		SELECT id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id, team_id
 		FROM webhooks
 		WHERE user_id = $1
+		   OR team_id IN (SELECT team_id FROM team_members WHERE user_id = $1)
 		ORDER BY id`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list webhooks by user %d: %w", userID, err)
@@ -210,7 +213,7 @@ func (s *PostgresWebhookStore) ListWebhooksByUser(ctx context.Context, userID in
 		if err := rows.Scan(
 			&w.ID, &w.Name, &w.URL, &eventScanner{&w.Events},
 			&w.ContentType, &w.BodyTemplate, &secret,
-			&w.Enabled, &w.CreatedAt, &w.UpdatedAt, &w.UserID,
+			&w.Enabled, &w.CreatedAt, &w.UpdatedAt, &w.UserID, &w.TeamID,
 		); err != nil {
 			return nil, fmt.Errorf("scan webhook: %w", err)
 		}
@@ -228,7 +231,7 @@ func (s *PostgresWebhookStore) ListWebhooksByUser(ctx context.Context, userID in
 // GetWebhooksByEvent returns all enabled webhooks matching the given event or wildcard '*'.
 func (s *PostgresWebhookStore) GetWebhooksByEvent(ctx context.Context, event string) ([]*model.Webhook, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id
+		SELECT id, name, url, events, content_type, body_template, secret, enabled, created_at, updated_at, user_id, team_id
 		FROM webhooks
 		WHERE enabled = true AND ($1 = ANY(events) OR '*' = ANY(events))
 		ORDER BY id`, event,
@@ -245,7 +248,7 @@ func (s *PostgresWebhookStore) GetWebhooksByEvent(ctx context.Context, event str
 		if err := rows.Scan(
 			&w.ID, &w.Name, &w.URL, &eventScanner{&w.Events},
 			&w.ContentType, &w.BodyTemplate, &secret,
-			&w.Enabled, &w.CreatedAt, &w.UpdatedAt, &w.UserID,
+			&w.Enabled, &w.CreatedAt, &w.UpdatedAt, &w.UserID, &w.TeamID,
 		); err != nil {
 			return nil, fmt.Errorf("scan webhook: %w", err)
 		}

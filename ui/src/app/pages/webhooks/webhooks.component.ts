@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { WebhookService, Webhook } from '../../services/webhook.service';
+import { TeamService } from '../../services/team.service';
+import { Team } from '../../models/team.model';
 
 @Component({
   selector: 'app-webhooks',
@@ -191,6 +193,22 @@ import { WebhookService, Webhook } from '../../services/webhook.service';
                 Enabled
               </label>
             </div>
+            <div>
+              <label for="webhookTeam" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" i18n="@@webhooks.teamLabel">
+                Team (optional)
+              </label>
+              <select
+                id="webhookTeam"
+                [(ngModel)]="formTeamId"
+                name="webhookTeam"
+                class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option [ngValue]="null" i18n="@@webhooks.noTeam">— No team (personal) —</option>
+                @for (t of teams(); track t.id) {
+                  <option [ngValue]="t.id">{{ t.name }}</option>
+                }
+              </select>
+            </div>
             <div class="flex gap-2">
               <button
                 type="submit"
@@ -301,8 +319,10 @@ import { WebhookService, Webhook } from '../../services/webhook.service';
 })
 export class WebhooksComponent implements OnInit {
   private readonly webhookService = inject(WebhookService);
+  private readonly teamService = inject(TeamService);
 
   readonly webhooks = signal<Webhook[]>([]);
+  readonly teams = signal<Team[]>([]);
   readonly loading = signal(true);
   readonly submitting = signal(false);
   readonly testing = signal(false);
@@ -317,9 +337,14 @@ export class WebhooksComponent implements OnInit {
   formBodyTemplate = '';
   formSecret = '';
   formEnabled = true;
+  formTeamId: number | null = null;
 
   ngOnInit(): void {
     this.loadWebhooks();
+    this.teamService.list().subscribe({
+      next: (teams) => this.teams.set(teams),
+      error: () => {},
+    });
   }
 
   private loadWebhooks(): void {
@@ -348,6 +373,7 @@ export class WebhooksComponent implements OnInit {
       body_template: this.formBodyTemplate,
       secret: this.formSecret || undefined,
       enabled: this.formEnabled,
+      team_id: this.formTeamId ?? undefined,
     };
 
     const editing = this.editingWebhook();

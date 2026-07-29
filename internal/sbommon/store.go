@@ -18,6 +18,9 @@ type SBOMStore interface {
 	// ListProjects returns all projects for a user, ordered by creation time.
 	ListProjects(ctx context.Context, userID int64) ([]*SBOMProject, error)
 
+	// ListProjectsByTeam returns all projects for a team, ordered by creation time.
+	ListProjectsByTeam(ctx context.Context, teamID int64) ([]*SBOMProject, error)
+
 	// UpdateProject updates an existing project.
 	UpdateProject(ctx context.Context, p *SBOMProject) error
 

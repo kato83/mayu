@@ -4,7 +4,9 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 import { SbomService } from '../../services/sbom.service';
+import { TeamService } from '../../services/team.service';
 import { SBOMProject } from '../../models/sbom.model';
+import { Team } from '../../models/team.model';
 
 @Component({
   selector: 'app-sbom-projects',
@@ -28,8 +30,12 @@ import { SBOMProject } from '../../models/sbom.model';
       <!-- Create form -->
       @if (showForm()) {
         <div class="mb-6 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4" i18n="@@sbom.projects.createTitle">
-            Create New Project
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+            @if (editingProject()) {
+              <span i18n="@@sbom.projects.editTitle">Edit Project</span>
+            } @else {
+              <span i18n="@@sbom.projects.createTitle">Create New Project</span>
+            }
           </h2>
           <form #projectForm="ngForm" (ngSubmit)="onSubmitForm()" class="space-y-4">
             <div>
@@ -51,6 +57,22 @@ import { SBOMProject } from '../../models/sbom.model';
               @if (nameCtrl.invalid && (nameCtrl.dirty || nameCtrl.touched)) {
                 <p class="mt-1 text-xs text-red-600 dark:text-red-400" i18n="@@sbom.projects.nameRequired">Project name is required.</p>
               }
+            </div>
+            <div>
+              <label for="projectTeam" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" i18n="@@sbom.projects.teamLabel">
+                Team (optional)
+              </label>
+              <select
+                id="projectTeam"
+                [(ngModel)]="formTeamId"
+                name="projectTeam"
+                class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option [ngValue]="null" i18n="@@sbom.projects.noTeam">— No team (personal) —</option>
+                @for (t of teams(); track t.id) {
+                  <option [ngValue]="t.id">{{ t.name }}</option>
+                }
+              </select>
             </div>
             <div class="flex gap-2">
               <button
@@ -87,6 +109,7 @@ import { SBOMProject } from '../../models/sbom.model';
             <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               <tr>
                 <th class="px-4 py-3" i18n="@@sbom.projects.col.name">Name</th>
+                <th class="px-4 py-3" i18n="@@sbom.projects.col.team">Team</th>
                 <th class="px-4 py-3" i18n="@@sbom.projects.col.created">Created</th>
                 <th class="px-4 py-3" i18n="@@sbom.projects.col.actions">Actions</th>
               </tr>
@@ -102,8 +125,16 @@ import { SBOMProject } from '../../models/sbom.model';
                       {{ project.name }}
                     </a>
                   </td>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ getTeamName(project.team_id) }}</td>
                   <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ project.created_at | date:'short' }}</td>
                   <td class="px-4 py-3">
+                    <button
+                      (click)="onEdit(project)"
+                      class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium cursor-pointer mr-3"
+                      i18n="@@sbom.projects.editButton"
+                    >
+                      Edit
+                    </button>
                     <button
                       (click)="onDelete(project)"
                       class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium cursor-pointer"
@@ -153,17 +184,29 @@ import { SBOMProject } from '../../models/sbom.model';
 })
 export class SbomProjectsComponent implements OnInit {
   private readonly sbomService = inject(SbomService);
+  private readonly teamService = inject(TeamService);
 
   readonly projects = signal<SBOMProject[]>([]);
+  readonly teams = signal<Team[]>([]);
   readonly loading = signal(true);
   readonly submitting = signal(false);
   readonly showForm = signal(false);
+  readonly editingProject = signal<SBOMProject | null>(null);
   readonly confirmDelete = signal<SBOMProject | null>(null);
 
   formName = '';
+  formTeamId: number | null = null;
 
   ngOnInit(): void {
     this.loadProjects();
+    this.loadTeams();
+  }
+
+  private loadTeams(): void {
+    this.teamService.list().subscribe({
+      next: (teams) => this.teams.set(teams),
+      error: () => {},
+    });
   }
 
   private loadProjects(): void {
@@ -181,28 +224,61 @@ export class SbomProjectsComponent implements OnInit {
 
   onCreateNew(): void {
     this.formName = '';
+    this.formTeamId = null;
+    this.editingProject.set(null);
+    this.showForm.set(true);
+  }
+
+  onEdit(project: SBOMProject): void {
+    this.formName = project.name;
+    this.formTeamId = project.team_id ?? null;
+    this.editingProject.set(project);
     this.showForm.set(true);
   }
 
   onCancelForm(): void {
     this.showForm.set(false);
     this.formName = '';
+    this.formTeamId = null;
+    this.editingProject.set(null);
   }
 
   onSubmitForm(): void {
     if (!this.formName) return;
     this.submitting.set(true);
-    this.sbomService.createProject(this.formName).subscribe({
-      next: () => {
-        this.showForm.set(false);
-        this.submitting.set(false);
-        this.formName = '';
-        this.loadProjects();
-      },
-      error: () => {
-        this.submitting.set(false);
-      },
-    });
+
+    const editing = this.editingProject();
+    if (editing) {
+      this.sbomService.updateProject(editing.id, {
+        name: this.formName,
+        team_id: this.formTeamId,
+      }).subscribe({
+        next: () => {
+          this.showForm.set(false);
+          this.submitting.set(false);
+          this.formName = '';
+          this.formTeamId = null;
+          this.editingProject.set(null);
+          this.loadProjects();
+        },
+        error: () => {
+          this.submitting.set(false);
+        },
+      });
+    } else {
+      this.sbomService.createProject(this.formName, this.formTeamId ?? undefined).subscribe({
+        next: () => {
+          this.showForm.set(false);
+          this.submitting.set(false);
+          this.formName = '';
+          this.formTeamId = null;
+          this.loadProjects();
+        },
+        error: () => {
+          this.submitting.set(false);
+        },
+      });
+    }
   }
 
   onDelete(project: SBOMProject): void {
@@ -218,5 +294,11 @@ export class SbomProjectsComponent implements OnInit {
         this.loadProjects();
       },
     });
+  }
+
+  getTeamName(teamId?: number): string {
+    if (!teamId) return '—';
+    const t = this.teams().find((team) => team.id === teamId);
+    return t ? t.name : '—';
   }
 }
