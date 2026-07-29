@@ -12,6 +12,8 @@ import (
 	"github.com/kato83/mayu/internal/testhelper"
 )
 
+func timePtr(t time.Time) *time.Time { return &t }
+
 func setupTestStore(t *testing.T) *PostgresStore {
 	t.Helper()
 	ctx := context.Background()
@@ -166,7 +168,7 @@ func TestMultipleOSVEntriesSameCVE(t *testing.T) {
 
 	vuln1 := &model.Vulnerability{
 		ID:       "USN-6789-1",
-		Modified: now,
+		Modified: &now,
 		Summary:  "Ubuntu advisory for CVE-2024-9999",
 		Aliases:  []string{"CVE-2024-9999"},
 		Affected: []model.Affected{{
@@ -176,7 +178,7 @@ func TestMultipleOSVEntriesSameCVE(t *testing.T) {
 
 	vuln2 := &model.Vulnerability{
 		ID:       "RHSA-2024:1234",
-		Modified: now.Add(time.Hour),
+		Modified: timePtr(now.Add(time.Hour)),
 		Summary:  "Red Hat advisory for CVE-2024-9999",
 		Aliases:  []string{"CVE-2024-9999", "GHSA-xxxx-yyyy-zzzz"},
 		Affected: []model.Affected{{
@@ -245,7 +247,7 @@ func TestLateCVEAssignment(t *testing.T) {
 	// First: insert without CVE (no CVE alias yet)
 	vuln := &model.Vulnerability{
 		ID:       "GO-2024-9000",
-		Modified: now,
+		Modified: &now,
 		Summary:  "Some vulnerability without CVE yet",
 		Aliases:  []string{"GHSA-aaaa-bbbb-cccc"},
 		Affected: []model.Affected{{
@@ -269,7 +271,7 @@ func TestLateCVEAssignment(t *testing.T) {
 	// Second: re-import with CVE now assigned
 	vulnUpdated := &model.Vulnerability{
 		ID:       "GO-2024-9000",
-		Modified: now.Add(24 * time.Hour),
+		Modified: timePtr(now.Add(24 * time.Hour)),
 		Summary:  "Some vulnerability with CVE now",
 		Aliases:  []string{"GHSA-aaaa-bbbb-cccc", "CVE-2024-55555"},
 		Affected: []model.Affected{{
@@ -567,7 +569,7 @@ func TestAliasRemovalOnReimport(t *testing.T) {
 	// First import: GO-2024-8000 with 3 aliases
 	vuln := &model.Vulnerability{
 		ID:       "GO-2024-8000",
-		Modified: now,
+		Modified: &now,
 		Summary:  "Test vulnerability",
 		Aliases:  []string{"CVE-2024-8000", "GHSA-aaaa-bbbb-cccc", "BIT-golang-2024-8000"},
 		Affected: []model.Affected{{
@@ -601,7 +603,7 @@ func TestAliasRemovalOnReimport(t *testing.T) {
 	// Second import: same OSV entry but GHSA alias was removed
 	vulnUpdated := &model.Vulnerability{
 		ID:       "GO-2024-8000",
-		Modified: now.Add(time.Hour),
+		Modified: timePtr(now.Add(time.Hour)),
 		Summary:  "Test vulnerability updated",
 		Aliases:  []string{"CVE-2024-8000", "BIT-golang-2024-8000"},
 		Affected: []model.Affected{{
@@ -641,7 +643,7 @@ func TestAliasRemovalDoesNotAffectOtherSources(t *testing.T) {
 	// Insert Ubuntu OSV entry
 	vuln1 := &model.Vulnerability{
 		ID:       "USN-7000-1",
-		Modified: now,
+		Modified: &now,
 		Summary:  "Ubuntu advisory",
 		Aliases:  []string{"CVE-2024-7000", "GHSA-zzzz-yyyy-xxxx"},
 		Affected: []model.Affected{{
@@ -655,7 +657,7 @@ func TestAliasRemovalDoesNotAffectOtherSources(t *testing.T) {
 	// Insert Red Hat OSV entry (same CVE)
 	vuln2 := &model.Vulnerability{
 		ID:       "RHSA-2024:7000",
-		Modified: now,
+		Modified: &now,
 		Summary:  "Red Hat advisory",
 		Aliases:  []string{"CVE-2024-7000", "RHSA-EXTRA-1"},
 		Affected: []model.Affected{{
@@ -681,7 +683,7 @@ func TestAliasRemovalDoesNotAffectOtherSources(t *testing.T) {
 	// Re-import Ubuntu entry with GHSA alias removed
 	vuln1Updated := &model.Vulnerability{
 		ID:       "USN-7000-1",
-		Modified: now.Add(time.Hour),
+		Modified: timePtr(now.Add(time.Hour)),
 		Summary:  "Ubuntu advisory updated",
 		Aliases:  []string{"CVE-2024-7000"},
 		Affected: []model.Affected{{

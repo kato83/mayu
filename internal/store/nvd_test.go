@@ -395,7 +395,7 @@ func TestUpsertNVDBatch_MergeWithOSV(t *testing.T) {
 	// First: insert an OSV entry that has CVE-2024-99999 as canonical ID
 	osvVuln := &model.Vulnerability{
 		ID:       "GO-2024-9999",
-		Modified: osvModified,
+		Modified: &osvModified,
 		Summary:  "OSV summary for this vulnerability",
 		Aliases:  []string{"CVE-2024-99999"},
 		Affected: []model.Affected{{
