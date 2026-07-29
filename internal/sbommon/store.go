@@ -87,4 +87,7 @@ type SBOMStore interface {
 
 	// ListFindingStatusLog returns audit log entries for a given finding status ID.
 	ListFindingStatusLog(ctx context.Context, findingStatusID int64) ([]*FindingStatusLog, error)
+
+	// DeleteFindingStatus removes a finding status (resets to default 'open' behavior).
+	DeleteFindingStatus(ctx context.Context, versionID int64, vulnID, purl string) error
 }

@@ -118,3 +118,29 @@ type FindingStatusLog struct {
 	ChangedBy       int64
 	ChangedAt       time.Time
 }
+
+// ValidFindingStatuses is the set of allowed status values.
+var ValidFindingStatuses = map[string]bool{
+	FindingStatusOpen:          true,
+	FindingStatusInTriage:      true,
+	FindingStatusSuppressed:    true,
+	FindingStatusFalsePositive: true,
+	FindingStatusRiskAccepted:  true,
+	FindingStatusResolved:      true,
+}
+
+// IsExcludedFromCounts returns true if this status should exclude
+// the finding from vulnerability counts in reports.
+func (fs *FindingStatus) IsExcludedFromCounts() bool {
+	return fs.Status == FindingStatusSuppressed ||
+		fs.Status == FindingStatusFalsePositive ||
+		fs.Status == FindingStatusResolved
+}
+
+// IsExpired returns true if the status has an expiry date that has passed.
+func (fs *FindingStatus) IsExpired() bool {
+	if fs.ExpiresAt == nil {
+		return false
+	}
+	return time.Now().After(*fs.ExpiresAt)
+}

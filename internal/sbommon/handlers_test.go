@@ -328,6 +328,10 @@ func (m *mockSBOMStore) ListFindingStatusLog(_ context.Context, findingStatusID 
 	return result, nil
 }
 
+func (m *mockSBOMStore) DeleteFindingStatus(_ context.Context, _ int64, _ string, _ string) error {
+	return nil
+}
+
 // helper to create a request with auth context
 func reqWithUser(method, path string, body []byte) *http.Request {
 	var r *http.Request
