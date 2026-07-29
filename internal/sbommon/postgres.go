@@ -631,3 +631,16 @@ func (s *PostgresSBOMStore) ListFindingStatusLog(ctx context.Context, findingSta
 	}
 	return logs, nil
 }
+
+// DeleteFindingStatus removes a finding status record, effectively resetting it to 'open'.
+func (s *PostgresSBOMStore) DeleteFindingStatus(ctx context.Context, versionID int64, vulnID, purl string) error {
+	_, err := s.db.ExecContext(ctx, `
+		DELETE FROM sbom_finding_statuses
+		WHERE version_id = $1 AND vuln_id = $2 AND purl = $3`,
+		versionID, vulnID, purl,
+	)
+	if err != nil {
+		return fmt.Errorf("delete finding status: %w", err)
+	}
+	return nil
+}
