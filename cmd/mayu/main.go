@@ -61,6 +61,13 @@ func main() {
 			os.Exit(2)
 		}
 		os.Exit(exitCode)
+	case "scan":
+		exitCode, err := runScan(subcommandArgs(), cfg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(2)
+		}
+		os.Exit(exitCode)
 	case "migrate":
 		if err := runMigrate(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -189,6 +196,7 @@ func printUsage() {
 	fmt.Println("  ingest history  Show ingest job history")
 	fmt.Println("  search     Search for vulnerabilities")
 	fmt.Println("  audit      Audit SBOM for known vulnerabilities")
+	fmt.Println("  scan       Scan lockfiles for known vulnerabilities")
 	fmt.Println("  serve      Start the API server")
 	fmt.Println("  status     Show data source sync status")
 	fmt.Println("  migrate    Run database migrations")
