@@ -92,10 +92,10 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 
 		// Update year checkpoint
 		yearState := &store.SyncState{
-			Source:         nvdYearSource(year),
-			SourceType:     "nvd",
-			LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-			RecordCount:    int64(inserted),
+			Source:       nvdYearSource(year),
+			SourceType:   "nvd",
+			LastSyncedAt: start.UTC().Format(time.RFC3339),
+			RecordCount:  int64(inserted),
 		}
 		if err := ing.store.UpdateSyncState(ctx, yearState); err != nil {
 			ing.logger.Printf("warning: failed to update sync state for NVD year %d: %v", year, err)
@@ -186,10 +186,10 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 				// No modifications for this year — just update timestamp.
 				ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("  Year %d: no modifications in feed, skipping", plan.Year)})
 				yearState := &store.SyncState{
-					Source:         nvdYearSource(plan.Year),
-					SourceType:     "nvd",
-					LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-					RecordCount:    0, // keep existing count by using the state directly
+					Source:       nvdYearSource(plan.Year),
+					SourceType:   "nvd",
+					LastSyncedAt: start.UTC().Format(time.RFC3339),
+					RecordCount:  0, // keep existing count by using the state directly
 				}
 				// Preserve existing record count
 				existingState, _ := ing.store.GetSyncState(ctx, nvdYearSource(plan.Year))
@@ -219,10 +219,10 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 
 		// Checkpoint: record this year as successfully imported.
 		yearState := &store.SyncState{
-			Source:         nvdYearSource(plan.Year),
-			SourceType:     "nvd",
-			LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-			RecordCount:    int64(inserted),
+			Source:       nvdYearSource(plan.Year),
+			SourceType:   "nvd",
+			LastSyncedAt: start.UTC().Format(time.RFC3339),
+			RecordCount:  int64(inserted),
 		}
 		// For delta updates, the modified feed may contain both new and updated CVEs,
 		// so we query the actual DB count for an accurate record_count.
@@ -263,10 +263,10 @@ func needsFullYearImport(state *store.SyncState) bool {
 	if state == nil {
 		return true
 	}
-	if state.LastModifiedAt == "" {
+	if state.LastSyncedAt == "" {
 		return true
 	}
-	lastSync, err := time.Parse(time.RFC3339, state.LastModifiedAt)
+	lastSync, err := time.Parse(time.RFC3339, state.LastSyncedAt)
 	if err != nil {
 		return true
 	}

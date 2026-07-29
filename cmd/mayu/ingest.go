@@ -505,10 +505,10 @@ func runIngest(args []string, cfg *config.Config) error {
 
 			// Update sync state for GHSA source
 			_ = s.UpdateSyncState(ctx, &store.SyncState{
-				Source:         "GHSA:" + *ghsaRepo,
-				SourceType:     "ghsa",
-				LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-				RecordCount:    int64(imported),
+				Source:       "GHSA:" + *ghsaRepo,
+				SourceType:   "ghsa",
+				LastSyncedAt: jobStart.Format(time.RFC3339),
+				RecordCount:  int64(imported),
 			})
 
 			fmt.Printf("\nDone: %d imported, %d failed\n", imported, failed)

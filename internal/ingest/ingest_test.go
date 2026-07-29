@@ -195,9 +195,9 @@ func TestDeltaImport(t *testing.T) {
 
 	// Set up an existing sync state (last synced at a time between old and new)
 	existingState := &store.SyncState{
-		Source:         "Go",
-		LastModifiedAt: time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
-		RecordCount:    50,
+		Source:       "Go",
+		LastSyncedAt: time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339),
+		RecordCount:  50,
 	}
 	if err := s.UpdateSyncState(ctx, existingState); err != nil {
 		t.Fatalf("setup sync state: %v", err)

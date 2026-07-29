@@ -42,12 +42,12 @@ func TestNeedsFullYearImport(t *testing.T) {
 		wantFull bool
 	}{
 		{"nil state", nil, true},
-		{"empty last modified", &store.SyncState{Source: "NVD-native:2024", LastModifiedAt: ""}, true},
-		{"invalid date", &store.SyncState{Source: "NVD-native:2024", LastModifiedAt: "invalid"}, true},
-		{"9 days ago", &store.SyncState{Source: "NVD-native:2024", LastModifiedAt: now.Add(-9 * 24 * time.Hour).Format(time.RFC3339)}, true},
-		{"8 days 1 hour ago", &store.SyncState{Source: "NVD-native:2024", LastModifiedAt: now.Add(-8*24*time.Hour - time.Hour).Format(time.RFC3339)}, true},
-		{"7 days ago", &store.SyncState{Source: "NVD-native:2024", LastModifiedAt: now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)}, false},
-		{"1 hour ago", &store.SyncState{Source: "NVD-native:2024", LastModifiedAt: now.Add(-1 * time.Hour).Format(time.RFC3339)}, false},
+		{"empty last synced", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: ""}, true},
+		{"invalid date", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: "invalid"}, true},
+		{"9 days ago", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: now.Add(-9 * 24 * time.Hour).Format(time.RFC3339)}, true},
+		{"8 days 1 hour ago", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: now.Add(-8*24*time.Hour - time.Hour).Format(time.RFC3339)}, true},
+		{"7 days ago", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)}, false},
+		{"1 hour ago", &store.SyncState{Source: "NVD-native:2024", LastSyncedAt: now.Add(-1 * time.Hour).Format(time.RFC3339)}, false},
 	}
 
 	for _, tt := range tests {

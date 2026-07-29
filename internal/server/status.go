@@ -12,11 +12,10 @@ type statusResponse struct {
 }
 
 type syncStateResponse struct {
-	Source         string `json:"source"`
-	SourceType     string `json:"source_type"`
-	LastModifiedAt string `json:"last_modified_at"`
-	LastSyncedAt   string `json:"last_synced_at"`
-	RecordCount    int64  `json:"record_count"`
+	Source       string `json:"source"`
+	SourceType   string `json:"source_type"`
+	LastSyncedAt string `json:"last_synced_at"`
+	RecordCount  int64  `json:"record_count"`
 }
 
 type epssCoverageResponse struct {
@@ -52,11 +51,10 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 	for _, st := range states {
 		resp.SyncStates = append(resp.SyncStates, syncStateResponse{
-			Source:         st.Source,
-			SourceType:     st.SourceType,
-			LastModifiedAt: st.LastModifiedAt,
-			LastSyncedAt:   st.LastSyncedAt,
-			RecordCount:    st.RecordCount,
+			Source:       st.Source,
+			SourceType:   st.SourceType,
+			LastSyncedAt: st.LastSyncedAt,
+			RecordCount:  st.RecordCount,
 		})
 	}
 

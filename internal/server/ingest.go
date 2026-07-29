@@ -507,6 +507,7 @@ func (s *Server) writeSSE(w http.ResponseWriter, flusher http.Flusher, evt inges
 
 // ingestGHSA fetches GitHub Security Advisories for a repo and imports them.
 func (s *Server) ingestGHSA(ctx context.Context, repo string, progressFn func(ingest.Progress)) (*ingest.Stats, error) {
+	start := time.Now().UTC()
 	parts := strings.SplitN(repo, "/", 2)
 	owner, repoName := parts[0], parts[1]
 
@@ -553,10 +554,10 @@ func (s *Server) ingestGHSA(ctx context.Context, repo string, progressFn func(in
 
 	// Update sync state for GHSA source
 	syncState := &store.SyncState{
-		Source:         "GHSA:" + repo,
-		SourceType:     "ghsa",
-		LastModifiedAt: time.Now().UTC().Format(time.RFC3339),
-		RecordCount:    int64(stats.Inserted),
+		Source:       "GHSA:" + repo,
+		SourceType:   "ghsa",
+		LastSyncedAt: start.Format(time.RFC3339),
+		RecordCount:  int64(stats.Inserted),
 	}
 	if err := s.store.UpdateSyncState(ctx, syncState); err != nil {
 		slog.Error("failed to update GHSA sync state", "repo", repo, "error", err)

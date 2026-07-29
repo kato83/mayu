@@ -99,10 +99,10 @@ func (ing *Ingester) ImportConvertedSource(ctx context.Context, source fetcher.C
 			sourceType = "nvd"
 		}
 		syncState := &store.SyncState{
-			Source:         source.Name,
-			SourceType:     sourceType,
-			LastModifiedAt: lastModified.Format(time.RFC3339),
-			RecordCount:    int64(stats.Inserted),
+			Source:       source.Name,
+			SourceType:   sourceType,
+			LastSyncedAt: start.UTC().Format(time.RFC3339),
+			RecordCount:  int64(stats.Inserted),
 		}
 		if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
 			ing.logger.Printf("warning: failed to update sync state: %v", err)

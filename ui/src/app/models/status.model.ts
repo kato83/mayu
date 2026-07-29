@@ -1,7 +1,6 @@
 export interface SyncState {
   source: string;
   source_type: string;
-  last_modified_at: string;
   last_synced_at: string;
   record_count: number;
 }

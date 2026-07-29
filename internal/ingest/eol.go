@@ -14,6 +14,7 @@ import (
 // ImportEOL imports all product lifecycle data from endoflife.date.
 // It fetches the product list, then fetches each product's detail (with releases).
 func ImportEOL(ctx context.Context, s store.Store, update bool) error {
+	start := time.Now()
 	log.Println("Fetching endoflife.date product list...")
 
 	// Check sync state for delta
@@ -67,10 +68,10 @@ func ImportEOL(ctx context.Context, s store.Store, update bool) error {
 
 	// Update sync state
 	if err := s.UpdateSyncState(ctx, &store.SyncState{
-		Source:         "EOL",
-		SourceType:     "eol",
-		LastModifiedAt: time.Now().Format(time.RFC3339),
-		RecordCount:    int64(imported),
+		Source:       "EOL",
+		SourceType:   "eol",
+		LastSyncedAt: start.UTC().Format(time.RFC3339),
+		RecordCount:  int64(imported),
 	}); err != nil {
 		return fmt.Errorf("update sync state: %w", err)
 	}
