@@ -2,19 +2,29 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/kato83/mayu/internal/audit"
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/lockfile"
+	"github.com/kato83/mayu/internal/policy"
 	"github.com/kato83/mayu/internal/sbom"
 	"github.com/kato83/mayu/internal/store"
 )
+
+// scanPolicyResult pairs a finding with its policy evaluation outcome.
+type scanPolicyResult struct {
+	Finding audit.Finding
+	Action  policy.Action
+	Policy  string
+}
 
 func runScan(args []string, cfg *config.Config) (int, error) {
 	fs := flag.NewFlagSet("scan", flag.ExitOnError)
@@ -26,6 +36,7 @@ func runScan(args []string, cfg *config.Config) (int, error) {
 	ignorePath := fs.String("ignore", "", "Path to ignore file containing vulnerability IDs to suppress")
 	includeDev := fs.Bool("include-dev", false, "Include development dependencies in scan")
 	noVersionCheck := fs.Bool("no-version-check", false, "Skip version matching, report all vulnerabilities for package name")
+	policyPath := fs.String("policy", "", "Path to policy YAML file for custom gating (block/warn/suppress)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu scan [options]")
@@ -75,6 +86,22 @@ func runScan(args []string, cfg *config.Config) (int, error) {
 			return 2, err
 		}
 		failOnLevel = level
+	}
+
+	// Load and validate policy file early
+	var policyEval *policy.Evaluator
+	if *policyPath != "" {
+		pf, err := policy.LoadFile(*policyPath)
+		if err != nil {
+			return 2, err
+		}
+		if errs := policy.Validate(pf); len(errs) > 0 {
+			for _, e := range errs {
+				fmt.Fprintf(os.Stderr, "policy validation: %v\n", e)
+			}
+			return 2, fmt.Errorf("policy file has %d validation error(s)", len(errs))
+		}
+		policyEval = policy.NewEvaluator(pf)
 	}
 
 	// Collect lockfiles to parse
@@ -147,6 +174,45 @@ func runScan(args []string, cfg *config.Config) (int, error) {
 		result.VulnerablePackages = len(pkgSet)
 	}
 
+	// Apply policy evaluation
+	var policyResults []scanPolicyResult
+	var hasBlock bool
+
+	if policyEval != nil {
+		for _, f := range result.Findings {
+			ctx := policy.FindingContext{
+				Severity:  f.Severity,
+				HasFix:    f.FixedVersion != "",
+				Ecosystem: f.Component.Ecosystem,
+			}
+			evalResult := policyEval.Evaluate(ctx)
+			if evalResult.Action == policy.ActionSuppress {
+				continue
+			}
+			if evalResult.Action == policy.ActionBlock {
+				hasBlock = true
+			}
+			policyResults = append(policyResults, scanPolicyResult{
+				Finding: f,
+				Action:  evalResult.Action,
+				Policy:  evalResult.PolicyName,
+			})
+		}
+
+		// Recalculate findings (remove suppressed)
+		filtered := make([]audit.Finding, 0, len(policyResults))
+		for _, pr := range policyResults {
+			filtered = append(filtered, pr.Finding)
+		}
+		result.Findings = filtered
+
+		pkgSet := make(map[string]bool)
+		for _, f := range result.Findings {
+			pkgSet[f.Component.Ecosystem+"/"+f.Component.Name+"/"+f.Component.Version] = true
+		}
+		result.VulnerablePackages = len(pkgSet)
+	}
+
 	// Output results
 	var formatLabel string
 	if len(lockfiles) == 1 {
@@ -157,11 +223,23 @@ func runScan(args []string, cfg *config.Config) (int, error) {
 
 	switch *format {
 	case "json":
-		outputAuditJSON(result)
+		if policyEval != nil {
+			outputScanJSONWithPolicy(result, policyResults)
+		} else {
+			outputAuditJSON(result)
+		}
 	case "csv":
-		outputAuditCSV(result)
+		if policyEval != nil {
+			outputScanCSVWithPolicy(policyResults)
+		} else {
+			outputAuditCSV(result)
+		}
 	case "table":
-		outputScanTable(result, formatLabel)
+		if policyEval != nil {
+			outputScanTableWithPolicy(result, formatLabel, policyResults)
+		} else {
+			outputScanTable(result, formatLabel)
+		}
 	case "sarif":
 		data, err := audit.GenerateSARIF(result, version)
 		if err != nil {
@@ -173,6 +251,16 @@ func runScan(args []string, cfg *config.Config) (int, error) {
 	}
 
 	// Exit code logic
+	if policyEval != nil {
+		if *failOn != "" && audit.ShouldFail(result.Findings, failOnLevel) {
+			return 1, nil
+		}
+		if hasBlock {
+			return 1, nil
+		}
+		return 0, nil
+	}
+
 	if *failOn != "" {
 		if audit.ShouldFail(result.Findings, failOnLevel) {
 			return 1, nil
@@ -230,4 +318,126 @@ func parseLockfile(path string) ([]sbom.Component, error) {
 	defer func() { _ = f.Close() }()
 
 	return parser.Parse(filepath.Base(path), f)
+}
+
+func outputScanTableWithPolicy(result *audit.AuditResult, source string, policyResults []scanPolicyResult) {
+	fmt.Printf("\n=== Lockfile Scan Results (source: %s) ===\n\n", source)
+
+	if len(policyResults) == 0 {
+		fmt.Printf("✓ No vulnerabilities found (%d packages scanned)\n", result.TotalPackages)
+		return
+	}
+
+	fmt.Printf("%-40s %-12s %-20s %-10s %-10s %-14s %s\n", "PACKAGE", "VERSION", "VULN ID", "SEVERITY", "ACTION", "FIXED", "SUMMARY")
+	fmt.Printf("%-40s %-12s %-20s %-10s %-10s %-14s %s\n",
+		"----------------------------------------",
+		"------------",
+		"--------------------",
+		"----------",
+		"----------",
+		"--------------",
+		"----------------------------------------")
+
+	for _, pr := range policyResults {
+		f := pr.Finding
+		pkg := truncateString(f.Component.Name, 40)
+		ver := truncateString(f.Component.Version, 12)
+		vulnID := truncateString(f.VulnID, 20)
+		fixed := truncateString(f.FixedVersion, 14)
+		summary := truncateString(f.Summary, 60)
+		action := strings.ToUpper(string(pr.Action))
+		fmt.Printf("%-40s %-12s %-20s %-10s %-10s %-14s %s\n", pkg, ver, vulnID, f.Severity, action, fixed, summary)
+	}
+
+	var blocks, warns, allows int
+	for _, pr := range policyResults {
+		switch pr.Action {
+		case policy.ActionBlock:
+			blocks++
+		case policy.ActionWarn:
+			warns++
+		case policy.ActionAllow:
+			allows++
+		}
+	}
+
+	fmt.Printf("\n✗ %d finding(s) in %d package(s) (%d total packages scanned)\n",
+		len(policyResults), result.VulnerablePackages, result.TotalPackages)
+	fmt.Printf("  Policy: %d blocked, %d warned, %d allowed\n", blocks, warns, allows)
+}
+
+func outputScanJSONWithPolicy(result *audit.AuditResult, policyResults []scanPolicyResult) {
+	type jsonFinding struct {
+		Package      string   `json:"package"`
+		Version      string   `json:"version"`
+		Ecosystem    string   `json:"ecosystem"`
+		VulnID       string   `json:"vuln_id"`
+		Aliases      []string `json:"aliases,omitempty"`
+		Severity     string   `json:"severity"`
+		Summary      string   `json:"summary"`
+		FixedVersion string   `json:"fixed_version,omitempty"`
+		Action       string   `json:"action"`
+		PolicyName   string   `json:"policy_name,omitempty"`
+	}
+
+	type jsonOutput struct {
+		Findings []jsonFinding `json:"findings"`
+		Summary  struct {
+			TotalPackages      int `json:"total_packages"`
+			VulnerablePackages int `json:"vulnerable_packages"`
+			TotalFindings      int `json:"total_findings"`
+			Blocked            int `json:"blocked"`
+			Warned             int `json:"warned"`
+			Allowed            int `json:"allowed"`
+		} `json:"summary"`
+	}
+
+	out := jsonOutput{}
+	for _, pr := range policyResults {
+		f := pr.Finding
+		out.Findings = append(out.Findings, jsonFinding{
+			Package:      f.Component.Name,
+			Version:      f.Component.Version,
+			Ecosystem:    f.Component.Ecosystem,
+			VulnID:       f.VulnID,
+			Aliases:      f.Aliases,
+			Severity:     f.Severity,
+			Summary:      f.Summary,
+			FixedVersion: f.FixedVersion,
+			Action:       string(pr.Action),
+			PolicyName:   pr.Policy,
+		})
+		switch pr.Action {
+		case policy.ActionBlock:
+			out.Summary.Blocked++
+		case policy.ActionWarn:
+			out.Summary.Warned++
+		case policy.ActionAllow:
+			out.Summary.Allowed++
+		}
+	}
+	out.Summary.TotalPackages = result.TotalPackages
+	out.Summary.VulnerablePackages = result.VulnerablePackages
+	out.Summary.TotalFindings = len(policyResults)
+
+	data, _ := json.MarshalIndent(out, "", "  ")
+	fmt.Println(string(data))
+}
+
+func outputScanCSVWithPolicy(policyResults []scanPolicyResult) {
+	fmt.Println("package,version,ecosystem,vuln_id,severity,action,policy_name,fixed_version,summary")
+	for _, pr := range policyResults {
+		f := pr.Finding
+		fmt.Printf("%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+			csvEscape(f.Component.Name),
+			csvEscape(f.Component.Version),
+			csvEscape(f.Component.Ecosystem),
+			csvEscape(f.VulnID),
+			csvEscape(f.Severity),
+			csvEscape(string(pr.Action)),
+			csvEscape(pr.Policy),
+			csvEscape(f.FixedVersion),
+			csvEscape(f.Summary),
+		)
+	}
 }
