@@ -297,14 +297,16 @@ func outputAuditTable(result *audit.AuditResult, sbomFormat string) {
 
 func outputAuditJSON(result *audit.AuditResult) {
 	type jsonFinding struct {
-		Package      string   `json:"package"`
-		Version      string   `json:"version"`
-		Ecosystem    string   `json:"ecosystem"`
-		VulnID       string   `json:"vuln_id"`
-		Aliases      []string `json:"aliases,omitempty"`
-		Severity     string   `json:"severity"`
-		Summary      string   `json:"summary"`
-		FixedVersion string   `json:"fixed_version,omitempty"`
+		Package           string                    `json:"package"`
+		Version           string                    `json:"version"`
+		Ecosystem         string                    `json:"ecosystem"`
+		VulnID            string                    `json:"vuln_id"`
+		Aliases           []string                  `json:"aliases,omitempty"`
+		Severity          string                    `json:"severity"`
+		Summary           string                    `json:"summary"`
+		FixedVersion      string                    `json:"fixed_version,omitempty"`
+		Reachable         *bool                     `json:"reachable,omitempty"`
+		ReachableEvidence []audit.ReachableEvidence `json:"reachable_evidence,omitempty"`
 	}
 
 	type jsonOutput struct {
@@ -319,14 +321,16 @@ func outputAuditJSON(result *audit.AuditResult) {
 	out := jsonOutput{}
 	for _, f := range result.Findings {
 		out.Findings = append(out.Findings, jsonFinding{
-			Package:      f.Component.Name,
-			Version:      f.Component.Version,
-			Ecosystem:    f.Component.Ecosystem,
-			VulnID:       f.VulnID,
-			Aliases:      f.Aliases,
-			Severity:     f.Severity,
-			Summary:      f.Summary,
-			FixedVersion: f.FixedVersion,
+			Package:           f.Component.Name,
+			Version:           f.Component.Version,
+			Ecosystem:         f.Component.Ecosystem,
+			VulnID:            f.VulnID,
+			Aliases:           f.Aliases,
+			Severity:          f.Severity,
+			Summary:           f.Summary,
+			FixedVersion:      f.FixedVersion,
+			Reachable:         f.Reachable,
+			ReachableEvidence: f.ReachableEvidence,
 		})
 	}
 	out.Summary.TotalPackages = result.TotalPackages

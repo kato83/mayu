@@ -45,6 +45,20 @@ type Finding struct {
 
 	// FixedVersions contains all known fixed versions across ranges.
 	FixedVersions []string
+
+	// Reachable indicates whether vulnerable symbols are reachable from the project code.
+	// nil means reachability was not analyzed.
+	Reachable *bool
+
+	// ReachableEvidence contains details of reachable vulnerable symbols.
+	ReachableEvidence []ReachableEvidence
+}
+
+// ReachableEvidence records a specific vulnerable symbol reference found in project source.
+type ReachableEvidence struct {
+	Symbol string `json:"symbol"`
+	File   string `json:"file"`
+	Line   int    `json:"line"`
 }
 
 // AuditOptions controls the behavior of the audit process.
