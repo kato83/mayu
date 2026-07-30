@@ -65,6 +65,45 @@ export class LevChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.chart?.destroy();
   }
 
+  /**
+   * Fill gaps in the history data with null values so Chart.js renders
+   * a visual break for periods where no data was ingested.
+   */
+  private fillGaps(history: LEVHistoryPoint[]): { labels: string[]; data: (number | null)[] } {
+    if (history.length < 2) {
+      return {
+        labels: history.map((p) => p.date),
+        data: history.map((p) => p.lev_score * 100),
+      };
+    }
+
+    const timestamps = history.map((p) => new Date(p.date).getTime());
+    const intervals: number[] = [];
+    for (let i = 1; i < timestamps.length; i++) {
+      intervals.push(timestamps[i] - timestamps[i - 1]);
+    }
+
+    const sorted = [...intervals].sort((a, b) => a - b);
+    const medianInterval = sorted[Math.floor(sorted.length / 2)];
+    const gapThreshold = medianInterval * 2;
+
+    const labels: string[] = [history[0].date];
+    const data: (number | null)[] = [history[0].lev_score * 100];
+
+    for (let i = 1; i < history.length; i++) {
+      const interval = timestamps[i] - timestamps[i - 1];
+      if (interval > gapThreshold) {
+        const gapStart = new Date(timestamps[i - 1] + medianInterval);
+        labels.push(gapStart.toISOString().slice(0, 10));
+        data.push(null);
+      }
+      labels.push(history[i].date);
+      data.push(history[i].lev_score * 100);
+    }
+
+    return { labels, data };
+  }
+
   private renderChart(): void {
     if (!this.canvasRef || this.history.length === 0) return;
 
@@ -74,8 +113,7 @@ export class LevChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     const tickColor = isDark ? 'rgba(226, 232, 240, 0.8)' : 'rgba(100, 116, 139, 0.8)';
     const gridColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
 
-    const labels = this.history.map((p) => p.date);
-    const levData = this.history.map((p) => p.lev_score * 100);
+    const { labels, data: levData } = this.fillGaps(this.history);
 
     const ctx = this.canvasRef.nativeElement.getContext('2d');
     if (!ctx) return;
@@ -95,6 +133,7 @@ export class LevChartComponent implements AfterViewInit, OnChanges, OnDestroy {
             pointRadius: levData.length > 60 ? 0 : 2,
             pointHoverRadius: 4,
             borderWidth: 2,
+            spanGaps: false,
           },
         ],
       },

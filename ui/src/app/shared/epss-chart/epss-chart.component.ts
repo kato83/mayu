@@ -66,6 +66,51 @@ export class EpssChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.chart?.destroy();
   }
 
+  /**
+   * Fill gaps in the history data with null values so Chart.js renders
+   * a visual break for periods where no EPSS data was ingested.
+   * A gap is detected when the interval between consecutive data points
+   * exceeds twice the median interval.
+   */
+  private fillGaps(history: EPSSHistoryPoint[]): { labels: string[]; data: (number | null)[] } {
+    if (history.length < 2) {
+      return {
+        labels: history.map((p) => p.date),
+        data: history.map((p) => p.epss * 100),
+      };
+    }
+
+    // Calculate intervals between consecutive points (in days)
+    const timestamps = history.map((p) => new Date(p.date).getTime());
+    const intervals: number[] = [];
+    for (let i = 1; i < timestamps.length; i++) {
+      intervals.push(timestamps[i] - timestamps[i - 1]);
+    }
+
+    // Use median interval as the "normal" step
+    const sorted = [...intervals].sort((a, b) => a - b);
+    const medianInterval = sorted[Math.floor(sorted.length / 2)];
+    // Gap threshold: more than 2x the median interval
+    const gapThreshold = medianInterval * 2;
+
+    const labels: string[] = [history[0].date];
+    const data: (number | null)[] = [history[0].epss * 100];
+
+    for (let i = 1; i < history.length; i++) {
+      const interval = timestamps[i] - timestamps[i - 1];
+      if (interval > gapThreshold) {
+        // Insert a null point at 1 day after the last valid point to break the line
+        const gapStart = new Date(timestamps[i - 1] + medianInterval);
+        labels.push(gapStart.toISOString().slice(0, 10));
+        data.push(null);
+      }
+      labels.push(history[i].date);
+      data.push(history[i].epss * 100);
+    }
+
+    return { labels, data };
+  }
+
   private renderChart(): void {
     if (!this.canvasRef || this.history.length === 0) return;
 
@@ -75,8 +120,7 @@ export class EpssChartComponent implements AfterViewInit, OnChanges, OnDestroy {
     const tickColor = isDark ? 'rgba(226, 232, 240, 0.8)' : 'rgba(100, 116, 139, 0.8)';
     const gridColor = isDark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(148, 163, 184, 0.2)';
 
-    const labels = this.history.map((p) => p.date);
-    const epssData = this.history.map((p) => p.epss * 100);
+    const { labels, data: epssData } = this.fillGaps(this.history);
 
     const ctx = this.canvasRef.nativeElement.getContext('2d');
     if (!ctx) return;
@@ -96,6 +140,7 @@ export class EpssChartComponent implements AfterViewInit, OnChanges, OnDestroy {
             pointRadius: epssData.length > 60 ? 0 : 2,
             pointHoverRadius: 4,
             borderWidth: 2,
+            spanGaps: false,
           },
         ],
       },
