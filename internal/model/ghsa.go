@@ -24,6 +24,10 @@ type GHSAEntry struct {
 	Severity        string // critical, high, medium, low
 	State           string // published, withdrawn
 	HTMLURL         string
+	CVSSV3Vector    string
+	CVSSV3Score     *float64
+	CVSSV4Vector    string
+	CVSSV4Score     *float64
 	PublishedAt     *time.Time
 	UpdatedAt       *time.Time
 	WithdrawnAt     *time.Time

@@ -332,24 +332,63 @@ func (s *PostgresStore) collectScores(ctx context.Context, tx *sql.Tx, vulnID st
 		return nil, err
 	}
 
-	// --- GHSA severity (label-only, no CVSS vector) ---
-	var ghsaSeverity sql.NullString
+	// --- GHSA severity (CVSS vector/score if available, fallback to label) ---
+	var ghsaSeverity, ghsaV3Vector, ghsaV4Vector sql.NullString
+	var ghsaV3Score, ghsaV4Score sql.NullFloat64
 	err = tx.QueryRowContext(ctx, `
-		SELECT severity FROM ghsa_entries
-		WHERE vulnerability_id = $1 AND severity IS NOT NULL AND severity != ''
-		LIMIT 1`, vulnID).Scan(&ghsaSeverity)
+		SELECT severity, cvss_v3_vector, cvss_v3_score, cvss_v4_vector, cvss_v4_score
+		FROM ghsa_entries
+		WHERE vulnerability_id = $1
+		LIMIT 1`, vulnID).Scan(&ghsaSeverity, &ghsaV3Vector, &ghsaV3Score, &ghsaV4Vector, &ghsaV4Score)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("query ghsa_severity: %w", err)
 	}
-	if ghsaSeverity.Valid && ghsaSeverity.String != "" {
-		normalized := model.NormalizeSeverity("", nil, ghsaSeverity.String)
-		if normalized > 0 {
-			scores = append(scores, model.ScoreEntry{
-				Src:        "ghsa",
-				System:     "label",
-				Sev:        ghsaSeverity.String,
-				Normalized: normalized,
-			})
+	if err != sql.ErrNoRows {
+		// Prefer CVSS v4 if available
+		if ghsaV4Vector.Valid && ghsaV4Vector.String != "" {
+			entry := model.ScoreEntry{
+				Src:    "ghsa",
+				System: "cvss",
+				Ver:    "v4",
+				Vector: ghsaV4Vector.String,
+			}
+			if ghsaV4Score.Valid {
+				s := ghsaV4Score.Float64
+				entry.Score = &s
+				entry.Sev = model.SeverityLevelName(model.NormalizeSeverity("cvss", &s, ""))
+				entry.Normalized = model.NormalizeSeverity("cvss", &s, "")
+			}
+			scores = append(scores, entry)
+		}
+		// CVSS v3
+		if ghsaV3Vector.Valid && ghsaV3Vector.String != "" {
+			entry := model.ScoreEntry{
+				Src:    "ghsa",
+				System: "cvss",
+				Ver:    "v31",
+				Vector: ghsaV3Vector.String,
+			}
+			if ghsaV3Score.Valid {
+				s := ghsaV3Score.Float64
+				entry.Score = &s
+				entry.Sev = model.SeverityLevelName(model.NormalizeSeverity("cvss", &s, ""))
+				entry.Normalized = model.NormalizeSeverity("cvss", &s, "")
+			}
+			scores = append(scores, entry)
+		}
+		// Fallback to label-only if no CVSS vectors
+		if (!ghsaV3Vector.Valid || ghsaV3Vector.String == "") &&
+			(!ghsaV4Vector.Valid || ghsaV4Vector.String == "") &&
+			ghsaSeverity.Valid && ghsaSeverity.String != "" {
+			normalized := model.NormalizeSeverity("", nil, ghsaSeverity.String)
+			if normalized > 0 {
+				scores = append(scores, model.ScoreEntry{
+					Src:        "ghsa",
+					System:     "label",
+					Sev:        ghsaSeverity.String,
+					Normalized: normalized,
+				})
+			}
 		}
 	}
 

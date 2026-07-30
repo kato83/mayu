@@ -181,6 +181,32 @@ func ParseGitHubToGHSAEntry(data []byte) (*model.GHSAEntry, error) {
 		RawJSON:     data,
 	}
 
+	// Extract CVSS vectors and scores
+	if adv.CVSSSeverities != nil {
+		if adv.CVSSSeverities.CVSSV3 != nil {
+			if adv.CVSSSeverities.CVSSV3.VectorString != nil && *adv.CVSSSeverities.CVSSV3.VectorString != "" {
+				entry.CVSSV3Vector = *adv.CVSSSeverities.CVSSV3.VectorString
+			}
+			if adv.CVSSSeverities.CVSSV3.Score != nil {
+				entry.CVSSV3Score = adv.CVSSSeverities.CVSSV3.Score
+			}
+		}
+		if adv.CVSSSeverities.CVSSV4 != nil {
+			if adv.CVSSSeverities.CVSSV4.VectorString != nil && *adv.CVSSSeverities.CVSSV4.VectorString != "" {
+				entry.CVSSV4Vector = *adv.CVSSSeverities.CVSSV4.VectorString
+			}
+			if adv.CVSSSeverities.CVSSV4.Score != nil {
+				entry.CVSSV4Score = adv.CVSSSeverities.CVSSV4.Score
+			}
+		}
+	}
+	// Fallback to legacy cvss field for v3
+	if entry.CVSSV3Vector == "" && adv.CVSS != nil &&
+		adv.CVSS.VectorString != nil && *adv.CVSS.VectorString != "" {
+		entry.CVSSV3Vector = *adv.CVSS.VectorString
+		entry.CVSSV3Score = adv.CVSS.Score
+	}
+
 	// Default state
 	if entry.State == "" {
 		entry.State = "published"

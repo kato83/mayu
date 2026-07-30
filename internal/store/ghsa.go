@@ -101,9 +101,11 @@ func (s *PostgresStore) upsertGHSAEntry(ctx context.Context, tx *sql.Tx, entry *
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO ghsa_entries (
 			ghsa_id, vulnerability_id, cve_id, summary, description,
-			severity, state, html_url, published_at, updated_at, withdrawn_at, raw_json
+			severity, state, html_url,
+			cvss_v3_vector, cvss_v3_score, cvss_v4_vector, cvss_v4_score,
+			published_at, updated_at, withdrawn_at, raw_json
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 		RETURNING id`,
 		entry.GHSAID,
 		vulnID,
@@ -113,6 +115,10 @@ func (s *PostgresStore) upsertGHSAEntry(ctx context.Context, tx *sql.Tx, entry *
 		nullIfEmpty(entry.Severity),
 		entry.State,
 		nullIfEmpty(entry.HTMLURL),
+		nullIfEmpty(entry.CVSSV3Vector),
+		entry.CVSSV3Score,
+		nullIfEmpty(entry.CVSSV4Vector),
+		entry.CVSSV4Score,
 		entry.PublishedAt,
 		entry.UpdatedAt,
 		entry.WithdrawnAt,
