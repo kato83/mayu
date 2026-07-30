@@ -463,6 +463,9 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 	purlStr := q.Get("purl")
 	severity := q.Get("severity")
 	since := q.Get("since")
+	modifiedUntil := q.Get("modified_until")
+	publishedSince := q.Get("published_since")
+	publishedUntil := q.Get("published_until")
 	version := q.Get("version")
 	fulltextQuery := q.Get("query")
 
@@ -526,6 +529,33 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
+	// Validate modified_until
+	if modifiedUntil != "" {
+		if err := validate.DateInput(modifiedUntil); err != nil {
+			writeError(w, http.StatusBadRequest,
+				fmt.Sprintf("invalid modified_until parameter: %v", err))
+			return
+		}
+	}
+
+	// Validate published_since
+	if publishedSince != "" {
+		if err := validate.DateInput(publishedSince); err != nil {
+			writeError(w, http.StatusBadRequest,
+				fmt.Sprintf("invalid published_since parameter: %v", err))
+			return
+		}
+	}
+
+	// Validate published_until
+	if publishedUntil != "" {
+		if err := validate.DateInput(publishedUntil); err != nil {
+			writeError(w, http.StatusBadRequest,
+				fmt.Sprintf("invalid published_until parameter: %v", err))
+			return
+		}
+	}
+
 	// If purl is specified, parse it into package name + ecosystem
 	if purlStr != "" {
 		parsed, err := purlpkg.Parse(purlStr)
@@ -563,16 +593,19 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 	}
 
 	query := store.SearchQuery{
-		ID:          id,
-		Ecosystem:   ecosystem,
-		PackageName: pkg,
-		Severity:    severity,
-		Since:       since,
-		Version:     version,
-		Limit:       limit,
-		Offset:      offset,
-		Cursor:      cursor,
-		Fields:      fields,
+		ID:             id,
+		Ecosystem:      ecosystem,
+		PackageName:    pkg,
+		Severity:       severity,
+		Since:          since,
+		ModifiedUntil:  modifiedUntil,
+		PublishedSince: publishedSince,
+		PublishedUntil: publishedUntil,
+		Version:        version,
+		Limit:          limit,
+		Offset:         offset,
+		Cursor:         cursor,
+		Fields:         fields,
 	}
 
 	// Set locale for translated summary

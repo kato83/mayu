@@ -66,6 +66,22 @@
         <source>Modified since</source>
         <target>更新日以降</target>
       </trans-unit>
+      <trans-unit id="vulnList.filterModifiedSince" datatype="html">
+        <source>Modified from</source>
+        <target>更新日（開始）</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterModifiedUntil" datatype="html">
+        <source>Modified to</source>
+        <target>更新日（終了）</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterPublishedSince" datatype="html">
+        <source>Published from</source>
+        <target>公開日（開始）</target>
+      </trans-unit>
+      <trans-unit id="vulnList.filterPublishedUntil" datatype="html">
+        <source>Published to</source>
+        <target>公開日（終了）</target>
+      </trans-unit>
       <trans-unit id="vulnList.sortFieldModified" datatype="html">
         <source>Modified</source>
         <target>更新日</target>

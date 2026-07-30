@@ -662,6 +662,27 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		args = append(args, query.Since)
 	}
 
+	// ModifiedUntil filter (modified date upper bound, inclusive of the day)
+	if query.ModifiedUntil != "" {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND modified < ($%d::date + interval '1 day')`, argIdx)
+		args = append(args, query.ModifiedUntil)
+	}
+
+	// PublishedSince filter (published date lower bound)
+	if query.PublishedSince != "" {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND published >= $%d`, argIdx)
+		args = append(args, query.PublishedSince)
+	}
+
+	// PublishedUntil filter (published date upper bound, inclusive of the day)
+	if query.PublishedUntil != "" {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND published < ($%d::date + interval '1 day')`, argIdx)
+		args = append(args, query.PublishedUntil)
+	}
+
 	// Version filter (check if version appears in affected versions list)
 	if query.Version != "" {
 		argIdx++
@@ -1391,6 +1412,27 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 		argIdx++
 		baseQuery += fmt.Sprintf(` AND v.modified >= $%d`, argIdx)
 		args = append(args, query.Since)
+	}
+
+	// ModifiedUntil filter (modified date upper bound, inclusive of the day)
+	if query.ModifiedUntil != "" {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND v.modified < ($%d::date + interval '1 day')`, argIdx)
+		args = append(args, query.ModifiedUntil)
+	}
+
+	// PublishedSince filter (published date lower bound)
+	if query.PublishedSince != "" {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND v.published >= $%d`, argIdx)
+		args = append(args, query.PublishedSince)
+	}
+
+	// PublishedUntil filter (published date upper bound, inclusive of the day)
+	if query.PublishedUntil != "" {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND v.published < ($%d::date + interval '1 day')`, argIdx)
+		args = append(args, query.PublishedUntil)
 	}
 
 	// Version filter

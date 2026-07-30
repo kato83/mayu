@@ -230,6 +230,15 @@ type SearchQuery struct {
 	// Since filters vulnerabilities modified on or after this date (RFC3339 or YYYY-MM-DD)
 	Since string
 
+	// ModifiedUntil filters vulnerabilities modified on or before this date (RFC3339 or YYYY-MM-DD)
+	ModifiedUntil string
+
+	// PublishedSince filters vulnerabilities published on or after this date (RFC3339 or YYYY-MM-DD)
+	PublishedSince string
+
+	// PublishedUntil filters vulnerabilities published on or before this date (RFC3339 or YYYY-MM-DD)
+	PublishedUntil string
+
 	// Version filters by affected version (checks version ranges)
 	Version string
 

@@ -18,7 +18,10 @@ interface FilterState {
   package: string;
   ecosystem: string;
   severity: string;
-  since: string;
+  modifiedSince: string;
+  modifiedUntil: string;
+  publishedSince: string;
+  publishedUntil: string;
   version: string;
   kev: boolean;
   sort: string;
@@ -31,7 +34,10 @@ function emptyFilters(): FilterState {
     package: '',
     ecosystem: '',
     severity: '',
-    since: '',
+    modifiedSince: '',
+    modifiedUntil: '',
+    publishedSince: '',
+    publishedUntil: '',
     version: '',
     kev: false,
     sort: 'modified_desc',
@@ -141,14 +147,50 @@ function emptyFilters(): FilterState {
             />
           </div>
 
-          <!-- Since filter -->
+          <!-- Modified since (from) filter -->
           <div>
-            <label for="filter-since" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterSince">Modified since</label>
+            <label for="filter-modified-since" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterModifiedSince">Modified from</label>
             <input
-              id="filter-since"
+              id="filter-modified-since"
               type="date"
-              [ngModel]="filters.since"
-              (ngModelChange)="onFilterChange('since', $event)"
+              [ngModel]="filters.modifiedSince"
+              (ngModelChange)="onFilterChange('modifiedSince', $event)"
+              class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+
+          <!-- Modified until (to) filter -->
+          <div>
+            <label for="filter-modified-until" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterModifiedUntil">Modified to</label>
+            <input
+              id="filter-modified-until"
+              type="date"
+              [ngModel]="filters.modifiedUntil"
+              (ngModelChange)="onFilterChange('modifiedUntil', $event)"
+              class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+
+          <!-- Published since (from) filter -->
+          <div>
+            <label for="filter-published-since" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterPublishedSince">Published from</label>
+            <input
+              id="filter-published-since"
+              type="date"
+              [ngModel]="filters.publishedSince"
+              (ngModelChange)="onFilterChange('publishedSince', $event)"
+              class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+
+          <!-- Published until (to) filter -->
+          <div>
+            <label for="filter-published-until" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.filterPublishedUntil">Published to</label>
+            <input
+              id="filter-published-until"
+              type="date"
+              [ngModel]="filters.publishedUntil"
+              (ngModelChange)="onFilterChange('publishedUntil', $event)"
               class="w-full rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
@@ -406,7 +448,10 @@ export class VulnerabilitiesComponent implements OnInit {
         package: params['purl'] || params['package'] || '',
         ecosystem: params['ecosystem'] || '',
         severity: params['severity'] || '',
-        since: params['since'] || '',
+        modifiedSince: params['since'] || '',
+        modifiedUntil: params['modified_until'] || '',
+        publishedSince: params['published_since'] || '',
+        publishedUntil: params['published_until'] || '',
         version: params['version'] || '',
         kev: params['kev'] === 'true',
         sort: params['sort'] || 'modified_desc',
@@ -559,10 +604,14 @@ export class VulnerabilitiesComponent implements OnInit {
     const queryParams: Record<string, string | number | null> = {};
 
     // Add non-empty filters to URL
-    const filterKeys = ['query', 'id', 'package', 'ecosystem', 'severity', 'since', 'version'] as const;
+    const filterKeys = ['query', 'id', 'package', 'ecosystem', 'severity', 'version'] as const;
     for (const key of filterKeys) {
       queryParams[key] = this.filters[key] || null;
     }
+    queryParams['since'] = this.filters.modifiedSince || null;
+    queryParams['modified_until'] = this.filters.modifiedUntil || null;
+    queryParams['published_since'] = this.filters.publishedSince || null;
+    queryParams['published_until'] = this.filters.publishedUntil || null;
     queryParams['kev'] = this.filters.kev ? 'true' : null;
     queryParams['sort'] = this.filters.sort !== 'modified_desc' ? this.filters.sort : null;
     queryParams['limit'] = this.limit();
@@ -616,7 +665,10 @@ export class VulnerabilitiesComponent implements OnInit {
     }
     if (this.filters.ecosystem) params.ecosystem = this.filters.ecosystem;
     if (this.filters.severity) params.severity = this.filters.severity as SearchParams['severity'];
-    if (this.filters.since) params.since = this.filters.since;
+    if (this.filters.modifiedSince) params.since = this.filters.modifiedSince;
+    if (this.filters.modifiedUntil) params.modified_until = this.filters.modifiedUntil;
+    if (this.filters.publishedSince) params.published_since = this.filters.publishedSince;
+    if (this.filters.publishedUntil) params.published_until = this.filters.publishedUntil;
     if (this.filters.version) params.version = this.filters.version;
     if (this.filters.kev) params.kev = true;
     if (this.filters.sort && this.filters.sort !== 'modified_desc') {
