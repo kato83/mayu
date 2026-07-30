@@ -145,11 +145,11 @@ func runIngest(args []string, cfg *config.Config) error {
 
 			var vuln *model.Vulnerability
 
-			// Auto-detect GitHub REST API advisory format and convert to OSV
+			// Auto-detect GitHub REST API advisory format and store natively
 			if parser.IsGitHubAdvisoryJSON(data) {
-				vuln, err = parser.ConvertGitHubToOSV(data)
+				entry, err := parser.ParseGitHubToGHSAEntry(data)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "  ✗ %s: GitHub→OSV conversion error: %v\n", path, err)
+					fmt.Fprintf(os.Stderr, "  ✗ %s: GitHub advisory parse error: %v\n", path, err)
 					failed++
 					if jobID > 0 {
 						_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
@@ -159,23 +159,37 @@ func runIngest(args []string, cfg *config.Config) error {
 					}
 					continue
 				}
-				fmt.Printf("  ℹ %s: detected GitHub Advisory format, converted to OSV\n", path)
-			} else {
-				vuln, err = p.Parse(data)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "  ✗ %s: parse error: %v\n", path, err)
+				fmt.Printf("  ℹ %s: detected GitHub Advisory format, storing as GHSA entry\n", path)
+
+				if err := s.UpsertGHSA(ctx, entry); err != nil {
+					fmt.Fprintf(os.Stderr, "  ✗ %s: upsert error: %v\n", path, err)
 					failed++
 					if jobID > 0 {
 						_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
-							JobID: jobID, VulnID: path, ErrorType: "parse_error",
+							JobID: jobID, VulnID: entry.GHSAID, ErrorType: "store_error",
 							ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
 						})
 					}
 					continue
 				}
-				// Set RawJSON for storage (preserves original JSON)
-				vuln.RawJSON = data
+				imported++
+				continue
 			}
+
+			vuln, err = p.Parse(data)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "  ✗ %s: parse error: %v\n", path, err)
+				failed++
+				if jobID > 0 {
+					_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
+						JobID: jobID, VulnID: path, ErrorType: "parse_error",
+						ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
+					})
+				}
+				continue
+			}
+			// Set RawJSON for storage (preserves original JSON)
+			vuln.RawJSON = data
 
 			if err := s.Insert(ctx, vuln); err != nil {
 				fmt.Fprintf(os.Stderr, "  ✗ %s (id=%s): insert error: %v\n", path, vuln.ID, err)
@@ -487,7 +501,7 @@ func runIngest(args []string, cfg *config.Config) error {
 
 			var imported, failed int
 			for _, data := range advisoryData {
-				vuln, err := parser.ConvertGitHubToOSV(data)
+				entry, err := parser.ParseGitHubToGHSAEntry(data)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "  ✗ conversion error: %v\n", err)
 					failed++
@@ -500,19 +514,19 @@ func runIngest(args []string, cfg *config.Config) error {
 					continue
 				}
 
-				if err := s.Insert(ctx, vuln); err != nil {
-					fmt.Fprintf(os.Stderr, "  ✗ %s: insert error: %v\n", vuln.ID, err)
+				if err := s.UpsertGHSA(ctx, entry); err != nil {
+					fmt.Fprintf(os.Stderr, "  ✗ %s: insert error: %v\n", entry.GHSAID, err)
 					failed++
 					if jobID > 0 {
 						_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
-							JobID: jobID, VulnID: vuln.ID, ErrorType: "store_error",
+							JobID: jobID, VulnID: entry.GHSAID, ErrorType: "store_error",
 							ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
 						})
 					}
 					continue
 				}
 
-				fmt.Printf("  ✓ %s (aliases=%v)\n", vuln.ID, vuln.Aliases)
+				fmt.Printf("  ✓ %s (cve=%s)\n", entry.GHSAID, entry.CVEID)
 				imported++
 			}
 

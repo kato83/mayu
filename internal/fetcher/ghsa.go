@@ -32,7 +32,7 @@ var linkRelNext = regexp.MustCompile(`<([^>]+)>;\s*rel="next"`)
 // If a token is provided, it will be included as a Bearer token for rate limit benefits
 // or access to private/unpublished advisories.
 //
-// Returns the raw JSON bytes of each advisory (suitable for parser.ConvertGitHubToOSV).
+// Returns the raw JSON bytes of each advisory (suitable for parser.ParseGitHubToGHSAEntry).
 func (f *Fetcher) FetchGitHubAdvisories(ctx context.Context, owner, repo, token string) ([][]byte, error) {
 	if owner == "" {
 		return nil, fmt.Errorf("owner must not be empty")

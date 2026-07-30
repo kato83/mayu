@@ -129,6 +129,10 @@ type Store interface {
 	// UpsertEOLProduct upserts a product from endoflife.date.
 	UpsertEOLProduct(ctx context.Context, product EOLProduct) error
 
+	// UpsertGHSA stores a single GitHub Security Advisory entry.
+	// Creates/updates the vulnerability row and all GHSA-specific child records.
+	UpsertGHSA(ctx context.Context, entry *model.GHSAEntry) error
+
 	// UpsertEOLRelease upserts a release cycle from endoflife.date.
 	UpsertEOLRelease(ctx context.Context, release EOLRelease) error
 

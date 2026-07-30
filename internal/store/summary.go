@@ -332,6 +332,27 @@ func (s *PostgresStore) collectScores(ctx context.Context, tx *sql.Tx, vulnID st
 		return nil, err
 	}
 
+	// --- GHSA severity (label-only, no CVSS vector) ---
+	var ghsaSeverity sql.NullString
+	err = tx.QueryRowContext(ctx, `
+		SELECT severity FROM ghsa_entries
+		WHERE vulnerability_id = $1 AND severity IS NOT NULL AND severity != ''
+		LIMIT 1`, vulnID).Scan(&ghsaSeverity)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("query ghsa_severity: %w", err)
+	}
+	if ghsaSeverity.Valid && ghsaSeverity.String != "" {
+		normalized := model.NormalizeSeverity("", nil, ghsaSeverity.String)
+		if normalized > 0 {
+			scores = append(scores, model.ScoreEntry{
+				Src:        "ghsa",
+				System:     "label",
+				Sev:        ghsaSeverity.String,
+				Normalized: normalized,
+			})
+		}
+	}
+
 	return scores, nil
 }
 
