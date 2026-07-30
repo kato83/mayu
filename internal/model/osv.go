@@ -43,6 +43,10 @@ type Vulnerability struct {
 	// Populated during ingestion; used when writing to the database.
 	RawJSON json.RawMessage `json:"-"`
 
+	// SourceEcosystem records the GCS ecosystem folder name (e.g., "Go", "npm", "GIT", "NVD")
+	// used during ingest. This enables identification of the data origin in osv_entries.
+	SourceEcosystem string `json:"-"`
+
 	// SeverityLevel is the normalized severity level from vulnerability_summary.
 	// Set during Search (not from OSV JSON). 5=CRITICAL, 4=HIGH, 3=MEDIUM, 2=LOW, 1=NONE, 0=unknown.
 	SeverityLevel int `json:"-"`

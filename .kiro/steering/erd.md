@@ -80,6 +80,7 @@ erDiagram
         TEXT osv_id PK "Normalized (DEBIAN-CVE-* etc.)"
         TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
         TEXT schema_version
+        TEXT source_ecosystem "GCS ecosystem folder name (Go, npm, GIT, NVD, Debian...)"
         JSONB raw_json "Original OSV JSON (reversibility)"
         JSONB database_specific
     }
@@ -756,6 +757,7 @@ erDiagram
         TEXT osv_id PK
         TEXT vulnerability_id FK
         TEXT schema_version
+        TEXT source_ecosystem "GCS ecosystem folder name (Go, npm, GIT, NVD, Debian...)"
         JSONB raw_json
         JSONB database_specific
     }

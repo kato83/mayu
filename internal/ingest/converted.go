@@ -80,6 +80,11 @@ func (ing *Ingester) ImportConvertedSource(ctx context.Context, source fetcher.C
 
 	ing.progress(Progress{Phase: "parse", Current: len(result.Vulnerabilities), Total: stats.Total, Message: fmt.Sprintf("Parsed %d entries (%d errors)", len(result.Vulnerabilities), stats.Errors)})
 
+	// Set source ecosystem on all parsed vulnerabilities
+	for _, v := range result.Vulnerabilities {
+		v.SourceEcosystem = source.Name
+	}
+
 	// Phase 3: Store in batches
 	ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Storing %d vulnerabilities...", len(result.Vulnerabilities))})
 

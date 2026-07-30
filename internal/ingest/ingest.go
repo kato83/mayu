@@ -215,7 +215,7 @@ func (ing *Ingester) FullImport(ctx context.Context, ecosystem string) (*Stats, 
 	// Phase 2+3: Parallel parse and store with multiple workers.
 	ing.progress(Progress{Phase: "store", Message: fmt.Sprintf("Processing %d entries...", totalEntries)})
 
-	inserted, processed, parseErrors, err := ing.streamParseAndStore(ctx, entries, errCh, totalEntries)
+	inserted, processed, parseErrors, err := ing.streamParseAndStore(ctx, entries, errCh, totalEntries, ecosystem)
 	if err != nil {
 		return nil, err
 	}
@@ -383,6 +383,7 @@ func (ing *Ingester) DeltaImport(ctx context.Context, ecosystem string) (*Stats,
 					return nil
 				}
 
+				vuln.SourceEcosystem = ecosystem
 				mu.Lock()
 				batch = append(batch, vuln)
 				shouldFlush := len(batch) >= ing.batchSize
@@ -501,7 +502,7 @@ func (ing *Ingester) storeBatches(ctx context.Context, vulns []*model.Vulnerabil
 // FullImport.
 //
 // It returns (inserted, processed, errors, err).
-func (ing *Ingester) streamParseAndStore(ctx context.Context, entries <-chan fetcher.ZipEntry, errCh <-chan error, total int) (inserted int, processed int, parseErrors int, err error) {
+func (ing *Ingester) streamParseAndStore(ctx context.Context, entries <-chan fetcher.ZipEntry, errCh <-chan error, total int, sourceEcosystem string) (inserted int, processed int, parseErrors int, err error) {
 	batchCh := make(chan []*model.Vulnerability, ing.storeWorkers*2)
 
 	// Producer: read from entries channel, parse, and dispatch batches.
@@ -524,6 +525,7 @@ func (ing *Ingester) streamParseAndStore(ctx context.Context, entries <-chan fet
 				continue
 			}
 
+			vuln.SourceEcosystem = sourceEcosystem
 			batch = append(batch, vuln)
 			atomic.AddInt64(&totalProcessed, 1)
 

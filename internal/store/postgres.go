@@ -274,15 +274,16 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		}
 	}
 	_, err = tx.ExecContext(ctx, `
-		INSERT INTO osv_entries (osv_id, vulnerability_id, schema_version, raw_json, database_specific, summary, details)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO osv_entries (osv_id, vulnerability_id, schema_version, raw_json, database_specific, summary, details, source_ecosystem)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (osv_id) DO UPDATE SET
 			vulnerability_id = EXCLUDED.vulnerability_id,
 			schema_version = EXCLUDED.schema_version,
 			raw_json = EXCLUDED.raw_json,
 			database_specific = EXCLUDED.database_specific,
 			summary = EXCLUDED.summary,
-			details = EXCLUDED.details`,
+			details = EXCLUDED.details,
+			source_ecosystem = COALESCE(EXCLUDED.source_ecosystem, osv_entries.source_ecosystem)`,
 		osvID,
 		canID,
 		nullIfEmpty(vuln.SchemaVersion),
@@ -290,6 +291,7 @@ func (s *PostgresStore) upsertVulnerability(ctx context.Context, tx *sql.Tx, vul
 		nullableRawJSON(vuln.DatabaseSpecific),
 		nullIfEmpty(vuln.Summary),
 		nullIfEmpty(vuln.Details),
+		nullIfEmpty(vuln.SourceEcosystem),
 	)
 	if err != nil {
 		return fmt.Errorf("upsert osv_entry: %w", err)
