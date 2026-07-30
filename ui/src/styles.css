@@ -23,3 +23,135 @@
   display: inline-block;
   margin-right: 0.25rem;
 }
+
+/* ============================================================
+ * Print styles (@media print)
+ *
+ * Goals:
+ * - Hide navigation UI (sidebar, header hamburger, mobile overlay)
+ * - Remove left margin that accommodates the sidebar
+ * - Force light appearance (white background, black text) even in dark mode
+ * - Avoid wasting ink on decorative backgrounds and shadows
+ * - Ensure links are distinguishable (underline + URL suffix)
+ * - Prevent page breaks inside cards/tables
+ * ============================================================ */
+@media print {
+  /* --- Layout adjustments --- */
+
+  /* Hide sidebar and mobile overlay */
+  app-sidebar,
+  app-sidebar + div[class*='bg-black'] {
+    display: none !important;
+  }
+
+  /* Remove sidebar margin from main content area */
+  .md\:ml-64 {
+    margin-left: 0 !important;
+  }
+
+  /* Hide header hamburger button (mobile menu toggle) */
+  app-header button[aria-label] {
+    display: none !important;
+  }
+
+  /* Hide toast notifications */
+  app-toast {
+    display: none !important;
+  }
+
+  /* --- Dark mode override: force light appearance for print --- */
+
+  /* Override dark background on root and layout containers */
+  html,
+  html.dark,
+  body,
+  .dark\:bg-slate-900,
+  .dark\:bg-slate-800,
+  .bg-slate-50 {
+    background-color: white !important;
+    color: black !important;
+    color-scheme: light !important;
+  }
+
+  /* Force all text to black for readability */
+  *,
+  .dark\:text-slate-100,
+  .dark\:text-slate-200,
+  .dark\:text-slate-300,
+  .dark\:text-slate-400,
+  .dark\:text-white,
+  .text-slate-800,
+  .text-slate-700,
+  .text-slate-600,
+  .text-slate-500 {
+    color: black !important;
+  }
+
+  /* Remove dark backgrounds from cards, tables, and panels */
+  .dark\:bg-slate-700,
+  .dark\:bg-slate-800\/50,
+  .dark\:border-slate-700,
+  .dark\:border-slate-600 {
+    background-color: white !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  /* --- Decorative removal --- */
+
+  /* Remove box shadows */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Remove unnecessary background colors (keep severity badges) */
+  .bg-slate-50,
+  .bg-slate-100,
+  .bg-white {
+    background-color: white !important;
+  }
+
+  /* --- Links --- */
+
+  /* Underline links for print clarity */
+  a[href] {
+    text-decoration: underline !important;
+  }
+
+  /* Show URL after external links (not internal navigation) */
+  a[href^='http']::after {
+    content: ' (' attr(href) ')' !important;
+    font-size: 0.75em;
+    color: #555 !important;
+    word-break: break-all;
+  }
+
+  /* Don't append URL to navigation links and buttons */
+  nav a[href]::after,
+  a[routerLink]::after,
+  .no-print-url::after {
+    content: none !important;
+  }
+
+  /* --- Page break control --- */
+
+  /* Avoid breaking inside cards and table rows */
+  tr,
+  .rounded-lg,
+  .rounded-xl,
+  [class*='card'],
+  details {
+    break-inside: avoid;
+  }
+
+  /* Allow page breaks before major sections */
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  /* --- Utility class for elements that should never print --- */
+  .no-print {
+    display: none !important;
+  }
+}
