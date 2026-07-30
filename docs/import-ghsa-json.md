@@ -65,7 +65,7 @@ curl -sH "Accept: application/vnd.github+json" \
   https://api.github.com/repos/{owner}/{repo}/security-advisories/GHSA-xxxx-xxxx-xxxx
 ```
 
-> **Note**: The REST API response is in GitHub's proprietary format, not OSV. Conversion to OSV format is required before importing into mayu.
+> **Note**: The REST API response is in GitHub's proprietary format, not OSV. `mayu ingest --file` does **not** accept this format (OSV format only). Use `mayu ingest --source ghsa --repo owner/repo` to import directly from the GitHub API with automatic format conversion.
 
 ### Method 3: Manual OSV JSON Construction
 
@@ -143,8 +143,10 @@ Template:
 
 ## Importing into mayu
 
+> **Important**: `mayu ingest --file` accepts **OSV format JSON only**. GitHub REST API responses (GitHub-native format) cannot be imported directly — use `mayu ingest --source ghsa --repo owner/repo` for automatic conversion and import.
+
 ```bash
-# Single file
+# Single file (must be OSV format)
 ./bin/mayu ingest --file GHSA-xxxx-xxxx-xxxx.json
 
 # Multiple files

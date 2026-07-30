@@ -14,7 +14,18 @@ export const DOCS_MANIFEST: DocEntry[] = [
     filename: 'docs/docs/nvd-import-comparison.md',
     filenameJa: 'docs/docs/nvd-import-comparison.ja.md',
   },
-  { slug: 'import-ghsa-json', title: 'Import GHSA JSON', filename: 'docs/docs/import-ghsa-json.md' },
+  {
+    slug: 'import-ghsa-json',
+    title: 'Import GHSA JSON',
+    filename: 'docs/docs/import-ghsa-json.md',
+    filenameJa: 'docs/docs/import-ghsa-json.ja.md',
+  },
+  {
+    slug: 'license-policy-example',
+    title: 'License Policy Example',
+    filename: 'docs/docs/license-policy-example.md',
+    filenameJa: 'docs/docs/license-policy-example.ja.md',
+  },
   {
     slug: 'translation',
     title: 'Translation (LLM)',
