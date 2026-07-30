@@ -11,58 +11,6 @@ import (
 	"time"
 )
 
-func TestFetchEPSSByCVEs(t *testing.T) {
-	// Mock EPSS API response
-	apiResp := `{
-		"status": "OK",
-		"status-code": 200,
-		"version": "1.0",
-		"access": "public",
-		"total": 2,
-		"offset": 0,
-		"limit": 100,
-		"data": [
-			{"cve": "CVE-2023-38831", "epss": "0.942180000", "percentile": "0.999230000", "date": "2026-07-19"},
-			{"cve": "CVE-2022-27225", "epss": "0.003210000", "percentile": "0.712340000", "date": "2026-07-19"}
-		]
-	}`
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify the cve query parameter
-		cves := r.URL.Query().Get("cve")
-		if cves == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(apiResp))
-	}))
-	defer srv.Close()
-
-	// Use a custom fetcher that points to the mock server
-	f := &Fetcher{
-		baseURL:    srv.URL,
-		httpClient: &http.Client{Timeout: DefaultHTTPTimeout},
-	}
-
-	ctx := context.Background()
-
-	// Test FetchEPSSByCVEs by overriding epssAPIBaseURL through direct download
-	data, err := f.download(ctx, srv.URL+"?cve=CVE-2023-38831,CVE-2022-27225")
-	if err != nil {
-		t.Fatalf("download error: %v", err)
-	}
-
-	// Verify it's valid JSON and parse-able
-	if !strings.Contains(string(data), "CVE-2023-38831") {
-		t.Error("response does not contain expected CVE ID")
-	}
-	if !strings.Contains(string(data), "0.942180000") {
-		t.Error("response does not contain expected EPSS score")
-	}
-}
-
 func TestFetchEPSSByCSV(t *testing.T) {
 	// Create mock gzipped CSV content
 	csvContent := `#model_version:v2025.03.05,score_date:2026-07-19T00:00:00+0000

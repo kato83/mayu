@@ -115,14 +115,6 @@ func (ing *Ingester) ImportConvertedSource(ctx context.Context, source fetcher.C
 	return stats, nil
 }
 
-// ConvertedSources returns the list of known converted data sources.
-func ConvertedSources() []fetcher.ConvertedSource {
-	return []fetcher.ConvertedSource{
-		fetcher.SourceNVD,
-		fetcher.SourceDebian,
-	}
-}
-
 // GetConvertedSource returns a converted source by name, or nil if not found.
 func GetConvertedSource(name string) *fetcher.ConvertedSource {
 	sources := map[string]fetcher.ConvertedSource{

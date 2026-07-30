@@ -65,20 +65,3 @@ type GHSACWE struct {
 	CWEID       string
 	Name        string
 }
-
-// GHSASeverityLevel converts a GHSA severity label string to the normalized
-// 5-level scale used in vulnerability_summary.
-func GHSASeverityLevel(severity string) int {
-	switch severity {
-	case "critical":
-		return 5
-	case "high":
-		return 4
-	case "medium":
-		return 3
-	case "low":
-		return 2
-	default:
-		return 0
-	}
-}

@@ -42,13 +42,6 @@ type Progress struct {
 // Option configures the Ingester.
 type Option func(*Ingester)
 
-// WithLogger sets a custom logger.
-func WithLogger(logger *log.Logger) Option {
-	return func(ing *Ingester) {
-		ing.logger = logger
-	}
-}
-
 // WithBatchSize sets the number of vulnerabilities to insert per batch.
 func WithBatchSize(size int) Option {
 	return func(ing *Ingester) {
@@ -127,14 +120,6 @@ func WithEPSSSpikeNotifier(fn func(ctx context.Context, ingestedCVEIDs []string)
 type SBOMReEvaluator interface {
 	// ReEvaluate re-scans all SBOM versions against the current vulnerability database.
 	ReEvaluate(ctx context.Context, vulnIDs []string)
-}
-
-// WithSBOMReEvaluator sets a callback that is invoked (non-blocking) after
-// ingestion completes to re-evaluate tracked SBOM versions against new data.
-func WithSBOMReEvaluator(re SBOMReEvaluator) Option {
-	return func(ing *Ingester) {
-		ing.sbomReEvaluator = re
-	}
 }
 
 // WatchlistMatcher is the interface for watchlist matching after ingest.

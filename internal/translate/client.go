@@ -48,13 +48,6 @@ type Client struct {
 // Option configures a Client.
 type Option func(*Client)
 
-// WithHTTPClient sets a custom HTTP client.
-func WithHTTPClient(c *http.Client) Option {
-	return func(cl *Client) {
-		cl.httpClient = c
-	}
-}
-
 // NewClient creates a new translation client from configuration.
 func NewClient(cfg config.TranslationConfig, opts ...Option) (*Client, error) {
 	if cfg.Endpoint == "" {

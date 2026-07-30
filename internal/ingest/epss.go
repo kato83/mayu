@@ -98,49 +98,6 @@ func (ing *Ingester) ImportEPSS(ctx context.Context) (*Stats, error) {
 	return stats, nil
 }
 
-// ImportEPSSByDate imports EPSS scores for a specific date (YYYY-MM-DD).
-// Useful for backfilling historical data or importing a specific day's scores.
-func (ing *Ingester) ImportEPSSByDate(ctx context.Context, date string) (*Stats, error) {
-	start := time.Now()
-	stats := &Stats{
-		Ecosystem:  epssSource,
-		IsFullSync: true,
-	}
-
-	ing.progress(Progress{Phase: "download", Message: fmt.Sprintf("Downloading EPSS scores for %s...", date)})
-
-	scores, err := ing.fetcher.FetchEPSSByCSVDate(ctx, date)
-	if err != nil {
-		return nil, fmt.Errorf("fetch EPSS CSV for %s: %w", date, err)
-	}
-
-	stats.Total = len(scores)
-	ing.progress(Progress{Phase: "parse", Message: fmt.Sprintf("Downloaded %d EPSS scores for %s", len(scores), date)})
-
-	// Store in batches
-	inserted, err := ing.storeEPSSBatches(ctx, scores)
-	if err != nil {
-		return nil, fmt.Errorf("store EPSS scores: %w", err)
-	}
-	stats.Inserted = inserted
-
-	// Update sync state
-	syncState := &store.SyncState{
-		Source:       epssSource,
-		SourceType:   "epss",
-		LastSyncedAt: start.UTC().Format(time.RFC3339),
-		RecordCount:  int64(inserted),
-	}
-	if err := ing.store.UpdateSyncState(ctx, syncState); err != nil {
-		ing.logger.Printf("warning: failed to update sync state: %v", err)
-	}
-
-	stats.Duration = time.Since(start)
-	ing.progress(Progress{Phase: "store", Current: inserted, Total: stats.Total, Message: fmt.Sprintf("Done: %d EPSS scores imported in %s", inserted, stats.Duration.Round(time.Millisecond))})
-
-	return stats, nil
-}
-
 // UpdateEPSS performs a delta-style update of EPSS scores.
 // Since EPSS scores are recalculated daily for ALL CVEs, there is no true
 // "delta" mechanism — each day is a complete snapshot. This method:
@@ -285,15 +242,6 @@ type epssBackfillStore interface {
 	epssBatchStore
 	GetEPSSImportedDates(ctx context.Context) (map[string]bool, error)
 	GetEPSSOrphanDates(ctx context.Context, from, to string) ([]string, error)
-}
-
-// BackfillEPSS imports historical EPSS daily scores from the EPSS v3 start date
-// (2023-03-07) through today. Dates that already have scores in the database
-// are skipped automatically. This is the recommended way to build up the
-// time-series data needed for accurate LEV computation.
-func (ing *Ingester) BackfillEPSS(ctx context.Context) (*Stats, error) {
-	today := time.Now().UTC().Format("2006-01-02")
-	return ing.BackfillEPSSRange(ctx, EPSSv3StartDate, today)
 }
 
 // BackfillEPSSRange imports historical EPSS daily scores for the specified

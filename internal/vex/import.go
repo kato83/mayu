@@ -91,27 +91,6 @@ func SuppressedVulnIDs(data []byte) (map[string]bool, error) {
 	return suppressed, nil
 }
 
-// SuppressedFindings returns a set of vuln_id+purl combinations that are
-// suppressed (not_affected) in the VEX document. This enables product-level
-// filtering rather than blanket vulnerability suppression.
-func SuppressedFindings(data []byte) (map[string]bool, error) {
-	var doc Document
-	if err := json.Unmarshal(data, &doc); err != nil {
-		return nil, fmt.Errorf("parse VEX document: %w", err)
-	}
-
-	suppressed := make(map[string]bool)
-	for _, stmt := range doc.Statements {
-		if stmt.Status == StatusNotAffected {
-			for _, product := range stmt.Products {
-				key := stmt.Vulnerability.ID + "|" + product.ID
-				suppressed[key] = true
-			}
-		}
-	}
-	return suppressed, nil
-}
-
 // FilterFindingsByVEX removes findings that are suppressed by the VEX document.
 // It checks both blanket vulnerability suppression and product-specific suppression.
 func FilterFindingsByVEX(findings []audit.Finding, vexData []byte) ([]audit.Finding, error) {

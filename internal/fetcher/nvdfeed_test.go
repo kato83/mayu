@@ -117,57 +117,6 @@ sha256:ABCDEF1234567890
 	}
 }
 
-func TestFetchNVDMeta(t *testing.T) {
-	metaContent := `lastModifiedDate:2026-07-19T10:00:00-04:00
-size:14108373
-zipSize:1002849
-gzSize:1002709
-sha256:D7F1385C8423826AA903B78BCA5AD29B33253B47C093CC3E3BA0F5DB49BD2D2A
-`
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/nvdcve-2.0-2024.meta":
-			w.Header().Set("Content-Type", "text/plain")
-			_, _ = w.Write([]byte(metaContent))
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
-
-	f := New(WithHTTPClient(server.Client()))
-	// Override the nvdFeedBaseURL by using downloadAndGunzip indirectly;
-	// We need to test via the method, so we'll use a custom approach.
-	// Since nvdFeedBaseURL is a constant, we'll test by calling download directly.
-
-	// Instead, let's test the full FetchNVDMeta by overriding the URL through
-	// a wrapper approach. Since the base URL is a constant, we test parseNVDMeta
-	// separately and test the download integration via a direct test.
-
-	// Direct integration test: download meta content from httptest server
-	data, err := f.download(context.Background(), server.URL+"/nvdcve-2.0-2024.meta")
-	if err != nil {
-		t.Fatalf("download failed: %v", err)
-	}
-
-	meta, err := parseNVDMeta(data)
-	if err != nil {
-		t.Fatalf("parseNVDMeta failed: %v", err)
-	}
-
-	expectedTime, _ := time.Parse(time.RFC3339, "2026-07-19T10:00:00-04:00")
-	if !meta.LastModifiedDate.Equal(expectedTime) {
-		t.Errorf("LastModifiedDate = %v, want %v", meta.LastModifiedDate, expectedTime)
-	}
-	if meta.Size != 14108373 {
-		t.Errorf("Size = %d, want 14108373", meta.Size)
-	}
-	if meta.SHA256 != "D7F1385C8423826AA903B78BCA5AD29B33253B47C093CC3E3BA0F5DB49BD2D2A" {
-		t.Errorf("SHA256 = %q", meta.SHA256)
-	}
-}
-
 func TestFetchNVDFeed(t *testing.T) {
 	jsonContent := `{"format":"NVD_CVE","version":"2.0","vulnerabilities":[{"cve":{"id":"CVE-2024-1234"}}]}`
 	gzData := createTestGzip(t, []byte(jsonContent))

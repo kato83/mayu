@@ -179,19 +179,3 @@ func (f *Fetcher) downloadToTempFileWith(ctx context.Context, url string, client
 	success = true
 	return tmpFile, written, nil
 }
-
-// CountZipEntriesFromFile returns the total number of JSON files in a zip file on disk.
-// Used for progress reporting before streaming.
-func CountZipEntriesFromFile(f *os.File, size int64) (int, error) {
-	reader, err := zip.NewReader(f, size)
-	if err != nil {
-		return 0, err
-	}
-	count := 0
-	for _, file := range reader.File {
-		if strings.HasSuffix(file.Name, ".json") {
-			count++
-		}
-	}
-	return count, nil
-}

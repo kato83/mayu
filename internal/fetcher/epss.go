@@ -15,14 +15,8 @@ import (
 )
 
 const (
-	// epssAPIBaseURL is the base URL for the FIRST EPSS REST API.
-	epssAPIBaseURL = "https://api.first.org/data/v1/epss"
-
 	// epssCSVBaseURL is the base URL for EPSS bulk CSV downloads.
 	epssCSVBaseURL = "https://epss.cyentia.com"
-
-	// epssAPIMaxLimit is the maximum number of results per API page.
-	epssAPIMaxLimit = 1000
 )
 
 // FetchEPSSByCSV downloads the current day's EPSS scores as a gzipped CSV file
@@ -42,69 +36,6 @@ func (f *Fetcher) FetchEPSSByCSV(ctx context.Context) ([]*model.EPSSScore, error
 func (f *Fetcher) FetchEPSSByCSVDate(ctx context.Context, date string) ([]*model.EPSSScore, error) {
 	u := fmt.Sprintf("%s/epss_scores-%s.csv.gz", epssCSVBaseURL, date)
 	return f.fetchEPSSCSV(ctx, u)
-}
-
-// FetchEPSSByCVEs fetches EPSS scores for specific CVE IDs via the FIRST API.
-// This is useful for targeted lookups (e.g., enriching search results).
-// Maximum ~100 CVEs per request recommended by the API.
-func (f *Fetcher) FetchEPSSByCVEs(ctx context.Context, cves []string) (*model.EPSSAPIResponse, error) {
-	if len(cves) == 0 {
-		return &model.EPSSAPIResponse{Status: "OK", Data: nil}, nil
-	}
-
-	u := fmt.Sprintf("%s?cve=%s", epssAPIBaseURL, strings.Join(cves, ","))
-	data, err := f.download(ctx, u)
-	if err != nil {
-		return nil, fmt.Errorf("fetch EPSS by CVEs: %w", err)
-	}
-
-	return model.ParseEPSSAPIResponse(data)
-}
-
-// FetchEPSSAll fetches all EPSS scores via the FIRST API with pagination.
-// This method iterates through all pages until all data is retrieved.
-// For bulk imports, FetchEPSSByCSV is more efficient.
-func (f *Fetcher) FetchEPSSAll(ctx context.Context) ([]*model.EPSSScore, error) {
-	var allScores []*model.EPSSScore
-	offset := 0
-	limit := epssAPIMaxLimit
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-
-		u := fmt.Sprintf("%s?offset=%d&limit=%d", epssAPIBaseURL, offset, limit)
-		data, err := f.download(ctx, u)
-		if err != nil {
-			return nil, fmt.Errorf("fetch EPSS page at offset %d: %w", offset, err)
-		}
-
-		resp, err := model.ParseEPSSAPIResponse(data)
-		if err != nil {
-			return nil, fmt.Errorf("parse EPSS page at offset %d: %w", offset, err)
-		}
-
-		for i := range resp.Data {
-			score, err := resp.Data[i].ParseEPSSScore()
-			if err != nil {
-				// Skip invalid entries but continue
-				continue
-			}
-			allScores = append(allScores, score)
-		}
-
-		// Check if we've retrieved all data
-		if len(resp.Data) < limit || offset+len(resp.Data) >= resp.Total {
-			break
-		}
-
-		offset += len(resp.Data)
-	}
-
-	return allScores, nil
 }
 
 // fetchEPSSCSV downloads and parses a gzipped EPSS CSV file.
@@ -230,12 +161,6 @@ func extractEPSSScoreDate(commentLine string) (time.Time, error) {
 // formatted for use in the download URL.
 func EPSSCSVScoreDate(t time.Time) string {
 	return t.Format("2006-01-02")
-}
-
-// ParseEPSSCSVReader parses EPSS CSV content from a reader. This is exported
-// for use by the ingest layer when processing already-downloaded CSV data.
-func ParseEPSSCSVReader(r io.Reader) ([]*model.EPSSScore, error) {
-	return parseEPSSCSV(r)
 }
 
 // EPSSScoreDateFromFilename extracts the score date from an EPSS CSV filename.

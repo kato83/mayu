@@ -39,26 +39,6 @@ func NVDFeedYears() []int {
 	return years
 }
 
-// FetchNVDMeta downloads and parses the META file for the given year's NVD feed.
-func (f *Fetcher) FetchNVDMeta(ctx context.Context, year int) (*NVDFeedMeta, error) {
-	u := nvdMetaURL(year)
-	data, err := f.download(ctx, u)
-	if err != nil {
-		return nil, fmt.Errorf("download NVD meta for %d: %w", year, err)
-	}
-	return parseNVDMeta(data)
-}
-
-// FetchNVDModifiedMeta downloads and parses the META file for the NVD modified feed.
-func (f *Fetcher) FetchNVDModifiedMeta(ctx context.Context) (*NVDFeedMeta, error) {
-	u := fmt.Sprintf("%s/nvdcve-2.0-modified.meta", nvdFeedBaseURL)
-	data, err := f.download(ctx, u)
-	if err != nil {
-		return nil, fmt.Errorf("download NVD modified meta: %w", err)
-	}
-	return parseNVDMeta(data)
-}
-
 // FetchNVDFeed downloads the gzipped NVD JSON feed for the given year and returns
 // the decompressed JSON bytes.
 func (f *Fetcher) FetchNVDFeed(ctx context.Context, year int) ([]byte, error) {
@@ -70,13 +50,6 @@ func (f *Fetcher) FetchNVDFeed(ctx context.Context, year int) ([]byte, error) {
 // the decompressed JSON bytes.
 func (f *Fetcher) FetchNVDModifiedFeed(ctx context.Context) ([]byte, error) {
 	u := fmt.Sprintf("%s/nvdcve-2.0-modified.json.gz", nvdFeedBaseURL)
-	return f.downloadAndGunzip(ctx, u)
-}
-
-// FetchNVDRecentFeed downloads the gzipped NVD recent feed and returns
-// the decompressed JSON bytes.
-func (f *Fetcher) FetchNVDRecentFeed(ctx context.Context) ([]byte, error) {
-	u := fmt.Sprintf("%s/nvdcve-2.0-recent.json.gz", nvdFeedBaseURL)
 	return f.downloadAndGunzip(ctx, u)
 }
 

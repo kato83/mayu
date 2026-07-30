@@ -42,22 +42,6 @@ func WithHTTPClient(client *http.Client) EngineOption {
 	}
 }
 
-// WithEngineLogger sets a custom logger for the engine.
-func WithEngineLogger(logger *log.Logger) EngineOption {
-	return func(e *Engine) {
-		e.logger = logger
-	}
-}
-
-// WithMaxRetries sets the maximum number of retry attempts.
-func WithMaxRetries(n int) EngineOption {
-	return func(e *Engine) {
-		if n > 0 {
-			e.maxRetries = n
-		}
-	}
-}
-
 // WithRetrySleep sets a custom sleep function for testing retry delays.
 func WithRetrySleep(fn func(time.Duration)) EngineOption {
 	return func(e *Engine) {

@@ -215,17 +215,3 @@ func sanitizeObjectKey(key string) (string, error) {
 	}
 	return strings.Join(escaped, "/"), nil
 }
-
-// FetchConvertedVulnerability downloads a single vulnerability JSON from a converted source.
-func (f *Fetcher) FetchConvertedVulnerability(ctx context.Context, source ConvertedSource, id string) ([]byte, error) {
-	if err := validatePathSegment("id", id); err != nil {
-		return nil, err
-	}
-
-	u := fmt.Sprintf("https://storage.googleapis.com/%s/%s%s.json", source.Bucket, source.Prefix, url.PathEscape(id))
-	data, err := f.download(ctx, u)
-	if err != nil {
-		return nil, fmt.Errorf("download %s: %w", id, err)
-	}
-	return data, nil
-}

@@ -187,10 +187,3 @@ func getOrDefault(parts []string, i int, def string) string {
 	}
 	return def
 }
-
-// ReconstructCPE23 reconstructs a CPE 2.3 URI string from decomposed fields.
-func (c *CPEFields) ReconstructCPE23() string {
-	return "cpe:2.3:" + c.Part + ":" + c.Vendor + ":" + c.Product + ":" +
-		c.Version + ":" + c.Update + ":" + c.Edition + ":" + c.Language + ":" +
-		c.SWEdition + ":" + c.TargetSW + ":" + c.TargetHW + ":" + c.Other
-}

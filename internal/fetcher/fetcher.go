@@ -93,13 +93,6 @@ func WithHTTPClient(client *http.Client) Option {
 	}
 }
 
-// WithTimeout sets a custom HTTP timeout.
-func WithTimeout(d time.Duration) Option {
-	return func(f *Fetcher) {
-		f.httpClient.Timeout = d
-	}
-}
-
 // New creates a new Fetcher with the given options.
 func New(opts ...Option) *Fetcher {
 	f := &Fetcher{
@@ -166,19 +159,6 @@ func (f *Fetcher) FetchModifiedCSV(ctx context.Context, ecosystem string) ([]byt
 	}
 
 	u := fmt.Sprintf("%s/%s/modified_id.csv", f.baseURL, url.PathEscape(ecosystem))
-
-	data, err := f.download(ctx, u)
-	if err != nil {
-		return nil, fmt.Errorf("download %s: %w", u, err)
-	}
-
-	return data, nil
-}
-
-// FetchTopLevelModifiedCSV downloads the top-level modified_id.csv
-// that spans all ecosystems.
-func (f *Fetcher) FetchTopLevelModifiedCSV(ctx context.Context) ([]byte, error) {
-	u := fmt.Sprintf("%s/modified_id.csv", f.baseURL)
 
 	data, err := f.download(ctx, u)
 	if err != nil {
