@@ -16,9 +16,15 @@ Mayu ingests vulnerability data from the [OSV](https://osv.dev/) ecosystem into 
 - Full and delta import of OSV vulnerability data from the GCS bucket
 - Direct import of GitHub Security Advisories — fetch directly from the GitHub API with `--source ghsa --repo`, or manually download and import via `--file`
 - SBOM vulnerability audit — feed a CycloneDX or SPDX SBOM and get a full vulnerability report against local data
-- CLI-based vulnerability search by ID, package name, ecosystem, or alias
-- REST API server with OpenAPI 3.1 specification
+- Lockfile scanning — directly scan go.sum, package-lock.json, yarn.lock, Cargo.lock, etc. without SBOM generation
+- SBOM continuous monitoring — upload SBOMs, track finding statuses, auto-rescan on new vuln data
+- CLI-based vulnerability search by ID, package name, ecosystem, or alias (with full-text search support)
+- REST API server with OpenAPI 3.1 specification (78+ endpoints)
+- Web UI with dashboard, EPSS trending, LEV visualization, and SBOM management
 - Supports all OSV ecosystems (Go, PyPI, npm, Maven, crates.io, etc.)
+- VEX (Vulnerability Exploitability eXchange) import/export
+- Policy-based gating and license compliance checking
+- Team management and watchlist-based notifications (webhook + email)
 - Raw OSV JSON preserved for full data reversibility
 
 ![](./docs/readme_pic01.jpg)
@@ -35,12 +41,15 @@ There are several excellent vulnerability intelligence tools available. Mayu occ
 |---|---|---|---|
 | Data ownership | Cloud API dependent | Self-hosted or SaaS | **Fully local (PostgreSQL)** |
 | Offline / air-gap | ❌ | Partial (self-hosted) | **✅ After initial sync** |
-| REST API built-in | ❌ (client only) | ✅ | **✅** |
-| Web UI built-in | ❌ | ✅ | **✅** |
-| CLI | ✅ | Limited | **✅** |
-| OSV ecosystem coverage | ❌ (CVE/CPE only) | ❌ (CVE/CPE only) | **✅ 46 ecosystems (package-level)** |
+| REST API built-in | ❌ (client only) | ✅ | **✅ (78+ endpoints)** |
+| Web UI built-in | ❌ | ✅ | **✅ (dashboard, SBOM mgmt)** |
+| CLI | ✅ | Limited | **✅ (full-featured)** |
+| OSV ecosystem coverage | ❌ (CVE/CPE only) | ❌ (CVE/CPE only) | **✅ All OSV ecosystems (package-level)** |
 | Package-name search | ❌ | ❌ | **✅** |
-| EPSS / KEV / LEV | EPSS + KEV | EPSS + KEV | **EPSS + KEV + LEV** |
+| EPSS / KEV / LEV | EPSS + KEV | EPSS + KEV | **EPSS + KEV + LEV + Exploit-DB** |
+| Lockfile scanning | Partial | ❌ | **✅ (10+ lockfile formats)** |
+| SBOM audit + monitoring | ❌ | Partial | **✅ (CycloneDX, SPDX, continuous)** |
+| VEX / Policy gating | ❌ | ❌ | **✅ (OpenVEX import/export, policy YAML)** |
 | Custom data import | ❌ | ❌ | **✅ (local JSON files)** |
 | Raw data preservation | ❌ | Partial | **✅ Full reversibility** |
 | Account / API key required | ✅ | ✅ (SaaS) | **❌** |
@@ -92,7 +101,7 @@ git clone https://github.com/kato83/mayu.git
 cd mayu
 
 # Build with embedded Web UI (recommended — same as release binaries)
-make build-embed
+make build
 
 # Run — UI is served automatically at /
 ./bin/mayu serve
@@ -101,7 +110,7 @@ make build-embed
 > [!TIP]
 > If you only need the CLI/API without the Web UI, you can build with Go alone:
 > ```bash
-> go build -o bin/mayu ./cmd/mayu
+> make build-no-ui
 > ```
 > In this case, use `--ui-dir` to serve the Web UI from a separately built directory.
 
@@ -133,16 +142,18 @@ mayu migrate
 mayu ingest --ecosystem Go
 # Import with delta update (only new/modified since last sync)
 mayu ingest --ecosystem Go --update
-# Import all supported ecosystems
-mayu ingest --all
+# Import all OSV ecosystems
+mayu ingest --source osv
 # Import all ecosystems with custom parallelism
-mayu ingest --all --concurrency 5 --store-workers 8
+mayu ingest --source osv --concurrency 5 --store-workers 8
+# Import NVD CVE data (OSV-converted format from GCS)
+mayu ingest --source osv --type nvd
+# Import Debian Security Advisories (OSV-converted format from GCS)
+mayu ingest --source osv --type debian
 # Import NVD CVE data directly from NVD JSON Feed 2.0
-mayu ingest --source nvd --native
+mayu ingest --source nvd
 # Import only a specific year's NVD data
-mayu ingest --source nvd --native --year 2024
-# Delta update from NVD modified feed
-mayu ingest --source nvd --native --update
+mayu ingest --source nvd --year 2024
 # Import MITRE CVE data from cvelistV5 GitHub Releases
 mayu ingest --source mitre
 # Delta update from hourly MITRE releases
@@ -159,6 +170,10 @@ mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
 mayu ingest --source kev
 # Update KEV catalog (refresh if outdated)
 mayu ingest --source kev --update
+# Import Exploit-DB entries (from official GitLab CSV)
+mayu ingest --source exploitdb
+# Update Exploit-DB (refresh if outdated)
+mayu ingest --source exploitdb --update
 # Import endoflife.date product lifecycle data (EOL dates, LTS status)
 mayu ingest --source eol
 # Update endoflife.date data (refresh if last sync > 24h ago)
@@ -196,6 +211,13 @@ mayu search --severity critical --ecosystem Go
 mayu search --since 2024-01-01 --ecosystem npm
 # Filter by affected version
 mayu search --package golang.org/x/crypto --version 0.17.0
+# Filter by KEV (Known Exploited Vulnerabilities)
+mayu search --kev --limit 10
+# Sort by EPSS score
+mayu search --ecosystem Go --sort epss_desc --limit 10
+# Full-text search (requires --init first)
+mayu search --init
+mayu search --query "remote code execution" --ecosystem Go
 # Pagination
 mayu search --ecosystem Go --limit 10 --offset 20
 # Cursor-based pagination (use NextToken from previous output)
@@ -231,6 +253,12 @@ mayu audit --sbom ./sbom.cdx.json --format sarif > results.sarif
 mayu audit --sbom ./sbom.cdx.json --fail-on critical,high
 # Suppress accepted vulnerabilities
 mayu audit --sbom ./sbom.cdx.json --ignore .mayu-ignore
+# Apply VEX suppressions
+mayu audit --sbom ./sbom.cdx.json --vex product.vex.json
+# Apply policy-based gating
+mayu audit --sbom ./sbom.cdx.json --policy policy.yaml
+# License compliance checking
+mayu audit --sbom ./sbom.cdx.json --license-policy license-policy.yaml
 # CI/CD gate: combine all options
 mayu audit --sbom bom.json --fail-on critical,high --ignore .mayu-ignore --format sarif > results.sarif
 ```
@@ -253,17 +281,16 @@ Import vulnerability data from OSV into the local database.
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--ecosystem` | Ecosystem to import (e.g., Go, PyPI, npm) | — |
-| `--all` | Import all ecosystems (dynamically fetched from GCS) | `false` |
+| `--source` | Import from source (`osv`, `nvd`, `mitre`, `epss`, `kev`, `exploitdb`, `eol`, `ghsa`) | — |
+| `--type` | Sub-type for `--source osv` (nvd, debian) to import OSV-converted data | — |
 | `--update` | Perform delta update instead of full import | `false` |
 | `--backfill` | Backfill historical data (with `--source epss`) | `false` |
 | `--from` | Start date for backfill (YYYY-MM-DD) | `2023-03-07` (EPSS v3) |
 | `--to` | End date for backfill (YYYY-MM-DD) | today |
-| `--source` | Import from source (nvd, debian, mitre, epss, kev, eol, ghsa) | — |
 | `--repo` | GitHub repository (owner/repo) for `--source ghsa` | — |
-| `--native` | Use native data source feed (with `--source nvd`) | `false` |
-| `--year` | Import only a specific year's NVD feed (with `--source nvd --native`) | — |
+| `--year` | Import only a specific year's NVD feed (with `--source nvd`) | — |
 | `--file` | Import from local OSV JSON files (paths as positional args) | `false` |
-| `--concurrency` | Number of ecosystems to import in parallel (with `--all`) | `3` |
+| `--concurrency` | Number of ecosystems to import in parallel (with `--source osv`) | `3` |
 | `--store-workers` | Number of parallel DB store workers per ecosystem | CPU cores - 1 |
 | `--batch-size` | Number of vulnerabilities per batch insert | `100` |
 
@@ -318,6 +345,9 @@ Audit an SBOM for known vulnerabilities.
 | `--no-version-check` | Skip version matching, report all vulnerabilities for package name | `false` |
 | `--fail-on` | Fail only for findings at or above specified severity (comma-separated: `critical`, `high`, `medium`, `low`, `none`) | (all findings fail) |
 | `--ignore` | Path to ignore file containing vulnerability IDs to suppress (one per line, `#` for comments) | - |
+| `--vex` | Path to OpenVEX file to suppress `not_affected` findings | — |
+| `--policy` | Path to policy YAML file for custom gating (block/warn/suppress) | — |
+| `--license-policy` | Path to license policy YAML file for license compliance checking | — |
 
 **Exit codes:**
 
@@ -435,12 +465,16 @@ Search for vulnerabilities in the local database.
 | `--severity` | Filter by CVSS severity level (critical, high, medium, low, none) | — |
 | `--since` | Filter by modified date (YYYY-MM-DD or RFC3339) | — |
 | `--version` | Filter by affected version | — |
+| `--kev` | Filter to only KEV (Known Exploited Vulnerabilities) entries | `false` |
+| `--sort` | Sort order: `modified_desc`, `modified_asc`, `published_desc`, `published_asc`, `epss_desc`, `epss_asc` | `modified_desc` |
+| `--query` | Full-text search query (requires `search.engine` configured in config.yaml) | — |
 | `--format` | Output format: `table`, `json`, `csv` | `table` |
 | `--limit` | Maximum number of results | `20` |
 | `--offset` | Offset for pagination (deprecated: use `--starting-token`) | `0` |
 | `--starting-token` | Cursor token for pagination (from previous `NextToken` output) | — |
 | `--count` | Show only the result count | `false` |
 | `--detail` | Show detailed information for each result | `false` |
+| `--init` | Initialize full-text search indexes (required before first `--query` use) | `false` |
 
 ### `mayu serve`
 
@@ -590,7 +624,7 @@ Create a new webhook for notifications.
 | `--url` | Webhook URL (required) | — |
 | `--events` | Comma-separated list of events to subscribe to (required) | — |
 | `--content-type` | Content-Type header for the webhook request | `application/json` |
-| `--body-template` | Go text/template for the request body | — |
+| `--body-template` | Mustache template for the request body | — |
 | `--secret` | HMAC secret for webhook signature verification | — |
 | `--enabled` | Whether the webhook is enabled | `true` |
 
@@ -626,6 +660,322 @@ Send a test payload to a webhook to verify connectivity.
 ```bash
 export MAYU_API_KEY=your-api-key
 mayu webhook test --id 1
+```
+
+### `mayu scan`
+
+Scan lockfiles for known vulnerabilities without generating an SBOM.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--lockfile` | Path to a lockfile to scan | — |
+| `--dir` | Directory to scan for lockfiles | — |
+| `--format` | Output format: `table`, `json`, `csv`, `sarif` | `table` |
+| `--fail-on` | Fail with exit code 1 only for findings at or above severity | — |
+| `--ignore` | Path to ignore file containing vulnerability IDs to suppress | — |
+| `--include-dev` | Include development dependencies in scan | `false` |
+| `--no-version-check` | Skip version matching | `false` |
+| `--policy` | Path to policy YAML file for custom gating | — |
+| `--reachability` | Run reachability analysis on Go projects | `false` |
+
+**Supported lockfile formats:**
+- go.sum (Go)
+- package-lock.json (npm)
+- yarn.lock (Yarn)
+- pnpm-lock.yaml (pnpm)
+- Pipfile.lock (Python/pipenv)
+- poetry.lock (Python/poetry)
+- Gemfile.lock (Ruby)
+- Cargo.lock (Rust)
+- requirements.txt (Python/pip)
+- composer.lock (PHP)
+
+**Examples:**
+
+```bash
+mayu scan --lockfile ./go.sum
+mayu scan --dir .
+mayu scan --lockfile ./package-lock.json --format json
+mayu scan --dir . --fail-on critical,high
+mayu scan --lockfile ./Cargo.lock --ignore .mayu-ignore
+mayu scan --lockfile ./go.sum --reachability
+```
+
+### `mayu status`
+
+Show data source sync status and EPSS coverage.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--format` | Output format: `table`, `json` | `table` |
+
+**Examples:**
+
+```bash
+mayu status
+mayu status --format json
+```
+
+### `mayu watch`
+
+Manage watchlists for automatic vulnerability notification when new vulnerabilities match your criteria.
+
+**Subcommands:** `add`, `list`, `remove`, `check`
+
+#### `mayu watch add`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--name` | Watchlist entry name (required) | — |
+| `--type` | Match type: `package`, `purl`, `cpe`, `ecosystem` (required) | — |
+| `--ecosystem` | Ecosystem name (for package/ecosystem match types) | — |
+| `--package` | Package name (for package match type) | — |
+| `--purl` | Purl pattern for prefix matching (for purl match type) | — |
+| `--cpe` | CPE pattern for prefix matching (for cpe match type) | — |
+| `--severity-min` | Minimum severity: critical, high, medium, low, none | — |
+| `--epss-threshold` | Minimum EPSS score threshold (0.0-1.0) | — |
+| `--user-email` | Email of the user who owns this watchlist (required) | — |
+
+#### `mayu watch list`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--user-email` | Email of the user (required) | — |
+
+#### `mayu watch remove`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--id` | Watchlist entry ID (required) | — |
+| `--user-email` | Email of the user (required) | — |
+
+#### `mayu watch check`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dry-run` | Preview matches without sending notifications | `false` |
+
+**Examples:**
+
+```bash
+mayu watch add --name 'Go crypto' --type package --ecosystem Go --package golang.org/x/crypto --user-email admin@example.com
+mayu watch add --name 'Express' --type purl --purl pkg:npm/express --user-email admin@example.com
+mayu watch add --name 'Apache HTTPD' --type cpe --cpe 'cpe:2.3:a:apache:http_server' --user-email admin@example.com
+mayu watch add --name 'Go Critical' --type ecosystem --ecosystem Go --severity-min critical --user-email admin@example.com
+mayu watch list --user-email admin@example.com
+mayu watch remove --id 1 --user-email admin@example.com
+mayu watch check --dry-run
+```
+
+### `mayu team`
+
+Manage teams for collaborative vulnerability tracking and shared resources (watchlists, webhooks, SBOM projects).
+
+**Subcommands:** `create`, `list`, `add-member`, `remove-member`, `members`
+
+#### `mayu team create`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--name` | Team name (required) | — |
+| `--description` | Team description | — |
+
+#### `mayu team list`
+
+No flags. Lists all teams.
+
+#### `mayu team add-member`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--team` | Team name (required) | — |
+| `--email` | User email to add (required) | — |
+| `--role` | Member role: `owner` or `member` | `member` |
+
+#### `mayu team remove-member`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--team` | Team name (required) | — |
+| `--email` | User email to remove (required) | — |
+
+#### `mayu team members`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--team` | Team name (required) | — |
+
+**Examples:**
+
+```bash
+mayu team create --name "platform-team" --description "Platform engineering team"
+mayu team list
+mayu team add-member --team platform-team --email user@example.com --role owner
+mayu team add-member --team platform-team --email dev@example.com
+mayu team remove-member --team platform-team --email dev@example.com
+mayu team members --team platform-team
+```
+
+### `mayu vex`
+
+Import and export OpenVEX documents for SBOM finding status management.
+
+**Subcommands:** `export`, `import`
+
+All `mayu vex` subcommands require authentication (set `MAYU_API_KEY` or run `mayu login`).
+
+#### `mayu vex export`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name (required) | — |
+| `--version` | Version (default: latest) | — |
+| `--author` | Document author | `mayu` |
+| `--id` | Document ID (default: auto-generated) | — |
+
+#### `mayu vex import`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name (required) | — |
+| `--version` | Version (default: latest) | — |
+| `--file` | Path to OpenVEX file (required) | — |
+
+**Examples:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu vex export --project my-app --version 1.0.0 > product.vex.json
+mayu vex export --project my-app --author security-team@example.com
+mayu vex import --project my-app --file product.vex.json
+```
+
+### `mayu policy`
+
+Validate and manage policy files for audit gating.
+
+**Subcommands:** `validate`
+
+#### `mayu policy validate`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--file` | Path to policy YAML file (required) | — |
+
+**Examples:**
+
+```bash
+mayu policy validate --file policy.yaml
+```
+
+### `mayu notification`
+
+Manage notification channels and templates.
+
+**Subcommands:** `templates`, `test-email`
+
+#### `mayu notification templates`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--format` | Output format: `table`, `json` | `table` |
+| `--name` | Show full template content for a specific template (slack, teams, email) | — |
+
+#### `mayu notification test-email`
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--to` | Recipient email address (required) | — |
+| `--subject` | Email subject | `Mayu Test Email Notification` |
+
+**Examples:**
+
+```bash
+mayu notification templates
+mayu notification templates --name slack
+mayu notification test-email --to admin@example.com
+```
+
+### `mayu sbom generate`
+
+Generate an SBOM from lockfiles in CycloneDX or SPDX format. No authentication required (local operation only).
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--lockfile` | Path to lockfile | — |
+| `--dir` | Directory to scan for lockfiles | — |
+| `--format` | Output format: `cyclonedx` or `spdx` | `cyclonedx` |
+| `--name` | Project/component name | — |
+| `--version` | Project version | — |
+| `--output` | Output file path (default: stdout) | — |
+
+**Examples:**
+
+```bash
+mayu sbom generate --lockfile ./go.sum --format cyclonedx --name my-app --version 1.0.0
+mayu sbom generate --dir . --format spdx --name my-app
+mayu sbom generate --lockfile ./package-lock.json --output sbom.cdx.json
+```
+
+### `mayu sbom suppress`
+
+Suppress a finding (mark as not applicable to this context). Requires authentication.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name (required) | — |
+| `--version` | Version (default: latest) | — |
+| `--vuln` | Vulnerability ID (required) | — |
+| `--purl` | Package URL (if omitted, applies to first matching finding) | — |
+| `--reason` | Justification | — |
+| `--expires` | Expiration duration (e.g., 90d, 1y) | — |
+
+**Examples:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom suppress --project my-app --vuln CVE-2024-1234 --reason "not applicable"
+```
+
+### `mayu sbom accept`
+
+Accept risk for a finding (known vulnerability that cannot be patched). Requires authentication.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name (required) | — |
+| `--version` | Version (default: latest) | — |
+| `--vuln` | Vulnerability ID (required) | — |
+| `--purl` | Package URL (if omitted, applies to first matching finding) | — |
+| `--reason` | Justification (required) | — |
+| `--expires` | Expiration duration (e.g., 90d, 1y) | — |
+
+**Examples:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom accept --project my-app --vuln CVE-2024-1234 --reason "isolated environment" --expires 90d
+```
+
+### `mayu sbom status`
+
+View or reset finding statuses for an SBOM version. Requires authentication.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name (required) | — |
+| `--version` | Version (default: latest) | — |
+| `--filter` | Filter by status (comma-separated: open, in_triage, suppressed, false_positive, risk_accepted, resolved) | — |
+| `--reset` | Reset status for vulnerability ID | — |
+| `--purl` | Package URL for reset operation | — |
+
+**Examples:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom status --project my-app
+mayu sbom status --project my-app --filter suppressed,risk_accepted
+mayu sbom status --project my-app --reset CVE-2024-1234 --purl pkg:npm/example@1.0.0
 ```
 
 ### `mayu login`
@@ -770,9 +1120,9 @@ auth:
 | Source | Status | Method |
 |--------|--------|--------|
 | [OSV](https://osv.dev/) | ✅ Supported | GCS bucket (`gs://osv-vulnerabilities/`) |
-| [NVD CVE (converted)](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ Supported | `mayu ingest --source nvd` |
-| [NVD CVE (native)](https://nvd.nist.gov/vuln/data-feeds) | ✅ Supported | `mayu ingest --source nvd --native` |
-| [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source debian` |
+| [NVD CVE (converted)](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ Supported | `mayu ingest --source osv --type nvd` |
+| [NVD CVE (native)](https://nvd.nist.gov/vuln/data-feeds) | ✅ Supported | `mayu ingest --source nvd` |
+| [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ Supported | `mayu ingest --source osv --type debian` |
 | [MITRE CVE (cvelistV5)](https://github.com/CVEProject/cvelistV5) | ✅ Supported | `mayu ingest --source mitre` |
 | [GitHub Security Advisories](https://docs.github.com/en/rest/security-advisories/repository-advisories) | ✅ Supported | `mayu ingest --source ghsa --repo owner/repo` |
 
@@ -787,6 +1137,7 @@ auth:
 | KEV | ✅ Supported | `mayu ingest --source kev` |
 | EPSS | ✅ Supported | `mayu ingest --source epss` |
 | LEV | ✅ Supported | Computed from EPSS + KEV (see below) |
+| [Exploit-DB](https://gitlab.com/exploit-database/exploitdb) | ✅ Supported | `mayu ingest --source exploitdb` |
 | [endoflife.date](https://endoflife.date/) | ✅ Supported | `mayu ingest --source eol` |
 
 ## LEV (Likely Exploited Vulnerabilities)
@@ -914,10 +1265,15 @@ See [.agents/tasks/PLAN.md](.agents/tasks/PLAN.md) for the full implementation p
 - [x] Phase 4: API Server (REST)
 - [x] Phase 5: Web UI (Angular)
 - [x] Phase 6: Additional Data Sources (EPSS, KEV, LEV)
-- [ ] EPSS trend graph & LEV visualization
-- [ ] Advanced triage workflows
-- [ ] Dashboard & reporting
+- [x] EPSS trend graph & LEV visualization
+- [x] Advanced triage workflows (SSVC decision support)
+- [x] Dashboard & reporting
 - [x] Notifications (webhook)
-- [ ] Notifications (email)
+- [x] Notifications (email)
 - [x] [endoflife.date](https://endoflife.date/) integration
-- [ ] SBOM features (dependency graph, continuous monitoring)
+- [x] SBOM features (continuous monitoring, finding status management)
+- [x] Lockfile scanning (10+ formats, reachability analysis)
+- [x] VEX import/export (OpenVEX)
+- [x] Policy-based gating & license compliance
+- [x] Team management & watchlists
+- [x] Exploit-DB integration

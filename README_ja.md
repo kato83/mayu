@@ -4,63 +4,71 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/kato83/mayu)](https://github.com/kato83/mayu/blob/main/go.mod)
 
-
 [English](README.md)
 
-複数の脆弱性情報ソース（OSV、NVDなど）を集約し、CLI・API・Web UI から横断検索・トリアージを可能にする統合脆弱性インテリジェンスツールです。
+複数のソース（OSV、NVDなど）を集約し、CLI、API、Web UIによるクロスプラットフォーム検索を提供する統合脆弱性インテリジェンスツール。
 
 ## 概要
 
-Mayu は [OSV](https://osv.dev/) エコシステムから脆弱性データをローカルの PostgreSQL に取り込み、高速な横断検索とトリアージを実現します。
+Mayuは[OSV](https://osv.dev/)エコシステムの脆弱性データをローカルのPostgreSQLデータベースに取り込み、既知の脆弱性の高速なクロスプラットフォーム検索とトリアージを可能にします。
 
 **現在の機能:**
-- OSV GCS バケットからの脆弱性データのフルインポート・差分インポート
-- GitHub Security Advisory の直接取り込み — `--source ghsa --repo` で GitHub API から直接取得するか、手動ダウンロードして `--file` でインポート
-- SBOM 脆弱性監査 — CycloneDX / SPDX 形式の SBOM を食わせるだけで、ローカルデータに基づく脆弱性レポートを生成
-- CLI による脆弱性検索（ID、パッケージ名、エコシステム、エイリアス）
-- REST API サーバー（OpenAPI 3.1 対応）
-- 全 OSV エコシステム対応（Go, PyPI, npm, Maven, crates.io 等）
-- 元の OSV JSON を完全保持（データの可逆性を担保）
+- GCSバケットからのOSV脆弱性データのフルインポートおよびデルタインポート
+- GitHub Security Advisoriesの直接インポート — `--source ghsa --repo` でGitHub APIから直接取得、または `--file` で手動ダウンロードしたファイルをインポート
+- SBOM脆弱性監査 — CycloneDXまたはSPDX SBOMを入力し、ローカルデータに対する完全な脆弱性レポートを取得
+- ロックファイルスキャン — SBOM生成なしでgo.sum、package-lock.json、yarn.lock、Cargo.lockなどを直接スキャン
+- SBOM継続監視 — SBOMのアップロード、検出結果ステータスの追跡、新しい脆弱性データによる自動再スキャン
+- ID、パッケージ名、エコシステム、エイリアスによるCLIベースの脆弱性検索（全文検索対応）
+- OpenAPI 3.1仕様のREST APIサーバー（78以上のエンドポイント）
+- ダッシュボード、EPSSトレンド、LEV可視化、SBOM管理を備えたWeb UI
+- すべてのOSVエコシステムをサポート（Go、PyPI、npm、Maven、crates.ioなど）
+- VEX（Vulnerability Exploitability eXchange）のインポート/エクスポート
+- ポリシーベースのゲーティングとライセンスコンプライアンスチェック
+- チーム管理とウォッチリストベースの通知（webhook + メール）
+- 完全なデータ可逆性のためにOSV JSON生データを保存
 
 ![](./docs/readme_pic01.jpg)
 
-## 名前の由来
+## 命名
 
-**Mayu** は、蚕が身を守るために紡ぐ「繭（まゆ）」に由来します。脆弱性インテリジェンスによって、あなたの環境を優しく、かつ強固に包み込んで守る、というツールのコンセプトを表しています。
+**Mayu**は日本語の*繭（まゆ）*に由来します。蚕が自らを守るために紡ぐ保護ケースです。この名前は、脆弱性インテリジェンスを使って環境を穏やかでありながら回復力のある保護層で包むというツールの目的を反映しています。
 
-## なぜ Mayu？
+## なぜMayu？
 
-優れた脆弱性インテリジェンスツールは数多くありますが、Mayu は以下の特徴を単一のセルフホスト型ツールに統合している点でユニークなポジションにあります：
+優れた脆弱性インテリジェンスツールはいくつかあります。Mayuは以下の特性を単一の自己完結型ツールに組み合わせることで、ユニークなポジションを占めています：
 
-| | クラウド依存型 CVE CLI | CVE 監視プラットフォーム | **Mayu** |
+| | クラウドベースCVE CLI | CVE監視プラットフォーム | **Mayu** |
 |---|---|---|---|
-| データの所有 | クラウド API 依存 | セルフホストまたは SaaS | **完全ローカル（PostgreSQL）** |
-| オフライン / エアギャップ | ❌ | 一部対応（セルフホスト時） | **✅ 初回同期後は完全オフライン** |
-| REST API 内蔵 | ❌（クライアントのみ） | ✅ | **✅** |
-| Web UI 内蔵 | ❌ | ✅ | **✅** |
-| CLI | ✅ | 限定的 | **✅** |
-| OSV エコシステム対応 | ❌（CVE/CPE のみ） | ❌（CVE/CPE のみ） | **✅ 46エコシステム（パッケージレベル）** |
+| データ所有権 | クラウドAPI依存 | セルフホストまたはSaaS | **完全ローカル（PostgreSQL）** |
+| オフライン / エアギャップ | ❌ | 部分的（セルフホスト） | **✅ 初回同期後** |
+| REST API内蔵 | ❌（クライアントのみ） | ✅ | **✅（78以上のエンドポイント）** |
+| Web UI内蔵 | ❌ | ✅ | **✅（ダッシュボード、SBOM管理）** |
+| CLI | ✅ | 限定的 | **✅（フル機能）** |
+| OSVエコシステムカバレッジ | ❌（CVE/CPEのみ） | ❌（CVE/CPEのみ） | **✅ 全OSVエコシステム（パッケージレベル）** |
 | パッケージ名検索 | ❌ | ❌ | **✅** |
-| EPSS / KEV / LEV | EPSS + KEV | EPSS + KEV | **EPSS + KEV + LEV** |
-| カスタムデータ取り込み | ❌ | ❌ | **✅（ローカル JSON ファイル）** |
-| 生データの保持 | ❌ | 一部 | **✅ 完全な可逆性** |
-| アカウント / API キー | 必要 | 必要（SaaS） | **❌ 不要** |
+| EPSS / KEV / LEV | EPSS + KEV | EPSS + KEV | **EPSS + KEV + LEV + Exploit-DB** |
+| ロックファイルスキャン | 部分的 | ❌ | **✅（10以上のロックファイル形式）** |
+| SBOM監査 + 監視 | ❌ | 部分的 | **✅（CycloneDX、SPDX、継続監視）** |
+| VEX / ポリシーゲーティング | ❌ | ❌ | **✅（OpenVEXインポート/エクスポート、ポリシーYAML）** |
+| カスタムデータインポート | ❌ | ❌ | **✅（ローカルJSONファイル）** |
+| 生データ保存 | ❌ | 部分的 | **✅ 完全な可逆性** |
+| アカウント / APIキー必須 | ✅ | ✅（SaaS） | **❌** |
 
-**要約すると：**
+**要約:**
 
-- クラウド依存型 CLI とは異なり、mayu は**全データをローカルに所有**し、REST API と Web UI を内蔵しています。外部サービスへの依存や API キーは一切不要です。
-- ベンダー/製品（CPE）マッチングとアラートに特化した CVE 監視プラットフォームとは異なり、mayu は**全 OSV エコシステム（Go, npm, PyPI, Maven, crates.io 等）でのパッケージレベル検索**をサポートし、悪用推定確率の **LEV スコア**を計算します。
-- Mayu は**脆弱性インテリジェンスバックエンド**として設計されています — 個人の検索ツールとしても、組織全体の脆弱性データ API としても機能する単一バイナリです。
+- クラウドベースのCLIツールとは異なり、mayuは**すべてのデータをローカルで所有**し、REST APIとWeb UIを内蔵 — 外部サービスの依存やAPIキーは不要。
+- ベンダー/製品（CPE）マッチングとアラートに焦点を当てたCVE監視プラットフォームとは異なり、mayuは**すべてのOSVエコシステム**（Go、npm、PyPI、Maven、crates.ioなど）での**パッケージレベル検索**をサポートし、悪用可能性推定のための**LEVスコア**を計算。
+- Mayuは**脆弱性インテリジェンスバックエンド**として設計 — 個人の検索ツールとしても、組織全体の脆弱性データAPIとしても機能する単一バイナリ。
 
 ## インストール
 
 ### ビルド済みバイナリ（推奨）
 
-[GitHub Releases](https://github.com/kato83/mayu/releases) から最新リリースをダウンロードしてください。
-リリースバイナリには Web UI が組み込まれています — `mayu serve` を実行するだけで `http://localhost:8080/` から UI にアクセスできます。
+最新のリリースを[GitHub Releases](https://github.com/kato83/mayu/releases)からダウンロードしてください。
+リリースバイナリにはWeb UIが組み込まれています — `mayu serve` を実行して `http://localhost:8080/` でUIにアクセスできます。
 
-| プラットフォーム | アーキテクチャ | ファイル名 |
-|----------------|--------------|-----------|
+| プラットフォーム | アーキテクチャ | ダウンロード |
+|----------|-------------|----------|
 | Linux | x86_64 | `mayu_*_linux_amd64.tar.gz` |
 | Linux | ARM64 | `mayu_*_linux_arm64.tar.gz` |
 | macOS | x86_64 (Intel) | `mayu_*_darwin_amd64.tar.gz` |
@@ -85,26 +93,26 @@ mayu version
 
 必要なもの:
 - [Go 1.26+](https://go.dev/)
-- [Node.js 24+](https://nodejs.org/)（Web UI ビルド用）
-- [pnpm 11+](https://pnpm.io/)（Web UI の依存管理用）
+- [Node.js 24+](https://nodejs.org/)（Web UIビルド用）
+- [pnpm 11+](https://pnpm.io/)（Web UI依存関係管理用）
 
 ```bash
 git clone https://github.com/kato83/mayu.git
 cd mayu
 
-# Web UI 埋め込みビルド（推奨 — リリースバイナリと同等）
-make build-embed
+# 組み込みWeb UIでビルド（推奨 — リリースバイナリと同じ）
+make build
 
-# 実行 — UI は / で自動配信
+# 実行 — UIは / で自動的に配信されます
 ./bin/mayu serve
 ```
 
 > [!TIP]
-> Web UI なしで CLI/API のみ使用する場合は、Go だけでビルドできます：
+> Web UIなしでCLI/APIのみが必要な場合、Goだけでビルドできます:
 > ```bash
-> go build -o bin/mayu ./cmd/mayu
+> make build-no-ui
 > ```
-> この場合、Web UI を配信するには `--ui-dir` で別途ビルドしたディレクトリを指定してください。
+> この場合、`--ui-dir` を使用して別途ビルドしたディレクトリからWeb UIを配信します。
 
 </details>
 
@@ -115,7 +123,7 @@ make build-embed
 - PostgreSQL 17+
 
 > [!TIP]
-> 手軽に試したい場合は、Docker で PostgreSQL を起動できます：
+> mayuを素早く試したい場合は、DockerでPostgreSQLを実行できます:
 > ```bash
 > docker run -d --name mayu-pg -e POSTGRES_USER=mayu -e POSTGRES_PASSWORD=mayu -e POSTGRES_DB=mayu -p 5432:5432 postgres:17
 > ```
@@ -123,56 +131,62 @@ make build-embed
 ### セットアップ
 
 ```bash
-# データベースマイグレーション実行
+# データベースマイグレーションの実行
 mayu migrate
 ```
 
-### 脆弱性データの取り込み
+### 脆弱性データのインポート
 
 ```bash
-# Go エコシステムの脆弱性を全件インポート
+# Goエコシステムのすべての脆弱性をインポート（フル同期）
 mayu ingest --ecosystem Go
-# 差分更新（前回同期以降の新規・更新分のみ）
+# デルタ更新でインポート（前回の同期以降の新規/変更のみ）
 mayu ingest --ecosystem Go --update
-# 全エコシステムをインポート
-mayu ingest --all
-# 並列度を指定して全エコシステムをインポート
-mayu ingest --all --concurrency 5 --store-workers 8
-# NVD JSON Feed 2.0 から直接 CVE データをインポート
-mayu ingest --source nvd --native
-# 特定の年度のみインポート
-mayu ingest --source nvd --native --year 2024
-# NVD modified フィードから差分更新
-mayu ingest --source nvd --native --update
-# MITRE CVE データを cvelistV5 GitHub Releases からインポート
+# すべてのOSVエコシステムをインポート
+mayu ingest --source osv
+# カスタム並列度ですべてのエコシステムをインポート
+mayu ingest --source osv --concurrency 5 --store-workers 8
+# NVD CVEデータをインポート（GCSからのOSV変換形式）
+mayu ingest --source osv --type nvd
+# Debianセキュリティアドバイザリをインポート（GCSからのOSV変換形式）
+mayu ingest --source osv --type debian
+# NVD CVEデータをNVD JSON Feed 2.0から直接インポート
+mayu ingest --source nvd
+# 特定の年のNVDデータのみインポート
+mayu ingest --source nvd --year 2024
+# MITRE CVEデータをcvelistV5 GitHub Releasesからインポート
 mayu ingest --source mitre
-# 毎時リリースから差分更新
+# 毎時MITREリリースからデルタ更新
 mayu ingest --source mitre --update
-# EPSS スコア（悪用予測スコアリングシステム）をインポート
+# EPSSスコアをインポート（Exploit Prediction Scoring System）
 mayu ingest --source epss
-# EPSS スコアを更新（日次リフレッシュ、未更新時のみ）
+# EPSSスコアを更新（古い場合に日次リフレッシュ）
 mayu ingest --source epss --update
-# EPSS 日次ヒストリカルデータをバックフィル（LEV 計算に必要）
+# EPSS過去データのバックフィル（LEV計算に必要）
 mayu ingest --source epss --backfill
-# 特定の期間を指定してバックフィル
+# 特定の日付範囲でEPSSをバックフィル
 mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
-# CISA KEV カタログ（既知の悪用された脆弱性）をインポート
+# CISA KEVカタログをインポート（Known Exploited Vulnerabilities）
 mayu ingest --source kev
-# KEV カタログを更新（未更新時のみ）
+# KEVカタログを更新（古い場合にリフレッシュ）
 mayu ingest --source kev --update
-# endoflife.date 製品ライフサイクルデータをインポート（EOL日付、LTSステータス）
+# Exploit-DBエントリをインポート（公式GitLab CSVから）
+mayu ingest --source exploitdb
+# Exploit-DBを更新（古い場合にリフレッシュ）
+mayu ingest --source exploitdb --update
+# endoflife.date製品ライフサイクルデータをインポート（EOL日付、LTSステータス）
 mayu ingest --source eol
-# endoflife.date データを更新（前回同期から24時間以上経過時のみ）
+# endoflife.dateデータを更新（最終同期から24時間以上経過した場合にリフレッシュ）
 mayu ingest --source eol --update
-# ローカルの OSV JSON ファイルを直接取り込み（手動構築した GHSA 等）
+# ローカルOSV JSONファイルをインポート（例：手動構築したGHSAアドバイザリ）
 mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
-# GitHub リポジトリのセキュリティアドバイザリーを API 経由でインポート
+# GitHubリポジトリのセキュリティアドバイザリをAPI経由でインポート
 mayu ingest --source ghsa --repo WordPress/wordpress-develop
-# 認証付き（レートリミット対策やプライベートリポジトリ用）
+# 認証付き（レート制限またはプライベートリポジトリ用）
 GITHUB_TOKEN=ghp_xxx mayu ingest --source ghsa --repo owner/repo
-# インジェスト実行履歴を表示
+# インジェストジョブ履歴の表示
 mayu ingest history
-# 特定のジョブの詳細を表示（失敗したIDリスト含む）
+# 特定のジョブの詳細を表示（失敗したIDを含む）
 mayu ingest history --job-id 42
 ```
 
@@ -183,56 +197,69 @@ mayu ingest history --job-id 42
 mayu search --id GO-2024-2687
 # パッケージ名で検索
 mayu search --package golang.org/x/crypto
-# エコシステムでフィルタ
+# エコシステムで検索
 mayu search --ecosystem Go --limit 10
-# CVE エイリアスで検索
+# CVEエイリアスで検索
 mayu search --id CVE-2024-24790
-# Package URL (purl) で検索
+# Package URL（purl）で検索
 mayu search --purl pkg:npm/%40angular/core
-# 位置引数（--id の省略形）
+# 位置引数（--idの省略形）
 mayu search CVE-2024-24790
-# 深刻度でフィルタ
+# 重大度レベルでフィルタ
 mayu search --severity critical --ecosystem Go
-# 日付でフィルタ（指定日以降の更新分）
+# 日付でフィルタ（指定日以降に変更されたもの）
 mayu search --since 2024-01-01 --ecosystem npm
-# 影響バージョンでフィルタ
+# 影響を受けるバージョンでフィルタ
 mayu search --package golang.org/x/crypto --version 0.17.0
+# KEV（Known Exploited Vulnerabilities）でフィルタ
+mayu search --kev --limit 10
+# EPSSスコアでソート
+mayu search --ecosystem Go --sort epss_desc --limit 10
+# 全文検索（最初に--initが必要）
+mayu search --init
+mayu search --query "remote code execution" --ecosystem Go
 # ページネーション
 mayu search --ecosystem Go --limit 10 --offset 20
-# カーソルベースページネーション（前回出力のNextTokenを使用）
+# カーソルベースのページネーション（前回の出力のNextTokenを使用）
 mayu search --ecosystem Go --limit 10 --starting-token <token>
-# 件数のみ表示
+# 結果数のみ表示
 mayu search --ecosystem Go --count
 # 詳細表示（全フィールド）
 mayu search --id GO-2024-2687 --detail
-# JSON 出力（スクリプト連携用）
+# スクリプト用JSON出力
 mayu search --id GO-2024-2687 --format json
-# CSV エクスポート
+# CSVエクスポート
 mayu search --ecosystem Go --format csv > vulns.csv
 ```
 
-### SBOM 監査
+### SBOM監査
 
 ```bash
-# CycloneDX SBOM の脆弱性監査
+# CycloneDX SBOMの脆弱性監査
 mayu audit --sbom ./sbom.cdx.json
-# SPDX SBOM の監査
+# SPDX SBOMの監査
 mayu audit --sbom ./sbom.spdx.json
-# 開発依存を含めて監査
+# 開発依存関係を含める
 mayu audit --sbom ./sbom.cdx.json --include-dev
-# バージョンチェックをスキップ（パッケージ名マッチのみ）
+# バージョンマッチングをスキップ（マッチしたパッケージのすべての脆弱性を表示）
 mayu audit --sbom ./sbom.cdx.json --no-version-check
-# JSON 出力
+# JSON出力
 mayu audit --sbom ./sbom.cdx.json --format json
-# CSV 出力
+# CSV出力
 mayu audit --sbom ./sbom.cdx.json --format csv
-# SARIF 出力（GitHub Code Scanning / GitLab SAST 連携用）
+# SARIF出力（GitHub Code Scanning / GitLab SAST用）
 mayu audit --sbom ./sbom.cdx.json --format sarif > results.sarif
-# Critical と High の脆弱性のみで失敗判定
+# CriticalとHighの重大度の検出結果のみ失敗
 mayu audit --sbom ./sbom.cdx.json --fail-on critical,high
-# 受容済み脆弱性を除外
+# 受容済み脆弱性を抑制
 mayu audit --sbom ./sbom.cdx.json --ignore .mayu-ignore
-# CI/CD ゲート: 全オプションを組み合わせ
+# VEX抑制の適用
+mayu audit --sbom ./sbom.cdx.json --vex product.vex.json
+# ポリシーベースのゲーティングを適用
+mayu audit --sbom ./sbom.cdx.json --policy policy.yaml
+# ライセンスコンプライアンスチェック
+mayu audit --sbom ./sbom.cdx.json --license-policy license-policy.yaml
+# CI/CDゲート: すべてのオプションを組み合わせ
 mayu audit --sbom bom.json --fail-on critical,high --ignore .mayu-ignore --format sarif > results.sarif
 ```
 
@@ -245,109 +272,111 @@ mayu serve
 mayu serve --addr :3000
 ```
 
-## CLI リファレンス
+## CLIリファレンス
 
 ### `mayu ingest`
 
-OSV から脆弱性データをローカルデータベースにインポートします。
+OSVからローカルデータベースに脆弱性データをインポートします。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
-| `--ecosystem` | インポートするエコシステム（例: Go, PyPI, npm） | — |
-| `--all` | 全エコシステムをインポート（GCS から動的取得） | `false` |
-| `--update` | フルインポートの代わりに差分更新を実行 | `false` |
-| `--backfill` | ヒストリカルデータをバックフィル（`--source epss` と併用） | `false` |
+|------|-------------|---------|
+| `--ecosystem` | インポートするエコシステム（例: Go、PyPI、npm） | — |
+| `--source` | ソースからインポート（`osv`、`nvd`、`mitre`、`epss`、`kev`、`exploitdb`、`eol`、`ghsa`） | — |
+| `--type` | `--source osv` のサブタイプ（nvd、debian）でOSV変換データをインポート | — |
+| `--update` | フルインポートの代わりにデルタ更新を実行 | `false` |
+| `--backfill` | 過去データのバックフィル（`--source epss` と併用） | `false` |
 | `--from` | バックフィルの開始日（YYYY-MM-DD） | `2023-03-07`（EPSS v3） |
-| `--to` | バックフィルの終了日（YYYY-MM-DD） | 本日 |
-| `--source` | ソースからインポート（nvd, debian, mitre, epss, kev, eol, ghsa） | — |
-| `--native` | ネイティブデータソースフィードを使用（`--source nvd` と併用） | `false` |
-| `--year` | 特定の年度のNVDフィードのみインポート（`--source nvd --native` と併用） | — |
-| `--file` | ローカルの OSV JSON ファイルを取り込み（パスを位置引数で指定） | `false` |
-| `--repo` | GitHub リポジトリ（owner/repo 形式、`--source ghsa` と併用） | — |
-| `--concurrency` | 並列インポートするエコシステム数（`--all` と併用） | `3` |
-| `--store-workers` | エコシステムごとの並列DB書き込みワーカー数 | CPUコア数 - 1 |
-| `--batch-size` | バッチインサートの件数 | `100` |
+| `--to` | バックフィルの終了日（YYYY-MM-DD） | 今日 |
+| `--repo` | GitHubリポジトリ（owner/repo）`--source ghsa` 用 | — |
+| `--year` | 特定の年のNVDフィードのみインポート（`--source nvd` と併用） | — |
+| `--file` | ローカルOSV JSONファイルからインポート（位置引数としてパスを指定） | `false` |
+| `--concurrency` | 並列インポートするエコシステム数（`--source osv` と併用） | `3` |
+| `--store-workers` | エコシステムごとの並列DBストアワーカー数 | CPUコア数 - 1 |
+| `--batch-size` | バッチインサートごとの脆弱性数 | `100` |
 
 > [!TIP]
-> 利用可能なエコシステムの一覧は [`ecosystems.txt`](https://www.googleapis.com/download/storage/v1/b/osv-vulnerabilities/o/ecosystems.txt) で公開されています。
+> 利用可能なエコシステムのリストは [`ecosystems.txt`](https://www.googleapis.com/download/storage/v1/b/osv-vulnerabilities/o/ecosystems.txt) で公開されています。
 
 ### `mayu ingest history`
 
-インジェスト実行履歴を表示します。全ての `ingest` コマンド実行は、オプション・タイミング・ステータス・失敗した脆弱性IDとともに自動的に記録されます。
+インジェストジョブの実行履歴を表示します。すべての `ingest` コマンドは、オプション、タイミング、ステータス、失敗した脆弱性IDとともに自動的に記録されます。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|----------|
-| `--limit` | 表示する直近のジョブ数 | `20` |
-| `--job-id` | 特定のジョブIDの詳細を表示（失敗リスト含む） | — |
-| `--format` | 出力フォーマット: `table`, `json` | `table` |
+|------|-------------|---------|
+| `--limit` | 表示する最近のジョブ数 | `20` |
+| `--job-id` | 特定のジョブIDの詳細を表示（失敗リストを含む） | — |
+| `--format` | 出力形式: `table`、`json` | `table` |
 
-**使用例:**
+**例:**
 
 ```bash
-# 直近のインジェストジョブ一覧
+# 最近のインジェストジョブを一覧表示
 mayu ingest history
 
-# 直近5件を表示
+# 直近5件のジョブを表示
 mayu ingest history --limit 5
 
-# ジョブ #42 の詳細を表示（失敗した CVE/OSV ID リスト含む）
+# ジョブ#42の詳細を表示（失敗したCVE/OSV IDを含む）
 mayu ingest history --job-id 42
 
-# JSON出力（スクリプト連携用）
+# スクリプト用JSON出力
 mayu ingest history --format json
 ```
 
-**ジョブごとに記録される情報:**
+**ジョブごとの記録情報:**
 - 使用されたコマンドオプション（エコシステム、ソース、更新モードなど）
 - 開始・終了タイムスタンプ
-- ステータス: `success`（成功）、`failed`（失敗）、`partial`（一部失敗）
-- 件数: 合計、成功、失敗
-- 各失敗: 脆弱性ID、エラー種別、エラーメッセージ、スタックトレース
+- ステータス: `success`、`failed`、`partial`（一部失敗）
+- カウント: total、success、failure
+- 各失敗: 脆弱性ID、エラータイプ、エラーメッセージ、スタックトレース
 
 > [!NOTE]
-> 直近100件のみ保持されます。古いジョブは自動的に削除されます。
+> 直近100件のジョブのみ保持されます。古いジョブは自動的に削除されます。
 
 ### `mayu audit`
 
-SBOM の脆弱性監査を実行します。
+SBOMの既知の脆弱性を監査します。
 
 | フラグ | 説明 | デフォルト |
-|------|------|---------|
-| `--sbom` | SBOM ファイルパス（CycloneDX 1.7 または SPDX 2.3 JSON） | （必須） |
-| `--format` | 出力フォーマット: `table`, `json`, `csv`, `sarif` | `table` |
-| `--include-dev` | 開発依存もaudit対象に含める | `false` |
-| `--no-version-check` | バージョンチェックをスキップし、パッケージ名マッチのみで報告 | `false` |
-| `--fail-on` | 指定した重大度以上の脆弱性がある場合のみ失敗（カンマ区切り: `critical`, `high`, `medium`, `low`, `none`） | （全件で失敗） |
-| `--ignore` | 除外する脆弱性IDを記載したファイルパス（1行1ID、`#` でコメント） | - |
+|------|-------------|---------|
+| `--sbom` | SBOMファイルのパス（CycloneDX 1.7またはSPDX 2.3 JSON） | （必須） |
+| `--format` | 出力形式: `table`、`json`、`csv`、`sarif` | `table` |
+| `--include-dev` | 開発依存関係を監査に含める | `false` |
+| `--no-version-check` | バージョンマッチングをスキップし、パッケージ名のすべての脆弱性を報告 | `false` |
+| `--fail-on` | 指定した重大度以上の検出結果のみ失敗（カンマ区切り: `critical`、`high`、`medium`、`low`、`none`） | （すべての検出結果で失敗） |
+| `--ignore` | 抑制する脆弱性IDを含む無視ファイルのパス（1行1ID、`#` でコメント） | - |
+| `--vex` | `not_affected` の検出結果を抑制するOpenVEXファイルのパス | — |
+| `--policy` | カスタムゲーティング用ポリシーYAMLファイルのパス（block/warn/suppress） | — |
+| `--license-policy` | ライセンスコンプライアンスチェック用ライセンスポリシーYAMLファイルのパス | — |
 
 **終了コード:**
 
 | コード | 意味 |
-|------|------|
-| 0 | 脆弱性なし（または `--fail-on` 閾値を超える脆弱性なし） |
-| 1 | 閾値以上の脆弱性あり（`--fail-on` 未指定時は全件で失敗） |
-| 2 | エラー（不正な入力、DB接続失敗など） |
+|------|---------|
+| 0 | 脆弱性未検出（または `--fail-on` しきい値を超えるものなし） |
+| 1 | しきい値を超える検出結果あり（または `--fail-on` 未設定時に検出結果あり） |
+| 2 | エラー（無効な入力、データベース接続失敗など） |
 
-**対応SBOMフォーマット:**
-- CycloneDX 1.7 (JSON) -- `scope` および `cdx:npm:package:development` プロパティで開発依存を検出
-- SPDX 2.3 (JSON) -- 全パッケージを本番依存として扱う（SPDXにはdev/prod区別なし）
+**サポートされるSBOM形式:**
+- CycloneDX 1.7 (JSON) -- `scope` および `cdx:npm:package:development` プロパティで開発依存関係を検出
+- SPDX 2.3 (JSON) -- すべてのパッケージをプロダクションとして扱う（SPDXにはdev/prodの区別がない）
 
-**除外ファイルフォーマット (`.mayu-ignore`):**
+**無視ファイルの形式 (`.mayu-ignore`):**
 
 ```
-# 受容済みリスク
-CVE-2024-1234    # 理由: 当プロジェクトへの影響なし
-GHSA-xxxx-yyyy   # 2025-03-01 まで抑制
+# Accepted risks
+CVE-2024-1234    # reason: no impact on our usage
+GHSA-xxxx-yyyy   # suppressed until 2025-03-01
 ```
 
-**CI/CD連携例 (GitHub Actions):**
+**CI/CD連携例（GitHub Actions）:**
 
 ```yaml
 - name: 依存関係の監査
   run: |
     mayu audit --sbom bom.json --fail-on critical,high --ignore .mayu-ignore --format sarif > results.sarif
 
-- name: SARIF アップロード
+- name: SARIFのアップロード
   uses: github/codeql-action/upload-sarif@v3
   with:
     sarif_file: results.sarif
@@ -356,33 +385,33 @@ GHSA-xxxx-yyyy   # 2025-03-01 まで抑制
 ### `mayu sbom` 認証
 
 > [!WARNING]
-> `mayu sbom` サブコマンドは**試験的機能**です。CLIインターフェース、APIレスポンス、データベーススキーマに予告なく破壊的変更が行われる可能性があります。将来のリリースでスキーマ移行に伴い、データベースに保存されたSBOMスキャン結果がリセットされる場合があります。
+> `mayu sbom` サブコマンドは**実験的**です。CLIインターフェース、APIレスポンス、データベーススキーマへの破壊的変更が予告なく行われる可能性があります。データベースに保存されたSBOMスキャン結果は、将来のリリースでのスキーママイグレーション時にリセットされる場合があります。
 
-全ての `mayu sbom` サブコマンドは認証が必要です。以下のいずれかの方法で認証できます：
+すべての `mayu sbom` サブコマンドには認証が必要です。以下のいずれかの方法で認証できます:
 
-1. **API キー（CI/CD 推奨）:** `MAYU_API_KEY` 環境変数を設定します。
-2. **セッショントークン:** `mayu login` を実行してセッションをローカルに保存します。
+1. **APIキー（CI/CD推奨）:** `MAYU_API_KEY` 環境変数を設定。
+2. **セッショントークン:** `mayu login` を実行してセッションをローカルに保存。
 
 ```bash
-# 方法 1: API キー
+# 方法1: APIキー
 export MAYU_API_KEY=your-api-key
 
-# 方法 2: セッションベースログイン
+# 方法2: セッションベースのログイン
 mayu login
 ```
 
 ### `mayu sbom upload`
 
-SBOM ファイルをアップロードし、脆弱性スキャンを実行します。
+SBOMファイルをアップロードし、脆弱性スキャンを実行します。
 
 | フラグ | 説明 | デフォルト |
-|------|------|---------|
+|------|-------------|---------|
 | `--project` | プロジェクト名 | （必須） |
-| `--version` | SBOM バージョンラベル | （必須） |
-| `--sbom` | SBOM ファイルパス（CycloneDX または SPDX JSON） | （必須） |
-| `--environment` | 環境ラベル（例: `production`, `staging`） | — |
+| `--version` | SBOMバージョンラベル | （必須） |
+| `--sbom` | SBOMファイルのパス（CycloneDXまたはSPDX JSON） | （必須） |
+| `--environment` | 環境ラベル（例: `production`、`staging`） | — |
 
-**使用例:**
+**例:**
 
 ```bash
 export MAYU_API_KEY=your-api-key
@@ -392,14 +421,14 @@ mayu sbom upload --project my-app --version 2.0.0 --sbom bom.json --environment 
 
 ### `mayu sbom scan`
 
-既存の SBOM バージョンを最新の脆弱性データベースで再スキャンします。
+最新の脆弱性データベースを使用して、既存のSBOMバージョンを再スキャンします。
 
 | フラグ | 説明 | デフォルト |
-|------|------|---------|
+|------|-------------|---------|
 | `--project` | プロジェクト名 | （必須） |
-| `--version` | スキャン対象バージョン（省略時は最新バージョン） | — |
+| `--version` | スキャンするバージョン（省略時は最新バージョンをスキャン） | — |
 
-**使用例:**
+**例:**
 
 ```bash
 export MAYU_API_KEY=your-api-key
@@ -409,73 +438,77 @@ mayu sbom scan --project my-app --version 1.0.0
 
 ### `mayu sbom list`
 
-SBOM プロジェクト一覧またはプロジェクト内のバージョン一覧を表示します。
+SBOMプロジェクトまたはプロジェクト内のバージョンを一覧表示します。
 
 | フラグ | 説明 | デフォルト |
-|------|------|---------|
-| `--project` | プロジェクト名（省略時は全プロジェクトを表示） | — |
+|------|-------------|---------|
+| `--project` | プロジェクト名（省略時はすべてのプロジェクトを一覧表示） | — |
 
-**使用例:**
+**例:**
 
 ```bash
 export MAYU_API_KEY=your-api-key
-mayu sbom list                    # 全プロジェクト一覧
-mayu sbom list --project my-app   # プロジェクト内のバージョン一覧
+mayu sbom list                    # すべてのプロジェクトを一覧表示
+mayu sbom list --project my-app   # プロジェクトのバージョンを一覧表示
 ```
 
 ### `mayu search`
 
-ローカルデータベースから脆弱性を検索します。
+ローカルデータベースで脆弱性を検索します。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
-| `--id` | 脆弱性IDまたはエイリアスで検索（例: CVE-2024-1234, GO-2024-2687, GHSA-xxxx） | — |
+|------|-------------|---------|
+| `--id` | 脆弱性IDまたはエイリアスで検索（例: CVE-2024-1234、GO-2024-2687、GHSA-xxxx） | — |
 | `--package` | パッケージ名で検索 | — |
 | `--ecosystem` | エコシステムでフィルタ | — |
-| `--purl` | Package URL で検索（例: `pkg:npm/%40angular/core`） | — |
-| `--severity` | CVSS 深刻度でフィルタ（critical, high, medium, low, none） | — |
-| `--since` | 更新日でフィルタ（YYYY-MM-DD または RFC3339） | — |
-| `--version` | 影響バージョンでフィルタ | — |
-| `--format` | 出力形式: `table`, `json`, `csv` | `table` |
+| `--purl` | Package URLで検索（例: `pkg:npm/%40angular/core`） | — |
+| `--severity` | CVSS重大度レベルでフィルタ（critical、high、medium、low、none） | — |
+| `--since` | 変更日でフィルタ（YYYY-MM-DDまたはRFC3339） | — |
+| `--version` | 影響を受けるバージョンでフィルタ | — |
+| `--kev` | KEV（Known Exploited Vulnerabilities）エントリのみにフィルタ | `false` |
+| `--sort` | ソート順: `modified_desc`、`modified_asc`、`published_desc`、`published_asc`、`epss_desc`、`epss_asc` | `modified_desc` |
+| `--query` | 全文検索クエリ（config.yamlで `search.engine` の設定が必要） | — |
+| `--format` | 出力形式: `table`、`json`、`csv` | `table` |
 | `--limit` | 最大結果数 | `20` |
 | `--offset` | ページネーション用オフセット（非推奨: `--starting-token` を使用） | `0` |
-| `--starting-token` | ページネーション用カーソルトークン（前回出力の `NextToken` を指定） | — |
-| `--count` | 結果件数のみ表示 | `false` |
+| `--starting-token` | ページネーション用カーソルトークン（前回の `NextToken` 出力から） | — |
+| `--count` | 結果数のみ表示 | `false` |
 | `--detail` | 各結果の詳細情報を表示 | `false` |
+| `--init` | 全文検索インデックスの初期化（最初の `--query` 使用前に必要） | `false` |
 
 ### `mayu serve`
 
-サーバーを起動します（API + Web UI）。
+脆弱性データアクセス用のサーバー（REST API + Web UI）を起動します。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
+|------|-------------|---------|
 | `--addr` | リッスンするアドレス（host:port） | `:8080` |
-| `--ui-dir` | SPA 静的ファイルディレクトリのパス（Web UI ホスティング用） | — |
+| `--ui-dir` | Web UIホスティング用SPAスタティックファイルディレクトリのパス | — |
 
 **エンドポイント:**
 
-API の全仕様は [`internal/server/openapi.yaml`](internal/server/openapi.yaml) を参照するか、サーバー起動中に `http://localhost:8080/openapi.yaml` にアクセスしてください。
+API仕様の全容は [`internal/server/openapi.yaml`](internal/server/openapi.yaml) を参照するか、サーバー実行中に `http://localhost:8080/openapi.yaml` にアクセスしてください。
 
 ### `mayu migrate`
 
-データベースマイグレーションを実行します（バイナリに埋め込み済み）。
+データベースマイグレーションを実行します（バイナリに組み込み済み）。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
-| `--steps` | 適用するマイグレーション数（0 = 全て、負数でロールバック） | `0` |
+|------|-------------|---------|
+| `--steps` | 適用するマイグレーション数（0 = すべて、負の値でロールバック） | `0` |
 
 **サブコマンド:**
 
 | サブコマンド | 説明 |
-|------------|------|
-| `up` | 未適用のマイグレーションを全て適用（デフォルト） |
-| `down` | 1つロールバック（`--steps N` で複数） |
+|------------|-------------|
+| `up` | 保留中のすべてのマイグレーションを適用（デフォルト） |
+| `down` | 1つのマイグレーションをロールバック（または `--steps N`） |
 | `status` | 現在のマイグレーションバージョンを表示 |
 
-**使用例:**
+**例:**
 
 ```bash
-mayu migrate              # 未適用のマイグレーションを全て適用
+mayu migrate              # 保留中のすべてのマイグレーションを適用
 mayu migrate up
 mayu migrate down
 mayu migrate down --steps 3
@@ -487,13 +520,13 @@ mayu migrate status
 新しいユーザーアカウントを作成します。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
-| `--email` | ユーザーのメールアドレス（必須） | — |
-| `--name` | ユーザーの表示名 | — |
-| `--role` | ユーザーの役割: `admin` または `viewer` | `viewer` |
-| `--password` | ユーザーのパスワード（必須） | — |
+|------|-------------|---------|
+| `--email` | ユーザーメールアドレス（必須） | — |
+| `--name` | ユーザー表示名 | — |
+| `--role` | ユーザーロール: `admin` または `viewer` | `viewer` |
+| `--password` | ユーザーパスワード（必須） | — |
 
-**使用例:**
+**例:**
 
 ```bash
 mayu user create --email admin@example.com --name Admin --role admin --password secret
@@ -502,14 +535,14 @@ mayu user create --email viewer@example.com --role viewer --password mypass
 
 ### `mayu user update`
 
-既存ユーザーの役割を更新します。
+既存ユーザーのロールを更新します。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
-| `--email` | 更新対象のユーザーメールアドレス（必須） | — |
-| `--role` | 新しい役割: `admin` または `viewer`（必須） | — |
+|------|-------------|---------|
+| `--email` | 更新するユーザーのメールアドレス（必須） | — |
+| `--role` | 新しいロール: `admin` または `viewer`（必須） | — |
 
-**使用例:**
+**例:**
 
 ```bash
 mayu user update --email user@example.com --role admin
@@ -518,9 +551,9 @@ mayu user update --email user@example.com --role viewer
 
 ### `mayu user list`
 
-全ユーザーをテーブル形式で表示します（ID、Email、Name、Role）。
+すべてのユーザーをテーブル形式で一覧表示します（ID、Email、Name、Role）。
 
-**使用例:**
+**例:**
 
 ```bash
 mayu user list
@@ -528,33 +561,33 @@ mayu user list
 
 ### `mayu user reset-password`
 
-ユーザーのパスワードをリセットします（管理者操作）。`auth.mode=local` の場合のみ使用可能です。
+ユーザーのパスワードをリセットします（管理者操作）。`auth.mode=local` の場合のみ利用可能です。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
-| `--email` | ユーザーのメールアドレス（必須） | — |
+|------|-------------|---------|
+| `--email` | ユーザーメールアドレス（必須） | — |
 | `--password` | 新しいパスワード（必須） | — |
 
-**使用例:**
+**例:**
 
 ```bash
 mayu user reset-password --email user@example.com --password newpassword
 ```
 
 > [!NOTE]
-> `auth.mode` が `local` でない場合（`none` または `oidc`）、このコマンドはエラーで終了します。
+> `auth.mode` が `local` でない場合（つまり `none` または `oidc`）、このコマンドはエラーで終了します。
 
 ### `mayu apikey create`
 
-ユーザー用の新しい API キーを作成します。生成されたキーは一度だけ表示され、復元できません。
+ユーザー用の新しいAPIキーを作成します。生成されたキーは一度だけ表示され、復元できません。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
+|------|-------------|---------|
 | `--user-email` | キーを関連付けるユーザーのメールアドレス（必須） | — |
-| `--name` | API キーの説明/名前 | — |
-| `--expires` | 有効期限（例: `90d`, `1y`, `24h`） | —（無期限） |
+| `--name` | APIキーの説明/名前 | — |
+| `--expires` | 有効期限（例: `90d`、`1y`、`24h`） | —（有効期限なし） |
 
-**使用例:**
+**例:**
 
 ```bash
 mayu apikey create --user-email admin@example.com --name 'CI Pipeline'
@@ -563,39 +596,39 @@ mayu apikey create --user-email admin@example.com --name 'Temp Key' --expires 90
 
 ### `mayu webhook` 認証
 
-すべての `mayu webhook` サブコマンドは認証が必要です。以下のいずれかの方法で認証できます：
+すべての `mayu webhook` サブコマンドには認証が必要です。以下のいずれかの方法で認証できます:
 
-1. **API キー（CI/CD 推奨）:** `MAYU_API_KEY` 環境変数を設定します。
-2. **セッショントークン:** `mayu login` を実行してセッションをローカルに保存します。
+1. **APIキー（CI/CD推奨）:** `MAYU_API_KEY` 環境変数を設定。
+2. **セッショントークン:** `mayu login` を実行してセッションをローカルに保存。
 
-Webhook はユーザーごとにスコープされ、各ユーザーは自分の Webhook のみ管理できます。
+Webhookはユーザーごとにスコープされます -- 各ユーザーは自分のWebhookのみ管理できます。
 
 ```bash
-# 方法 1: API キー
+# 方法1: APIキー
 export MAYU_API_KEY=your-api-key
 
-# 方法 2: セッションベースログイン
+# 方法2: セッションベースのログイン
 mayu login
 ```
 
 ### `mayu webhook create`
 
-Webhook通知を新規作成します。
+通知用の新しいWebhookを作成します。
 
 > [!TIP]
-> テンプレート変数、イベント一覧、署名検証、配信動作の詳細ドキュメントは [docs/webhooks.ja.md](docs/webhooks.ja.md) を参照してください。
+> テンプレート変数、イベント、署名検証、配信動作の詳細なドキュメントは [docs/webhooks.ja.md](docs/webhooks.ja.md) を参照してください。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
+|------|-------------|---------|
 | `--name` | Webhook名（必須） | — |
 | `--url` | Webhook URL（必須） | — |
-| `--events` | 購読するイベントのカンマ区切りリスト（必須） | — |
-| `--content-type` | WebhookリクエストのContent-Typeヘッダー | `application/json` |
-| `--body-template` | リクエストボディのGoテンプレート（text/template形式） | — |
-| `--secret` | Webhook署名検証用のHMACシークレット | — |
+| `--events` | サブスクライブするイベントのカンマ区切りリスト（必須） | — |
+| `--content-type` | Webhookリクエストのコンテントタイプヘッダー | `application/json` |
+| `--body-template` | リクエストボディのMustacheテンプレート | — |
+| `--secret` | Webhook署名検証用HMACシークレット | — |
 | `--enabled` | Webhookを有効にするかどうか | `true` |
 
-**使用例:**
+**例:**
 
 ```bash
 export MAYU_API_KEY=your-api-key
@@ -605,9 +638,9 @@ mayu webhook create --name "all-vulns" --url "https://example.com/webhook" --eve
 
 ### `mayu webhook list`
 
-認証されたユーザーのWebhookをテーブル形式で表示します（ID、名前、URL、イベント、有効状態）。
+認証済みユーザーのWebhookをテーブル形式で一覧表示します（ID、Name、URL、Events、Enabled）。
 
-**使用例:**
+**例:**
 
 ```bash
 export MAYU_API_KEY=your-api-key
@@ -616,60 +649,376 @@ mayu webhook list
 
 ### `mayu webhook test`
 
-Webhookにテストペイロードを送信して接続を確認します。
+接続性を確認するためにWebhookにテストペイロードを送信します。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
+|------|-------------|---------|
 | `--id` | テストするWebhook ID（必須） | — |
 
-**使用例:**
+**例:**
 
 ```bash
 export MAYU_API_KEY=your-api-key
 mayu webhook test --id 1
 ```
 
-### `mayu login`
+### `mayu scan`
 
-mayu サーバーに認証し、セッション資格情報をローカルに保存します。資格情報は `~/.config/mayu/credentials.json` にパーミッション `0600` で保存されます。
+SBOMを生成せずにロックファイルの既知の脆弱性をスキャンします。
 
 | フラグ | 説明 | デフォルト |
-|--------|------|-----------|
-| `--oidc` | OIDC ブラウザベースログインを使用 | `false` |
-| `--server` | サーバー URL | `http://localhost:8080` |
+|------|-------------|---------|
+| `--lockfile` | スキャンするロックファイルのパス | — |
+| `--dir` | ロックファイルをスキャンするディレクトリ | — |
+| `--format` | 出力形式: `table`、`json`、`csv`、`sarif` | `table` |
+| `--fail-on` | 指定した重大度以上の検出結果のみ終了コード1で失敗 | — |
+| `--ignore` | 抑制する脆弱性IDを含む無視ファイルのパス | — |
+| `--include-dev` | 開発依存関係をスキャンに含める | `false` |
+| `--no-version-check` | バージョンマッチングをスキップ | `false` |
+| `--policy` | カスタムゲーティング用ポリシーYAMLファイルのパス | — |
+| `--reachability` | Goプロジェクトで到達可能性分析を実行 | `false` |
+
+**サポートされるロックファイル形式:**
+- go.sum (Go)
+- package-lock.json (npm)
+- yarn.lock (Yarn)
+- pnpm-lock.yaml (pnpm)
+- Pipfile.lock (Python/pipenv)
+- poetry.lock (Python/poetry)
+- Gemfile.lock (Ruby)
+- Cargo.lock (Rust)
+- requirements.txt (Python/pip)
+- composer.lock (PHP)
+
+**例:**
+
+```bash
+mayu scan --lockfile ./go.sum
+mayu scan --dir .
+mayu scan --lockfile ./package-lock.json --format json
+mayu scan --dir . --fail-on critical,high
+mayu scan --lockfile ./Cargo.lock --ignore .mayu-ignore
+mayu scan --lockfile ./go.sum --reachability
+```
+
+### `mayu status`
+
+データソースの同期状態とEPSSカバレッジを表示します。
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--format` | 出力形式: `table`、`json` | `table` |
+
+**例:**
+
+```bash
+mayu status
+mayu status --format json
+```
+
+### `mayu watch`
+
+新しい脆弱性が条件に一致した際の自動通知用ウォッチリストを管理します。
+
+**サブコマンド:** `add`、`list`、`remove`、`check`
+
+#### `mayu watch add`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--name` | ウォッチリストエントリ名（必須） | — |
+| `--type` | マッチタイプ: `package`、`purl`、`cpe`、`ecosystem`（必須） | — |
+| `--ecosystem` | エコシステム名（package/ecosystemマッチタイプ用） | — |
+| `--package` | パッケージ名（packageマッチタイプ用） | — |
+| `--purl` | プレフィックスマッチング用Purlパターン（purlマッチタイプ用） | — |
+| `--cpe` | プレフィックスマッチング用CPEパターン（cpeマッチタイプ用） | — |
+| `--severity-min` | 最小重大度: critical、high、medium、low、none | — |
+| `--epss-threshold` | 最小EPSSスコアしきい値（0.0-1.0） | — |
+| `--user-email` | このウォッチリストを所有するユーザーのメールアドレス（必須） | — |
+
+#### `mayu watch list`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--user-email` | ユーザーのメールアドレス（必須） | — |
+
+#### `mayu watch remove`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--id` | ウォッチリストエントリID（必須） | — |
+| `--user-email` | ユーザーのメールアドレス（必須） | — |
+
+#### `mayu watch check`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--dry-run` | 通知を送信せずにマッチをプレビュー | `false` |
+
+**例:**
+
+```bash
+mayu watch add --name 'Go crypto' --type package --ecosystem Go --package golang.org/x/crypto --user-email admin@example.com
+mayu watch add --name 'Express' --type purl --purl pkg:npm/express --user-email admin@example.com
+mayu watch add --name 'Apache HTTPD' --type cpe --cpe 'cpe:2.3:a:apache:http_server' --user-email admin@example.com
+mayu watch add --name 'Go Critical' --type ecosystem --ecosystem Go --severity-min critical --user-email admin@example.com
+mayu watch list --user-email admin@example.com
+mayu watch remove --id 1 --user-email admin@example.com
+mayu watch check --dry-run
+```
+
+### `mayu team`
+
+共同脆弱性追跡と共有リソース（ウォッチリスト、Webhook、SBOMプロジェクト）のためのチームを管理します。
+
+**サブコマンド:** `create`、`list`、`add-member`、`remove-member`、`members`
+
+#### `mayu team create`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--name` | チーム名（必須） | — |
+| `--description` | チームの説明 | — |
+
+#### `mayu team list`
+
+フラグなし。すべてのチームを一覧表示します。
+
+#### `mayu team add-member`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--team` | チーム名（必須） | — |
+| `--email` | 追加するユーザーのメールアドレス（必須） | — |
+| `--role` | メンバーロール: `owner` または `member` | `member` |
+
+#### `mayu team remove-member`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--team` | チーム名（必須） | — |
+| `--email` | 削除するユーザーのメールアドレス（必須） | — |
+
+#### `mayu team members`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--team` | チーム名（必須） | — |
+
+**例:**
+
+```bash
+mayu team create --name "platform-team" --description "Platform engineering team"
+mayu team list
+mayu team add-member --team platform-team --email user@example.com --role owner
+mayu team add-member --team platform-team --email dev@example.com
+mayu team remove-member --team platform-team --email dev@example.com
+mayu team members --team platform-team
+```
+
+### `mayu vex`
+
+SBOM検出結果ステータス管理用のOpenVEXドキュメントをインポートおよびエクスポートします。
+
+**サブコマンド:** `export`、`import`
+
+すべての `mayu vex` サブコマンドには認証が必要です（`MAYU_API_KEY` を設定するか `mayu login` を実行）。
+
+#### `mayu vex export`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--project` | プロジェクト名（必須） | — |
+| `--version` | バージョン（デフォルト: 最新） | — |
+| `--author` | ドキュメント作成者 | `mayu` |
+| `--id` | ドキュメントID（デフォルト: 自動生成） | — |
+
+#### `mayu vex import`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--project` | プロジェクト名（必須） | — |
+| `--version` | バージョン（デフォルト: 最新） | — |
+| `--file` | OpenVEXファイルのパス（必須） | — |
+
+**例:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu vex export --project my-app --version 1.0.0 > product.vex.json
+mayu vex export --project my-app --author security-team@example.com
+mayu vex import --project my-app --file product.vex.json
+```
+
+### `mayu policy`
+
+監査ゲーティング用ポリシーファイルの検証と管理を行います。
+
+**サブコマンド:** `validate`
+
+#### `mayu policy validate`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--file` | ポリシーYAMLファイルのパス（必須） | — |
+
+**例:**
+
+```bash
+mayu policy validate --file policy.yaml
+```
+
+### `mayu notification`
+
+通知チャンネルとテンプレートを管理します。
+
+**サブコマンド:** `templates`、`test-email`
+
+#### `mayu notification templates`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--format` | 出力形式: `table`、`json` | `table` |
+| `--name` | 特定のテンプレートの完全な内容を表示（slack、teams、email） | — |
+
+#### `mayu notification test-email`
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--to` | 受信者メールアドレス（必須） | — |
+| `--subject` | メール件名 | `Mayu Test Email Notification` |
+
+**例:**
+
+```bash
+mayu notification templates
+mayu notification templates --name slack
+mayu notification test-email --to admin@example.com
+```
+
+### `mayu sbom generate`
+
+ロックファイルからCycloneDXまたはSPDX形式のSBOMを生成します。認証不要（ローカル操作のみ）。
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--lockfile` | ロックファイルのパス | — |
+| `--dir` | ロックファイルをスキャンするディレクトリ | — |
+| `--format` | 出力形式: `cyclonedx` または `spdx` | `cyclonedx` |
+| `--name` | プロジェクト/コンポーネント名 | — |
+| `--version` | プロジェクトバージョン | — |
+| `--output` | 出力ファイルパス（デフォルト: 標準出力） | — |
+
+**例:**
+
+```bash
+mayu sbom generate --lockfile ./go.sum --format cyclonedx --name my-app --version 1.0.0
+mayu sbom generate --dir . --format spdx --name my-app
+mayu sbom generate --lockfile ./package-lock.json --output sbom.cdx.json
+```
+
+### `mayu sbom suppress`
+
+検出結果を抑制します（このコンテキストでは該当しないとマーク）。認証が必要です。
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--project` | プロジェクト名（必須） | — |
+| `--version` | バージョン（デフォルト: 最新） | — |
+| `--vuln` | 脆弱性ID（必須） | — |
+| `--purl` | Package URL（省略時は最初にマッチする検出結果に適用） | — |
+| `--reason` | 正当化理由 | — |
+| `--expires` | 有効期限（例: 90d、1y） | — |
+
+**例:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom suppress --project my-app --vuln CVE-2024-1234 --reason "not applicable"
+```
+
+### `mayu sbom accept`
+
+検出結果のリスクを受容します（パッチできない既知の脆弱性）。認証が必要です。
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--project` | プロジェクト名（必須） | — |
+| `--version` | バージョン（デフォルト: 最新） | — |
+| `--vuln` | 脆弱性ID（必須） | — |
+| `--purl` | Package URL（省略時は最初にマッチする検出結果に適用） | — |
+| `--reason` | 正当化理由（必須） | — |
+| `--expires` | 有効期限（例: 90d、1y） | — |
+
+**例:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom accept --project my-app --vuln CVE-2024-1234 --reason "isolated environment" --expires 90d
+```
+
+### `mayu sbom status`
+
+SBOMバージョンの検出結果ステータスの表示またはリセットを行います。認証が必要です。
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--project` | プロジェクト名（必須） | — |
+| `--version` | バージョン（デフォルト: 最新） | — |
+| `--filter` | ステータスでフィルタ（カンマ区切り: open、in_triage、suppressed、false_positive、risk_accepted、resolved） | — |
+| `--reset` | 脆弱性IDのステータスをリセット | — |
+| `--purl` | リセット操作用Package URL | — |
+
+**例:**
+
+```bash
+export MAYU_API_KEY=your-api-key
+mayu sbom status --project my-app
+mayu sbom status --project my-app --filter suppressed,risk_accepted
+mayu sbom status --project my-app --reset CVE-2024-1234 --purl pkg:npm/example@1.0.0
+```
+
+### `mayu login`
+
+mayuサーバーで認証し、セッション認証情報をローカルに保存します。認証情報は `~/.config/mayu/credentials.json` に `0600` パーミッションで保存されます。
+
+| フラグ | 説明 | デフォルト |
+|------|-------------|---------|
+| `--oidc` | OIDCブラウザベースのログインを使用 | `false` |
+| `--server` | サーバーURL | `http://localhost:8080` |
 
 **モード:**
 
-- **対話モード（デフォルト）:** ターミナルでメールアドレスとパスワードの入力を求めます。
-- **OIDC（`--oidc`）:** デフォルトブラウザを開いて OIDC 認証を行います。コールバック受信用に一時的なローカル HTTP サーバーがランダムポートで起動されます。
+- **対話型（デフォルト）:** ターミナルでメールアドレスとパスワードの入力を求めます。
+- **OIDC（`--oidc`）:** OIDC認証用にデフォルトブラウザを開きます。コールバックを受信するためにランダムポートで一時的なローカルHTTPサーバーが起動されます。
 
-**認証の優先順位**（`mayu sbom`、`mayu webhook` などの認証が必要なコマンドで使用）：
+**認証の優先順位**（`mayu sbom`、`mayu webhook`、その他の認証が必要なコマンドで使用）:
 
-1. `MAYU_API_KEY` 環境変数（CI/CD 推奨）
-2. `mayu login` で保存されたセッショントークン（`~/.config/mayu/credentials.json`）
-3. `mayu login` または `MAYU_API_KEY` の設定を促すエラーメッセージ
+1. `MAYU_API_KEY` 環境変数（CI/CD推奨）
+2. `mayu login` からの保存済みセッショントークン（`~/.config/mayu/credentials.json`）
+3. `mayu login` または `MAYU_API_KEY` の設定を提案するメッセージ付きエラー
 
-**使用例:**
+**例:**
 
 ```bash
-# 対話式メール/パスワードログイン
+# 対話型メール/パスワードログイン
 mayu login
 
-# サーバー URL を指定
+# サーバーURLを指定
 mayu login --server http://example.com:8080
 
-# OIDC ブラウザベースログイン（config で auth.mode=oidc が必要）
+# OIDCブラウザベースのログイン（設定でauth.mode=oidcが必要）
 mayu login --oidc
 
-# カスタムサーバーで OIDC ログイン
+# カスタムサーバーでのOIDCログイン
 mayu login --oidc --server http://example.com:8080
 ```
 
 ### `mayu logout`
 
-保存されたセッション資格情報を削除します。サーバー側のセッション無効化も試みます（ベストエフォート; サーバーに接続できない場合でも失敗しません）。
+保存済みセッション認証情報を削除します。オプションでサーバー上のセッションを無効化します（ベストエフォート；サーバーに到達できない場合でも失敗しません）。
 
-**使用例:**
+**例:**
 
 ```bash
 mayu logout
@@ -683,38 +1032,38 @@ mayu logout
 
 ### 設定ファイル
 
-Mayu は YAML 形式の設定ファイルに対応しています。デフォルトのパスは以下です：
+MayuはYAML設定ファイルをサポートしています。デフォルトのパスは:
 
 ```
 $HOME/.config/mayu/config.yaml
 ```
 
-`--config` グローバルオプションで任意のパスを指定できます：
+`--config` グローバルオプションでカスタムパスを指定できます:
 
 ```bash
 mayu --config /path/to/config.yaml search --id CVE-2024-1234
 ```
 
-デフォルトの設定ファイルが存在しない場合、mayu はエラーを出さず環境変数・デフォルト値にフォールバックします。`--config` で明示的に指定されたファイルが存在しない場合はエラーになります。
+デフォルトの設定ファイルが存在しない場合、mayuは環境変数とデフォルト値にサイレントにフォールバックします。`--config` が明示的に指定され、ファイルが存在しない場合、mayuはエラーを報告します。
 
-**`config.yaml` の例：**
+**`config.yaml` の例:**
 
 ```yaml
-# データベース接続
+# Database connection
 database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 
-# 認証設定
+# Authentication settings
 auth:
-  # mode: none | local | oidc (デフォルト: none)
+  # mode: none | local | oidc (default: none)
   mode: none
 
-# EPSSデータ保存期間 (デフォルト: 365日、前日から起算)
-# -1に設定すると全履歴データを無期限保持 (LEV精度最大化に必要)
+# EPSS data retention (default: 365 days, counted from yesterday)
+# Set to -1 to retain all historical data indefinitely (required for full LEV accuracy)
 epss:
   retention_days: 365
 ```
 
-**ローカル認証の例：**
+**ローカル認証の例:**
 
 ```yaml
 database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
@@ -722,10 +1071,10 @@ database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
 auth:
   mode: local
   session_secret: "your-random-secret-key"
-  session_max_age: 86400  # 秒 (デフォルト: 86400 = 24時間)
+  session_max_age: 86400  # seconds (default: 86400 = 24h)
 ```
 
-**OIDC 認証の例：**
+**OIDC認証の例:**
 
 ```yaml
 database_url: postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable
@@ -745,106 +1094,107 @@ auth:
       - profile
 ```
 
-**優先順位**（高い順）：
+**優先順位**（高い順）:
 
-1. 環境変数 (`DATABASE_URL`)
-2. 設定ファイル (`config.yaml` — `--config` でパスを指定)
+1. 環境変数（`DATABASE_URL`）
+2. 設定ファイル（`config.yaml` — `--config` でパスを指定）
 3. デフォルト値
 
 ### 環境変数
 
 | 環境変数 | 説明 | デフォルト |
-|----------|------|-----------|
-| `DATABASE_URL` | PostgreSQL 接続文字列 | `postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable` |
+|---------------------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL接続文字列 | `postgres://mayu:mayu@localhost:5432/mayu?sslmode=disable` |
 
 > [!WARNING]
-> デフォルトの接続文字列は `sslmode=disable` を使用しています。
-> これは同梱の Docker PostgreSQL に対するローカル開発でのみ適切です。
-> リモートまたは本番データベースに接続する場合は、`sslmode=require`
-> （証明書検証まで行う場合は `verify-full`）を設定して **TLS を強制** してください。
-> 例: `postgres://user:pass@db.example.com:5432/mayu?sslmode=verify-full`
-> Mayu は非ローカルホストへの接続で TLS が強制されていない場合、警告を出力します。
+> デフォルトの接続文字列は `sslmode=disable` を使用しており、これは
+> バンドルされたDocker PostgreSQLに対するローカル開発でのみ適切です。
+> リモートまたは本番データベースの場合、`sslmode=require`（または証明書検証用の
+> `verify-full`）を設定して**TLSを強制**してください。例:
+> `postgres://user:pass@db.example.com:5432/mayu?sslmode=verify-full`
+> Mayuは非ローカルホストへのTLS未強制接続を検出すると警告を出力します。
 
 ## データソース
 
-| ソース | ステータス | 取得方法 |
-|--------|-----------|---------|
-| [OSV](https://osv.dev/) | ✅ 対応済み | GCS バケット (`gs://osv-vulnerabilities/`) |
-| [NVD CVE (変換済み)](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ 対応済み | `mayu ingest --source nvd` |
-| [NVD CVE (ネイティブ)](https://nvd.nist.gov/vuln/data-feeds) | ✅ 対応済み | `mayu ingest --source nvd --native` |
-| [Debian Security Advisories](https://storage.googleapis.com/debian-osv/index.html) | ✅ 対応済み | `mayu ingest --source debian` |
+| ソース | ステータス | 方法 |
+|--------|--------|--------|
+| [OSV](https://osv.dev/) | ✅ 対応済み | GCSバケット（`gs://osv-vulnerabilities/`） |
+| [NVD CVE（変換版）](https://storage.googleapis.com/cve-osv-conversion/index.html?prefix=osv-output/) | ✅ 対応済み | `mayu ingest --source osv --type nvd` |
+| [NVD CVE（ネイティブ）](https://nvd.nist.gov/vuln/data-feeds) | ✅ 対応済み | `mayu ingest --source nvd` |
+| [Debianセキュリティアドバイザリ](https://storage.googleapis.com/debian-osv/index.html) | ✅ 対応済み | `mayu ingest --source osv --type debian` |
 | [MITRE CVE (cvelistV5)](https://github.com/CVEProject/cvelistV5) | ✅ 対応済み | `mayu ingest --source mitre` |
 | [GitHub Security Advisories](https://docs.github.com/en/rest/security-advisories/repository-advisories) | ✅ 対応済み | `mayu ingest --source ghsa --repo owner/repo` |
 
 > [!NOTE]
-> 変換ソース（NVD、Debian）は50,000件以上のエントリを含み、一括アーカイブが提供されていないため個別にダウンロードします。取り込みにはかなりの時間がかかります。
+> 変換ソース（NVD、Debian）は50,000件以上のエントリを含み、一括アーカイブが利用できないため個別にダウンロードされます。これにはかなりの時間がかかる場合があります。
 
 > [!TIP]
-> NVD の2つのインポート方式（ネイティブ vs OSV変換）の詳細な比較は [docs/nvd-import-comparison.ja.md](docs/nvd-import-comparison.ja.md) を参照してください。
+> 2つのNVDインポート方法（ネイティブ vs. OSV変換）の詳細な比較については、[docs/nvd-import-comparison.ja.md](docs/nvd-import-comparison.ja.md) を参照してください。
 
-| ソース | ステータス | 取得方法 |
-|--------|-----------|---------|
+| ソース | ステータス | 方法 |
+|--------|--------|--------|
 | KEV | ✅ 対応済み | `mayu ingest --source kev` |
 | EPSS | ✅ 対応済み | `mayu ingest --source epss` |
-| LEV | ✅ 対応済み | EPSS + KEV から自動計算（後述） |
+| LEV | ✅ 対応済み | EPSS + KEVから計算（下記参照） |
+| [Exploit-DB](https://gitlab.com/exploit-database/exploitdb) | ✅ 対応済み | `mayu ingest --source exploitdb` |
 | [endoflife.date](https://endoflife.date/) | ✅ 対応済み | `mayu ingest --source eol` |
 
-## LEV（Likely Exploited Vulnerabilities：悪用推定確率）
+## LEV (Likely Exploited Vulnerabilities)
 
-Mayu は [LEV](https://doi.org/10.6028/NIST.CSWP.41) スコアを計算します。LEV は NIST（CSWP 41）が提案する確率的メトリクスで、CVE が**過去に実際に悪用された確率**を推定します。
+Mayuは[LEV](https://doi.org/10.6028/NIST.CSWP.41)スコアを計算します — NIST（CSWP 41）が提案した確率論的指標で、CVEが**すでに実際に悪用された**可能性を推定します。
 
 ### 仕組み
 
-LEV は mayu に既に取り込まれている2つのデータソースを組み合わせます：
+LEVはmayuにすでにある2つのデータソースを組み合わせます:
 
-| データソース | 役割 | 時間的視点 |
-|-------------|------|-----------|
-| **EPSS** | 日次の悪用確率（P30） | 未来（今後30日間） |
-| **CISA KEV** | 確認済みの悪用 | 過去（既知の悪用） |
+| データソース | 役割 | 時間の視点 |
+|-------------|------|-----------------|
+| **EPSS** | 日次悪用確率（P30） | 未来（今後30日） |
+| **CISA KEV** | 確認済み悪用 | 過去（既知の悪用） |
 | **LEV** | 過去の悪用確率 | 過去（推定） |
 
-**アルゴリズム**（NIST CSWP 41 の厳密な手法）：
+**アルゴリズム**（NIST CSWP 41の厳密なアプローチ）:
 
 ```
 P1  = 1 - (1 - P30)^(1/30)       # EPSS 30日確率 → 日次確率に変換
-LEV = 1 - ∏(1 - P1_i)             # 全履歴日数分を複合計算
+LEV = 1 - ∏(1 - P1_i)             # すべての過去の日にわたって複合
 ```
 
-CVE が CISA KEV カタログに含まれている場合、LEV は自動的に **1.0**（悪用確認済み）に設定されます。
+CVEがCISA KEVカタログに含まれている場合、LEVは自動的に**1.0**（確認済み悪用）に設定されます。
 
 > [!NOTE]
-> この実装は厳密な P30→P1 変換を使用しています。論文中の `P30/30` 近似は高い EPSS スコアに対して不正確なため、採用していません。
+> この実装はP30→P1の厳密な変換を使用しており、高いEPSSスコアでは不正確な論文の `P30/30` 近似は使用していません。
 
-### LEV のセットアップ
+### LEVのセットアップ
 
-LEV の計算には EPSS の日次ヒストリカルデータが必要です。バックフィルコマンドで時系列データを蓄積してください：
+LEVには過去のEPSS日次データが必要です。バックフィルコマンドを使用して時系列を構築します:
 
 ```bash
-# 1. CISA KEV カタログをインポート
+# 1. CISA KEVカタログのインポート
 mayu ingest --source kev
-# 2. EPSS v3 リリース日（2023-03-07）から今日までの日次スコアをバックフィル
+# 2. EPSS v3リリース（2023-03-07）から今日までのEPSS日次スコアをバックフィル
 mayu ingest --source epss --backfill
-# カスタム期間を指定する場合
+# または特定の日付範囲を指定
 mayu ingest --source epss --backfill --from 2024-01-01 --to 2025-07-19
-# 3. 初回バックフィル後は、日次更新で EPSS を最新に保つ
+# 3. 初回バックフィル後、EPSSを日次更新で最新に保つ
 mayu ingest --source epss --update
 ```
 
 > [!TIP]
-> バックフィルは1日あたり約 5-7 MB（約20万CVEスコア）をダウンロードします。2023-03-07 からのフルバックフィルは約860日分です。既にインポート済みの日付は再実行時に自動スキップされます。
+> バックフィルは1日あたり約5-7 MB（約200,000件のCVEスコア）をダウンロードします。2023-03-07からの完全なバックフィルは約860日をカバーします。既にインポート済みの日付は再実行時に自動的にスキップされます。
 
 > [!IMPORTANT]
-> デフォルトでは mayu は EPSS 履歴を365日分保持します。LEV の精度はより多くの履歴データがあるほど向上します。最大精度のためには、`config.yaml` で `epss.retention_days: -1` を設定して全データを無期限保持してください。EPSS ingest 完了後、保存期間を超えたデータは自動的にクリーンアップされます。
+> デフォルトでは、mayuは365日分のEPSS履歴を保持します。LEVの精度は過去データが多いほど向上します。最大精度のためには、`config.yaml` で `epss.retention_days: -1` を設定してすべてのデータを無期限に保持してください。各EPSSインジェスト後、保持期間を超えたデータは自動的にクリーンアップされます。
 
-### LEV スコアの表示
+### LEVスコアの確認
 
-LEV は `--detail` 表示および API の `?detail=true` レスポンスで自動的に表示されます：
+LEVは `--detail` ビューとAPI `?detail=true` レスポンスで自動的に表示されます:
 
 ```bash
 mayu search --id CVE-2023-38831 --detail
 ```
 
-出力には EPSS、KEV、LEV セクションが含まれます：
+出力にはEPSS、KEV、LEVのセクションが含まれます:
 
 ```
 EPSS:
@@ -866,7 +1216,7 @@ LEV (Likely Exploited Vulnerabilities - NIST CSWP 41):
   Last EPSS:   2025-07-19
 ```
 
-API での例：
+API例:
 
 ```bash
 curl "http://localhost:8080/api/v1/vulnerabilities/CVE-2023-38831?detail=true" | jq '.lev'
@@ -883,18 +1233,18 @@ curl "http://localhost:8080/api/v1/vulnerabilities/CVE-2023-38831?detail=true" |
 }
 ```
 
-### LEV スコアの解釈
+### LEVスコアの解釈
 
-| LEV 範囲 | 解釈 |
-|----------|------|
+| LEV範囲 | 解釈 |
+|-----------|---------------|
 | 0.95 – 1.0 | ほぼ確実に悪用済み（またはKEVで確認済み） |
 | 0.70 – 0.95 | 悪用された可能性が非常に高い |
-| 0.30 – 0.70 | 悪用された可能性がある |
+| 0.30 – 0.70 | 悪用された可能性あり |
 | 0.05 – 0.30 | 過去に悪用された確率は低い |
-| 0.00 – 0.05 | 悪用された可能性は低い |
+| 0.00 – 0.05 | 悪用されたとは考えにくい |
 
 > [!IMPORTANT]
-> LEV は確率的な推定値であり、確定的な事実ではありません。脆弱性の優先順位付けには KEV、EPSS、CVSS など他のシグナルと組み合わせて使用してください。
+> LEVは確率論的推定であり、確認された事実ではありません。脆弱性の優先順位付けには、他のシグナル（KEV、EPSS、CVSS）と併せて使用してください。
 
 ## コントリビュート
 
@@ -906,18 +1256,23 @@ curl "http://localhost:8080/api/v1/vulnerabilities/CVE-2023-38831?detail=true" |
 
 ## ロードマップ
 
-詳細は [.agents/tasks/PLAN.md](.agents/tasks/PLAN.md) を参照してください。
+完全な実装計画については [.agents/tasks/PLAN.md](.agents/tasks/PLAN.md) を参照してください。
 
-- [x] Phase 1: データパイプライン（OSV 取り込み）
+- [x] Phase 1: データパイプライン（OSVインジェスション）
 - [x] Phase 2: CLI（ingest + search）
 - [x] Phase 3: CI/CD（GitHub Actions）
-- [x] Phase 4: API サーバー（REST）
+- [x] Phase 4: APIサーバー（REST）
 - [x] Phase 5: Web UI（Angular）
-- [x] Phase 6: 追加データソース（EPSS, KEV, LEV）
-- [ ] EPSS 推移グラフ・LEV 可視化
-- [ ] トリアージ機能の拡張
-- [ ] ダッシュボード・レポート機能
-- [x] 通知機能（Webhook）
-- [ ] 通知機能（メール）
-- [x] [endoflife.date](https://endoflife.date/) 連携
-- [ ] SBOM 機能拡張（依存グラフ、継続的モニタリング）
+- [x] Phase 6: 追加データソース（EPSS、KEV、LEV）
+- [x] EPSSトレンドグラフ & LEV可視化
+- [x] 高度なトリアージワークフロー（SSVC意思決定支援）
+- [x] ダッシュボード & レポーティング
+- [x] 通知（webhook）
+- [x] 通知（メール）
+- [x] [endoflife.date](https://endoflife.date/) 統合
+- [x] SBOM機能（継続監視、検出結果ステータス管理）
+- [x] ロックファイルスキャン（10以上の形式、到達可能性分析）
+- [x] VEXインポート/エクスポート（OpenVEX）
+- [x] ポリシーベースのゲーティング & ライセンスコンプライアンス
+- [x] チーム管理 & ウォッチリスト
+- [x] Exploit-DB統合
