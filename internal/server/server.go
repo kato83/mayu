@@ -951,6 +951,12 @@ func (s *Server) handleSPA(w http.ResponseWriter, r *http.Request) {
 	if idx := strings.IndexByte(reqPath, '/'); idx >= 0 {
 		locale = reqPath[:idx]
 	}
+
+	// OGP: dynamically rewrite meta tags for vulnerability detail pages
+	if s.tryServeOGP(w, r) {
+		return
+	}
+
 	if s.serveStaticFile(w, r, locale+"/index.html") {
 		return
 	}

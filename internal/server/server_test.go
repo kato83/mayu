@@ -212,6 +212,9 @@ func (m *mockStore) GetStatsTrend(ctx context.Context, query store.StatsTrendQue
 		DataPoints: []store.StatsTrendDataPoint{},
 	}, nil
 }
+func (m *mockStore) GetVulnOGPMeta(ctx context.Context, id string) (*store.VulnOGPMeta, error) {
+	return nil, nil
+}
 
 // newTestServer creates a Server with the given mock store for testing.
 // By default it uses NoAuthProvider so existing tests don't need auth.

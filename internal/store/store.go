@@ -202,6 +202,17 @@ type Store interface {
 	// For global trends (ProjectID == 0): aggregates from vulnerabilities + vulnerability_summary by published date.
 	// For project-level trends (ProjectID > 0): aggregates from sbom_scan_results by scanned_at date.
 	GetStatsTrend(ctx context.Context, query StatsTrendQuery) (*StatsTrendResponse, error)
+
+	// GetVulnOGPMeta retrieves minimal vulnerability metadata for OGP rendering.
+	// The id can be a vulnerability ID or alias. Returns nil, nil if not found.
+	GetVulnOGPMeta(ctx context.Context, id string) (*VulnOGPMeta, error)
+}
+
+// VulnOGPMeta holds minimal vulnerability metadata for OGP meta tag rendering.
+type VulnOGPMeta struct {
+	ID            string
+	Summary       string
+	SeverityWorst int // 0 if unknown, 1-5 scale
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.
