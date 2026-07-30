@@ -152,6 +152,39 @@ type EPSSConfig struct {
 	RetentionDays int `yaml:"retention_days"`
 }
 
+// SearchEngineType represents the full-text search engine backend.
+type SearchEngineType string
+
+const (
+	// SearchEngineNone disables full-text search.
+	SearchEngineNone SearchEngineType = "none"
+	// SearchEnginePgTrgm uses PostgreSQL pg_trgm extension for full-text search.
+	SearchEnginePgTrgm SearchEngineType = "pg_trgm"
+	// SearchEngineElasticsearch uses Elasticsearch for full-text search.
+	SearchEngineElasticsearch SearchEngineType = "elasticsearch"
+)
+
+// ElasticsearchConfig holds Elasticsearch connection settings.
+type ElasticsearchConfig struct {
+	// URL is the Elasticsearch base URL (e.g., "http://localhost:9200").
+	URL string `yaml:"url"`
+	// IndexPrefix is the prefix for Elasticsearch index names (default: "mayu").
+	IndexPrefix string `yaml:"index_prefix"`
+	// Username for Elasticsearch authentication (optional).
+	Username string `yaml:"username"`
+	// Password for Elasticsearch authentication (optional).
+	Password string `yaml:"password"`
+}
+
+// SearchConfig holds full-text search configuration.
+type SearchConfig struct {
+	// Engine is the full-text search backend: "none", "pg_trgm", or "elasticsearch".
+	// Default: "none" (full-text search disabled).
+	Engine SearchEngineType `yaml:"engine"`
+	// Elasticsearch holds Elasticsearch-specific settings (used when Engine is "elasticsearch").
+	Elasticsearch ElasticsearchConfig `yaml:"elasticsearch"`
+}
+
 // Config represents the mayu configuration file structure.
 type Config struct {
 	// DatabaseURL is the PostgreSQL connection string.
@@ -164,6 +197,8 @@ type Config struct {
 	Notification NotificationConfig `yaml:"notification"`
 	// EPSS holds EPSS data retention configuration.
 	EPSS EPSSConfig `yaml:"epss"`
+	// Search holds full-text search configuration.
+	Search SearchConfig `yaml:"search"`
 }
 
 // Load reads and parses a YAML configuration file from the given path.
@@ -198,4 +233,15 @@ func (c *EPSSConfig) EffectiveRetentionDays() int {
 		return DefaultEPSSRetentionDays
 	}
 	return c.RetentionDays
+}
+
+// EffectiveEngine returns the configured search engine type.
+// Returns SearchEngineNone if not configured (empty value).
+func (c *SearchConfig) EffectiveEngine() SearchEngineType {
+	switch c.Engine {
+	case SearchEnginePgTrgm, SearchEngineElasticsearch:
+		return c.Engine
+	default:
+		return SearchEngineNone
+	}
 }

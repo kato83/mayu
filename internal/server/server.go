@@ -29,6 +29,7 @@ import (
 	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
 	"github.com/kato83/mayu/internal/sbommon"
+	"github.com/kato83/mayu/internal/search"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/team"
 	"github.com/kato83/mayu/internal/translate"
@@ -117,6 +118,10 @@ type Config struct {
 	// UserStore provides user persistence for password change operations.
 	// If nil, password change endpoint is not registered.
 	UserStore auth.UserStore
+
+	// SearchEngine provides full-text search capabilities.
+	// If nil, full-text search endpoints return 503 Service Unavailable.
+	SearchEngine search.Engine
 }
 
 // Server is the HTTP API server.
@@ -140,6 +145,7 @@ type Server struct {
 	teamStore            team.TeamStore
 	loginLimiter         *auth.LoginRateLimiter
 	userStore            auth.UserStore
+	searchEngine         search.Engine
 	epssRetentionDays    int
 	ingestRunning        atomic.Bool
 	runners              activeRunners
@@ -171,6 +177,7 @@ func New(cfg Config) *Server {
 		teamStore:            cfg.TeamStore,
 		loginLimiter:         auth.NewLoginRateLimiter(10, 15*time.Minute),
 		userStore:            cfg.UserStore,
+		searchEngine:         cfg.SearchEngine,
 		epssRetentionDays:    cfg.EPSSRetentionDays,
 	}
 
@@ -271,6 +278,8 @@ func (s *Server) routes() http.Handler {
 		r.Get("/epss/trending", s.handleGetEPSSTrending)
 		r.Get("/status", s.handleStatus)
 		r.Get("/version", s.handleVersion)
+		r.Get("/capabilities", s.handleCapabilities)
+		r.Get("/search/fulltext", s.handleFulltextSearch)
 
 		// Translation job status endpoints
 		r.With(middleware.Timeout(30*time.Second)).Get("/translations/jobs", s.handleListTranslationJobs)
@@ -1108,4 +1117,105 @@ func (s *Server) handleLookupEOL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, detail)
+}
+
+// handleCapabilities returns the server's feature capabilities.
+// GET /api/v1/capabilities
+func (s *Server) handleCapabilities(w http.ResponseWriter, _ *http.Request) {
+	fulltextAvailable := false
+	fulltextEngine := "none"
+
+	if s.searchEngine != nil {
+		if err := s.searchEngine.Available(context.Background()); err == nil {
+			fulltextAvailable = true
+		}
+		// Determine engine type from the concrete type
+		switch s.searchEngine.(type) {
+		case *search.Noop:
+			fulltextEngine = "none"
+		default:
+			fulltextEngine = "pg_trgm"
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"fulltext_search": map[string]interface{}{
+			"available": fulltextAvailable,
+			"engine":    fulltextEngine,
+		},
+		"translation": map[string]interface{}{
+			"available": s.translateService != nil,
+		},
+	})
+}
+
+// handleFulltextSearch handles full-text search queries.
+// GET /api/v1/search/fulltext?q=<query>&ecosystem=<ecosystem>&limit=<limit>&offset=<offset>
+func (s *Server) handleFulltextSearch(w http.ResponseWriter, r *http.Request) {
+	if s.searchEngine == nil {
+		writeError(w, http.StatusServiceUnavailable, "full-text search is not configured")
+		return
+	}
+
+	q := r.URL.Query().Get("q")
+	if q == "" {
+		writeError(w, http.StatusBadRequest, "query parameter 'q' is required")
+		return
+	}
+
+	ecosystem := r.URL.Query().Get("ecosystem")
+	limit := 20
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 100 {
+			limit = v
+		}
+	}
+	offset := 0
+	if o := r.URL.Query().Get("offset"); o != "" {
+		if v, err := strconv.Atoi(o); err == nil && v >= 0 {
+			offset = v
+		}
+	}
+
+	results, total, err := s.searchEngine.Search(r.Context(), search.Query{
+		Text:      q,
+		Ecosystem: ecosystem,
+		Limit:     limit,
+		Offset:    offset,
+	})
+	if err != nil {
+		if err == search.ErrNotConfigured {
+			writeError(w, http.StatusServiceUnavailable, "full-text search is not configured; set search.engine in config.yaml")
+			return
+		}
+		if err == search.ErrNotInitialized {
+			writeError(w, http.StatusServiceUnavailable, "full-text search indexes not initialized; run 'mayu search --init'")
+			return
+		}
+		slog.Error("full-text search failed", "query", q, "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	type resultJSON struct {
+		ID      string  `json:"id"`
+		Summary string  `json:"summary"`
+		Score   float64 `json:"score"`
+	}
+
+	resp := make([]resultJSON, 0, len(results))
+	for _, res := range results {
+		resp = append(resp, resultJSON{
+			ID:      res.VulnerabilityID,
+			Summary: res.Summary,
+			Score:   res.Score,
+		})
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"results": resp,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+	})
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
@@ -16,6 +17,8 @@ import (
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/fetcher"
 	"github.com/kato83/mayu/internal/sbommon"
+	"github.com/kato83/mayu/internal/search"
+	"github.com/kato83/mayu/internal/search/pgtrgm"
 	"github.com/kato83/mayu/internal/server"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/team"
@@ -196,6 +199,7 @@ func runServe(args []string, cfg *config.Config) error {
 		TeamStore:            team.NewPostgresTeamStore(s.DB()),
 		UserStore:            userStore,
 		EPSSRetentionDays:    cfg.EPSS.EffectiveRetentionDays(),
+		SearchEngine:         newSearchEngineForServe(cfg, s.DB()),
 	})
 
 	// Start periodic session cleanup if auth is enabled
@@ -276,4 +280,16 @@ func isLocalhostAddr(addr string) bool {
 		return false
 	}
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+// newSearchEngineForServe creates a search engine for the serve command.
+func newSearchEngineForServe(cfg *config.Config, db *sql.DB) search.Engine {
+	switch cfg.Search.EffectiveEngine() {
+	case config.SearchEnginePgTrgm:
+		return pgtrgm.New(db)
+	// case config.SearchEngineElasticsearch:
+	//   TODO: implement elasticsearch engine
+	default:
+		return search.NewNoop()
+	}
 }

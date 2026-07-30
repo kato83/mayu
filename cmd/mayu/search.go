@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -14,6 +16,8 @@ import (
 	"github.com/kato83/mayu/internal/config"
 	"github.com/kato83/mayu/internal/model"
 	purlpkg "github.com/kato83/mayu/internal/purl"
+	"github.com/kato83/mayu/internal/search"
+	"github.com/kato83/mayu/internal/search/pgtrgm"
 	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/validate"
 )
@@ -36,6 +40,8 @@ func runSearch(args []string, cfg *config.Config) error {
 	startingToken := fs.String("starting-token", "", "Cursor token for pagination (from previous NextToken output)")
 	count := fs.Bool("count", false, "Show only the result count")
 	detail := fs.Bool("detail", false, "Show detailed information for each result")
+	initFlag := fs.Bool("init", false, "Initialize full-text search indexes (required before first use)")
+	fulltext := fs.String("query", "", "Full-text search query (requires search.engine configured in config.yaml)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu search [options] [query]")
@@ -63,6 +69,16 @@ func runSearch(args []string, cfg *config.Config) error {
 
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	// Handle --init: initialize full-text search indexes
+	if *initFlag {
+		return runSearchInit(cfg)
+	}
+
+	// Handle --query: full-text search
+	if *fulltext != "" {
+		return runFulltextSearch(cfg, *fulltext, *ecosystem, *limit, *offset, *format)
 	}
 
 	// Validate severity flag
@@ -789,4 +805,164 @@ func outputDetailJSON(ctx context.Context, s *store.PostgresStore, results []*mo
 		return fmt.Errorf("encode JSON: %w", err)
 	}
 	return nil
+}
+
+// runSearchInit initializes full-text search indexes for the configured engine.
+func runSearchInit(cfg *config.Config) error {
+	engine := newSearchEngine(cfg, nil)
+
+	// Check if engine is configured
+	if _, ok := engine.(*search.Noop); ok {
+		return fmt.Errorf("full-text search is not configured. Set search.engine in config.yaml (e.g., search.engine: pg_trgm)")
+	}
+
+	// For pg_trgm, we need a database connection
+	databaseURL := resolveDatabaseURL(cfg)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	s, err := store.NewPostgresStore(ctx, databaseURL)
+	if err != nil {
+		return fmt.Errorf("connect to database: %w", err)
+	}
+	defer func() { _ = s.Close() }()
+
+	// Re-create engine with actual DB connection
+	engine = newSearchEngineWithDB(cfg, s.DB())
+
+	fmt.Println("Initializing full-text search indexes...")
+	fmt.Println("This may take a few minutes depending on data volume.")
+	fmt.Println()
+
+	progress := func(step string, current, total int) {
+		fmt.Printf("  [%d/%d] %s\n", current, total, step)
+	}
+
+	if err := engine.Init(ctx, progress); err != nil {
+		return fmt.Errorf("initialization failed: %w", err)
+	}
+
+	fmt.Println()
+	fmt.Println("Full-text search is ready. Use 'mayu search --query <text>' to search.")
+	return nil
+}
+
+// runFulltextSearch executes a full-text search query.
+func runFulltextSearch(cfg *config.Config, queryText, ecosystem string, limit, offset int, format string) error {
+	databaseURL := resolveDatabaseURL(cfg)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	s, err := store.NewPostgresStore(ctx, databaseURL)
+	if err != nil {
+		return fmt.Errorf("connect to database: %w", err)
+	}
+	defer func() { _ = s.Close() }()
+
+	engine := newSearchEngineWithDB(cfg, s.DB())
+
+	q := search.Query{
+		Text:      queryText,
+		Ecosystem: ecosystem,
+		Limit:     limit,
+		Offset:    offset,
+	}
+
+	results, total, err := engine.Search(ctx, q)
+	if err != nil {
+		if errors.Is(err, search.ErrNotConfigured) {
+			return fmt.Errorf("full-text search is not configured. Set search.engine in config.yaml")
+		}
+		if errors.Is(err, search.ErrNotInitialized) {
+			return fmt.Errorf("full-text search indexes not initialized. Run 'mayu search --init' first")
+		}
+		return fmt.Errorf("search failed: %w", err)
+	}
+
+	if len(results) == 0 {
+		fmt.Println("No results found.")
+		return nil
+	}
+
+	switch format {
+	case "json":
+		outputFulltextJSON(results, total)
+	case "csv":
+		outputFulltextCSV(results)
+	default:
+		outputFulltextTable(results, total)
+	}
+	return nil
+}
+
+// outputFulltextTable prints full-text search results in table format.
+func outputFulltextTable(results []search.Result, total int64) {
+	fmt.Printf("%-20s %-8s %s\n", "ID", "SCORE", "SUMMARY")
+	fmt.Printf("%-20s %-8s %s\n",
+		strings.Repeat("-", 20),
+		strings.Repeat("-", 8),
+		strings.Repeat("-", 50))
+
+	for _, r := range results {
+		summary := truncateString(r.Summary, 60)
+		fmt.Printf("%-20s %-8.2f %s\n", r.VulnerabilityID, r.Score, summary)
+	}
+
+	fmt.Printf("\nShowing %d of %d result(s).\n", len(results), total)
+}
+
+// outputFulltextJSON prints full-text search results as JSON.
+func outputFulltextJSON(results []search.Result, total int64) {
+	type jsonResult struct {
+		ID      string  `json:"id"`
+		Summary string  `json:"summary"`
+		Score   float64 `json:"score"`
+	}
+	type jsonResponse struct {
+		Results []jsonResult `json:"results"`
+		Total   int64        `json:"total"`
+	}
+
+	resp := jsonResponse{Total: total}
+	for _, r := range results {
+		resp.Results = append(resp.Results, jsonResult{
+			ID:      r.VulnerabilityID,
+			Summary: r.Summary,
+			Score:   r.Score,
+		})
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(resp)
+}
+
+// outputFulltextCSV prints full-text search results in CSV format.
+func outputFulltextCSV(results []search.Result) {
+	fmt.Println("id,score,summary")
+	for _, r := range results {
+		fmt.Printf("%s,%.2f,%s\n", r.VulnerabilityID, r.Score, csvEscape(r.Summary))
+	}
+}
+
+// newSearchEngine creates a search engine based on config.
+// For engines that don't need a DB connection (noop), db can be nil.
+func newSearchEngine(cfg *config.Config, db *sql.DB) search.Engine {
+	switch cfg.Search.EffectiveEngine() {
+	case config.SearchEnginePgTrgm:
+		if db == nil {
+			// Return a placeholder that will error on use
+			return search.NewNoop()
+		}
+		return pgtrgm.New(db)
+	// case config.SearchEngineElasticsearch:
+	//   TODO: implement elasticsearch engine
+	default:
+		return search.NewNoop()
+	}
+}
+
+// newSearchEngineWithDB creates a search engine with a database connection.
+func newSearchEngineWithDB(cfg *config.Config, db *sql.DB) search.Engine {
+	return newSearchEngine(cfg, db)
 }
