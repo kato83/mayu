@@ -2550,6 +2550,698 @@
         <source>Failed to change password</source>
         <target>パスワードの変更に失敗しました</target>
       </trans-unit>
+      <trans-unit id="cvssVector.v2.av.name" datatype="html">
+        <source>Access Vector</source>
+        <target>攻撃元区分</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.av.l.label" datatype="html">
+        <source>Local</source>
+        <target>ローカル</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.av.l.desc" datatype="html">
+        <source>The vulnerability requires local access to the target system</source>
+        <target>脆弱性の悪用にはターゲットシステムへのローカルアクセスが必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.av.a.label" datatype="html">
+        <source>Adjacent Network</source>
+        <target>隣接ネットワーク</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.av.a.desc" datatype="html">
+        <source>The vulnerability requires access to the local network</source>
+        <target>脆弱性の悪用にはローカルネットワークへのアクセスが必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.av.n.label" datatype="html">
+        <source>Network</source>
+        <target>ネットワーク</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.av.n.desc" datatype="html">
+        <source>The vulnerability is exploitable remotely over the network</source>
+        <target>脆弱性はネットワーク経由でリモートから悪用可能</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.ac.name" datatype="html">
+        <source>Access Complexity</source>
+        <target>攻撃条件の複雑さ</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.ac.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.ac.h.desc" datatype="html">
+        <source>Specialized conditions exist that make exploitation difficult</source>
+        <target>悪用を困難にする特殊な条件が存在する</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.ac.m.label" datatype="html">
+        <source>Medium</source>
+        <target>中</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.ac.m.desc" datatype="html">
+        <source>Some conditions beyond the attacker's control must exist</source>
+        <target>攻撃者の制御を超えた条件が存在する必要がある</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.ac.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.ac.l.desc" datatype="html">
+        <source>No specialized conditions exist for exploitation</source>
+        <target>悪用に特殊な条件は不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.au.name" datatype="html">
+        <source>Authentication</source>
+        <target>認証</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.au.m.label" datatype="html">
+        <source>Multiple</source>
+        <target>複数</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.au.m.desc" datatype="html">
+        <source>Multiple instances of authentication are required</source>
+        <target>複数回の認証が必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.au.s.label" datatype="html">
+        <source>Single</source>
+        <target>単一</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.au.s.desc" datatype="html">
+        <source>Single authentication is required</source>
+        <target>単一の認証が必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.au.n.label" datatype="html">
+        <source>None</source>
+        <target>不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.au.n.desc" datatype="html">
+        <source>No authentication is required</source>
+        <target>認証は不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.c.name" datatype="html">
+        <source>Confidentiality Impact</source>
+        <target>機密性への影響</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.c.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.c.n.desc" datatype="html">
+        <source>No impact on confidentiality</source>
+        <target>機密性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.c.p.label" datatype="html">
+        <source>Partial</source>
+        <target>部分的</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.c.p.desc" datatype="html">
+        <source>Partial disclosure of information</source>
+        <target>情報の部分的な漏洩</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.c.c.label" datatype="html">
+        <source>Complete</source>
+        <target>全面的</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.c.c.desc" datatype="html">
+        <source>Complete disclosure of all information</source>
+        <target>全情報の完全な漏洩</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.i.name" datatype="html">
+        <source>Integrity Impact</source>
+        <target>完全性への影響</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.i.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.i.n.desc" datatype="html">
+        <source>No impact on integrity</source>
+        <target>完全性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.i.p.label" datatype="html">
+        <source>Partial</source>
+        <target>部分的</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.i.p.desc" datatype="html">
+        <source>Partial modification of data is possible</source>
+        <target>データの部分的な改ざんが可能</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.i.c.label" datatype="html">
+        <source>Complete</source>
+        <target>全面的</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.i.c.desc" datatype="html">
+        <source>Complete modification of all data</source>
+        <target>全データの完全な改ざん</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.a.name" datatype="html">
+        <source>Availability Impact</source>
+        <target>可用性への影響</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.a.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.a.n.desc" datatype="html">
+        <source>No impact on availability</source>
+        <target>可用性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.a.p.label" datatype="html">
+        <source>Partial</source>
+        <target>部分的</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.a.p.desc" datatype="html">
+        <source>Partial disruption of availability</source>
+        <target>可用性の部分的な低下</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.a.c.label" datatype="html">
+        <source>Complete</source>
+        <target>全面的</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v2.a.c.desc" datatype="html">
+        <source>Complete shutdown of the affected resource</source>
+        <target>影響を受けるリソースの完全な停止</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.av.name" datatype="html">
+        <source>Attack Vector</source>
+        <target>攻撃元区分</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.av.n.label" datatype="html">
+        <source>Network</source>
+        <target>ネットワーク</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.av.n.desc" datatype="html">
+        <source>The vulnerability is exploitable remotely over the network</source>
+        <target>脆弱性はネットワーク経由でリモートから悪用可能</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.av.a.label" datatype="html">
+        <source>Adjacent</source>
+        <target>隣接</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.av.a.desc" datatype="html">
+        <source>The attack is limited to the same shared physical or logical network</source>
+        <target>攻撃は同一の物理または論理ネットワークに限定される</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.av.l.label" datatype="html">
+        <source>Local</source>
+        <target>ローカル</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.av.l.desc" datatype="html">
+        <source>The vulnerability requires local access</source>
+        <target>脆弱性の悪用にはローカルアクセスが必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.av.p.label" datatype="html">
+        <source>Physical</source>
+        <target>物理</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.av.p.desc" datatype="html">
+        <source>The attack requires physical access to the target</source>
+        <target>攻撃にはターゲットへの物理アクセスが必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.ac.name" datatype="html">
+        <source>Attack Complexity</source>
+        <target>攻撃条件の複雑さ</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.ac.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.ac.l.desc" datatype="html">
+        <source>No specialized conditions exist for exploitation</source>
+        <target>悪用に特殊な条件は不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.ac.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.ac.h.desc" datatype="html">
+        <source>Conditions beyond the attacker's control must exist</source>
+        <target>攻撃者の制御を超えた条件が存在する必要がある</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.pr.name" datatype="html">
+        <source>Privileges Required</source>
+        <target>必要な特権レベル</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.pr.n.label" datatype="html">
+        <source>None</source>
+        <target>不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.pr.n.desc" datatype="html">
+        <source>No privileges are required</source>
+        <target>特権は不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.pr.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.pr.l.desc" datatype="html">
+        <source>Basic user privileges are required</source>
+        <target>基本的なユーザー権限が必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.pr.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.pr.h.desc" datatype="html">
+        <source>Administrative privileges are required</source>
+        <target>管理者権限が必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.ui.name" datatype="html">
+        <source>User Interaction</source>
+        <target>ユーザー関与</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.ui.n.label" datatype="html">
+        <source>None</source>
+        <target>不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.ui.n.desc" datatype="html">
+        <source>No user interaction is required</source>
+        <target>ユーザーの操作は不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.ui.r.label" datatype="html">
+        <source>Required</source>
+        <target>要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.ui.r.desc" datatype="html">
+        <source>User interaction is required for exploitation</source>
+        <target>悪用にはユーザーの操作が必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.s.name" datatype="html">
+        <source>Scope</source>
+        <target>スコープ</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.s.u.label" datatype="html">
+        <source>Unchanged</source>
+        <target>変更なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.s.u.desc" datatype="html">
+        <source>The exploited vulnerability cannot affect other components</source>
+        <target>悪用された脆弱性は他のコンポーネントに影響しない</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.s.c.label" datatype="html">
+        <source>Changed</source>
+        <target>変更あり</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.s.c.desc" datatype="html">
+        <source>The exploited vulnerability can affect other components</source>
+        <target>悪用された脆弱性は他のコンポーネントに影響する</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.c.name" datatype="html">
+        <source>Confidentiality</source>
+        <target>機密性</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.c.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.c.n.desc" datatype="html">
+        <source>No impact on confidentiality</source>
+        <target>機密性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.c.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.c.l.desc" datatype="html">
+        <source>Limited information disclosure</source>
+        <target>限定的な情報漏洩</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.c.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.c.h.desc" datatype="html">
+        <source>Total information disclosure</source>
+        <target>全情報の漏洩</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.i.name" datatype="html">
+        <source>Integrity</source>
+        <target>完全性</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.i.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.i.n.desc" datatype="html">
+        <source>No impact on integrity</source>
+        <target>完全性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.i.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.i.l.desc" datatype="html">
+        <source>Limited data modification</source>
+        <target>限定的なデータ改ざん</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.i.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.i.h.desc" datatype="html">
+        <source>Total data modification</source>
+        <target>全データの改ざん</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.a.name" datatype="html">
+        <source>Availability</source>
+        <target>可用性</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.a.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.a.n.desc" datatype="html">
+        <source>No impact on availability</source>
+        <target>可用性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.a.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.a.l.desc" datatype="html">
+        <source>Reduced performance or partial disruption</source>
+        <target>パフォーマンスの低下または部分的な中断</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.a.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v3.a.h.desc" datatype="html">
+        <source>Total loss of availability</source>
+        <target>可用性の完全な喪失</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.av.name" datatype="html">
+        <source>Attack Vector</source>
+        <target>攻撃元区分</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.av.n.label" datatype="html">
+        <source>Network</source>
+        <target>ネットワーク</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.av.n.desc" datatype="html">
+        <source>The vulnerability is exploitable remotely over the network</source>
+        <target>脆弱性はネットワーク経由でリモートから悪用可能</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.av.a.label" datatype="html">
+        <source>Adjacent</source>
+        <target>隣接</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.av.a.desc" datatype="html">
+        <source>The attack is limited to the same shared network</source>
+        <target>攻撃は同一の共有ネットワークに限定される</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.av.l.label" datatype="html">
+        <source>Local</source>
+        <target>ローカル</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.av.l.desc" datatype="html">
+        <source>The vulnerability requires local access</source>
+        <target>脆弱性の悪用にはローカルアクセスが必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.av.p.label" datatype="html">
+        <source>Physical</source>
+        <target>物理</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.av.p.desc" datatype="html">
+        <source>The attack requires physical access to the target</source>
+        <target>攻撃にはターゲットへの物理アクセスが必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ac.name" datatype="html">
+        <source>Attack Complexity</source>
+        <target>攻撃条件の複雑さ</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ac.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ac.l.desc" datatype="html">
+        <source>No specialized conditions exist for exploitation</source>
+        <target>悪用に特殊な条件は不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ac.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ac.h.desc" datatype="html">
+        <source>Conditions beyond the attacker's control must exist</source>
+        <target>攻撃者の制御を超えた条件が存在する必要がある</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.at.name" datatype="html">
+        <source>Attack Requirements</source>
+        <target>攻撃要件</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.at.n.label" datatype="html">
+        <source>None</source>
+        <target>不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.at.n.desc" datatype="html">
+        <source>No additional conditions are required</source>
+        <target>追加の条件は不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.at.p.label" datatype="html">
+        <source>Present</source>
+        <target>あり</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.at.p.desc" datatype="html">
+        <source>Additional conditions must be present for exploitation</source>
+        <target>悪用には追加の条件が必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.pr.name" datatype="html">
+        <source>Privileges Required</source>
+        <target>必要な特権レベル</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.pr.n.label" datatype="html">
+        <source>None</source>
+        <target>不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.pr.n.desc" datatype="html">
+        <source>No privileges are required</source>
+        <target>特権は不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.pr.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.pr.l.desc" datatype="html">
+        <source>Basic user privileges are required</source>
+        <target>基本的なユーザー権限が必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.pr.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.pr.h.desc" datatype="html">
+        <source>Administrative privileges are required</source>
+        <target>管理者権限が必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ui.name" datatype="html">
+        <source>User Interaction</source>
+        <target>ユーザー関与</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ui.n.label" datatype="html">
+        <source>None</source>
+        <target>不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ui.n.desc" datatype="html">
+        <source>No user interaction is required</source>
+        <target>ユーザーの操作は不要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ui.p.label" datatype="html">
+        <source>Passive</source>
+        <target>受動的</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ui.p.desc" datatype="html">
+        <source>Limited user interaction is required</source>
+        <target>限定的なユーザーの操作が必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ui.a.label" datatype="html">
+        <source>Active</source>
+        <target>能動的</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.ui.a.desc" datatype="html">
+        <source>Active user interaction is required</source>
+        <target>能動的なユーザーの操作が必要</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vc.name" datatype="html">
+        <source>Vulnerable System Confidentiality</source>
+        <target>脆弱なシステムの機密性</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vc.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vc.n.desc" datatype="html">
+        <source>No impact on vulnerable system confidentiality</source>
+        <target>脆弱なシステムの機密性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vc.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vc.l.desc" datatype="html">
+        <source>Limited confidentiality impact on the vulnerable system</source>
+        <target>脆弱なシステムへの限定的な機密性の影響</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vc.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vc.h.desc" datatype="html">
+        <source>Total confidentiality loss on the vulnerable system</source>
+        <target>脆弱なシステムの機密性の完全な喪失</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vi.name" datatype="html">
+        <source>Vulnerable System Integrity</source>
+        <target>脆弱なシステムの完全性</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vi.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vi.n.desc" datatype="html">
+        <source>No impact on vulnerable system integrity</source>
+        <target>脆弱なシステムの完全性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vi.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vi.l.desc" datatype="html">
+        <source>Limited integrity impact on the vulnerable system</source>
+        <target>脆弱なシステムへの限定的な完全性の影響</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vi.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.vi.h.desc" datatype="html">
+        <source>Total integrity loss on the vulnerable system</source>
+        <target>脆弱なシステムの完全性の完全な喪失</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.va.name" datatype="html">
+        <source>Vulnerable System Availability</source>
+        <target>脆弱なシステムの可用性</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.va.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.va.n.desc" datatype="html">
+        <source>No impact on vulnerable system availability</source>
+        <target>脆弱なシステムの可用性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.va.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.va.l.desc" datatype="html">
+        <source>Limited availability impact on the vulnerable system</source>
+        <target>脆弱なシステムへの限定的な可用性の影響</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.va.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.va.h.desc" datatype="html">
+        <source>Total availability loss on the vulnerable system</source>
+        <target>脆弱なシステムの可用性の完全な喪失</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sc.name" datatype="html">
+        <source>Subsequent System Confidentiality</source>
+        <target>後続システムの機密性</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sc.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sc.n.desc" datatype="html">
+        <source>No impact on subsequent system confidentiality</source>
+        <target>後続システムの機密性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sc.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sc.l.desc" datatype="html">
+        <source>Limited confidentiality impact on subsequent systems</source>
+        <target>後続システムへの限定的な機密性の影響</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sc.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sc.h.desc" datatype="html">
+        <source>Total confidentiality loss on subsequent systems</source>
+        <target>後続システムの機密性の完全な喪失</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.si.name" datatype="html">
+        <source>Subsequent System Integrity</source>
+        <target>後続システムの完全性</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.si.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.si.n.desc" datatype="html">
+        <source>No impact on subsequent system integrity</source>
+        <target>後続システムの完全性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.si.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.si.l.desc" datatype="html">
+        <source>Limited integrity impact on subsequent systems</source>
+        <target>後続システムへの限定的な完全性の影響</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.si.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.si.h.desc" datatype="html">
+        <source>Total integrity loss on subsequent systems</source>
+        <target>後続システムの完全性の完全な喪失</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sa.name" datatype="html">
+        <source>Subsequent System Availability</source>
+        <target>後続システムの可用性</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sa.n.label" datatype="html">
+        <source>None</source>
+        <target>なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sa.n.desc" datatype="html">
+        <source>No impact on subsequent system availability</source>
+        <target>後続システムの可用性への影響なし</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sa.l.label" datatype="html">
+        <source>Low</source>
+        <target>低</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sa.l.desc" datatype="html">
+        <source>Limited availability impact on subsequent systems</source>
+        <target>後続システムへの限定的な可用性の影響</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sa.h.label" datatype="html">
+        <source>High</source>
+        <target>高</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.v4.sa.h.desc" datatype="html">
+        <source>Total availability loss on subsequent systems</source>
+        <target>後続システムの可用性の完全な喪失</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.toggleDetails" datatype="html">
+        <source>Toggle vector details</source>
+        <target>ベクター詳細の表示切替</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.table.metric" datatype="html">
+        <source>Metric</source>
+        <target>メトリクス</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.table.name" datatype="html">
+        <source>Name</source>
+        <target>名前</target>
+      </trans-unit>
+      <trans-unit id="cvssVector.table.value" datatype="html">
+        <source>Value</source>
+        <target>値</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>
