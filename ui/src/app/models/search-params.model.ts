@@ -21,8 +21,17 @@ export interface SearchParams {
   /** Filter by CVSS severity level */
   severity?: 'critical' | 'high' | 'medium' | 'low' | 'none';
 
-  /** Filter by modified date (YYYY-MM-DD or RFC3339) */
+  /** Filter by modified date (YYYY-MM-DD or RFC3339) — lower bound (modified on or after) */
   since?: string;
+
+  /** Filter by modified date (YYYY-MM-DD) — upper bound (modified on or before) */
+  modified_until?: string;
+
+  /** Filter by published date (YYYY-MM-DD) — lower bound (published on or after) */
+  published_since?: string;
+
+  /** Filter by published date (YYYY-MM-DD) — upper bound (published on or before) */
+  published_until?: string;
 
   /** Filter by affected version */
   version?: string;
