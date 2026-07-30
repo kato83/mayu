@@ -14,7 +14,7 @@ Mayu ingests vulnerability data from the [OSV](https://osv.dev/) ecosystem into 
 
 **Current capabilities:**
 - Full and delta import of OSV vulnerability data from the GCS bucket
-- Direct import of GitHub Security Advisories — fetch directly from the GitHub API with `--source ghsa --repo`, or manually download and import via `--file`
+- Direct import of GitHub Security Advisories — fetch directly from the GitHub API with `--source ghsa --repo`
 - SBOM vulnerability audit — feed a CycloneDX or SPDX SBOM and get a full vulnerability report against local data
 - Lockfile scanning — directly scan go.sum, package-lock.json, yarn.lock, Cargo.lock, etc. without SBOM generation
 - SBOM continuous monitoring — upload SBOMs, track finding statuses, auto-rescan on new vuln data
@@ -178,8 +178,6 @@ mayu ingest --source exploitdb --update
 mayu ingest --source eol
 # Update endoflife.date data (refresh if last sync > 24h ago)
 mayu ingest --source eol --update
-# Import local OSV JSON files (e.g., manually constructed GHSA advisories)
-mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
 # Import GitHub repository security advisories via API
 mayu ingest --source ghsa --repo WordPress/wordpress-develop
 # With authentication (for rate limits or private repos)
@@ -289,7 +287,6 @@ Import vulnerability data from OSV into the local database.
 | `--to` | End date for backfill (YYYY-MM-DD) | today |
 | `--repo` | GitHub repository (owner/repo) for `--source ghsa` | — |
 | `--year` | Import only a specific year's NVD feed (with `--source nvd`) | — |
-| `--file` | Import from local OSV JSON files (paths as positional args) | `false` |
 | `--concurrency` | Number of ecosystems to import in parallel (with `--source osv`) | `3` |
 | `--store-workers` | Number of parallel DB store workers per ecosystem | CPU cores - 1 |
 | `--batch-size` | Number of vulnerabilities per batch insert | `100` |

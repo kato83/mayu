@@ -83,15 +83,5 @@ describe('DocsService', () => {
 
       expect(result).toBe('# English README');
     });
-
-    it('should fetch English version for documents without Japanese variant', () => {
-      let result = '';
-      service.getDocument('import-ghsa-json').subscribe((md) => (result = md));
-
-      const req = httpTesting.expectOne('docs/docs/import-ghsa-json.md');
-      req.flush('# Import GHSA JSON');
-
-      expect(result).toBe('# Import GHSA JSON');
-    });
   });
 });

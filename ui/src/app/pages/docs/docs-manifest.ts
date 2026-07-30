@@ -15,12 +15,6 @@ export const DOCS_MANIFEST: DocEntry[] = [
     filenameJa: 'docs/docs/nvd-import-comparison.ja.md',
   },
   {
-    slug: 'import-ghsa-json',
-    title: 'Import GHSA JSON',
-    filename: 'docs/docs/import-ghsa-json.md',
-    filenameJa: 'docs/docs/import-ghsa-json.ja.md',
-  },
-  {
     slug: 'license-policy-example',
     title: 'License Policy Example',
     filename: 'docs/docs/license-policy-example.md',

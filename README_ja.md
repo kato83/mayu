@@ -14,7 +14,7 @@ Mayuは[OSV](https://osv.dev/)エコシステムの脆弱性データをロー�
 
 **現在の機能:**
 - GCSバケットからのOSV脆弱性データのフルインポートおよびデルタインポート
-- GitHub Security Advisoriesの直接インポート — `--source ghsa --repo` でGitHub APIから直接取得、または `--file` で手動ダウンロードしたファイルをインポート
+- GitHub Security Advisoriesの直接インポート — `--source ghsa --repo` でGitHub APIから直接取得
 - SBOM脆弱性監査 — CycloneDXまたはSPDX SBOMを入力し、ローカルデータに対する完全な脆弱性レポートを取得
 - ロックファイルスキャン — SBOM生成なしでgo.sum、package-lock.json、yarn.lock、Cargo.lockなどを直接スキャン
 - SBOM継続監視 — SBOMのアップロード、検出結果ステータスの追跡、新しい脆弱性データによる自動再スキャン
@@ -178,8 +178,6 @@ mayu ingest --source exploitdb --update
 mayu ingest --source eol
 # endoflife.dateデータを更新（最終同期から24時間以上経過した場合にリフレッシュ）
 mayu ingest --source eol --update
-# ローカルOSV JSONファイルをインポート（例：手動構築したGHSAアドバイザリ）
-mayu ingest --file GHSA-xxxx-xxxx-xxxx.json GHSA-yyyy-yyyy-yyyy.json
 # GitHubリポジトリのセキュリティアドバイザリをAPI経由でインポート
 mayu ingest --source ghsa --repo WordPress/wordpress-develop
 # 認証付き（レート制限またはプライベートリポジトリ用）
@@ -289,7 +287,6 @@ OSVからローカルデータベースに脆弱性データをインポート�
 | `--to` | バックフィルの終了日（YYYY-MM-DD） | 今日 |
 | `--repo` | GitHubリポジトリ（owner/repo）`--source ghsa` 用 | — |
 | `--year` | 特定の年のNVDフィードのみインポート（`--source nvd` と併用） | — |
-| `--file` | ローカルOSV JSONファイルからインポート（位置引数としてパスを指定） | `false` |
 | `--concurrency` | 並列インポートするエコシステム数（`--source osv` と併用） | `3` |
 | `--store-workers` | エコシステムごとの並列DBストアワーカー数 | CPUコア数 - 1 |
 | `--batch-size` | バッチインサートごとの脆弱性数 | `100` |
