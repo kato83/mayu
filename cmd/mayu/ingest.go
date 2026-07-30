@@ -145,37 +145,6 @@ func runIngest(args []string, cfg *config.Config) error {
 
 			var vuln *model.Vulnerability
 
-			// Auto-detect GitHub REST API advisory format and store natively
-			if parser.IsGitHubAdvisoryJSON(data) {
-				entry, err := parser.ParseGitHubToGHSAEntry(data)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "  ✗ %s: GitHub advisory parse error: %v\n", path, err)
-					failed++
-					if jobID > 0 {
-						_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
-							JobID: jobID, VulnID: path, ErrorType: "parse_error",
-							ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
-						})
-					}
-					continue
-				}
-				fmt.Printf("  ℹ %s: detected GitHub Advisory format, storing as GHSA entry\n", path)
-
-				if err := s.UpsertGHSA(ctx, entry); err != nil {
-					fmt.Fprintf(os.Stderr, "  ✗ %s: upsert error: %v\n", path, err)
-					failed++
-					if jobID > 0 {
-						_ = s.RecordIngestFailure(ctx, &store.IngestFailure{
-							JobID: jobID, VulnID: entry.GHSAID, ErrorType: "store_error",
-							ErrorMessage: strPtr(err.Error()), FailedAt: time.Now().UTC(),
-						})
-					}
-					continue
-				}
-				imported++
-				continue
-			}
-
 			vuln, err = p.Parse(data)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "  ✗ %s: parse error: %v\n", path, err)
