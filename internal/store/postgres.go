@@ -671,6 +671,13 @@ func (s *PostgresStore) buildSearchConditions(query SearchQuery) (baseQuery stri
 		args = append(args, query.Version)
 	}
 
+	// IDs filter (restrict to specific vulnerability IDs, used for full-text search integration)
+	if len(query.IDs) > 0 {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND v.id = ANY($%d)`, argIdx)
+		args = append(args, query.IDs)
+	}
+
 	return baseQuery, args, argIdx
 }
 

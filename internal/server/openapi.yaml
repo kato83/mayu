@@ -24,6 +24,15 @@ paths:
       tags:
         - vulnerabilities
       parameters:
+        - name: query
+          in: query
+          description: |
+            Full-text search query. Searches across vulnerability summaries, details,
+            NVD descriptions, and translations. Requires search.engine to be configured
+            on the server (e.g., pg_trgm). Supports any language including Japanese.
+          schema:
+            type: string
+          example: "buffer overflow"
         - name: id
           in: query
           description: Search by vulnerability ID or alias (e.g., CVE-2024-1234, GO-2024-2687, GHSA-xxxx)
@@ -300,6 +309,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VersionResponse"
+
+  /api/v1/capabilities:
+    get:
+      operationId: getCapabilities
+      summary: Get server capabilities
+      description: |
+        Returns the server's feature capabilities, including whether full-text search
+        and translation are available.
+      tags:
+        - system
+      responses:
+        "200":
+          description: Server capabilities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fulltext_search:
+                    type: object
+                    properties:
+                      available:
+                        type: boolean
+                        description: Whether full-text search is available and initialized
+                      engine:
+                        type: string
+                        description: The search engine backend (none, pg_trgm, elasticsearch)
+                        enum: [none, pg_trgm, elasticsearch]
+                  translation:
+                    type: object
+                    properties:
+                      available:
+                        type: boolean
+                        description: Whether LLM translation is configured
 
   /api/v1/ingest/jobs:
     get:

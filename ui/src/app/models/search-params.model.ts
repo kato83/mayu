@@ -3,6 +3,9 @@
  * Mirrors the query parameters of GET /api/v1/vulnerabilities.
  */
 export interface SearchParams {
+  /** Full-text search query (requires search.engine configured on server) */
+  query?: string;
+
   /** Search by vulnerability ID or alias (e.g., CVE-2024-1234, GO-2024-2687, GHSA-xxxx) */
   id?: string;
 

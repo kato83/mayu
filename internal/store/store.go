@@ -259,6 +259,11 @@ type SearchQuery struct {
 	// Locale is a BCP 47 locale tag for translation (e.g., "ja").
 	// When set, summary is returned as COALESCE(translated_summary, original_summary).
 	Locale string
+
+	// IDs restricts results to vulnerabilities matching any of the given IDs.
+	// Used internally for full-text search integration (search engine returns IDs,
+	// then this field is set to fetch full records via the normal search pipeline).
+	IDs []string
 }
 
 // SyncState tracks the incremental import state for a data source.

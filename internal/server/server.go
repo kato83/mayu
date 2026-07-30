@@ -465,6 +465,7 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 	severity := q.Get("severity")
 	since := q.Get("since")
 	version := q.Get("version")
+	fulltextQuery := q.Get("query")
 
 	// Parse limit
 	limit := 20
@@ -599,6 +600,50 @@ func (s *Server) handleSearchVulnerabilities(w http.ResponseWriter, r *http.Requ
 	if kevStr := q.Get("kev"); kevStr == "true" {
 		t := true
 		query.InKEV = &t
+	}
+
+	// Full-text search: use search engine to get matching IDs, then filter
+	if fulltextQuery != "" {
+		if s.searchEngine == nil {
+			writeError(w, http.StatusServiceUnavailable, "full-text search is not configured")
+			return
+		}
+		searchResults, _, err := s.searchEngine.Search(r.Context(), search.Query{
+			Text:      fulltextQuery,
+			Ecosystem: ecosystem,
+			Limit:     limit,
+			Offset:    offset,
+		})
+		if err != nil {
+			if err == search.ErrNotConfigured {
+				writeError(w, http.StatusServiceUnavailable, "full-text search is not configured; set search.engine in config.yaml")
+				return
+			}
+			if err == search.ErrNotInitialized {
+				writeError(w, http.StatusServiceUnavailable, "full-text search indexes not initialized; run 'mayu search --init'")
+				return
+			}
+			slog.Error("full-text search failed", "query", fulltextQuery, "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		if len(searchResults) == 0 {
+			// No fulltext matches — return empty result immediately
+			writeJSON(w, http.StatusOK, SearchResponse{
+				Vulnerabilities: []json.RawMessage{},
+				Total:           0,
+				Limit:           limit,
+				Offset:          offset,
+			})
+			return
+		}
+		ids := make([]string, len(searchResults))
+		for i, sr := range searchResults {
+			ids[i] = sr.VulnerabilityID
+		}
+		query.IDs = ids
+		// Reset offset since the search engine already handled pagination
+		query.Offset = 0
 	}
 
 	ctx := r.Context()
