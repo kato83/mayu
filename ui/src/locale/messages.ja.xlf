@@ -814,6 +814,30 @@
         <source>Published</source>
         <target>公開日</target>
       </trans-unit>
+      <trans-unit id="vulnList.fulltextSearch" datatype="html">
+        <source>Full-text Search</source>
+        <target>全文検索</target>
+      </trans-unit>
+      <trans-unit id="vulnList.fulltextPlaceholder" datatype="html">
+        <source>buffer overflow, SQLインジェクション...</source>
+        <target>buffer overflow, SQLインジェクション...</target>
+      </trans-unit>
+      <trans-unit id="vulnList.fulltextSearchButton" datatype="html">
+        <source>Search</source>
+        <target>検索</target>
+      </trans-unit>
+      <trans-unit id="vulnList.fulltextClear" datatype="html">
+        <source>Clear</source>
+        <target>クリア</target>
+      </trans-unit>
+      <trans-unit id="vulnList.fulltextSearching" datatype="html">
+        <source>Searching...</source>
+        <target>検索中...</target>
+      </trans-unit>
+      <trans-unit id="vulnList.fulltextResultCount" datatype="html">
+        <source><x id="INTERPOLATION" equiv-text="{{ fulltextTotal() }}"/> result(s) found</source>
+        <target><x id="INTERPOLATION" equiv-text="{{ fulltextTotal() }}"/> 件の結果</target>
+      </trans-unit>
       <trans-unit id="sidebar.nav.apiKeys" datatype="html">
         <source>API Keys</source>
         <target>APIキー</target>
@@ -2213,6 +2237,22 @@
       <trans-unit id="vulnDetail.periodAll" datatype="html">
         <source>All</source>
         <target>全期間</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.exploitdbTitle" datatype="html">
+        <source>Public Exploits (Exploit-DB)</source>
+        <target>公開エクスプロイト (Exploit-DB)</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.exploitdbAuthor" datatype="html">
+        <source>Author: <x id="INTERPOLATION" equiv-text="{{ exploit.author }}"/></source>
+        <target>著者: <x id="INTERPOLATION" equiv-text="{{ exploit.author }}"/></target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.exploitdbView" datatype="html">
+        <source>View</source>
+        <target>表示</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.exploitdbVerified" datatype="html">
+        <source>Verified</source>
+        <target>検証済み</target>
       </trans-unit>
       <trans-unit id="route.title.teams" datatype="html">
         <source>Teams</source>

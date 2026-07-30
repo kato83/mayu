@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 import type { SearchParams } from '../../models/search-params.model';
 import type { SearchResponse, Vulnerability } from '../../models/vulnerability.model';
+import { CapabilitiesService, type FulltextSearchResult } from '../../services/capabilities.service';
 import { VulnerabilityService } from '../../services/vulnerability.service';
 import { type PageChangeEvent, PaginationComponent } from '../../shared/pagination/pagination.component';
 
@@ -41,6 +42,58 @@ function emptyFilters(): FilterState {
   imports: [PaginationComponent, FormsModule, DatePipe, UpperCasePipe, RouterLink],
   template: `
     <div class="space-y-4">
+      <!-- Full-text search bar (shown when fulltext search is available) -->
+      @if (fulltextAvailable()) {
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
+          <label for="fulltext-search" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" i18n="@@vulnList.fulltextSearch">Full-text Search</label>
+          <div class="flex gap-2">
+            <input
+              id="fulltext-search"
+              type="text"
+              [(ngModel)]="fulltextQuery"
+              (keydown.enter)="onFulltextSearch()"
+              placeholder="buffer overflow, SQLインジェクション..."
+              i18n-placeholder="@@vulnList.fulltextPlaceholder"
+              class="flex-1 rounded-md border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            />
+            <button
+              (click)="onFulltextSearch()"
+              [disabled]="fulltextLoading()"
+              class="px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-md transition-colors"
+              i18n="@@vulnList.fulltextSearchButton"
+            >
+              Search
+            </button>
+            @if (fulltextResults().length > 0 || fulltextQuery) {
+              <button
+                (click)="clearFulltextSearch()"
+                class="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                i18n="@@vulnList.fulltextClear"
+              >
+                Clear
+              </button>
+            }
+          </div>
+          @if (fulltextLoading()) {
+            <div class="mt-2 text-sm text-slate-500" i18n="@@vulnList.fulltextSearching">Searching...</div>
+          }
+          @if (fulltextResults().length > 0) {
+            <div class="mt-3 text-xs text-slate-500 dark:text-slate-400" i18n="@@vulnList.fulltextResultCount">{{ fulltextTotal() }} result(s) found</div>
+            <div class="mt-2 divide-y divide-slate-100 dark:divide-slate-700">
+              @for (result of fulltextResults(); track result.id) {
+                <div class="py-2">
+                  <a [routerLink]="['/vulnerabilities', result.id]"
+                     class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                    {{ result.id }}
+                  </a>
+                  <p class="text-xs text-slate-600 dark:text-slate-400 mt-0.5 line-clamp-2">{{ result.summary }}</p>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
       <!-- Filter panel -->
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -293,11 +346,19 @@ function emptyFilters(): FilterState {
 })
 export class VulnerabilitiesComponent implements OnInit {
   private readonly vulnService = inject(VulnerabilityService);
+  private readonly capabilitiesService = inject(CapabilitiesService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly ecosystems = signal<string[]>([]);
+
+  // Full-text search state
+  readonly fulltextAvailable = signal(false);
+  readonly fulltextResults = signal<FulltextSearchResult[]>([]);
+  readonly fulltextTotal = signal(0);
+  readonly fulltextLoading = signal(false);
+  fulltextQuery = '';
   readonly severities = SEVERITIES;
 
   readonly vulnerabilities = signal<Vulnerability[]>([]);
@@ -341,6 +402,19 @@ export class VulnerabilitiesComponent implements OnInit {
   private skipNextParamsChange = false;
 
   ngOnInit(): void {
+    // Check capabilities (fulltext search availability)
+    this.capabilitiesService
+      .getCapabilities()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (caps) => {
+          this.fulltextAvailable.set(caps.fulltext_search.available);
+        },
+        error: () => {
+          this.fulltextAvailable.set(false);
+        },
+      });
+
     // Load ecosystems from API
     this.vulnService
       .getEcosystems()
@@ -418,6 +492,32 @@ export class VulnerabilitiesComponent implements OnInit {
     this.filters = emptyFilters();
     this.resetPagination();
     this.syncUrlAndLoad();
+  }
+
+  onFulltextSearch(): void {
+    if (!this.fulltextQuery.trim()) return;
+    this.fulltextLoading.set(true);
+    this.capabilitiesService
+      .fulltextSearch(this.fulltextQuery, this.filters.ecosystem)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.fulltextResults.set(res.results);
+          this.fulltextTotal.set(res.total);
+          this.fulltextLoading.set(false);
+        },
+        error: () => {
+          this.fulltextResults.set([]);
+          this.fulltextTotal.set(0);
+          this.fulltextLoading.set(false);
+        },
+      });
+  }
+
+  clearFulltextSearch(): void {
+    this.fulltextQuery = '';
+    this.fulltextResults.set([]);
+    this.fulltextTotal.set(0);
   }
 
   nextPageQueryParams(): Record<string, string | null> {
