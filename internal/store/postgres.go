@@ -1001,6 +1001,13 @@ func (s *PostgresStore) buildCountConditions(query SearchQuery) (string, []inter
 		args = append(args, query.Version)
 	}
 
+	// IDs filter (restrict to specific vulnerability IDs, used for full-text search integration)
+	if len(query.IDs) > 0 {
+		argIdx++
+		where += fmt.Sprintf(` AND v.id = ANY($%d)`, argIdx)
+		args = append(args, query.IDs)
+	}
+
 	return fmt.Sprintf(`SELECT COUNT(*) %s %s`, baseFrom, where), args
 }
 
@@ -1394,6 +1401,13 @@ func (s *PostgresStore) searchLight(ctx context.Context, query SearchQuery) ([]*
 			JOIN osv_affected_packages ap ON ap.osv_entry_id = oe.osv_id
 			WHERE $%d = ANY(ap.versions))`, argIdx)
 		args = append(args, query.Version)
+	}
+
+	// IDs filter (restrict to specific vulnerability IDs, used for full-text search integration)
+	if len(query.IDs) > 0 {
+		argIdx++
+		baseQuery += fmt.Sprintf(` AND v.id = ANY($%d)`, argIdx)
+		args = append(args, query.IDs)
 	}
 
 	// ORDER BY and pagination (cursor-based or offset-based)
