@@ -809,10 +809,8 @@ func outputDetailJSON(ctx context.Context, s *store.PostgresStore, results []*mo
 
 // runSearchInit initializes full-text search indexes for the configured engine.
 func runSearchInit(cfg *config.Config) error {
-	engine := newSearchEngine(cfg, nil)
-
-	// Check if engine is configured
-	if _, ok := engine.(*search.Noop); ok {
+	// Check if engine is configured via config value (not by instantiating the engine)
+	if cfg.Search.EffectiveEngine() == config.SearchEngineNone {
 		return fmt.Errorf("full-text search is not configured. Set search.engine in config.yaml (e.g., search.engine: pg_trgm)")
 	}
 
@@ -828,7 +826,7 @@ func runSearchInit(cfg *config.Config) error {
 	defer func() { _ = s.Close() }()
 
 	// Re-create engine with actual DB connection
-	engine = newSearchEngineWithDB(cfg, s.DB())
+	engine := newSearchEngineWithDB(cfg, s.DB())
 
 	fmt.Println("Initializing full-text search indexes...")
 	fmt.Println("This may take a few minutes depending on data volume.")
