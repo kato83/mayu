@@ -134,6 +134,9 @@ func (m *mockStore) GetEPSSTrending(ctx context.Context, params store.EPSSTrendi
 func (m *mockStore) UpsertEOLProduct(ctx context.Context, product store.EOLProduct) error {
 	return nil
 }
+func (m *mockStore) UpsertGHSA(ctx context.Context, entry *model.GHSAEntry) error {
+	return nil
+}
 func (m *mockStore) UpsertEOLRelease(ctx context.Context, release store.EOLRelease) error {
 	return nil
 }

@@ -538,15 +538,15 @@ func (s *Server) ingestGHSA(ctx context.Context, repo string, progressFn func(in
 	progressFn(ingest.Progress{Phase: "download", Current: stats.Total, Total: stats.Total, Message: fmt.Sprintf("Found %d advisory(ies)", stats.Total)})
 
 	for i, data := range advisoryData {
-		vuln, err := parser.ConvertGitHubToOSV(data)
+		entry, err := parser.ParseGitHubToGHSAEntry(data)
 		if err != nil {
-			slog.Error("GHSA conversion error", "error", err)
+			slog.Error("GHSA parse error", "error", err)
 			stats.Errors++
 			continue
 		}
 
-		if err := s.store.Insert(ctx, vuln); err != nil {
-			slog.Error("GHSA insert error", "id", vuln.ID, "error", err)
+		if err := s.store.UpsertGHSA(ctx, entry); err != nil {
+			slog.Error("GHSA upsert error", "id", entry.GHSAID, "error", err)
 			stats.Errors++
 			continue
 		}

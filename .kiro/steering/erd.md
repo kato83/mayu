@@ -557,6 +557,7 @@ erDiagram
     vulnerabilities ||--o{ mitre_entries : "has"
     vulnerabilities ||--o{ epss_scores : "has"
     vulnerabilities ||--o{ kev_entries : "has"
+    vulnerabilities ||--o{ ghsa_entries : "has"
     vulnerability_aliases ||--o{ alias_sources : "sourced by"
     osv_entries ||--o{ osv_affected_packages : "has"
     osv_entries ||--o{ osv_severity : "top-level severity"
@@ -1039,6 +1040,70 @@ erDiagram
 ```
 
 ### EOL (End of Life)
+### GHSA (GitHub Security Advisories) Data
+
+```mermaid
+erDiagram
+    vulnerabilities {
+        TEXT id PK
+    }
+
+    ghsa_entries {
+        BIGINT id PK
+        TEXT ghsa_id UK
+        TEXT vulnerability_id FK
+        TEXT cve_id
+        TEXT summary
+        TEXT description
+        TEXT severity "critical, high, medium, low"
+        TEXT state "published, withdrawn"
+        TEXT html_url
+        TIMESTAMPTZ published_at
+        TIMESTAMPTZ updated_at
+        TIMESTAMPTZ withdrawn_at
+        JSONB raw_json "Full GitHub API response (reversibility)"
+    }
+
+    ghsa_vulnerabilities {
+        BIGINT id PK
+        BIGINT ghsa_entry_id FK
+        TEXT ecosystem
+        TEXT package_name
+        TEXT vulnerable_version_range
+        TEXT patched_versions
+        TEXT_ARRAY vulnerable_functions
+    }
+
+    ghsa_credits {
+        BIGINT id PK
+        BIGINT ghsa_entry_id FK
+        TEXT login
+        TEXT credit_type
+    }
+
+    ghsa_cwes {
+        BIGINT id PK
+        BIGINT ghsa_entry_id FK
+        TEXT cwe_id
+        TEXT name
+    }
+
+    ghsa_entries_translation {
+        BIGINT id PK
+        BIGINT ghsa_entry_id FK
+        TEXT locale "BCP 47"
+        TEXT summary
+        TEXT description
+        TIMESTAMPTZ translated_at
+    }
+
+    vulnerabilities ||--o{ ghsa_entries : "has"
+    ghsa_entries ||--o{ ghsa_vulnerabilities : "has"
+    ghsa_entries ||--o{ ghsa_credits : "has"
+    ghsa_entries ||--o{ ghsa_cwes : "has"
+    ghsa_entries ||--o{ ghsa_entries_translation : "translated"
+```
+
 
 ```mermaid
 erDiagram
