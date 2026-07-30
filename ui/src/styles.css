@@ -40,7 +40,7 @@
 
   /* Hide sidebar and mobile overlay */
   app-sidebar,
-  app-sidebar + div[class*="bg-black"] {
+  app-sidebar + div[class*='bg-black'] {
     display: none !important;
   }
 
@@ -119,8 +119,8 @@
   }
 
   /* Show URL after external links (not internal navigation) */
-  a[href^="http"]::after {
-    content: " (" attr(href) ")" !important;
+  a[href^='http']::after {
+    content: ' (' attr(href) ')' !important;
     font-size: 0.75em;
     color: #555 !important;
     word-break: break-all;
@@ -139,7 +139,7 @@
   tr,
   .rounded-lg,
   .rounded-xl,
-  [class*="card"],
+  [class*='card'],
   details {
     break-inside: avoid;
   }

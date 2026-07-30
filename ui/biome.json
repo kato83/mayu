@@ -57,7 +57,8 @@
         "noNonNullAssertion": "off"
       },
       "complexity": {
-        "useLiteralKeys": "off"
+        "useLiteralKeys": "off",
+        "noImportantStyles": "off"
       },
       "suspicious": {
         "noExplicitAny": "off"
