@@ -223,7 +223,6 @@ export class TeamDetailComponent implements OnInit {
     this.loadTeam();
     this.loadMembers();
     this.loadDashboard();
-    this.loadUsers();
   }
 
   loadTeam(): void {
@@ -241,7 +240,10 @@ export class TeamDetailComponent implements OnInit {
 
   loadMembers(): void {
     this.teamService.listMembers(this.teamId).subscribe({
-      next: (m) => this.members.set(m),
+      next: (m) => {
+        this.members.set(m);
+        this.loadUsers();
+      },
       error: () => {},
     });
   }
@@ -256,9 +258,9 @@ export class TeamDetailComponent implements OnInit {
   loadUsers(): void {
     this.teamService.listUsers().subscribe({
       next: (users) => {
-        // Exclude current user from candidate list
-        const currentUserId = this.authService.currentUser()?.id;
-        this.allUsers = currentUserId ? users.filter((u) => u.id !== currentUserId) : users;
+        // Exclude users who are already members of this team
+        const memberIds = new Set(this.members().map((m) => m.user_id));
+        this.allUsers = users.filter((u) => !memberIds.has(u.id));
         this.availableUsers.set(this.allUsers);
       },
       error: () => {},
