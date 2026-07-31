@@ -16,6 +16,10 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// triagePriorityMinFlag holds the parsed --triage-priority-min value for watchlist filtering.
+// When set, only vulnerabilities with triage priority at or above this level will trigger notifications.
+var triagePriorityMinFlag string
+
 func runWatch(args []string, cfg *config.Config) error {
 	if len(args) == 0 {
 		printWatchUsage()
@@ -51,6 +55,7 @@ func runWatchAdd(args []string, cfg *config.Config) error {
 	cpePattern := fs.String("cpe", "", "CPE pattern for prefix matching (required for cpe type)")
 	severityMin := fs.String("severity-min", "", "Minimum severity: critical, high, medium, low, none")
 	epssThreshold := fs.Float64("epss-threshold", 0, "Minimum EPSS score threshold (0.0-1.0)")
+	triagePriorityMin := fs.String("triage-priority-min", "", "Minimum triage priority level for notification (critical, high, medium, low)")
 	userEmail := fs.String("user-email", "", "Email of the user who owns this watchlist (required)")
 
 	fs.Usage = func() {
@@ -66,6 +71,7 @@ func runWatchAdd(args []string, cfg *config.Config) error {
 		fmt.Println("  mayu watch add --name 'Express' --type purl --purl pkg:npm/express --user-email admin@example.com")
 		fmt.Println("  mayu watch add --name 'Apache HTTPD' --type cpe --cpe 'cpe:2.3:a:apache:http_server' --user-email admin@example.com")
 		fmt.Println("  mayu watch add --name 'Go Critical' --type ecosystem --ecosystem Go --severity-min critical --user-email admin@example.com")
+		fmt.Println("  mayu watch add --name 'KEV Criticals' --type ecosystem --ecosystem Go --triage-priority-min critical --user-email admin@example.com")
 	}
 
 	if err := fs.Parse(args); err != nil {
@@ -135,6 +141,14 @@ func runWatchAdd(args []string, cfg *config.Config) error {
 			return fmt.Errorf("--epss-threshold must be between 0.0 and 1.0")
 		}
 		epssThreshPtr = epssThreshold
+	}
+
+	// Validate triage-priority-min if specified
+	if *triagePriorityMin != "" {
+		if _, err := watchlist.ParseTriagePriorityMin(*triagePriorityMin); err != nil {
+			return err
+		}
+		triagePriorityMinFlag = *triagePriorityMin
 	}
 
 	// Connect to database
