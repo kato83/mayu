@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix triage dashboard error and add sidebar navigation. Three issues: (1) Add 'Triage' entry to sidebar navigation with children (Overview, Paths, Profiles), (2) Remove the erroneous triageBatch({}) call in the dashboard that causes a 400 error on load, (3) Add a 'Run Triage' section to the dashboard so users can trigger triage from the UI.",
+  "status": "in_progress",
+  "steps": [
+    "In ui/src/app/layout/sidebar/sidebar.component.ts, add a Triage nav item to the allNavItems array (after SBOM, before Teams). It should have route '/triage', icon (use a medical/analysis icon like a clipboard or microscope emoji), and children: [{label: 'Overview', route: '/triage/overview', icon: appropriate}, {label: 'Paths', route: '/triage/paths', icon: appropriate}, {label: 'Profiles', route: '/triage/profiles', icon: appropriate}].",
+    "In ui/src/app/pages/triage/triage-dashboard.component.ts, remove the triageBatch({}) call from loadData(). The dashboard should only call getDashboardSummary() and listProfiles() on init. Results should start as an empty array and only be populated when the user explicitly runs triage.",
+    "In the same dashboard component, add a 'Run Triage' section in the template between the meta info section and the results table. This section should include: (1) A project selector dropdown (populated from SbomService.listProjects()), (2) A profile selector (already have this), (3) A 'Run Triage' button that calls triageService.getProjectTriage(selectedProjectId, {profile: selectedProfile}). The results should be mapped into the existing results signal. Show a loading indicator during the triage run.",
+    "Import SbomService in the dashboard component. Add a signal for projects (SBOMProject[]), a signal for selectedProjectId, and load the project list on init.",
+    "Ensure the loading state transitions are correct: loading starts true, set to false after getDashboardSummary completes (not after triageBatch). The results table shows 'No triage results' empty state until user triggers a run."
+  ],
+  "acceptance_criteria": [
+    "Navigating to /triage no longer produces a console 400 error or JS error",
+    "The sidebar shows a 'Triage' entry with expandable children (Overview, Paths, Profiles)",
+    "The dashboard displays summary cards and a Run Triage form",
+    "Clicking 'Run Triage' with a selected project calls the correct API endpoint and displays results in the table",
+    "The Angular build completes without errors: `pnpm --prefix ui run build`"
+  ],
+  "verification": [
+    "Run `pnpm --prefix ui run build` and confirm it succeeds with no errors"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

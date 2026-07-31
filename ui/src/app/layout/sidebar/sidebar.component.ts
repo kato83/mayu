@@ -232,6 +232,16 @@ export class SidebarComponent implements OnInit {
     },
     { label: $localize`:@@sidebar.nav.status:Status`, route: '/status', icon: '⚙️' },
     { label: $localize`:@@sidebar.nav.sbom:SBOM`, route: '/sbom', icon: '📦' },
+    {
+      label: $localize`:@@sidebar.nav.triage:Triage`,
+      route: '/triage',
+      icon: '🔬',
+      children: [
+        { label: $localize`:@@sidebar.nav.triageOverview:Overview`, route: '/triage/overview', icon: '📊' },
+        { label: $localize`:@@sidebar.nav.triagePaths:Paths`, route: '/triage/paths', icon: '🛤️' },
+        { label: $localize`:@@sidebar.nav.triageProfiles:Profiles`, route: '/triage/profiles', icon: '📋' },
+      ],
+    },
     { label: $localize`:@@sidebar.nav.teams:Teams`, route: '/teams', icon: '👥' },
     { label: $localize`:@@sidebar.nav.webhooks:Webhooks`, route: '/webhooks', icon: '🔔' },
     { label: $localize`:@@sidebar.nav.watchlists:Watchlists`, route: '/watchlists', icon: '🏷️' },

@@ -1,0 +1,7 @@
+{
+  "task_id": "task-triage-ui-fixes",
+  "task_description": "Fix triage UI so it works end-to-end from the web: add sidebar navigation, fix the 400 error on /triage, add a Run Triage form, and add a profile management page.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}

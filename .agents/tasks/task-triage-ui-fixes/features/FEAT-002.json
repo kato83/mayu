@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Add a triage profile management page. Users need a UI to view builtin profile templates, create custom profiles (by adjusting weights/thresholds from a base template), and validate them via the API. A new route /triage/profiles with a dedicated component is needed.",
+  "status": "pending",
+  "steps": [
+    "Create a new component at ui/src/app/pages/triage/triage-profiles.component.ts. This is a standalone component following the same patterns as triage-overview.component.ts and triage-path-list.component.ts.",
+    "The profiles page should: (1) List all builtin profiles from triageService.listProfiles() in a card/table layout showing name, description, and key weights. (2) Have a 'Create Custom Profile' button that opens an inline form. (3) The form should let users pick a base template, set a name, description, and adjust weights (cvss, epss, lev, kev, patch, age, exploit_db, reachability) with number inputs and thresholds (critical, high, medium). (4) Include a 'Validate' button that calls triageService.validateProfile() and shows success/error messages. (5) For now, custom profiles are validated but not persisted to the backend (no CRUD endpoint exists). Show a note explaining this.",
+    "Add a route for triage/profiles in ui/src/app/app.routes.ts: { path: 'triage/profiles', title: 'Triage Profiles', loadComponent: () => import('./pages/triage/triage-profiles.component').then(m => m.TriageProfilesComponent) }.",
+    "Export the new component from ui/src/app/pages/triage/index.ts.",
+    "Use the TriageProfile interface from models/triage.model.ts. The weights in the form should default to the base template values when a base is selected."
+  ],
+  "acceptance_criteria": [
+    "Navigating to /triage/profiles shows the profiles management page",
+    "Builtin profiles (default, internet-facing, internal-only, air-gapped) are listed with their descriptions",
+    "The create form allows selecting a base, entering custom weights/thresholds, and validating",
+    "The validate button calls POST /api/v1/triage/profiles/validate and shows the result",
+    "The Angular build completes without errors: `pnpm --prefix ui run build`"
+  ],
+  "verification": [
+    "Run `pnpm --prefix ui run build` and confirm it succeeds with no errors"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
