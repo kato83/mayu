@@ -1,240 +1,240 @@
 # Multi-Agent Development System
 
-> **When to read this:** mayu プロジェクトの AI エージェント開発システムを理解したい時、または新しいエージェントを追加・変更する時
+> **When to read this:** When you want to understand the mayu project's AI agent development system, or when adding/modifying agents
 
 ## Overview
 
-mayu プロジェクトでは 11 の専門エージェントを組み合わせたマルチエージェント開発システムを採用しています。各エージェントは明確な責任範囲を持ち、人間の承認を挟みながら協調して開発サイクルを回します。
+The mayu project uses a multi-agent development system combining 11 specialized agents. Each agent has a clearly defined scope of responsibility, and they collaborate through the development cycle with human approval checkpoints.
 
-## エージェント一覧
+## Agent List
 
-| Agent | 定義ファイル | 役割 |
-|-------|-------------|------|
-| **product-strategist** | `.kiro/agents/product-strategist.json` | ロードマップ策定、機能の優先順位付け、プロダクト戦略 |
-| **researcher** | `.kiro/agents/researcher.json` | 技術リサーチ、競合分析、データソース調査 |
-| **planner** | `.kiro/agents/planner.json` | タスク分解、依存関係の整理、実行計画の立案 |
-| **architect** | `.kiro/agents/architect.json` | システム設計、API設計、DB スキーマ設計、パッケージ構成 |
-| **developer** | `.kiro/agents/developer.json` | TDD によるコード実装、mayu コーディング規約の遵守 |
-| **reviewer** | `.kiro/agents/reviewer.json` | コード品質、セキュリティ、パフォーマンスのレビュー |
-| **qa** | `.kiro/agents/qa.json` | テスト戦略の策定、包括的なテスト作成と実行 |
-| **devops** | `.kiro/agents/devops.json` | CI/CD、Docker、リリースプロセス、インフラ管理 |
-| **triage** | `.kiro/agents/triage.json` | Issue/PR の分類、優先度ラベリング、アサイン |
-| **marketer** | `.kiro/agents/marketer.json` | OSS マーケティング、コミュニティ戦略、プロモーション |
-| **devils-advocate** | `.kiro/agents/devils-advocate.json` | 逆説的レビュー、仮定への挑戦、盲点の発見 |
+| Agent | Definition File | Role |
+|-------|----------------|------|
+| **product-strategist** | `.kiro/agents/product-strategist.json` | Roadmap definition, feature prioritization, product strategy |
+| **researcher** | `.kiro/agents/researcher.json` | Technical research, competitive analysis, data source investigation |
+| **planner** | `.kiro/agents/planner.json` | Task decomposition, dependency management, execution planning |
+| **architect** | `.kiro/agents/architect.json` | System design, API design, DB schema design, package structure |
+| **developer** | `.kiro/agents/developer.json` | TDD code implementation, mayu coding convention compliance |
+| **reviewer** | `.kiro/agents/reviewer.json` | Code quality, security, and performance review |
+| **qa** | `.kiro/agents/qa.json` | Test strategy definition, comprehensive test creation and execution |
+| **devops** | `.kiro/agents/devops.json` | CI/CD, Docker, release process, infrastructure management |
+| **triage** | `.kiro/agents/triage.json` | Issue/PR classification, priority labeling, assignment |
+| **marketer** | `.kiro/agents/marketer.json` | OSS marketing, community strategy, promotion |
+| **devils-advocate** | `.kiro/agents/devils-advocate.json` | Contrarian review, challenging assumptions, finding blind spots |
 
-## 開発ライフサイクル
+## Development Lifecycle
 
 ```mermaid
 graph LR
-    A[アイデア/要件] --> B[researcher]
+    A[Idea/Requirements] --> B[researcher]
     B --> C[planner]
     C --> D[architect]
-    D --> E{承認チェックポイント}
-    E -->|承認| F[developer]
+    D --> E{Approval Checkpoint}
+    E -->|Approved| F[developer]
     F --> G[reviewer]
     G --> H[devils-advocate]
     H --> I[qa]
-    I --> J{最終承認}
-    J -->|承認| K[Merge]
-    E -->|却下/修正| D
-    J -->|却下/修正| F
+    I --> J{Final Approval}
+    J -->|Approved| K[Merge]
+    E -->|Rejected/Revise| D
+    J -->|Rejected/Revise| F
 ```
 
-### 各ステージの詳細
+### Stage Details
 
-| ステージ | 担当エージェント | 主な成果物 |
-|---------|----------------|-----------|
-| 調査・分析 | researcher | 技術調査レポート、競合分析、データソース評価 |
-| 計画 | planner | タスク一覧、依存関係グラフ、スケジュール |
-| 設計 | architect | API 仕様、DB スキーマ、パッケージ構成図 |
-| **[承認]** | **人間** | **設計レビュー、Go/No-Go 判断** |
-| 実装 | developer | テスト付きコード、マイグレーション |
-| レビュー | reviewer | レビューコメント、修正提案 |
-| 批判的レビュー | devils-advocate | リスク指摘、代替案提示 |
-| テスト | qa | テスト計画、テスト実行結果 |
-| **[最終承認]** | **人間** | **マージ可否の判断** |
-| リリース | devops | リリースタグ、変更履歴 |
-| 告知 | marketer | リリースノート、SNS 投稿案 |
+| Stage | Responsible Agent | Primary Deliverables |
+|-------|-------------------|---------------------|
+| Research & Analysis | researcher | Technical research reports, competitive analysis, data source evaluation |
+| Planning | planner | Task list, dependency graph, schedule |
+| Design | architect | API specification, DB schema, package structure diagram |
+| **[Approval]** | **Human** | **Design review, Go/No-Go decision** |
+| Implementation | developer | Code with tests, migrations |
+| Review | reviewer | Review comments, fix proposals |
+| Critical Review | devils-advocate | Risk identification, alternative proposals |
+| Testing | qa | Test plans, test execution results |
+| **[Final Approval]** | **Human** | **Merge decision** |
+| Release | devops | Release tag, changelog |
+| Announcement | marketer | Release notes, social media post drafts |
 
-## エージェントの呼び出し方法
+## How to Invoke Agents
 
-### 1. Kiro CLI (ローカル開発)
+### 1. Kiro CLI (Local Development)
 
 ```bash
-# 特定のエージェントと対話
+# Interact with a specific agent
 kiro-cli chat --agent architect
 
-# 例: architect に API 設計を依頼
+# Example: Request API design from architect
 kiro-cli chat --agent architect
-> /search エンドポイントに CVSS スコア範囲フィルタを追加する設計をしてください
+> Design adding a CVSS score range filter to the /search endpoint
 
-# 例: developer にバグ修正を依頼
+# Example: Request a bug fix from developer
 kiro-cli chat --agent developer
-> internal/fetcher/epss.go の CSV パースで空行がエラーになる問題を修正して
+> Fix the issue where empty lines cause an error in CSV parsing in internal/fetcher/epss.go
 ```
 
-### 2. GitHub Issues/PRs (`/kiro` コマンド)
+### 2. GitHub Issues/PRs (`/kiro` command)
 
-Issue または PR のコメントに `/kiro @<agent-name> <instruction>` と記述すると、`.github/workflows/kiro.yml` がトリガーされ、指定エージェントが実行されます。
+Write `/kiro @<agent-name> <instruction>` in an Issue or PR comment, and `.github/workflows/kiro.yml` will be triggered, executing the specified agent.
 
 ```markdown
-# Issue コメントの例
-/kiro @researcher NVD の CVE JSON 5.1 フォーマットの変更点を調査して
+# Issue comment example
+/kiro @researcher Investigate the changes in NVD's CVE JSON 5.1 format
 
-# PR コメントの例
-/kiro @reviewer このPRのセキュリティ面を重点的にレビューして
+# PR comment example
+/kiro @reviewer Review this PR with emphasis on security aspects
 
-# エージェント指定なし (デフォルト動作)
-/kiro このエラーの原因を調べて修正案を出して
+# Without specifying an agent (default behavior)
+/kiro Investigate the cause of this error and propose a fix
 ```
 
-**自動トリガー (GitHub Actions):**
+**Automatic Triggers (GitHub Actions):**
 
-| Workflow | トリガー | エージェント |
-|----------|---------|------------|
-| `agent-triage.yml` | Issue 作成時 | triage |
-| `agent-review.yml` | PR 作成時 | reviewer |
-| `agent-security-review.yml` | セキュリティ関連パス変更時 | reviewer (security focus) |
-| `agent-ci-fix.yml` | CI 失敗時 | developer |
-| `agent-docs-sync.yml` | ソースコード変更時 | developer (docs) |
-| `agent-dependency-audit.yml` | 週次スケジュール | devops |
+| Workflow | Trigger | Agent |
+|----------|---------|-------|
+| `agent-triage.yml` | Issue creation | triage |
+| `agent-review.yml` | PR creation | reviewer |
+| `agent-security-review.yml` | Security-related path changes | reviewer (security focus) |
+| `agent-ci-fix.yml` | CI failure | developer |
+| `agent-docs-sync.yml` | Source code changes | developer (docs) |
+| `agent-dependency-audit.yml` | Weekly schedule | devops |
 
-### 3. Kiro Web セッション
+### 3. Kiro Web Session
 
-Kiro Web のチャットインターフェースでエージェントを選択して対話します。
+Interact with agents through the Kiro Web chat interface.
 
-- セッション開始時にエージェントを選択
-- コンテキストとして mayu リポジトリを接続
-- `.kiro/steering/` のステアリングファイルが自動的に読み込まれる
+- Select an agent at the start of a session
+- Connect the mayu repository as context
+- Steering files from `.kiro/steering/` are automatically loaded
 
-## 承認チェックポイント
+## Approval Checkpoints
 
-マルチエージェントシステムでは、以下のポイントで**人間の承認**が必要です。
+The multi-agent system requires **human approval** at the following points.
 
-### 必須承認ポイント
+### Required Approval Points
 
-1. **設計承認** (architect の出力後)
-   - DB スキーマ変更を含む設計
-   - 新しい外部依存の導入
-   - API の破壊的変更
-   - パッケージ構成の変更
+1. **Design Approval** (after architect output)
+   - Designs involving DB schema changes
+   - Introduction of new external dependencies
+   - Breaking API changes
+   - Package structure changes
 
-2. **実装マージ承認** (qa 完了後)
-   - 全テストがパスしていること
-   - reviewer / devils-advocate の指摘が解決済みであること
-   - `make build && make test && make lint` が成功すること
+2. **Implementation Merge Approval** (after qa completion)
+   - All tests pass
+   - All reviewer / devils-advocate issues resolved
+   - `make build && make test && make lint` succeeds
 
-3. **リリース承認** (devops のリリース準備後)
-   - CHANGELOG の内容確認
-   - バージョン番号の妥当性
-   - マイグレーション手順の確認
+3. **Release Approval** (after devops release preparation)
+   - CHANGELOG content verification
+   - Version number validity
+   - Migration procedure confirmation
 
-### 任意承認ポイント
+### Optional Approval Points
 
-- researcher の調査結果を planner に渡す前
-- planner の計画を architect に渡す前
-- marketer の告知内容を公開する前
+- Before passing researcher results to planner
+- Before passing planner's plan to architect
+- Before publishing marketer's announcement content
 
-## Devil's Advocate の統合ポイント
+## Devil's Advocate Integration Points
 
-devils-advocate エージェントは以下のタイミングで呼び出すことを推奨します:
+It is recommended to invoke the devils-advocate agent at the following times:
 
-### 推奨タイミング
+### Recommended Timing
 
-| タイミング | 対象 | 期待する効果 |
-|-----------|------|------------|
-| 設計完了後 | architect の設計案 | 見落としたリスクの発見 |
-| 計画確定前 | planner の実行計画 | 楽観的見積もりの是正 |
-| 技術選定時 | researcher の推薦 | ロックインリスクの検証 |
-| レビュー後 | reviewer のLGTM後 | 見逃されたエッジケースの発見 |
+| Timing | Target | Expected Benefit |
+|--------|--------|-----------------|
+| After design completion | architect's design proposal | Discover overlooked risks |
+| Before plan finalization | planner's execution plan | Correct optimistic estimates |
+| During technology selection | researcher's recommendation | Verify lock-in risks |
+| After review | After reviewer's LGTM | Find missed edge cases |
 
-### 呼び出し例
+### Invocation Examples
 
 ```bash
-# CLI で設計案をレビュー
+# Review a design proposal via CLI
 kiro-cli chat --agent devils-advocate
-> architect が提案した EPSS データのキャッシュ設計をレビューして。
-> internal/fetcher/epss/ に Redis キャッシュを追加する案です。
+> Review the EPSS data caching design proposed by architect.
+> It's a proposal to add Redis cache to internal/fetcher/epss/.
 
-# GitHub Issue で
-/kiro @devils-advocate この設計の問題点を指摘して: [設計案のリンクまたは内容]
+# Via GitHub Issue
+/kiro @devils-advocate Identify problems with this design: [design link or content]
 ```
 
-### 出力の活用
+### Utilizing Output
 
-devils-advocate の指摘は以下のように処理します:
+Handle devils-advocate findings as follows:
 
-1. **High リスク**: 設計を再検討し、architect に修正を依頼
-2. **Medium リスク**: 対応策を明記した上で進行可否を人間が判断
-3. **Low リスク**: 記録のみ (Issue のコメントに残す)
+1. **High risk**: Reconsider the design, request revisions from architect
+2. **Medium risk**: Human decides whether to proceed with documented mitigations
+3. **Low risk**: Record only (leave as Issue comment)
 
-## エージェント間の連携パターン
+## Agent Collaboration Patterns
 
-### 出力の流れ
+### Output Flow
 
 ```
-product-strategist (戦略) 
-    ↓ ロードマップ、優先順位
-researcher (調査)
-    ↓ 技術レポート、実現可能性
-planner (計画)
-    ↓ タスクリスト、スケジュール
-architect (設計)
-    ↓ 設計ドキュメント、API 仕様
-developer (実装)
-    ↓ コード、テスト、PR
-reviewer (レビュー)
-    ↓ レビューコメント
-devils-advocate (批判)
-    ↓ リスク指摘、代替案
-qa (テスト)
-    ↓ テスト結果レポート
-devops (リリース)
-    ↓ リリースタグ、デプロイ
-marketer (告知)
-    ↓ アナウンス、コミュニティ更新
+product-strategist (strategy)
+    | roadmap, priorities
+researcher (research)
+    | technical report, feasibility
+planner (planning)
+    | task list, schedule
+architect (design)
+    | design document, API specification
+developer (implementation)
+    | code, tests, PR
+reviewer (review)
+    | review comments
+devils-advocate (criticism)
+    | risk identification, alternatives
+qa (testing)
+    | test result report
+devops (release)
+    | release tag, deployment
+marketer (announcement)
+    | announcements, community updates
 ```
 
-### コンテキスト共有
+### Context Sharing
 
-各エージェントは以下のメカニズムでコンテキストを共有します:
+Agents share context through the following mechanisms:
 
-- **ステアリングファイル** (`.kiro/steering/`): プロジェクト全体の規約と方針
-- **Issue/PR のコメント**: エージェント間の成果物の受け渡し
-- **コードベース自体**: 既存の設計判断が反映されたコード
-- **`.agents/tasks/`**: タスクの状態管理と成果物の記録
+- **Steering files** (`.kiro/steering/`): Project-wide conventions and policies
+- **Issue/PR comments**: Deliverable handoff between agents
+- **The codebase itself**: Code reflecting existing design decisions
+- **`.agents/tasks/`**: Task state management and deliverable records
 
-### 並列実行が可能なケース
+### Cases Where Parallel Execution Is Possible
 
-- researcher と marketer (競合分析とポジショニング分析)
-- reviewer と qa (コードレビューとテスト実行)
-- devops と marketer (リリース準備とアナウンス下書き)
+- researcher and marketer (competitive analysis and positioning analysis)
+- reviewer and qa (code review and test execution)
+- devops and marketer (release preparation and announcement drafting)
 
-## エージェント定義の変更方法
+## How to Modify Agent Definitions
 
-エージェントの振る舞いを変更する場合:
+To change an agent's behavior:
 
 ```bash
-# エージェント定義ファイルを編集
+# Edit the agent definition file
 vim .kiro/agents/<agent-name>.json
 
-# JSON 構造:
+# JSON structure:
 # {
-#   "name": "表示名",
-#   "description": "簡潔な説明",
-#   "instructions": "詳細なシステムプロンプト (markdown形式)"
+#   "name": "Display Name",
+#   "description": "Brief description",
+#   "instructions": "Detailed system prompt (markdown format)"
 # }
 ```
 
-**注意事項:**
-- `instructions` フィールドは JSON 文字列内に markdown を記述する形式
-- プロジェクト固有のパス、コマンド、規約を含めることで精度が向上する
-- `.kiro/steering/` の内容も自動的に読み込まれるため、重複は避ける
+**Notes:**
+- The `instructions` field is markdown written inside a JSON string
+- Including project-specific paths, commands, and conventions improves accuracy
+- Content from `.kiro/steering/` is also automatically loaded, so avoid duplication
 
-## 関連ファイル
+## Related Files
 
-- エージェント定義: `.kiro/agents/*.json`
-- ステアリングファイル: `.kiro/steering/*.md`
-- GitHub Actions: `.github/workflows/kiro.yml` (メインルーター)
-- 自動化ワークフロー: `.github/workflows/agent-*.yml`
-- ワークフロー例: `.kiro/steering/agent-workflows.md`
+- Agent definitions: `.kiro/agents/*.json`
+- Steering files: `.kiro/steering/*.md`
+- GitHub Actions: `.github/workflows/kiro.yml` (main router)
+- Automation workflows: `.github/workflows/agent-*.yml`
+- Workflow examples: `.kiro/steering/agent-workflows.md`

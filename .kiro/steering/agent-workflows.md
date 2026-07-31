@@ -1,540 +1,544 @@
-# Agent Workflows - 具体的なワークフロー例
+# Agent Workflows - Concrete Workflow Examples
 
-> **When to read this:** エージェントを使った開発フローの具体例を確認したい時
+> **When to read this:** When you want to see concrete examples of development flows using agents
 
-## 1. New Feature Workflow (新機能開発)
+## 1. New Feature Workflow
 
-ユーザーのアイデアから実装、マージまでの完全なフロー。
+Complete flow from a user's idea through implementation to merge.
 
-### フロー図
+### Flow Diagram
 
 ```mermaid
 graph TD
-    A[ユーザー: アイデア提出] --> B[researcher: 技術調査]
-    B --> C[planner: タスク分解]
-    C --> D[architect: 設計]
-    D --> E[devils-advocate: 設計レビュー]
-    E --> F{承認チェックポイント}
-    F -->|承認| G[developer: TDD実装]
-    F -->|修正| D
-    G --> H[reviewer: コードレビュー]
-    H --> I[qa: テスト実行]
-    I --> J{最終承認}
-    J -->|承認| K[Merge to main]
-    J -->|修正| G
+    A[User: Submit Idea] --> B[researcher: Technical Investigation]
+    B --> C[planner: Task Decomposition]
+    C --> D[architect: Design]
+    D --> E[devils-advocate: Design Review]
+    E --> F{Approval Checkpoint}
+    F -->|Approved| G[developer: TDD Implementation]
+    F -->|Revise| D
+    G --> H[reviewer: Code Review]
+    H --> I[qa: Test Execution]
+    I --> J{Final Approval}
+    J -->|Approved| K[Merge to main]
+    J -->|Revise| G
 ```
 
-### ステップバイステップ
+### Step by Step
 
-**例: SBOM 監査に CycloneDX 1.7 サポートを追加する**
+**Example: Adding CycloneDX 1.7 support to SBOM auditing**
 
-#### Step 1: アイデア提出 (ユーザー)
+#### Step 1: Idea Submission (User)
 
-GitHub Issue を作成:
+Create a GitHub Issue:
 ```
-タイトル: CycloneDX 1.7 の新フィールド (formulation, modelCard) をサポートしたい
+Title: Support new CycloneDX 1.7 fields (formulation, modelCard)
 ```
 
-→ `agent-triage.yml` が自動でラベル付け・優先度設定
+-> `agent-triage.yml` automatically applies labels and priority
 
-#### Step 2: 技術調査
+#### Step 2: Technical Investigation
 
 ```bash
 # CLI
 kiro-cli chat --agent researcher
-> CycloneDX 1.7 の仕様変更点を調査して。特に formulation と modelCard フィールドの構造と、
-> 既存の internal/sbom/ パーサーへの影響を分析してほしい。
+> Investigate the specification changes in CycloneDX 1.7. In particular, analyze the
+> structure of the formulation and modelCard fields and the impact on the existing
+> internal/sbom/ parser.
 
 # GitHub Issue
-/kiro @researcher CycloneDX 1.7 の仕様変更と mayu への影響を調査して
+/kiro @researcher Investigate CycloneDX 1.7 spec changes and impact on mayu
 ```
 
-#### Step 3: タスク分解
+#### Step 3: Task Decomposition
 
 ```bash
 # CLI
 kiro-cli chat --agent planner
-> researcher の調査結果を元に、CycloneDX 1.7 対応のタスクを分解して。
-> テスト作成、パーサー修正、API 変更の依存関係も整理してほしい。
+> Based on the researcher's findings, decompose the CycloneDX 1.7 support into tasks.
+> Also organize dependencies between test creation, parser modification, and API changes.
 
 # GitHub Issue
-/kiro @planner CycloneDX 1.7 対応のタスク分解と実行計画を作成して
+/kiro @planner Create task decomposition and execution plan for CycloneDX 1.7 support
 ```
 
-#### Step 4: 設計
+#### Step 4: Design
 
 ```bash
 # CLI
 kiro-cli chat --agent architect
-> CycloneDX 1.7 の新フィールドに対応するため、internal/sbom/ パッケージの
-> 構造変更を設計して。Go の struct 定義と JSON パース方針を提案してほしい。
+> Design structural changes to the internal/sbom/ package to support the new CycloneDX 1.7
+> fields. Propose Go struct definitions and JSON parsing strategy.
 
 # GitHub Issue
-/kiro @architect CycloneDX 1.7 対応の設計案を作成して (struct定義、パース方針)
+/kiro @architect Create design proposal for CycloneDX 1.7 support (struct definitions, parsing strategy)
 ```
 
-#### Step 5: 設計の批判的レビュー
+#### Step 5: Critical Design Review
 
 ```bash
 # CLI
 kiro-cli chat --agent devils-advocate
-> architect の CycloneDX 1.7 対応設計をレビューして。
-> 後方互換性、パフォーマンスへの影響、テスト容易性の観点で問題点を指摘して。
+> Review architect's CycloneDX 1.7 support design.
+> Identify issues from the perspectives of backward compatibility, performance impact,
+> and testability.
 
 # GitHub Issue
-/kiro @devils-advocate 上記の設計案に問題点はないか批判的にレビューして
+/kiro @devils-advocate Critically review the above design proposal for issues
 ```
 
-#### Step 6: **[承認チェックポイント]**
+#### Step 6: **[Approval Checkpoint]**
 
-ユーザーが設計案と devils-advocate の指摘を確認し、Go/No-Go を判断。
+User reviews the design proposal and devils-advocate's feedback, then makes Go/No-Go decision.
 
-#### Step 7: 実装
+#### Step 7: Implementation
 
 ```bash
 # CLI
 kiro-cli chat --agent developer
-> 承認された設計に基づいて CycloneDX 1.7 対応を実装して。
-> TDD で進めて、testdata/ にテストフィクスチャも追加すること。
+> Implement CycloneDX 1.7 support based on the approved design.
+> Use TDD and also add test fixtures to testdata/.
 
 # GitHub Issue
-/kiro @developer 承認済み設計に基づいて CycloneDX 1.7 パーサーを実装して
+/kiro @developer Implement the CycloneDX 1.7 parser based on the approved design
 ```
 
-#### Step 8: レビュー
+#### Step 8: Review
 
-PR 作成後、`agent-review.yml` が自動実行。追加で:
+After PR creation, `agent-review.yml` runs automatically. Additionally:
 
 ```markdown
-# PR コメント
-/kiro @reviewer セキュリティ面と後方互換性を重点的にレビューして
+# PR comment
+/kiro @reviewer Review with emphasis on security and backward compatibility
 ```
 
-#### Step 9: テスト
+#### Step 9: Testing
 
 ```bash
 # CLI
 kiro-cli chat --agent qa
-> CycloneDX 1.7 パーサーのテストカバレッジを確認して。
-> エッジケース (空フィールド、不正な JSON、旧バージョンとの混在) のテストを追加して。
+> Verify test coverage for the CycloneDX 1.7 parser.
+> Add tests for edge cases (empty fields, invalid JSON, mixed versions).
 
 # GitHub Issue
-/kiro @qa テストカバレッジの確認とエッジケーステストの追加をお願いします
+/kiro @qa Please verify test coverage and add edge case tests
 ```
 
-#### Step 10: **[最終承認]**
+#### Step 10: **[Final Approval]**
 
-ユーザーが `make test && make lint` の結果とレビュー指摘の解決を確認し、マージ。
+User verifies `make test && make lint` results and confirms review issues are resolved, then merges.
 
 ---
 
-## 2. Bug Fix Workflow (バグ修正)
+## 2. Bug Fix Workflow
 
-短いサイクルで素早く修正するフロー。
+Short-cycle flow for quick fixes.
 
-### フロー図
+### Flow Diagram
 
 ```mermaid
 graph LR
-    A[Issue 作成] --> B[triage: 分類]
-    B --> C[developer: 修正]
-    C --> D[reviewer: レビュー]
+    A[Issue Creation] --> B[triage: Classification]
+    B --> C[developer: Fix]
+    C --> D[reviewer: Review]
     D --> E[Merge]
 ```
 
-### ステップバイステップ
+### Step by Step
 
-**例: EPSS CSV パースで空行がパニックする問題**
+**Example: EPSS CSV parsing panics on empty lines**
 
-#### Step 1: Issue トリアージ
+#### Step 1: Issue Triage
 
-Issue 作成時に `agent-triage.yml` が自動実行:
-- ラベル付け: `bug`, `priority:high`, `area:fetcher`
-- 影響範囲の初期分析
+`agent-triage.yml` runs automatically on Issue creation:
+- Labeling: `bug`, `priority:high`, `area:fetcher`
+- Initial impact analysis
 
-#### Step 2: 修正実装
+#### Step 2: Fix Implementation
 
 ```bash
 # CLI
 kiro-cli chat --agent developer
-> Issue #42: internal/fetcher/epss/epss.go で空行を含む CSV をパースすると
-> index out of range パニックが発生する。修正して。
+> Issue #42: Parsing a CSV with empty lines in internal/fetcher/epss/epss.go causes
+> an index out of range panic. Fix it.
 
 # GitHub Issue
-/kiro @developer この Issue のバグを修正して。テストも追加すること。
+/kiro @developer Fix this Issue's bug. Also add tests.
 ```
 
-developer は以下を実行:
-1. 再現テストを作成 (Red)
-2. 修正を実装 (Green)
-3. `make test && make lint` で確認
+The developer executes:
+1. Create a reproduction test (Red)
+2. Implement the fix (Green)
+3. Verify with `make test && make lint`
 
-#### Step 3: レビュー
+#### Step 3: Review
 
-PR 作成後:
+After PR creation:
 ```markdown
-/kiro @reviewer この修正が他のデータソースの CSV パースに影響しないか確認して
+/kiro @reviewer Verify this fix doesn't affect CSV parsing in other data sources
 ```
 
-#### Step 4: マージ
+#### Step 4: Merge
 
-`make test` パス + reviewer LGTM でマージ。
+Merge when `make test` passes + reviewer LGTM.
 
 ---
 
-## 3. Data Source Addition Workflow (データソース追加)
+## 3. Data Source Addition Workflow
 
-新しい脆弱性データソースを追加する際のフロー。
+Flow for adding a new vulnerability data source.
 
-### フロー図
+### Flow Diagram
 
 ```mermaid
 graph TD
-    A[データソース候補の特定] --> B[researcher: 評価]
-    B --> C[architect: スキーマ/パイプライン設計]
-    C --> D{承認チェックポイント}
-    D -->|承認| E[developer: 実装]
-    E --> F[qa: テスト]
-    F --> G[docs-sync: ドキュメント更新]
+    A[Identify Data Source Candidate] --> B[researcher: Evaluation]
+    B --> C[architect: Schema/Pipeline Design]
+    C --> D{Approval Checkpoint}
+    D -->|Approved| E[developer: Implementation]
+    E --> F[qa: Testing]
+    F --> G[docs-sync: Documentation Update]
     G --> H[Merge]
 ```
 
-### ステップバイステップ
+### Step by Step
 
-**例: CISA KEV (Known Exploited Vulnerabilities) の追加**
+**Example: Adding CISA KEV (Known Exploited Vulnerabilities)**
 
-#### Step 1: データソース評価
+#### Step 1: Data Source Evaluation
 
 ```bash
 # CLI
 kiro-cli chat --agent researcher
-> CISA Known Exploited Vulnerabilities (KEV) カタログを評価して。
-> API 仕様、データ形式、更新頻度、ライセンス、mayu への統合方法を調査して。
+> Evaluate the CISA Known Exploited Vulnerabilities (KEV) catalog.
+> Investigate API specifications, data format, update frequency, license,
+> and integration method for mayu.
 
 # GitHub Issue
-/kiro @researcher CISA KEV カタログの技術評価をお願いします
+/kiro @researcher Please provide a technical evaluation of the CISA KEV catalog
 ```
 
-**researcher の調査観点:**
-- データフォーマット (JSON/CSV/XML)
-- API エンドポイントとレート制限
-- 更新頻度とデータ量
-- ライセンスの互換性 (MIT プロジェクトとの整合)
-- 既存の OSV スキーマとのマッピング可否
+**Researcher's investigation scope:**
+- Data format (JSON/CSV/XML)
+- API endpoint and rate limits
+- Update frequency and data volume
+- License compatibility (alignment with MIT project)
+- Mapping feasibility to existing OSV schema
 
-#### Step 2: スキーマ/パイプライン設計
+#### Step 2: Schema/Pipeline Design
 
 ```bash
 # CLI
 kiro-cli chat --agent architect
-> researcher の CISA KEV 調査結果を元に、以下を設計して:
-> 1. internal/fetcher/kev/ パッケージ構造
-> 2. DB スキーマ (マイグレーション)
-> 3. ingest パイプラインへの統合方法
-> 4. API エンドポイント (必要なら)
+> Based on researcher's CISA KEV findings, design the following:
+> 1. internal/fetcher/kev/ package structure
+> 2. DB schema (migration)
+> 3. Integration method into the ingest pipeline
+> 4. API endpoint (if needed)
 
 # GitHub Issue
-/kiro @architect KEV 統合のシステム設計をお願いします
+/kiro @architect Please create the system design for KEV integration
 ```
 
-#### Step 3: **[承認チェックポイント]**
+#### Step 3: **[Approval Checkpoint]**
 
-確認事項:
-- DB スキーマ変更の妥当性
-- 既存パイプラインへの影響
-- ライセンス問題がないこと
+Verification items:
+- Validity of DB schema changes
+- Impact on existing pipeline
+- No license issues
 
-#### Step 4: 実装
+#### Step 4: Implementation
 
 ```bash
 # CLI
 kiro-cli chat --agent developer
-> 承認された設計に基づいて CISA KEV 統合を実装して。
-> 以下のファイルを作成/変更:
-> - internal/fetcher/kev/ (新規)
-> - migrations/ (新規マイグレーション)
-> - internal/ingest/ (パイプライン統合)
-> - cmd/mayu/ (CLI 統合)
+> Implement CISA KEV integration based on the approved design.
+> Create/modify the following files:
+> - internal/fetcher/kev/ (new)
+> - migrations/ (new migration)
+> - internal/ingest/ (pipeline integration)
+> - cmd/mayu/ (CLI integration)
 
 # GitHub Issue
-/kiro @developer KEV データソースの実装を開始して
+/kiro @developer Begin implementing the KEV data source
 ```
 
-#### Step 5: テスト
+#### Step 5: Testing
 
 ```bash
-/kiro @qa KEV 統合のテストを実施して。特に以下を確認:
-- API 障害時のエラーハンドリング
-- 不正な JSON レスポンスへの耐性
-- 既存の ingest パイプラインとの共存
+/kiro @qa Run tests for KEV integration. Specifically verify:
+- Error handling on API failure
+- Resilience to invalid JSON responses
+- Coexistence with existing ingest pipeline
 ```
 
-#### Step 6: ドキュメント更新
+#### Step 6: Documentation Update
 
-`agent-docs-sync.yml` が自動トリガーされ、README の Data Sources セクション等を更新。
-手動でも実行可能:
+`agent-docs-sync.yml` triggers automatically to update the README's Data Sources section, etc.
+Can also be executed manually:
 
 ```markdown
-/kiro @developer README.md と README_ja.md の Data Sources セクションに KEV を追加して
+/kiro @developer Add KEV to the Data Sources section in README.md and README_ja.md
 ```
 
 ---
 
-## 4. Release Workflow (リリース)
+## 4. Release Workflow
 
-バージョンリリースとアナウンスのフロー。
+Flow for version release and announcements.
 
-### フロー図
+### Flow Diagram
 
 ```mermaid
 graph LR
-    A[リリース判断] --> B[devops: リリース準備]
-    B --> C[marketer: アナウンス作成]
-    C --> D{承認チェックポイント}
-    D -->|承認| E[リリース公開]
-    E --> F[marketer: 告知実行]
+    A[Release Decision] --> B[devops: Release Preparation]
+    B --> C[marketer: Announcement Creation]
+    C --> D{Approval Checkpoint}
+    D -->|Approved| E[Release Publication]
+    E --> F[marketer: Announcement Distribution]
 ```
 
-### ステップバイステップ
+### Step by Step
 
-**例: v0.5.0 リリース**
+**Example: v0.5.0 Release**
 
-#### Step 1: リリース準備
+#### Step 1: Release Preparation
 
 ```bash
 # CLI
 kiro-cli chat --agent devops
-> v0.5.0 のリリースを準備して。以下を実施:
-> 1. CHANGELOG.md の更新 (前回リリースからの変更をまとめる)
-> 2. バージョン番号の更新
-> 3. リリースタグの作成手順の確認
-> 4. マイグレーション手順の文書化 (破壊的変更がある場合)
+> Prepare the v0.5.0 release. Execute the following:
+> 1. Update CHANGELOG.md (summarize changes since last release)
+> 2. Update version number
+> 3. Confirm release tag creation procedure
+> 4. Document migration steps (if there are breaking changes)
 
 # GitHub Issue
-/kiro @devops v0.5.0 リリース準備をお願いします
+/kiro @devops Please prepare the v0.5.0 release
 ```
 
-#### Step 2: アナウンス作成
+#### Step 2: Announcement Creation
 
 ```bash
 # CLI
 kiro-cli chat --agent marketer
-> v0.5.0 のリリースアナウンスを作成して。以下を含む:
-> - 主要な新機能のハイライト
-> - 破壊的変更の注意事項
-> - GitHub Releases 用のリリースノート
-> - Twitter/X 用の短い告知文
+> Create the release announcement for v0.5.0. Include:
+> - Highlights of major new features
+> - Breaking change notices
+> - Release notes for GitHub Releases
+> - Short announcement text for Twitter/X
 
 # GitHub Issue
-/kiro @marketer v0.5.0 のリリースアナウンスを作成して
+/kiro @marketer Create the v0.5.0 release announcement
 ```
 
-#### Step 3: **[承認チェックポイント]**
+#### Step 3: **[Approval Checkpoint]**
 
-確認事項:
-- CHANGELOG の内容が正確か
-- バージョン番号が semver に従っているか
-- 破壊的変更のマイグレーションガイドが完備しているか
-- アナウンス文の内容が適切か
+Verification items:
+- Is the CHANGELOG content accurate?
+- Does the version number follow semver?
+- Is the migration guide for breaking changes complete?
+- Is the announcement content appropriate?
 
-#### Step 4: リリース公開
+#### Step 4: Release Publication
 
 ```bash
-# devops がリリースフローを実行
-/kiro @devops 承認されたので v0.5.0 をリリースして
+# devops executes the release flow
+/kiro @devops Approved, please release v0.5.0
 ```
 
-リリースプロセス:
+Release process:
 1. `git tag v0.5.0`
-2. GitHub Release 作成 (リリースノート付き)
-3. `.github/workflows/release.yml` がトリガーされビルド実行
+2. Create GitHub Release (with release notes)
+3. `.github/workflows/release.yml` triggers the build
 
-#### Step 5: 告知
+#### Step 5: Announcement
 
 ```bash
-/kiro @marketer リリースが公開されたので告知を実行して
+/kiro @marketer Release is published, please distribute the announcements
 ```
 
 ---
 
-## 5. Design Challenge Workflow (設計チャレンジ)
+## 5. Design Challenge Workflow
 
-重要な設計判断に対して複数の視点を得るためのフロー。
+Flow for obtaining multiple perspectives on important design decisions.
 
-### フロー図
+### Flow Diagram
 
 ```mermaid
 graph TD
-    A[設計課題の特定] --> B[architect: 設計案作成]
-    B --> C[devils-advocate: 批判的レビュー]
-    C --> D[architect: 修正案]
-    D --> E[devils-advocate: 再レビュー]
-    E --> F{承認チェックポイント}
-    F -->|承認| G[実装へ進む]
-    F -->|再検討| B
+    A[Identify Design Challenge] --> B[architect: Create Design Proposal]
+    B --> C[devils-advocate: Critical Review]
+    C --> D[architect: Revised Proposal]
+    D --> E[devils-advocate: Re-review]
+    E --> F{Approval Checkpoint}
+    F -->|Approved| G[Proceed to Implementation]
+    F -->|Reconsider| B
 ```
 
-### ステップバイステップ
+### Step by Step
 
-**例: 検索パフォーマンス改善のためのキャッシュ戦略**
+**Example: Cache strategy for search performance improvement**
 
-#### Step 1: 設計案作成
+#### Step 1: Design Proposal Creation
 
 ```bash
 # CLI
 kiro-cli chat --agent architect
-> 検索 API (/api/v1/search) のレスポンスタイムが遅い。
-> キャッシュ戦略を設計して。候補:
-> 1. アプリケーションレベル (in-memory)
+> The search API (/api/v1/search) response time is slow.
+> Design a caching strategy. Candidates:
+> 1. Application level (in-memory)
 > 2. Redis
 > 3. PostgreSQL materialized view
-> 各アプローチのトレードオフも含めて。
+> Include trade-offs for each approach.
 
 # GitHub Issue
-/kiro @architect 検索APIのキャッシュ戦略を設計して (複数案比較)
+/kiro @architect Design a caching strategy for the search API (compare multiple options)
 ```
 
-#### Step 2: 批判的レビュー (1回目)
+#### Step 2: Critical Review (Round 1)
 
 ```bash
 # CLI
 kiro-cli chat --agent devils-advocate
-> architect が提案したキャッシュ戦略3案をレビューして。
-> 特にスケーラビリティ、運用負荷、障害モードの観点で問題点を指摘して。
+> Review the 3 caching strategy proposals from architect.
+> Identify issues especially from scalability, operational burden,
+> and failure mode perspectives.
 
 # GitHub Issue
-/kiro @devils-advocate 上記のキャッシュ設計案を批判的にレビューして
+/kiro @devils-advocate Critically review the above caching design proposals
 ```
 
-#### Step 3: 設計修正
+#### Step 3: Design Revision
 
 ```bash
-/kiro @architect devils-advocate の指摘を踏まえて設計を修正して。
-特に単一障害点と運用コストの懸念に対処してほしい。
+/kiro @architect Revise the design based on devils-advocate's feedback.
+Specifically address the single point of failure and operational cost concerns.
 ```
 
-#### Step 4: 再レビュー (必要に応じて)
+#### Step 4: Re-review (if needed)
 
 ```bash
-/kiro @devils-advocate 修正された設計案を再レビューして。前回の指摘が適切に対処されているか確認して。
+/kiro @devils-advocate Re-review the revised design proposal. Confirm the previous concerns have been adequately addressed.
 ```
 
-#### Step 5: **[承認チェックポイント]**
+#### Step 5: **[Approval Checkpoint]**
 
-ユーザーが最終設計案を承認し、developer への実装指示に進む。
+User approves the final design proposal and proceeds to implementation instructions for developer.
 
 ---
 
-## 6. OSS Growth Workflow (OSS 成長戦略)
+## 6. OSS Growth Workflow
 
-プロジェクトの知名度向上とコミュニティ構築のフロー。
+Flow for improving project visibility and building community.
 
-### フロー図
+### Flow Diagram
 
 ```mermaid
 graph TD
-    A[成長課題の特定] --> B[marketer: ポジショニング分析]
-    A --> C[researcher: 競合ベンチマーク]
-    B --> D[product-strategist: 戦略策定]
+    A[Identify Growth Challenge] --> B[marketer: Positioning Analysis]
+    A --> C[researcher: Competitive Benchmark]
+    B --> D[product-strategist: Strategy Definition]
     C --> D
-    D --> E{承認チェックポイント}
-    E -->|承認| F[実行]
+    D --> E{Approval Checkpoint}
+    E -->|Approved| F[Execution]
 ```
 
-### ステップバイステップ
+### Step by Step
 
-**例: mayu のGitHub Star 数とコミュニティ拡大**
+**Example: Increasing mayu's GitHub Stars and expanding community**
 
-#### Step 1: ポジショニング分析 (並列実行可能)
+#### Step 1: Positioning Analysis (can run in parallel)
 
 ```bash
 # CLI
 kiro-cli chat --agent marketer
-> mayu の OSS マーケティング戦略を分析して。以下を含む:
-> - 現在のポジショニング (脆弱性インテリジェンスツール市場での位置)
-> - ターゲットユーザーペルソナ
-> - 差別化ポイント (8データソース統合、CLI+API+WebUI)
-> - 改善すべき点 (README、ドキュメント、デモ)
+> Analyze the OSS marketing strategy for mayu. Include:
+> - Current positioning (position in the vulnerability intelligence tool market)
+> - Target user personas
+> - Differentiation points (8 data source integration, CLI+API+WebUI)
+> - Areas for improvement (README, documentation, demo)
 
 # GitHub Issue
-/kiro @marketer mayu の OSS マーケティング分析をお願いします
+/kiro @marketer Please provide an OSS marketing analysis for mayu
 ```
 
-#### Step 2: 競合ベンチマーク (並列実行可能)
+#### Step 2: Competitive Benchmark (can run in parallel)
 
 ```bash
 # CLI
 kiro-cli chat --agent researcher
-> mayu と競合する脆弱性管理ツールをベンチマークして。
-> 比較対象: OSV-Scanner, Grype, Trivy, vulnerability-lookup
-> 比較軸: データソース数、対応エコシステム、機能、パフォーマンス、コミュニティサイズ
+> Benchmark vulnerability management tools competing with mayu.
+> Comparison targets: OSV-Scanner, Grype, Trivy, vulnerability-lookup
+> Comparison axes: data source count, supported ecosystems, features, performance, community size
 
 # GitHub Issue
-/kiro @researcher 脆弱性管理ツールの競合ベンチマークをお願いします
+/kiro @researcher Please provide a competitive benchmark of vulnerability management tools
 ```
 
-#### Step 3: 戦略策定
+#### Step 3: Strategy Definition
 
 ```bash
 # CLI
 kiro-cli chat --agent product-strategist
-> marketer と researcher の分析結果を踏まえて、今後3ヶ月の
-> mayu 成長戦略を策定して。以下を含む:
-> - 注力すべき機能 (差別化のため)
-> - コミュニティ施策 (ドキュメント充実、コントリビューション導線)
-> - マーケティング施策 (ブログ、カンファレンス、SNS)
+> Based on the analysis from marketer and researcher, define a 3-month
+> growth strategy for mayu. Include:
+> - Features to focus on (for differentiation)
+> - Community initiatives (documentation improvement, contribution onboarding)
+> - Marketing initiatives (blog, conferences, social media)
 
 # GitHub Issue
-/kiro @product-strategist 3ヶ月間の成長戦略を策定して
+/kiro @product-strategist Define a 3-month growth strategy
 ```
 
-#### Step 4: **[承認チェックポイント]**
+#### Step 4: **[Approval Checkpoint]**
 
-ユーザーが戦略を承認し、各施策の優先順位を決定。
+User approves the strategy and determines priority for each initiative.
 
-#### Step 5: 実行
+#### Step 5: Execution
 
-承認された戦略に基づいて各エージェントが担当タスクを実行:
-- developer: 差別化機能の実装
-- marketer: コンテンツ作成
-- devops: デモ環境の構築
+Based on the approved strategy, each agent executes their assigned tasks:
+- developer: Implement differentiating features
+- marketer: Create content
+- devops: Build demo environment
 
 ---
 
-## クイックリファレンス: コマンド一覧
+## Quick Reference: Command List
 
-| 目的 | コマンド |
-|------|---------|
-| 技術調査を依頼 | `/kiro @researcher <調査内容>` |
-| タスク分解を依頼 | `/kiro @planner <対象機能>` |
-| 設計を依頼 | `/kiro @architect <設計対象>` |
-| 実装を依頼 | `/kiro @developer <実装内容>` |
-| レビューを依頼 | `/kiro @reviewer <レビュー観点>` |
-| テストを依頼 | `/kiro @qa <テスト対象>` |
-| 批判的レビュー | `/kiro @devils-advocate <レビュー対象>` |
-| リリース準備 | `/kiro @devops <リリースバージョン>` |
-| マーケティング | `/kiro @marketer <施策内容>` |
-| 戦略策定 | `/kiro @product-strategist <戦略テーマ>` |
-| Issue トリアージ | 自動 (`agent-triage.yml`) |
+| Purpose | Command |
+|---------|---------|
+| Request technical research | `/kiro @researcher <research topic>` |
+| Request task decomposition | `/kiro @planner <target feature>` |
+| Request design | `/kiro @architect <design target>` |
+| Request implementation | `/kiro @developer <implementation details>` |
+| Request review | `/kiro @reviewer <review focus>` |
+| Request testing | `/kiro @qa <test target>` |
+| Request critical review | `/kiro @devils-advocate <review target>` |
+| Request release preparation | `/kiro @devops <release version>` |
+| Request marketing | `/kiro @marketer <initiative details>` |
+| Request strategy | `/kiro @product-strategist <strategy theme>` |
+| Issue triage | Automatic (`agent-triage.yml`) |
 
 ## Tips
 
-### エージェントの組み合わせ
+### Agent Combinations
 
-- **素早いバグ修正**: developer + reviewer (2エージェント)
-- **慎重な新機能**: researcher + planner + architect + devils-advocate + developer + reviewer + qa (フルサイクル)
-- **設計判断**: architect + devils-advocate (繰り返し)
-- **リリース**: devops + marketer (並列)
+- **Quick bug fix**: developer + reviewer (2 agents)
+- **Careful new feature**: researcher + planner + architect + devils-advocate + developer + reviewer + qa (full cycle)
+- **Design decision**: architect + devils-advocate (iterative)
+- **Release**: devops + marketer (parallel)
 
-### 効果的なプロンプトのコツ
+### Effective Prompting Tips
 
-1. **コンテキストを明示する**: 関連ファイルのパス、Issue 番号を含める
-2. **期待する出力形式を指定する**: 「テーブル形式で」「Go の struct で」
-3. **スコープを限定する**: 「internal/fetcher/ のみ対象」
-4. **制約を伝える**: 「外部依存は追加しない」「後方互換性を維持する」
+1. **Be explicit about context**: Include relevant file paths and Issue numbers
+2. **Specify expected output format**: "In table format", "As Go structs"
+3. **Limit scope**: "Only targeting internal/fetcher/"
+4. **Communicate constraints**: "Do not add external dependencies", "Maintain backward compatibility"
 
-### 失敗時のリカバリ
+### Recovery on Failure
 
-- CI が壊れた場合: `agent-ci-fix.yml` が自動で修正を試みる
-- レビューで大きな問題が見つかった場合: architect に設計の再検討を依頼
-- devils-advocate が High リスクを指摘した場合: 設計フェーズに戻る
+- When CI breaks: `agent-ci-fix.yml` automatically attempts a fix
+- When review finds major issues: Request design reconsideration from architect
+- When devils-advocate identifies High risk: Return to design phase
