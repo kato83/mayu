@@ -108,6 +108,30 @@ export const routes: Routes = [
           import('./pages/change-password/change-password.component').then((m) => m.ChangePasswordComponent),
       },
       {
+        path: 'triage',
+        title: $localize`:@@route.title.triage:Triage`,
+        loadComponent: () =>
+          import('./pages/triage/triage-dashboard.component').then((m) => m.TriageDashboardComponent),
+      },
+      {
+        path: 'triage/overview',
+        title: $localize`:@@route.title.triageOverview:Triage Overview`,
+        loadComponent: () =>
+          import('./pages/triage/triage-overview.component').then((m) => m.TriageOverviewComponent),
+      },
+      {
+        path: 'triage/paths',
+        title: $localize`:@@route.title.triagePaths:Triage Paths`,
+        loadComponent: () =>
+          import('./pages/triage/triage-path-list.component').then((m) => m.TriagePathListComponent),
+      },
+      {
+        path: 'triage/paths/:id',
+        title: $localize`:@@route.title.triagePathDetail:Triage Path Detail`,
+        loadComponent: () =>
+          import('./pages/triage/triage-path-detail.component').then((m) => m.TriagePathDetailComponent),
+      },
+      {
         path: 'docs',
         redirectTo: 'docs/readme',
         pathMatch: 'full',
