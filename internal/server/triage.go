@@ -465,8 +465,30 @@ func (s *Server) handleTriageOverviewVulnerabilities(w http.ResponseWriter, r *h
 
 // handleTriageOverviewSummary handles GET /api/v1/triage/overview/summary
 func (s *Server) handleTriageOverviewSummary(w http.ResponseWriter, r *http.Request) {
-	summary, _ := s.computeCrossProjectOverview(r.Context())
-	writeJSON(w, http.StatusOK, summary)
+	summary, crossResults := s.computeCrossProjectOverview(r.Context())
+
+	// Compute total projects and servers from cross-project results
+	projectSet := make(map[int64]struct{})
+	totalServers := 0
+	for _, cr := range crossResults {
+		totalServers += cr.AffectedServers
+		for _, srv := range cr.ServerBreakdown {
+			projectSet[srv.ProjectID] = struct{}{}
+		}
+	}
+
+	// Return format expected by the UI: priority_counts with capitalized keys
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"total_vulnerabilities": summary.Total,
+		"priority_counts": map[string]int{
+			"Critical": summary.Critical,
+			"High":     summary.High,
+			"Medium":   summary.Medium,
+			"Low":      summary.Low,
+		},
+		"total_projects": len(projectSet),
+		"total_servers":  totalServers,
+	})
 }
 
 // computeCrossProjectOverview aggregates triage results across all SBOM projects.
