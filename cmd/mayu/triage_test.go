@@ -227,13 +227,13 @@ func TestTriageSBOMWithServerProfile(t *testing.T) {
 	args := []string{"--sbom", sbomPath, "--server", "api-prod", "--profile", "internet-facing", "--format", "json"}
 	err := runTriageExecute(args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	var buf [8192]byte
 	n, _ := r.Read(buf[:])
 	output := string(buf[:n])
-	r.Close()
+	_ = r.Close()
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -327,13 +327,13 @@ func TestTriageOverview(t *testing.T) {
 
 	err := runTriageOverview([]string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	var buf [4096]byte
 	n, _ := r.Read(buf[:])
 	output := string(buf[:n])
-	r.Close()
+	_ = r.Close()
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -353,13 +353,13 @@ func TestTriagePaths(t *testing.T) {
 
 	err := runTriagePaths([]string{})
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	var buf [4096]byte
 	n, _ := r.Read(buf[:])
 	output := string(buf[:n])
-	r.Close()
+	_ = r.Close()
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -406,13 +406,13 @@ func TestTriageProfileBind(t *testing.T) {
 		args := []string{"--project", "test-project", "--server", "api-prod", "--profile", "internet-facing"}
 		err := runTriageProfileBind(args)
 
-		w.Close()
+		_ = w.Close()
 		os.Stdout = old
 
 		var buf [4096]byte
 		n, _ := r.Read(buf[:])
 		output := string(buf[:n])
-		r.Close()
+		_ = r.Close()
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -452,13 +452,13 @@ func TestTriageProfileBindings(t *testing.T) {
 	args := []string{"--project", "test-project"}
 	err := runTriageProfileBindings(args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	var buf [4096]byte
 	n, _ := r.Read(buf[:])
 	output := string(buf[:n])
-	r.Close()
+	_ = r.Close()
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -501,13 +501,13 @@ thresholds:
 		args := []string{"--file", profilePath}
 		err := runTriageProfileValidate(args)
 
-		w.Close()
+		_ = w.Close()
 		os.Stdout = old
 
 		var buf [4096]byte
 		n, _ := r.Read(buf[:])
 		output := string(buf[:n])
-		r.Close()
+		_ = r.Close()
 
 		if err != nil {
 			t.Fatalf("expected no error for valid profile, got: %v", err)
@@ -547,13 +547,13 @@ thresholds:
 		args := []string{"--file", profilePath}
 		err := runTriageProfileValidate(args)
 
-		w.Close()
+		_ = w.Close()
 		os.Stdout = old
 
 		var buf [4096]byte
 		n, _ := r.Read(buf[:])
 		output := string(buf[:n])
-		r.Close()
+		_ = r.Close()
 
 		if err == nil {
 			t.Error("expected error for invalid profile")
@@ -635,13 +635,13 @@ func TestTriageTopN(t *testing.T) {
 	args := []string{"--sbom", sbomPath, "--format", "json", "--top", "2"}
 	err := runTriageExecute(args)
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	var buf [8192]byte
 	n, _ := r.Read(buf[:])
 	output := string(buf[:n])
-	r.Close()
+	_ = r.Close()
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

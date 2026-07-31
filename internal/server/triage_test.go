@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -529,7 +530,7 @@ func TestWatchlistNotificationPayload(t *testing.T) {
 		HasExploit:      true,
 	}
 
-	result, err := engine.Triage(nil, input)
+	result, err := engine.Triage(context.TODO(), input)
 	if err != nil {
 		t.Fatalf("triage failed: %v", err)
 	}
