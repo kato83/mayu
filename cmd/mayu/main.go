@@ -118,6 +118,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "triage":
+		if err := runTriage(subcommandArgs(), cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "policy":
 		if err := runPolicy(subcommandArgs(), cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -223,6 +228,7 @@ func printUsage() {
 	fmt.Println("  watch      Manage watchlist entries")
 	fmt.Println("  team       Manage teams and membership")
 	fmt.Println("  vex        Manage VEX (Vulnerability Exploitability eXchange) documents")
+	fmt.Println("  triage     Vulnerability triage and prioritization")
 	fmt.Println("  policy     Validate policy files for audit/scan gating")
 	fmt.Println("  version    Print version information")
 	fmt.Println("  help       Show this help message")

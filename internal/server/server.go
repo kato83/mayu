@@ -271,6 +271,7 @@ func (s *Server) routes() http.Handler {
 		r.Get("/vulnerabilities/{id}", s.handleGetVulnerability)
 		r.Get("/vulnerabilities/{id}/epss-history", s.handleGetEPSSHistory)
 		r.Get("/vulnerabilities/{id}/lev-history", s.handleGetLEVHistory)
+		r.Get("/vulnerabilities/{id}/triage", s.handleGetVulnerabilityTriage)
 		r.With(s.translateRateLimitMiddleware(), middleware.Timeout(30*time.Second)).Post("/vulnerabilities/{id}/translate", s.handleTranslateVulnerability)
 		r.Get("/ecosystems", s.handleListEcosystems)
 		r.Get("/eol/{product}", s.handleGetEOLProduct)
@@ -365,6 +366,12 @@ func (s *Server) routes() http.Handler {
 			r.Get("/scans/{scanID}/diff", sbommon.HandleGetScanDiff(s.sbomStore))
 			r.Put("/scans/{scanID}/findings/{vulnID}/status", sbommon.HandleUpdateFindingStatus(s.sbomStore))
 			r.Get("/scans/{scanID}/findings/statuses", sbommon.HandleListFindingStatuses(s.sbomStore))
+			// Triage endpoints for SBOM projects
+			r.Get("/projects/{id}/triage", s.handleGetProjectTriage)
+			r.Get("/projects/{id}/triage/paths", s.handleGetProjectTriagePaths)
+			r.Get("/projects/{id}/servers", s.handleListServerProfileBindings)
+			r.Put("/projects/{id}/servers/{label}/profile", s.handleSetServerProfile)
+			r.Delete("/projects/{id}/servers/{label}/profile", s.handleDeleteServerProfile)
 		})
 	}
 
@@ -379,6 +386,7 @@ func (s *Server) routes() http.Handler {
 		r.Get("/team-summary", s.handleDashboardTeamSummary)
 		r.Get("/portfolio", s.handleDashboardPortfolio)
 		r.Get("/eol-report", s.handleDashboardEOLReport)
+		r.Get("/triage", s.handleDashboardTriage)
 	})
 
 	// Team management endpoints
@@ -396,6 +404,20 @@ func (s *Server) routes() http.Handler {
 			r.Delete("/{id}/members/{userId}", team.HandleRemoveMember(s.teamStore))
 		})
 	}
+
+	// Triage endpoints
+	r.Route("/api/v1/triage", func(r chi.Router) {
+		r.Use(authMW)
+		r.Use(middleware.Timeout(30 * time.Second))
+		r.Post("/", s.handleTriageBatch)
+		r.Get("/profiles", s.handleListTriageProfiles)
+		r.Post("/profiles/validate", s.handleValidateTriageProfile)
+		r.Get("/overview", s.handleTriageOverview)
+		r.Get("/overview/vulnerabilities", s.handleTriageOverviewVulnerabilities)
+		r.Get("/overview/summary", s.handleTriageOverviewSummary)
+		r.Get("/paths", s.handleListTriagePaths)
+		r.Get("/paths/{id}", s.handleGetTriagePath)
+	})
 
 	// Stats endpoints
 	r.Route("/api/v1/stats", func(r chi.Router) {
