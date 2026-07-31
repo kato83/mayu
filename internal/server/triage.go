@@ -519,10 +519,12 @@ func (s *Server) handleGetProjectTriagePaths(w http.ResponseWriter, r *http.Requ
 // handleDashboardTriage handles GET /api/v1/dashboard/triage
 func (s *Server) handleDashboardTriage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"critical":      0,
-		"high":          0,
-		"medium":        0,
-		"low":           0,
+		"by_priority": map[string]int{
+			"critical": 0,
+			"high":     0,
+			"medium":   0,
+			"low":      0,
+		},
 		"total_triaged": 0,
 		"profile_used":  "default",
 		"last_computed": time.Now().UTC().Format(time.RFC3339),

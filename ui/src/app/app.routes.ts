@@ -132,8 +132,7 @@ export const routes: Routes = [
       {
         path: 'triage/profiles',
         title: $localize`:@@route.title.triageProfiles:Triage Profiles`,
-        loadComponent: () =>
-          import('./pages/triage/triage-profiles.component').then((m) => m.TriageProfilesComponent),
+        loadComponent: () => import('./pages/triage/triage-profiles.component').then((m) => m.TriageProfilesComponent),
       },
       {
         path: 'docs',
