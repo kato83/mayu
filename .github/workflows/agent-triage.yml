@@ -1,0 +1,57 @@
+# Agent Triage Workflow
+#
+# Automatically triages new issues using the triage agent.
+# Labels issues with priority (P0-P3), type (bug/feature/question/docs),
+# and area labels. Requests missing info for bugs without repro steps.
+
+name: Agent - Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Prevent bot-created issues from re-triggering
+    if: |
+      github.actor != 'kiro-agent[bot]' &&
+      github.actor != 'github-actions[bot]'
+    concurrency:
+      group: triage-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure git identity for Kiro
+        run: |
+          git config user.name "kiro-agent[bot]"
+          git config user.email "244629292+kiro-agent[bot]@users.noreply.github.com"
+
+      - uses: kirodotdev-labs/kiro-action@v0
+        with:
+          kiro_api_key: ${{ secrets.KIRO_API_KEY }}
+          kiro_args: '--agent triage'
+          prompt: |
+            Triage the newly opened issue #${{ github.event.issue.number }}.
+
+            Issue title: ${{ github.event.issue.title }}
+
+            Instructions:
+            1. Read the issue body and understand the request.
+            2. Assign a priority label: P0 (critical/blocking), P1 (high), P2 (medium), P3 (low).
+            3. Assign a type label: bug, feature, question, or docs.
+            4. Assign an area label based on the affected component (e.g., area/cli, area/api, area/ui, area/scanner, area/database).
+            5. If the issue is a bug report and lacks reproduction steps, comment asking the author to provide:
+               - Steps to reproduce
+               - Expected behavior
+               - Actual behavior
+               - Environment details (OS, Go version, mayu version)
+            6. If the issue appears to be a duplicate of an existing issue, note the potential duplicate.
+            7. Add a brief comment summarizing the triage decision.

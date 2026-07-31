@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-004",
+  "type": "fix",
+  "description": "Address all issues from the semantic code review: fix script injection vulnerability in kiro.yml, correct agent name inconsistency in agents.md documentation, add agent name validation, handle multiline comment bodies safely, and add a clarifying comment for non-comment triggers.",
+  "status": "completed",
+  "steps": [
+    "Fix script injection in .github/workflows/kiro.yml by replacing direct interpolation of github.event.comment.body with an env: block",
+    "Handle multiline comment bodies by reading only the first line for routing and passing the full body as the prompt",
+    "Add agent name validation step that checks the parsed name against the known list of 11 agents",
+    "Fix agent name inconsistency in .kiro/steering/agents.md - change 'researcher' to 'devops' in the agent-dependency-audit.yml row",
+    "Add a clarifying comment in kiro.yml for the non-comment trigger path"
+  ],
+  "acceptance_criteria": [
+    "github.event.comment.body is never directly interpolated in a run: step",
+    "Comment body is passed via env: block for safe shell handling",
+    "Multiline comments do not break the parsing logic",
+    "Agent names are validated against the known list before invocation",
+    "Documentation correctly states devops for agent-dependency-audit.yml",
+    "Non-comment trigger path has a comment explaining its behavior"
+  ],
+  "verification": [
+    "Verify kiro.yml does not contain '${{ github.event.comment.body }}' inside a run: block",
+    "Verify kiro.yml uses env: COMMENT_BODY for comment body handling",
+    "Verify agents.md references devops for dependency audit workflow",
+    "Validate YAML syntax of kiro.yml"
+  ],
+  "blocked_reason": null,
+  "findings": "All 5 review issues addressed: (1) Script injection fixed by moving comment body to env: block, (2) Agent name inconsistency fixed in agents.md, (3) Agent name validation added with known list, (4) Multiline handling fixed using first-line routing + heredoc GITHUB_OUTPUT delimiters, (5) Non-comment trigger path documented with explanation comment. YAML validated with PyYAML."
+}

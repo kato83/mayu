@@ -1,0 +1,98 @@
+# Agent Dependency Audit Workflow
+#
+# Weekly audit of Go modules and pnpm packages for security vulnerabilities
+# and available updates. Runs every Monday at 9:00 UTC and can be triggered
+# manually. Applies safe upgrades and opens a PR.
+
+name: Agent - Dependency Audit
+
+on:
+  schedule:
+    # Every Monday at 9:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ui/.node-version
+          cache: 'pnpm'
+          cache-dependency-path: ui/pnpm-lock.yaml
+
+      - name: Configure git identity for Kiro
+        run: |
+          git config user.name "kiro-agent[bot]"
+          git config user.email "244629292+kiro-agent[bot]@users.noreply.github.com"
+
+      - name: Run Go vulnerability check
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./... > /tmp/govulncheck-report.txt 2>&1 || true
+        continue-on-error: true
+
+      - name: Check Go module updates
+        run: |
+          go list -m -u all > /tmp/go-updates.txt 2>&1 || true
+        continue-on-error: true
+
+      - name: Check pnpm audit
+        working-directory: ui
+        run: |
+          pnpm audit > /tmp/pnpm-audit.txt 2>&1 || true
+        continue-on-error: true
+
+      - uses: kirodotdev-labs/kiro-action@v0
+        with:
+          kiro_api_key: ${{ secrets.KIRO_API_KEY }}
+          kiro_args: '--agent devops'
+          prompt: |
+            Perform a dependency audit for the mayu project.
+
+            Reports are available at:
+            - /tmp/govulncheck-report.txt (Go vulnerability scan)
+            - /tmp/go-updates.txt (available Go module updates)
+            - /tmp/pnpm-audit.txt (UI dependency audit)
+
+            Instructions:
+            1. Analyze the vulnerability and update reports.
+            2. Categorize updates by risk level:
+               - SAFE: Patch versions, no breaking changes, security fixes
+               - MODERATE: Minor versions with new features, low risk of breakage
+               - RISKY: Major versions, known breaking changes
+
+            3. For SAFE updates:
+               - Apply the updates (go get, pnpm update)
+               - Run `go mod tidy` after Go updates
+               - Run `pnpm install` in ui/ after pnpm updates
+
+            4. Create a new branch: deps/weekly-audit-$(date +%Y%m%d)
+            5. Commit changes with message "deps: weekly dependency audit - <date>"
+            6. Open a PR with:
+               - Title: "deps: Weekly Dependency Audit - <date>"
+               - Body containing:
+                 - Summary of vulnerabilities found
+                 - List of applied updates (SAFE)
+                 - List of recommended updates requiring manual review (MODERATE/RISKY)
+                 - Any security advisories that need immediate attention
+
+            7. If critical vulnerabilities are found, label the PR with "priority:P0".

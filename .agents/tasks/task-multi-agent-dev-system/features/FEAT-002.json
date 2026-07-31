@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Create GitHub Actions workflows that automate agent-driven development lifecycle. This includes: issue triage on new issues, PR review on opened PRs, security review on sensitive paths, CI failure auto-fix, documentation sync on source changes, and a weekly dependency audit. Also create a master orchestration workflow that routes /kiro commands to the appropriate specialized agent.",
+  "status": "completed",
+  "steps": [
+    "Create .github/workflows/agent-triage.yml - Triggered on issues:opened, uses triage agent to auto-label with priority (P0-P3), type (bug/feature/question/docs), and area labels. Requests missing info for bugs without repro steps.",
+    "Create .github/workflows/agent-review.yml - Triggered on pull_request:[opened, synchronize, ready_for_review], uses reviewer agent for comprehensive code review covering quality, security, performance, test coverage, and mayu convention compliance.",
+    "Create .github/workflows/agent-security-review.yml - Triggered on PR changes to internal/server/**, internal/store/**, migrations/**, .github/workflows/**, compose.yml, Dockerfile. Uses reviewer agent with security-focused prompt.",
+    "Create .github/workflows/agent-ci-fix.yml - Triggered on CI workflow failure for PRs. Reads failure logs, diagnoses root cause, pushes fix if safe or comments analysis if risky.",
+    "Create .github/workflows/agent-docs-sync.yml - Triggered on PR changes to cmd/**, internal/**, excluding *_test.go. Checks if README.md, README_ja.md, or docs/ need updating.",
+    "Create .github/workflows/agent-dependency-audit.yml - Weekly cron (Monday 9am UTC) + manual dispatch. Audits Go modules and pnpm packages, applies safe upgrades, opens PR.",
+    "Update .github/workflows/kiro.yml - Enhance the existing default workflow to support routing commands to specific agents via /kiro @agent-name syntax (e.g., /kiro @architect design the new API)"
+  ],
+  "acceptance_criteria": [
+    "All new workflow YAML files are valid YAML syntax",
+    "Each workflow has appropriate permissions (minimal required)",
+    "Workflows use correct GitHub event triggers matching their purpose",
+    "All workflows reference ${{ secrets.KIRO_API_KEY }} for authentication",
+    "The existing kiro.yml continues to function as the default catch-all",
+    "Security review triggers on the correct mayu-specific sensitive paths (internal/server, internal/store, migrations)"
+  ],
+  "verification": [
+    "Run: for f in .github/workflows/agent-*.yml; do python3 -c \"import yaml; yaml.safe_load(open('$f'))\" && echo \"$f: valid\"; done",
+    "Verify workflow files exist: ls .github/workflows/agent-*.yml | wc -l should be 5 or 6",
+    "Check each workflow has 'kiro_api_key' reference: grep -l 'KIRO_API_KEY' .github/workflows/agent-*.yml | wc -l"
+  ],
+  "blocked_reason": null,
+  "findings": "All 7 workflow files (6 new agent-*.yml + enhanced kiro.yml) created and validated with PyYAML. All files reference KIRO_API_KEY. Security review correctly triggers on internal/server/**, internal/store/**, migrations/**, .github/workflows/**, compose.yml, and Dockerfile. The kiro.yml enhancement adds agent routing via /kiro @agent-name syntax while preserving default catch-all behavior for label/assign triggers. No build/test needed - configuration-only change."
+}

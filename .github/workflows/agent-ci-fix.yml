@@ -1,0 +1,76 @@
+# Agent CI Fix Workflow
+#
+# Automatically diagnoses and attempts to fix CI failures on PR branches.
+# Triggered when the CI workflow fails. Reads failure logs, identifies root
+# cause, and either pushes a fix or comments analysis.
+
+name: Agent - CI Fix
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+jobs:
+  ci-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Only run on failure and only for PRs (not direct pushes to main)
+    if: |
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login != 'kiro-agent[bot]' &&
+      github.event.workflow_run.actor.login != 'github-actions[bot]'
+    concurrency:
+      group: ci-fix-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: true
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Configure git identity for Kiro
+        run: |
+          git config user.name "kiro-agent[bot]"
+          git config user.email "244629292+kiro-agent[bot]@users.noreply.github.com"
+
+      - uses: kirodotdev-labs/kiro-action@v0
+        with:
+          kiro_api_key: ${{ secrets.KIRO_API_KEY }}
+          kiro_args: '--agent developer'
+          prompt: |
+            The CI workflow has failed on branch "${{ github.event.workflow_run.head_branch }}"
+            (run ID: ${{ github.event.workflow_run.id }}).
+
+            Instructions:
+            1. Read the CI workflow failure logs to identify the root cause.
+            2. Determine if the failure is in: lint, test, build, or integration test.
+            3. Categorize the fix difficulty:
+               - SAFE: Formatting, lint fixes, missing imports, typos
+               - MODERATE: Test fixes, small logic errors
+               - RISKY: Architectural changes, business logic modifications
+
+            4. For SAFE fixes:
+               - Implement the fix directly
+               - Commit with message "fix: resolve CI failure - <brief description>"
+               - Push to the same branch
+
+            5. For MODERATE fixes:
+               - Implement the fix
+               - Commit with clear description of what was wrong and how it was fixed
+               - Push to the same branch
+
+            6. For RISKY fixes:
+               - Do NOT push any changes
+               - Comment on the PR with:
+                 - Root cause analysis
+                 - Suggested fix approach
+                 - Why it was deemed too risky for auto-fix
+                 - Manual steps the author should take
+
+            Always comment on the PR summarizing what was found and what action was taken.

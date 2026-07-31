@@ -1,0 +1,24 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Create a master steering file (.kiro/steering/agents.md) that documents the multi-agent development system: how agents coordinate, the development lifecycle workflow (idea -> research -> plan -> design -> implement -> review -> QA -> deploy), how to invoke each agent from Kiro Web/CLI, approval checkpoints, and the devil's advocate integration points. Also create a workflow guide (.kiro/steering/agent-workflows.md) with concrete examples of common development scenarios.",
+  "status": "completed",
+  "steps": [
+    "Create .kiro/steering/agents.md - Master documentation covering: 1) Overview of all 11 agents and their roles, 2) Development lifecycle stages and which agent handles each, 3) Invocation methods (kiro-cli chat --agent <name>, /kiro @<agent> in GitHub Issues/PRs, Kiro Web sessions), 4) Approval checkpoints where human review is required, 5) Devil's advocate integration (when and how the contrarian reviewer engages), 6) Agent coordination patterns (how one agent's output feeds the next)",
+    "Create .kiro/steering/agent-workflows.md - Concrete workflow examples: 1) New Feature workflow (idea -> /kiro @researcher -> /kiro @planner -> /kiro @architect -> approval -> /kiro @developer -> /kiro @reviewer -> /kiro @qa -> merge), 2) Bug Fix workflow (issue triaged -> /kiro @developer fix -> /kiro @reviewer -> merge), 3) Data Source Addition workflow (research -> design -> implement -> test -> docs), 4) Release workflow (/kiro @devops prepare release -> /kiro @marketer draft announcement), 5) Design Challenge workflow (/kiro @devils-advocate review the proposed design)"
+  ],
+  "acceptance_criteria": [
+    "agents.md clearly documents all 11 agent roles with invocation syntax",
+    "agent-workflows.md provides at least 5 concrete workflow examples with step-by-step commands",
+    "Documentation references actual mayu project paths and commands",
+    "Approval checkpoints are clearly identified in each workflow",
+    "Both files are written in a mix of English structure with Japanese annotations matching the project's bilingual style"
+  ],
+  "verification": [
+    "Verify files exist: ls .kiro/steering/agents.md .kiro/steering/agent-workflows.md",
+    "Check that agent names referenced match the .kiro/agents/ files: grep -o '@[a-z-]*' .kiro/steering/agent-workflows.md | sort -u",
+    "Verify markdown structure: grep '^#' .kiro/steering/agents.md | head -20"
+  ],
+  "blocked_reason": null,
+  "findings": "Both steering files created successfully. agents.md covers all 11 agents with lifecycle diagram, invocation methods, approval checkpoints, and coordination patterns. agent-workflows.md provides 6 detailed workflows with mermaid diagrams and concrete /kiro command examples. Written in Japanese prose with English technical terms matching the docs-ui-integration.md style."
+}
