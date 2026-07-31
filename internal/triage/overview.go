@@ -5,21 +5,21 @@ import "sort"
 // CrossProjectTriageResult represents the aggregated triage view for a single
 // vulnerability across all affected projects/servers.
 type CrossProjectTriageResult struct {
-	VulnerabilityID   string             `json:"vulnerability_id"`
-	OrgPriorityLevel  PriorityLevel      `json:"org_priority_level"`
-	MaxCompositeScore float64            `json:"max_composite_score"`
-	AffectedServers   int                `json:"affected_servers"`
-	AffectedProjects  int                `json:"affected_projects"`
+	VulnerabilityID   string              `json:"vulnerability_id"`
+	OrgPriorityLevel  PriorityLevel       `json:"org_priority_level"`
+	MaxCompositeScore float64             `json:"max_composite_score"`
+	AffectedServers   int                 `json:"affected_servers"`
+	AffectedProjects  int                 `json:"affected_projects"`
 	ServerBreakdown   []ServerTriageEntry `json:"server_breakdown"`
 }
 
 // ServerTriageEntry contains triage results for a specific server/project combination.
 type ServerTriageEntry struct {
-	ProjectID   int64         `json:"project_id"`
-	ProjectName string        `json:"project_name"`
-	ServerLabel string        `json:"server_label"`
-	Environment string        `json:"environment"`
-	ProfileUsed string        `json:"profile_used"`
+	ProjectID    int64         `json:"project_id"`
+	ProjectName  string        `json:"project_name"`
+	ServerLabel  string        `json:"server_label"`
+	Environment  string        `json:"environment"`
+	ProfileUsed  string        `json:"profile_used"`
 	TriageResult *TriageResult `json:"triage_result"`
 }
 
@@ -41,10 +41,10 @@ func AggregateCrossProject(vulnID string, entries []ServerTriageEntry) *CrossPro
 	}
 
 	result := &CrossProjectTriageResult{
-		VulnerabilityID: vulnID,
+		VulnerabilityID:  vulnID,
 		OrgPriorityLevel: PriorityLow,
-		ServerBreakdown: entries,
-		AffectedServers: len(entries),
+		ServerBreakdown:  entries,
+		AffectedServers:  len(entries),
 	}
 
 	// Track unique projects

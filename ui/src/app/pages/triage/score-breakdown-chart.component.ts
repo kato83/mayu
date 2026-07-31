@@ -8,7 +8,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import { Chart, registerables } from 'chart.js';
-import type { SignalContribution } from '../../models/triage.model';
 
 Chart.register(...registerables);
 
@@ -22,7 +21,8 @@ Chart.register(...registerables);
   `,
 })
 export class ScoreBreakdownChartComponent implements AfterViewInit, OnChanges, OnDestroy {
-  readonly signals = input.required<SignalContribution[]>();
+  readonly signals =
+    input.required<{ signal: string; contribution: number; effective_weight: number; available: boolean }[]>();
   readonly chartType = input<'bar' | 'radar'>('bar');
   readonly height = input<string>('220px');
 
@@ -70,7 +70,7 @@ export class ScoreBreakdownChartComponent implements AfterViewInit, OnChanges, O
     if (!ctx) return;
 
     const data = this.signals();
-    const labels = data.map((s) => s.name);
+    const labels = data.map((s) => s.signal);
     const contributions = data.map((s) => s.contribution);
     const weights = data.map((s) => s.effective_weight);
 

@@ -161,7 +161,7 @@ export class TriagePathListComponent implements OnInit, AfterViewInit, OnDestroy
 
     this.triageService.listPaths(opts).subscribe({
       next: (p) => {
-        this.paths.set(p);
+        this.paths.set(Array.isArray(p) ? p : []);
         this.loading.set(false);
         setTimeout(() => this.renderChart(), 0);
       },

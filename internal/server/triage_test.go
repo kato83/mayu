@@ -1,8 +1,8 @@
 package server
 
 import (
-	"context"
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -207,9 +207,9 @@ func TestHandleTriageOverviewVulnerabilities(t *testing.T) {
 	}
 
 	var resp struct {
-		Vulnerabilities []interface{}       `json:"vulnerabilities"`
+		Vulnerabilities []interface{}          `json:"vulnerabilities"`
 		Summary         triage.OverviewSummary `json:"summary"`
-		ComputedAt      string              `json:"computed_at"`
+		ComputedAt      string                 `json:"computed_at"`
 	}
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode response: %v", err)
@@ -564,5 +564,3 @@ func TestWatchlistNotificationPayload(t *testing.T) {
 		}
 	}
 }
-
-

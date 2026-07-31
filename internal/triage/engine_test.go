@@ -86,8 +86,8 @@ func TestEngine_Triage_SSVCOverride(t *testing.T) {
 		PatchAvailable:  true,
 		HasExploit:      false,
 		SSVCOptions: map[string]string{
-			"Exploitation":    "active",
-			"Automatable":     "yes",
+			"Exploitation":     "active",
+			"Automatable":      "yes",
 			"Technical Impact": "total",
 		},
 	}

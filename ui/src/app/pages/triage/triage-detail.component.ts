@@ -65,7 +65,7 @@ import { ScoreBreakdownChartComponent } from './score-breakdown-chart.component'
               @for (factor of result()!.rationale.top_factors; track factor.description) {
                 <li class="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
                   <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                  {{ factor.description }} ({{ (factor.impact * 100).toFixed(0) }}%)
+                  {{ factor.description }} ({{ factor.impact }})
                 </li>
               }
             </ul>
@@ -73,11 +73,11 @@ import { ScoreBreakdownChartComponent } from './score-breakdown-chart.component'
         </div>
 
         <!-- Signal Contribution Chart -->
-        @if (result()!.signal_values?.length) {
+        @if (result()!.rationale?.signal_details?.length) {
           <div>
             <h4 class="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2" i18n="@@triageDetail.signalBreakdown">Signal Contributions</h4>
             <app-score-breakdown-chart
-              [signals]="result()!.signal_values"
+              [signals]="result()!.rationale.signal_details"
               chartType="bar"
               height="180px" />
           </div>
@@ -153,5 +153,10 @@ export class TriageDetailComponent implements OnInit, OnChanges {
       default:
         return `${base} bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300`;
     }
+  }
+
+  hasSignalValues(): boolean {
+    const sv = this.result()?.signal_values;
+    return sv != null && Object.keys(sv).length > 0;
   }
 }

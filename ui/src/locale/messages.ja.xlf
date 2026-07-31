@@ -3242,6 +3242,400 @@
         <source>Value</source>
         <target>値</target>
       </trans-unit>
+      <!-- Triage: Sidebar & Routes -->
+      <trans-unit id="sidebar.nav.triage" datatype="html">
+        <source>Triage</source>
+        <target>トリアージ</target>
+      </trans-unit>
+      <trans-unit id="sidebar.nav.triageOverview" datatype="html">
+        <source>Overview</source>
+        <target>概要</target>
+      </trans-unit>
+      <trans-unit id="sidebar.nav.triagePaths" datatype="html">
+        <source>Paths</source>
+        <target>修正パス</target>
+      </trans-unit>
+      <trans-unit id="sidebar.nav.triageProfiles" datatype="html">
+        <source>Profiles</source>
+        <target>プロファイル</target>
+      </trans-unit>
+      <trans-unit id="route.title.triage" datatype="html">
+        <source>Triage</source>
+        <target>トリアージ</target>
+      </trans-unit>
+      <trans-unit id="route.title.triageOverview" datatype="html">
+        <source>Triage Overview</source>
+        <target>トリアージ概要</target>
+      </trans-unit>
+      <trans-unit id="route.title.triagePaths" datatype="html">
+        <source>Triage Paths</source>
+        <target>トリアージ修正パス</target>
+      </trans-unit>
+      <trans-unit id="route.title.triagePathDetail" datatype="html">
+        <source>Triage Path Detail</source>
+        <target>修正パス詳細</target>
+      </trans-unit>
+      <trans-unit id="route.title.triageProfiles" datatype="html">
+        <source>Triage Profiles</source>
+        <target>トリアージプロファイル</target>
+      </trans-unit>
+      <!-- Triage Dashboard -->
+      <trans-unit id="triage.dashboardTitle" datatype="html">
+        <source>Triage Dashboard</source>
+        <target>トリアージダッシュボード</target>
+      </trans-unit>
+      <trans-unit id="triage.profileLabel" datatype="html">
+        <source>Profile:</source>
+        <target>プロファイル:</target>
+      </trans-unit>
+      <trans-unit id="triage.critical" datatype="html">
+        <source>Critical</source>
+        <target>Critical</target>
+      </trans-unit>
+      <trans-unit id="triage.high" datatype="html">
+        <source>High</source>
+        <target>High</target>
+      </trans-unit>
+      <trans-unit id="triage.medium" datatype="html">
+        <source>Medium</source>
+        <target>Medium</target>
+      </trans-unit>
+      <trans-unit id="triage.low" datatype="html">
+        <source>Low</source>
+        <target>Low</target>
+      </trans-unit>
+      <trans-unit id="triage.totalTriaged" datatype="html">
+        <source>Total triaged: <x id="INTERPOLATION" equiv-text="{{ summary()?.total_triaged ?? 0 }}"/></source>
+        <target>トリアージ合計: <x id="INTERPOLATION" equiv-text="{{ summary()?.total_triaged ?? 0 }}"/></target>
+      </trans-unit>
+      <trans-unit id="triage.profileUsed" datatype="html">
+        <source>Profile: <x id="INTERPOLATION" equiv-text="{{ summary()?.profile_used ?? 'default' }}"/></source>
+        <target>プロファイル: <x id="INTERPOLATION" equiv-text="{{ summary()?.profile_used ?? 'default' }}"/></target>
+      </trans-unit>
+      <trans-unit id="triage.lastComputed" datatype="html">
+        <source>Last computed: <x id="INTERPOLATION" equiv-text="{{ summary()?.last_computed }}"/></source>
+        <target>最終計算: <x id="INTERPOLATION" equiv-text="{{ summary()?.last_computed }}"/></target>
+      </trans-unit>
+      <trans-unit id="triage.runTriageTitle" datatype="html">
+        <source>Run Triage</source>
+        <target>トリアージ実行</target>
+      </trans-unit>
+      <trans-unit id="triage.projectLabel" datatype="html">
+        <source>Project</source>
+        <target>プロジェクト</target>
+      </trans-unit>
+      <trans-unit id="triage.selectProject" datatype="html">
+        <source>Select a project</source>
+        <target>プロジェクトを選択</target>
+      </trans-unit>
+      <trans-unit id="triage.profileLabelRun" datatype="html">
+        <source>Profile</source>
+        <target>プロファイル</target>
+      </trans-unit>
+      <trans-unit id="triage.runButton" datatype="html">
+        <source>Run Triage</source>
+        <target>トリアージ実行</target>
+      </trans-unit>
+      <trans-unit id="triage.resultsTitle" datatype="html">
+        <source>Triage Results</source>
+        <target>トリアージ結果</target>
+      </trans-unit>
+      <trans-unit id="triage.colId" datatype="html">
+        <source>Vulnerability</source>
+        <target>脆弱性</target>
+      </trans-unit>
+      <trans-unit id="triage.colPriority" datatype="html">
+        <source>Priority</source>
+        <target>優先度</target>
+      </trans-unit>
+      <trans-unit id="triage.colScore" datatype="html">
+        <source>Score</source>
+        <target>スコア</target>
+      </trans-unit>
+      <trans-unit id="triage.colSSVC" datatype="html">
+        <source>SSVC</source>
+        <target>SSVC</target>
+      </trans-unit>
+      <trans-unit id="triage.colRationale" datatype="html">
+        <source>Rationale</source>
+        <target>根拠</target>
+      </trans-unit>
+      <trans-unit id="triage.noResults" datatype="html">
+        <source> No triage results available. Run a triage scan to get started. </source>
+        <target>トリアージ結果がありません。トリアージスキャンを実行してください。</target>
+      </trans-unit>
+      <trans-unit id="triage.viewOverview" datatype="html">
+        <source>Cross-Project Overview</source>
+        <target>プロジェクト横断概要</target>
+      </trans-unit>
+      <trans-unit id="triage.viewPaths" datatype="html">
+        <source>Triage Paths</source>
+        <target>修正パス</target>
+      </trans-unit>
+      <!-- Triage Overview -->
+      <trans-unit id="triageOverview.title" datatype="html">
+        <source>Cross-Project Triage Overview</source>
+        <target>プロジェクト横断トリアージ概要</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.backToDashboard" datatype="html">
+        <source>Back to Dashboard</source>
+        <target>ダッシュボードに戻る</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.critical" datatype="html">
+        <source>Critical</source>
+        <target>Critical</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.high" datatype="html">
+        <source>High</source>
+        <target>High</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.medium" datatype="html">
+        <source>Medium</source>
+        <target>Medium</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.low" datatype="html">
+        <source>Low</source>
+        <target>Low</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.allPriorities" datatype="html">
+        <source>All Priorities</source>
+        <target>全優先度</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.sortPriority" datatype="html">
+        <source>Sort: Priority</source>
+        <target>並替: 優先度</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.sortAffected" datatype="html">
+        <source>Sort: Affected Servers</source>
+        <target>並替: 影響サーバー数</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.sortScore" datatype="html">
+        <source>Sort: Score</source>
+        <target>並替: スコア</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.colId" datatype="html">
+        <source>Vulnerability</source>
+        <target>脆弱性</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.colOrgPriority" datatype="html">
+        <source>Org Priority</source>
+        <target>組織優先度</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.colScore" datatype="html">
+        <source>Max Score</source>
+        <target>最大スコア</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.colProjects" datatype="html">
+        <source>Projects</source>
+        <target>プロジェクト</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.colServers" datatype="html">
+        <source>Servers</source>
+        <target>サーバー</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.noResults" datatype="html">
+        <source> No cross-project triage data available. </source>
+        <target>プロジェクト横断トリアージデータがありません。</target>
+      </trans-unit>
+      <!-- Triage Paths -->
+      <trans-unit id="triagePaths.title" datatype="html">
+        <source>Triage Paths</source>
+        <target>修正パス</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.backToDashboard" datatype="html">
+        <source>Back to Dashboard</source>
+        <target>ダッシュボードに戻る</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.allPriorities" datatype="html">
+        <source>All Priorities</source>
+        <target>全優先度</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.allEcosystems" datatype="html">
+        <source>All Ecosystems</source>
+        <target>全エコシステム</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.colAction" datatype="html">
+        <source>Action</source>
+        <target>アクション</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.colImpact" datatype="html">
+        <source>Impact Score</source>
+        <target>影響スコア</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.colPriority" datatype="html">
+        <source>Priority</source>
+        <target>優先度</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.colVulns" datatype="html">
+        <source>Resolved CVEs</source>
+        <target>解決CVE数</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.colServers" datatype="html">
+        <source>Servers</source>
+        <target>サーバー</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.colEcosystem" datatype="html">
+        <source>Ecosystem</source>
+        <target>エコシステム</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.impactChart" datatype="html">
+        <source>Impact Score Comparison (Top 10)</source>
+        <target>影響スコア比較 (上位10件)</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.viewDetail" datatype="html">
+        <source>Details</source>
+        <target>詳細</target>
+      </trans-unit>
+      <trans-unit id="triagePaths.noPaths" datatype="html">
+        <source> No triage paths available. </source>
+        <target>修正パスがありません。</target>
+      </trans-unit>
+      <!-- Triage Path Detail -->
+      <trans-unit id="triagePathDetail.title" datatype="html">
+        <source>Triage Path Detail</source>
+        <target>修正パス詳細</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.backToList" datatype="html">
+        <source>Back to Paths</source>
+        <target>修正パス一覧に戻る</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.actionTitle" datatype="html">
+        <source>Remediation Action</source>
+        <target>修正アクション</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.type" datatype="html">
+        <source>Type</source>
+        <target>種別</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.package" datatype="html">
+        <source>Package</source>
+        <target>パッケージ</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.version" datatype="html">
+        <source>Version Change</source>
+        <target>バージョン変更</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.ecosystem" datatype="html">
+        <source>Ecosystem</source>
+        <target>エコシステム</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.impactScore" datatype="html">
+        <source>Impact Score</source>
+        <target>影響スコア</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.maxPriority" datatype="html">
+        <source>Max Priority</source>
+        <target>最大優先度</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.vulnCount" datatype="html">
+        <source>Resolved CVEs</source>
+        <target>解決CVE数</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.serverCount" datatype="html">
+        <source>Affected Servers</source>
+        <target>影響サーバー</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.resolvedTitle" datatype="html">
+        <source>Resolved Vulnerabilities</source>
+        <target>解決される脆弱性</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.colId" datatype="html">
+        <source>Vulnerability</source>
+        <target>脆弱性</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.colPriority" datatype="html">
+        <source>Priority</source>
+        <target>優先度</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.colScore" datatype="html">
+        <source>Score</source>
+        <target>スコア</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.colFixed" datatype="html">
+        <source>Fixed In</source>
+        <target>修正バージョン</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.serversTitle" datatype="html">
+        <source>Affected Servers</source>
+        <target>影響サーバー</target>
+      </trans-unit>
+      <trans-unit id="triagePathDetail.notFound" datatype="html">
+        <source>Triage path not found.</source>
+        <target>修正パスが見つかりません。</target>
+      </trans-unit>
+      <!-- Triage Profiles -->
+      <trans-unit id="triageProfiles.title" datatype="html">
+        <source>Triage Profiles</source>
+        <target>トリアージプロファイル</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.backToDashboard" datatype="html">
+        <source>Back to Dashboard</source>
+        <target>ダッシュボードに戻る</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.createBtn" datatype="html">
+        <source><x id="INTERPOLATION" equiv-text="{{ showCreateForm() ? 'Cancel' : 'Create Custom Profile' }}"/></source>
+        <target><x id="INTERPOLATION" equiv-text="{{ showCreateForm() ? 'Cancel' : 'Create Custom Profile' }}"/></target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.weights" datatype="html">
+        <source>Weights</source>
+        <target>ウェイト</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.thresholds" datatype="html">
+        <source>Thresholds</source>
+        <target>閾値</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.noProfiles" datatype="html">
+        <source> No profiles available. </source>
+        <target>プロファイルがありません。</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.createTitle" datatype="html">
+        <source>Create Custom Profile</source>
+        <target>カスタムプロファイル作成</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.nameLabel" datatype="html">
+        <source>Name</source>
+        <target>名前</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.descLabel" datatype="html">
+        <source>Description</source>
+        <target>説明</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.baseLabel" datatype="html">
+        <source>Base Template</source>
+        <target>ベーステンプレート</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.selectBase" datatype="html">
+        <source>-- Select a base template --</source>
+        <target>-- ベーステンプレートを選択 --</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.weightsSection" datatype="html">
+        <source>Weights</source>
+        <target>ウェイト</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.thresholdsSection" datatype="html">
+        <source>Thresholds</source>
+        <target>閾値</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.validateBtn" datatype="html">
+        <source> Validate </source>
+        <target>検証</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.persistenceNote" datatype="html">
+        <source> Custom profiles are validated locally. Server-side persistence coming soon. </source>
+        <target>カスタムプロファイルはローカルで検証されます。サーバー側の永続化は今後対応予定です。</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.validating" datatype="html">
+        <source>Validating...</source>
+        <target>検証中...</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.validSuccess" datatype="html">
+        <source> Profile is valid. </source>
+        <target>プロファイルは有効です。</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.validErrors" datatype="html">
+        <source>Validation errors:</source>
+        <target>検証エラー:</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

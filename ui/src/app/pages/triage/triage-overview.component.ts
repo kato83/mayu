@@ -184,7 +184,7 @@ export class TriageOverviewComponent implements OnInit {
 
     this.triageService.getOverviewVulnerabilities(opts).subscribe({
       next: (v) => {
-        this.vulnerabilities.set(v);
+        this.vulnerabilities.set(Array.isArray(v) ? v : []);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),

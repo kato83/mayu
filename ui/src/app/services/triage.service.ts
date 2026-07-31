@@ -49,15 +49,15 @@ export class TriageService {
     if (options?.profile) params['profile'] = options.profile;
     if (options?.limit) params['limit'] = String(options.limit);
     if (options?.priority) params['priority'] = options.priority;
-    return this.http.get<TriageResult[]>(`/api/v1/sbom/projects/${projectId}/triage`, { params });
+    return this.http
+      .get<{ results: TriageResult[] }>(`/api/v1/sbom/projects/${projectId}/triage`, { params })
+      .pipe(map((res) => res.results ?? []));
   }
 
   // --- Profiles ---
 
   listProfiles(): Observable<TriageProfile[]> {
-    return this.http.get<{ profiles: TriageProfile[] }>('/api/v1/triage/profiles').pipe(
-      map(res => res.profiles)
-    );
+    return this.http.get<{ profiles: TriageProfile[] }>('/api/v1/triage/profiles').pipe(map((res) => res.profiles));
   }
 
   validateProfile(profile: TriageProfile): Observable<{ valid: boolean; errors: string[] }> {
@@ -79,7 +79,9 @@ export class TriageService {
     if (options?.priority) params['priority'] = options.priority;
     if (options?.limit) params['limit'] = String(options.limit);
     if (options?.sort) params['sort'] = options.sort;
-    return this.http.get<CrossProjectTriageResult[]>('/api/v1/triage/overview/vulnerabilities', { params });
+    return this.http
+      .get<{ vulnerabilities: CrossProjectTriageResult[] }>('/api/v1/triage/overview/vulnerabilities', { params })
+      .pipe(map((res) => res.vulnerabilities ?? []));
   }
 
   // --- Triage Paths ---
@@ -95,7 +97,9 @@ export class TriageService {
     if (options?.priority) params['priority'] = options.priority;
     if (options?.ecosystem) params['ecosystem'] = options.ecosystem;
     if (options?.project) params['project'] = options.project;
-    return this.http.get<TriagePath[]>('/api/v1/triage/paths', { params });
+    return this.http
+      .get<{ paths: TriagePath[] }>('/api/v1/triage/paths', { params })
+      .pipe(map((res) => res.paths ?? []));
   }
 
   getPath(id: string): Observable<TriagePath> {
@@ -103,13 +107,17 @@ export class TriageService {
   }
 
   getProjectPaths(projectId: string): Observable<TriagePath[]> {
-    return this.http.get<TriagePath[]>(`/api/v1/sbom/projects/${projectId}/triage/paths`);
+    return this.http
+      .get<{ paths: TriagePath[] }>(`/api/v1/sbom/projects/${projectId}/triage/paths`)
+      .pipe(map((res) => res.paths ?? []));
   }
 
   // --- Server Profile Bindings ---
 
   listBindings(projectId: string): Observable<ServerProfileBinding[]> {
-    return this.http.get<ServerProfileBinding[]>(`/api/v1/sbom/projects/${projectId}/servers`);
+    return this.http
+      .get<{ servers: ServerProfileBinding[] }>(`/api/v1/sbom/projects/${projectId}/servers`)
+      .pipe(map((res) => res.servers ?? []));
   }
 
   setBinding(projectId: string, serverLabel: string, request: ProfileBindingRequest): Observable<void> {

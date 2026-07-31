@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, inject, type OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -10,7 +9,7 @@ import { TriageService } from '../../services/triage.service';
 @Component({
   selector: 'app-triage-dashboard',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   template: `
     @if (loading()) {
       <div class="flex items-center justify-center h-64">
@@ -37,19 +36,19 @@ import { TriageService } from '../../services/triage.service';
       <section class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-red-500">
           <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide" i18n="@@triage.critical">Critical</p>
-          <p class="text-2xl font-bold text-red-500 mt-1">{{ summary()?.critical ?? 0 | number }}</p>
+          <p class="text-2xl font-bold text-red-500 mt-1">{{ summary()?.critical ?? 0 }}</p>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-orange-500">
           <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide" i18n="@@triage.high">High</p>
-          <p class="text-2xl font-bold text-orange-500 mt-1">{{ summary()?.high ?? 0 | number }}</p>
+          <p class="text-2xl font-bold text-orange-500 mt-1">{{ summary()?.high ?? 0 }}</p>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-yellow-500">
           <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide" i18n="@@triage.medium">Medium</p>
-          <p class="text-2xl font-bold text-yellow-500 mt-1">{{ summary()?.medium ?? 0 | number }}</p>
+          <p class="text-2xl font-bold text-yellow-500 mt-1">{{ summary()?.medium ?? 0 }}</p>
         </div>
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-blue-500">
           <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide" i18n="@@triage.low">Low</p>
-          <p class="text-2xl font-bold text-blue-500 mt-1">{{ summary()?.low ?? 0 | number }}</p>
+          <p class="text-2xl font-bold text-blue-500 mt-1">{{ summary()?.low ?? 0 }}</p>
         </div>
       </section>
 
@@ -193,12 +192,12 @@ export class TriageDashboardComponent implements OnInit {
     });
 
     this.triageService.listProfiles().subscribe({
-      next: (p) => this.profiles.set(p),
+      next: (p) => this.profiles.set(Array.isArray(p) ? p : []),
       error: () => {},
     });
 
     this.sbomService.listProjects().subscribe({
-      next: (p) => this.projects.set(p),
+      next: (p) => this.projects.set(Array.isArray(p) ? p : []),
       error: () => {},
     });
   }
@@ -210,7 +209,36 @@ export class TriageDashboardComponent implements OnInit {
     this.triageRunning.set(true);
     this.triageService.getProjectTriage(projectId, { profile: this.selectedProfile() }).subscribe({
       next: (r) => {
-        this.results.set(r);
+        // Ensure r is an array (handle both unwrapped and raw response cases)
+        const results = Array.isArray(r) ? r : ((r as any)?.results ?? []);
+        this.results.set(results);
+        // Update summary cards from results
+        const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+        for (const res of results) {
+          switch (res.priority_level) {
+            case 'Critical':
+              counts.critical++;
+              break;
+            case 'High':
+              counts.high++;
+              break;
+            case 'Medium':
+              counts.medium++;
+              break;
+            case 'Low':
+              counts.low++;
+              break;
+          }
+        }
+        this.summary.set({
+          critical: counts.critical,
+          high: counts.high,
+          medium: counts.medium,
+          low: counts.low,
+          total_triaged: results.length,
+          profile_used: this.selectedProfile(),
+          last_computed: new Date().toISOString(),
+        });
         this.triageRunning.set(false);
       },
       error: () => this.triageRunning.set(false),

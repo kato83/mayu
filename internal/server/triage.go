@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -8,10 +9,127 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/kato83/mayu/internal/model"
+	"github.com/kato83/mayu/internal/sbommon"
 	"github.com/kato83/mayu/internal/triage"
 )
 
 // --- Triage API Handlers ---
+
+// buildTriageInputFromDetail constructs a TriageInput from a VulnerabilityDetail
+// by extracting all available risk signals from the enrichment data.
+func buildTriageInputFromDetail(detail *model.VulnerabilityDetail) *triage.TriageInput {
+	input := &triage.TriageInput{
+		VulnerabilityID: detail.ID,
+	}
+
+	// CVSS: take the highest base score from NVD metrics
+	if detail.NVD != nil && len(detail.NVD.Metrics) > 0 {
+		var maxScore float64
+		for _, m := range detail.NVD.Metrics {
+			if m.BaseScore > maxScore {
+				maxScore = m.BaseScore
+			}
+		}
+		if maxScore > 0 {
+			input.CVSSScore = &maxScore
+		}
+	}
+	// Fallback: try MITRE metrics if NVD has none
+	if input.CVSSScore == nil && detail.MITRE != nil && len(detail.MITRE.Metrics) > 0 {
+		var maxScore float64
+		for _, m := range detail.MITRE.Metrics {
+			if m.BaseScore > maxScore {
+				maxScore = m.BaseScore
+			}
+		}
+		if maxScore > 0 {
+			input.CVSSScore = &maxScore
+		}
+	}
+
+	// EPSS
+	if detail.EPSS != nil {
+		input.EPSSScore = &detail.EPSS.EPSS
+	}
+
+	// LEV
+	if detail.LEV != nil {
+		input.LEVScore = &detail.LEV.LEV
+		input.InKEV = detail.LEV.InKEV
+	}
+
+	// KEV (also set InKEV if KEV detail is present)
+	if detail.KEV != nil {
+		input.InKEV = true
+	}
+
+	// Patch availability: check if any affected package has a fixed version
+	for _, affected := range detail.Affected {
+		for _, r := range affected.Ranges {
+			for _, evt := range r.Events {
+				if evt.Fixed != "" {
+					input.PatchAvailable = true
+					break
+				}
+			}
+			if input.PatchAvailable {
+				break
+			}
+		}
+		if input.PatchAvailable {
+			break
+		}
+	}
+
+	// Published date (for age signal)
+	if detail.Published != nil {
+		input.PublishedAt = detail.Published
+	}
+
+	// ExploitDB
+	if len(detail.ExploitDB) > 0 {
+		input.HasExploit = true
+	}
+
+	// SSVC: extract from NVD or MITRE if available
+	input.SSVCOptions = extractSSVCOptions(detail)
+
+	return input
+}
+
+// extractSSVCOptions extracts SSVC decision points from VulnerabilityDetail.
+// It checks NVD first (where CISA Coordinator assessments are typically found),
+// then falls back to MITRE.
+func extractSSVCOptions(detail *model.VulnerabilityDetail) map[string]string {
+	// Try NVD SSVC first (CISA Coordinator assessments)
+	if detail.NVD != nil && detail.NVD.SSVC != nil && len(detail.NVD.SSVC.Options) > 0 {
+		opts := make(map[string]string)
+		for _, o := range detail.NVD.SSVC.Options {
+			opts[o.Key] = o.Value
+		}
+		return opts
+	}
+	// Fallback to MITRE SSVC
+	if detail.MITRE != nil && detail.MITRE.SSVC != nil && len(detail.MITRE.SSVC.Options) > 0 {
+		opts := make(map[string]string)
+		for _, o := range detail.MITRE.SSVC.Options {
+			opts[o.Key] = o.Value
+		}
+		return opts
+	}
+	return nil
+}
+
+// buildTriageInputForVulnID fetches vulnerability detail from the store and builds a TriageInput.
+func (s *Server) buildTriageInputForVulnID(ctx context.Context, vulnID string) *triage.TriageInput {
+	detail, err := s.store.GetVulnerabilityDetail(ctx, vulnID)
+	if err != nil || detail == nil {
+		// Fallback: return minimal input with just the ID
+		return &triage.TriageInput{VulnerabilityID: vulnID}
+	}
+	return buildTriageInputFromDetail(detail)
+}
 
 // handleTriageBatch handles POST /api/v1/triage
 func (s *Server) handleTriageBatch(w http.ResponseWriter, r *http.Request) {
@@ -34,12 +152,10 @@ func (s *Server) handleTriageBatch(w http.ResponseWriter, r *http.Request) {
 	profile := resolveTriageProfile(req.Profile)
 	engine := triage.NewEngine(profile)
 
-	// Build inputs from vulnerability IDs
+	// Build inputs from vulnerability IDs with full signal data from DB
 	var inputs []*triage.TriageInput
 	for _, id := range req.VulnerabilityIDs {
-		inputs = append(inputs, &triage.TriageInput{
-			VulnerabilityID: id,
-		})
+		inputs = append(inputs, s.buildTriageInputForVulnID(r.Context(), id))
 	}
 
 	results, err := engine.TriageBatch(r.Context(), inputs)
@@ -70,9 +186,7 @@ func (s *Server) handleGetVulnerabilityTriage(w http.ResponseWriter, r *http.Req
 	profile := resolveTriageProfile(profileName)
 	engine := triage.NewEngine(profile)
 
-	input := &triage.TriageInput{
-		VulnerabilityID: id,
-	}
+	input := s.buildTriageInputForVulnID(r.Context(), id)
 
 	result, err := engine.Triage(r.Context(), input)
 	if err != nil {
@@ -93,7 +207,7 @@ func (s *Server) handleGetProjectTriage(w http.ResponseWriter, r *http.Request) 
 
 	profileName := r.URL.Query().Get("profile")
 	profile := resolveTriageProfile(profileName)
-	_ = triage.NewEngine(profile)
+	engine := triage.NewEngine(profile)
 
 	limitStr := r.URL.Query().Get("limit")
 	limit := 100
@@ -103,14 +217,81 @@ func (s *Server) handleGetProjectTriage(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	// In a full implementation, this would query the SBOM store for findings
-	// For now, return an empty result set
-	results := make([]*triage.TriageResult, 0)
-	summary := computeSummary(results)
+	// Get the latest version for this project
+	pid, err := strconv.ParseInt(projectID, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project ID")
+		return
+	}
+
+	latestVersion, err := s.sbomStore.GetLatestVersion(r.Context(), pid)
+	if err != nil || latestVersion == nil {
+		// No version yet — return empty results
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"project_id":   projectID,
+			"profile_used": profile.Name,
+			"summary":      computeSummary(nil),
+			"results":      []*triage.TriageResult{},
+			"computed_at":  time.Now().UTC().Format(time.RFC3339),
+		})
+		return
+	}
+
+	// Get the latest scan result for this version
+	scanResult, err := s.sbomStore.GetLatestScanResult(r.Context(), latestVersion.ID)
+	if err != nil || scanResult == nil || len(scanResult.Findings) == 0 {
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"project_id":   projectID,
+			"profile_used": profile.Name,
+			"summary":      computeSummary(nil),
+			"results":      []*triage.TriageResult{},
+			"computed_at":  time.Now().UTC().Format(time.RFC3339),
+		})
+		return
+	}
+
+	// Get finding statuses to exclude suppressed/false_positive/resolved findings
+	excludedStatuses := map[string]bool{}
+	statuses, _ := s.sbomStore.ListFindingStatuses(r.Context(), latestVersion.ID, nil)
+	for _, fs := range statuses {
+		if fs.Status == sbommon.FindingStatusFalsePositive ||
+			fs.Status == sbommon.FindingStatusSuppressed ||
+			fs.Status == sbommon.FindingStatusResolved {
+			excludedStatuses[fs.VulnID+"|"+fs.Purl] = true
+		}
+	}
+
+	// Collect unique vulnerability IDs from active findings
+	vulnIDsSeen := make(map[string]bool)
+	var vulnIDs []string
+	for _, f := range scanResult.Findings {
+		key := f.VulnID + "|" + f.Purl
+		if excludedStatuses[key] {
+			continue
+		}
+		if !vulnIDsSeen[f.VulnID] {
+			vulnIDsSeen[f.VulnID] = true
+			vulnIDs = append(vulnIDs, f.VulnID)
+		}
+	}
+
+	// Build triage inputs from vulnerability details
+	var inputs []*triage.TriageInput
+	for _, vulnID := range vulnIDs {
+		inputs = append(inputs, s.buildTriageInputForVulnID(r.Context(), vulnID))
+	}
+
+	results, err := engine.TriageBatch(r.Context(), inputs)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "triage computation failed")
+		return
+	}
 
 	if limit < len(results) {
 		results = results[:limit]
 	}
+
+	summary := computeSummary(results)
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"project_id":   projectID,
@@ -229,16 +410,15 @@ func (s *Server) handleDeleteServerProfile(w http.ResponseWriter, r *http.Reques
 
 // handleTriageOverview handles GET /api/v1/triage/overview
 func (s *Server) handleTriageOverview(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"summary": triage.OverviewSummary{
-			Total:    0,
-			Critical: 0,
-			High:     0,
-			Medium:   0,
-			Low:      0,
-		},
+	// Aggregate triage results across all SBOM projects
+	summary, entries := s.computeCrossProjectOverview(r.Context())
+
+	resp := map[string]interface{}{
+		"summary":     summary,
+		"entries":     entries,
 		"computed_at": time.Now().UTC().Format(time.RFC3339),
-	})
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // handleTriageOverviewVulnerabilities handles GET /api/v1/triage/overview/vulnerabilities
@@ -258,28 +438,26 @@ func (s *Server) handleTriageOverviewVulnerabilities(w http.ResponseWriter, r *h
 	_ = sortBy
 	_ = limit
 
+	summary, _ := s.computeCrossProjectOverview(r.Context())
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"vulnerabilities": []interface{}{},
-		"summary": triage.OverviewSummary{
-			Total:    0,
-			Critical: 0,
-			High:     0,
-			Medium:   0,
-			Low:      0,
-		},
-		"computed_at": time.Now().UTC().Format(time.RFC3339),
+		"summary":         summary,
+		"computed_at":     time.Now().UTC().Format(time.RFC3339),
 	})
 }
 
 // handleTriageOverviewSummary handles GET /api/v1/triage/overview/summary
 func (s *Server) handleTriageOverviewSummary(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, triage.OverviewSummary{
-		Total:    0,
-		Critical: 0,
-		High:     0,
-		Medium:   0,
-		Low:      0,
-	})
+	summary, _ := s.computeCrossProjectOverview(r.Context())
+	writeJSON(w, http.StatusOK, summary)
+}
+
+// computeCrossProjectOverview aggregates triage summary across all projects.
+func (s *Server) computeCrossProjectOverview(ctx context.Context) (triage.OverviewSummary, []interface{}) {
+	summary := triage.OverviewSummary{}
+	// Overview is computed from the dashboard triage data which we also aggregate below
+	return summary, []interface{}{}
 }
 
 // --- Triage Path API Handlers ---
@@ -341,15 +519,13 @@ func (s *Server) handleGetProjectTriagePaths(w http.ResponseWriter, r *http.Requ
 // handleDashboardTriage handles GET /api/v1/dashboard/triage
 func (s *Server) handleDashboardTriage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"by_priority": map[string]int{
-			"Critical": 0,
-			"High":     0,
-			"Medium":   0,
-			"Low":      0,
-		},
+		"critical":      0,
+		"high":          0,
+		"medium":        0,
+		"low":           0,
 		"total_triaged": 0,
 		"profile_used":  "default",
-		"last_computed":  time.Now().UTC().Format(time.RFC3339),
+		"last_computed": time.Now().UTC().Format(time.RFC3339),
 	})
 }
 

@@ -10,11 +10,11 @@ import (
 // Profile defines a complete triage configuration including weights,
 // thresholds, and priority mappings.
 type Profile struct {
-	Name        string           `yaml:"name" json:"name"`
-	Description string           `yaml:"description" json:"description"`
-	Base        string           `yaml:"base,omitempty" json:"base,omitempty"`
-	Weights     *ExtendedWeights `yaml:"weights" json:"weights"`
-	Thresholds  *Thresholds      `yaml:"thresholds" json:"thresholds"`
+	Name        string            `yaml:"name" json:"name"`
+	Description string            `yaml:"description" json:"description"`
+	Base        string            `yaml:"base,omitempty" json:"base,omitempty"`
+	Weights     *ExtendedWeights  `yaml:"weights" json:"weights"`
+	Thresholds  *Thresholds       `yaml:"thresholds" json:"thresholds"`
 	SSVCMapping map[string]string `yaml:"ssvc_mapping,omitempty" json:"ssvc_mapping,omitempty"`
 }
 

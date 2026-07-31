@@ -18,7 +18,7 @@ export interface TriageResult {
   composite_score: number;
   ssvc_decision: string;
   rationale: TriageRationale;
-  signal_values: SignalContribution[];
+  signal_values: Record<string, number>;
   profile_used: string;
   computed_at: string;
 }
@@ -27,15 +27,25 @@ export interface TriageResult {
 export interface TriageRationale {
   summary: string;
   top_factors: TriageFactor[];
-  signal_details: string[];
+  signal_details: SignalDetail[];
   ssvc_decision: string;
   resolution_method: string;
+}
+
+/** A signal detail in the rationale */
+export interface SignalDetail {
+  signal: string;
+  raw_value: number;
+  weight: number;
+  effective_weight: number;
+  contribution: number;
+  available: boolean;
 }
 
 /** A factor contributing to the triage decision */
 export interface TriageFactor {
   description: string;
-  impact: number;
+  impact: string;
 }
 
 /** Summary counts by priority level for the dashboard */
