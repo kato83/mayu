@@ -26,4 +26,10 @@ export const DOCS_MANIFEST: DocEntry[] = [
     filename: 'docs/docs/translation.md',
     filenameJa: 'docs/docs/translation.ja.md',
   },
+  {
+    slug: 'vulnerability-triage',
+    title: 'Vulnerability Triage Engine',
+    filename: 'docs/docs/vulnerability-triage.md',
+    filenameJa: 'docs/docs/vulnerability-triage.ja.md',
+  },
 ];
