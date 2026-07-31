@@ -3,12 +3,14 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/sbommon"
 	"github.com/kato83/mayu/internal/triage"
@@ -434,14 +436,28 @@ func (s *Server) handleTriageOverviewVulnerabilities(w http.ResponseWriter, r *h
 		}
 	}
 
-	_ = priority
-	_ = sortBy
-	_ = limit
+	_ = sortBy // sorting is already done by AggregateCrossProjectBatch (priority desc)
 
-	summary, _ := s.computeCrossProjectOverview(r.Context())
+	summary, crossResults := s.computeCrossProjectOverview(r.Context())
+
+	// Filter by priority if specified
+	if priority != "" {
+		var filtered []*triage.CrossProjectTriageResult
+		for _, cr := range crossResults {
+			if strings.EqualFold(string(cr.OrgPriorityLevel), priority) {
+				filtered = append(filtered, cr)
+			}
+		}
+		crossResults = filtered
+	}
+
+	// Apply limit
+	if limit < len(crossResults) {
+		crossResults = crossResults[:limit]
+	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"vulnerabilities": []interface{}{},
+		"vulnerabilities": crossResults,
 		"summary":         summary,
 		"computed_at":     time.Now().UTC().Format(time.RFC3339),
 	})
@@ -453,11 +469,107 @@ func (s *Server) handleTriageOverviewSummary(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, summary)
 }
 
-// computeCrossProjectOverview aggregates triage summary across all projects.
-func (s *Server) computeCrossProjectOverview(ctx context.Context) (triage.OverviewSummary, []interface{}) {
-	summary := triage.OverviewSummary{}
-	// Overview is computed from the dashboard triage data which we also aggregate below
-	return summary, []interface{}{}
+// computeCrossProjectOverview aggregates triage results across all SBOM projects.
+// It returns the summary counts and the full list of cross-project results.
+func (s *Server) computeCrossProjectOverview(ctx context.Context) (*triage.OverviewSummary, []*triage.CrossProjectTriageResult) {
+	if s.sbomStore == nil {
+		return &triage.OverviewSummary{}, nil
+	}
+
+	user := auth.UserFromContext(ctx)
+	if user == nil {
+		return &triage.OverviewSummary{}, nil
+	}
+
+	projects, err := s.sbomStore.ListProjects(ctx, user.ID)
+	if err != nil || len(projects) == 0 {
+		return &triage.OverviewSummary{}, nil
+	}
+
+	profile := triage.DefaultProfile()
+	engine := triage.NewEngine(profile)
+
+	// Collect triage entries grouped by vulnerability ID across all projects
+	entriesByVuln := make(map[string][]triage.ServerTriageEntry)
+
+	for _, proj := range projects {
+		latestVer, err := s.sbomStore.GetLatestVersion(ctx, proj.ID)
+		if err != nil || latestVer == nil {
+			continue
+		}
+
+		scanResult, err := s.sbomStore.GetLatestScanResult(ctx, latestVer.ID)
+		if err != nil || scanResult == nil || len(scanResult.Findings) == 0 {
+			continue
+		}
+
+		// Exclude suppressed/false_positive/resolved findings
+		excludedStatuses := make(map[string]bool)
+		statuses, _ := s.sbomStore.ListFindingStatuses(ctx, latestVer.ID, nil)
+		for _, fs := range statuses {
+			if fs.Status == sbommon.FindingStatusFalsePositive ||
+				fs.Status == sbommon.FindingStatusSuppressed ||
+				fs.Status == sbommon.FindingStatusResolved {
+				excludedStatuses[fs.VulnID+"|"+fs.Purl] = true
+			}
+		}
+
+		// Collect unique vulnerability IDs from active findings
+		vulnIDsSeen := make(map[string]bool)
+		var vulnIDs []string
+		for _, f := range scanResult.Findings {
+			key := f.VulnID + "|" + f.Purl
+			if excludedStatuses[key] {
+				continue
+			}
+			if !vulnIDsSeen[f.VulnID] {
+				vulnIDsSeen[f.VulnID] = true
+				vulnIDs = append(vulnIDs, f.VulnID)
+			}
+		}
+
+		if len(vulnIDs) == 0 {
+			continue
+		}
+
+		// Build triage inputs and run triage
+		var inputs []*triage.TriageInput
+		for _, vulnID := range vulnIDs {
+			inputs = append(inputs, s.buildTriageInputForVulnID(ctx, vulnID))
+		}
+
+		results, err := engine.TriageBatch(ctx, inputs)
+		if err != nil {
+			slog.Error("triage computation failed for project", "project", proj.Name, "error", err)
+			continue
+		}
+
+		// Map results into ServerTriageEntry per vulnerability
+		for _, result := range results {
+			entry := triage.ServerTriageEntry{
+				ProjectID:    proj.ID,
+				ProjectName:  proj.Name,
+				ServerLabel:  latestVer.Environment,
+				Environment:  latestVer.Environment,
+				ProfileUsed:  profile.Name,
+				TriageResult: result,
+			}
+			if entry.ServerLabel == "" {
+				entry.ServerLabel = "default"
+			}
+			entriesByVuln[result.VulnerabilityID] = append(entriesByVuln[result.VulnerabilityID], entry)
+		}
+	}
+
+	if len(entriesByVuln) == 0 {
+		return &triage.OverviewSummary{}, nil
+	}
+
+	// Aggregate cross-project results
+	crossResults := triage.AggregateCrossProjectBatch(entriesByVuln)
+	summary := triage.ComputeOverviewSummary(crossResults)
+
+	return summary, crossResults
 }
 
 // --- Triage Path API Handlers ---
@@ -476,16 +588,164 @@ func (s *Server) handleListTriagePaths(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_ = priority
-	_ = ecosystem
-	_ = project
-	_ = limit
+	paths := s.computeTriagePaths(r.Context())
+
+	// Filter by priority
+	if priority != "" {
+		var filtered []*triage.TriagePath
+		for _, p := range paths {
+			if strings.EqualFold(string(p.MaxPriorityLevel), priority) {
+				filtered = append(filtered, p)
+			}
+		}
+		paths = filtered
+	}
+
+	// Filter by ecosystem
+	if ecosystem != "" {
+		var filtered []*triage.TriagePath
+		for _, p := range paths {
+			if strings.EqualFold(p.Action.Ecosystem, ecosystem) {
+				filtered = append(filtered, p)
+			}
+		}
+		paths = filtered
+	}
+
+	// Filter by project name
+	if project != "" {
+		var filtered []*triage.TriagePath
+		for _, p := range paths {
+			for _, srv := range p.AffectedServers {
+				if strings.EqualFold(srv.ProjectName, project) {
+					filtered = append(filtered, p)
+					break
+				}
+			}
+		}
+		paths = filtered
+	}
+
+	// Apply limit
+	if limit < len(paths) {
+		paths = paths[:limit]
+	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"paths":       []interface{}{},
-		"total":       0,
+		"paths":       paths,
+		"total":       len(paths),
 		"computed_at": time.Now().UTC().Format(time.RFC3339),
 	})
+}
+
+// computeTriagePaths computes remediation paths across all SBOM projects.
+func (s *Server) computeTriagePaths(ctx context.Context) []*triage.TriagePath {
+	if s.sbomStore == nil {
+		return nil
+	}
+
+	user := auth.UserFromContext(ctx)
+	if user == nil {
+		return nil
+	}
+
+	projects, err := s.sbomStore.ListProjects(ctx, user.ID)
+	if err != nil || len(projects) == 0 {
+		return nil
+	}
+
+	profile := triage.DefaultProfile()
+	engine := triage.NewEngine(profile)
+
+	var scanFindings []triage.ScanFinding
+
+	for _, proj := range projects {
+		latestVer, err := s.sbomStore.GetLatestVersion(ctx, proj.ID)
+		if err != nil || latestVer == nil {
+			continue
+		}
+
+		scanResult, err := s.sbomStore.GetLatestScanResult(ctx, latestVer.ID)
+		if err != nil || scanResult == nil || len(scanResult.Findings) == 0 {
+			continue
+		}
+
+		// Exclude suppressed/false_positive/resolved findings
+		excludedStatuses := make(map[string]bool)
+		statuses, _ := s.sbomStore.ListFindingStatuses(ctx, latestVer.ID, nil)
+		for _, fs := range statuses {
+			if fs.Status == sbommon.FindingStatusFalsePositive ||
+				fs.Status == sbommon.FindingStatusSuppressed ||
+				fs.Status == sbommon.FindingStatusResolved {
+				excludedStatuses[fs.VulnID+"|"+fs.Purl] = true
+			}
+		}
+
+		// Build triage inputs for scoring
+		vulnScores := make(map[string]*triage.TriageResult)
+		var vulnIDs []string
+		vulnIDsSeen := make(map[string]bool)
+		for _, f := range scanResult.Findings {
+			key := f.VulnID + "|" + f.Purl
+			if excludedStatuses[key] {
+				continue
+			}
+			if !vulnIDsSeen[f.VulnID] {
+				vulnIDsSeen[f.VulnID] = true
+				vulnIDs = append(vulnIDs, f.VulnID)
+			}
+		}
+
+		if len(vulnIDs) == 0 {
+			continue
+		}
+
+		var inputs []*triage.TriageInput
+		for _, vulnID := range vulnIDs {
+			inputs = append(inputs, s.buildTriageInputForVulnID(ctx, vulnID))
+		}
+
+		results, err := engine.TriageBatch(ctx, inputs)
+		if err != nil {
+			continue
+		}
+		for _, r := range results {
+			vulnScores[r.VulnerabilityID] = r
+		}
+
+		// Build ScanFindings for path computation
+		for _, f := range scanResult.Findings {
+			key := f.VulnID + "|" + f.Purl
+			if excludedStatuses[key] {
+				continue
+			}
+			sf := triage.ScanFinding{
+				VulnerabilityID: f.VulnID,
+				PackagePurl:     f.Purl,
+				CurrentVersion:  f.Version,
+				FixedVersion:    f.FixedVersion,
+				Ecosystem:       f.Ecosystem,
+				ServerLabel:     latestVer.Environment,
+				ProjectID:       proj.ID,
+				ProjectName:     proj.Name,
+				Environment:     latestVer.Environment,
+			}
+			if sf.ServerLabel == "" {
+				sf.ServerLabel = "default"
+			}
+			if result, ok := vulnScores[f.VulnID]; ok {
+				sf.CompositeScore = result.CompositeScore
+				sf.PriorityLevel = result.PriorityLevel
+			}
+			scanFindings = append(scanFindings, sf)
+		}
+	}
+
+	if len(scanFindings) == 0 {
+		return nil
+	}
+
+	return triage.ComputeTriagePaths(scanFindings)
 }
 
 // handleGetTriagePath handles GET /api/v1/triage/paths/{id}
@@ -518,14 +778,15 @@ func (s *Server) handleGetProjectTriagePaths(w http.ResponseWriter, r *http.Requ
 
 // handleDashboardTriage handles GET /api/v1/dashboard/triage
 func (s *Server) handleDashboardTriage(w http.ResponseWriter, r *http.Request) {
+	summary, _ := s.computeCrossProjectOverview(r.Context())
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"by_priority": map[string]int{
-			"critical": 0,
-			"high":     0,
-			"medium":   0,
-			"low":      0,
+			"critical": summary.Critical,
+			"high":     summary.High,
+			"medium":   summary.Medium,
+			"low":      summary.Low,
 		},
-		"total_triaged": 0,
+		"total_triaged": summary.Total,
 		"profile_used":  "default",
 		"last_computed": time.Now().UTC().Format(time.RFC3339),
 	})
