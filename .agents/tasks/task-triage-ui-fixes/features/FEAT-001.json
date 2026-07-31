@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix triage dashboard error and add sidebar navigation. Three issues: (1) Add 'Triage' entry to sidebar navigation with children (Overview, Paths, Profiles), (2) Remove the erroneous triageBatch({}) call in the dashboard that causes a 400 error on load, (3) Add a 'Run Triage' section to the dashboard so users can trigger triage from the UI.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In ui/src/app/layout/sidebar/sidebar.component.ts, add a Triage nav item to the allNavItems array (after SBOM, before Teams). It should have route '/triage', icon (use a medical/analysis icon like a clipboard or microscope emoji), and children: [{label: 'Overview', route: '/triage/overview', icon: appropriate}, {label: 'Paths', route: '/triage/paths', icon: appropriate}, {label: 'Profiles', route: '/triage/profiles', icon: appropriate}].",
     "In ui/src/app/pages/triage/triage-dashboard.component.ts, remove the triageBatch({}) call from loadData(). The dashboard should only call getDashboardSummary() and listProfiles() on init. Results should start as an empty array and only be populated when the user explicitly runs triage.",
@@ -21,5 +21,5 @@
     "Run `pnpm --prefix ui run build` and confirm it succeeds with no errors"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Tests are pre-existing failures (TestBed.initTestEnvironment not called in spec files) unrelated to this change. Build passes cleanly. The pnpm test script has a version mismatch issue that deletes node_modules - running vitest directly on the base branch shows the same 15 test file failures."
 }
