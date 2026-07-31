@@ -1,0 +1,26 @@
+{
+  "project_type": "Go backend (Go 1.26.5) + Angular v22 frontend - Vulnerability intelligence tool",
+  "language": "Go, TypeScript (Angular)",
+  "build_system": "make (Go), pnpm (Angular UI). See Makefile targets: build, test, lint, fmt, test-integration",
+  "test_framework": "go test with table-driven tests (unit), integration tests with //go:build integration tag, Vitest for Angular",
+  "build_command": "make build",
+  "test_command": "make test",
+  "verification_instructions": "1. Validate JSON files with jq. 2. Validate YAML files with yaml syntax check. 3. Check that all referenced paths exist. 4. Verify markdown renders properly.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "No build setup needed - this task creates configuration files only (JSON, YAML, Markdown)",
+  "environment_constraints": "This is a configuration/documentation task. No Go compilation or DB needed. Files created: .kiro/agents/*.json, .kiro/steering/*.md, .github/workflows/*.yml",
+  "contribution_requirements": "Follow existing patterns in .kiro/steering/ for markdown. YAML workflows follow kiro-action conventions. Agent JSON follows .kiro/agents/<name>.json pattern used by kiro-cli --agent flag.",
+  "key_patterns": "Steering files: plain markdown in .kiro/steering/. MCP config: .kiro/settings/mcp.json. Existing GitHub Actions: ci.yml, kiro.yml, release.yml. Agent definitions: .kiro/agents/<name>.json (used via kiro-cli chat --agent <name>). Workflow prompts in GitHub Actions use kiro-action with explicit prompt: input.",
+  "relevant_files": [
+    ".kiro/steering/project.md",
+    ".kiro/steering/worktree.md",
+    ".kiro/steering/docs-ui-integration.md",
+    ".kiro/steering/erd.md",
+    ".kiro/settings/mcp.json",
+    ".github/workflows/kiro.yml",
+    ".github/workflows/ci.yml",
+    "CONTRIBUTING.md",
+    "Makefile"
+  ],
+  "directory_structure": ".kiro/steering/ - steering files for agent behavior guidance. .kiro/settings/ - MCP server config. .github/workflows/ - CI/CD and Kiro automation. .agents/tasks/ - task plans from prior work. cmd/mayu/ - CLI entrypoint. internal/ - Go packages. ui/ - Angular frontend. docs/ - documentation. migrations/ - SQL migrations."
+}

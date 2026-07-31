@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Create custom Kiro agent definitions in .kiro/agents/ for all 11 specialized roles: product-strategist, researcher, planner, architect, developer, reviewer, qa, devops, triage, marketer, and devils-advocate. Each agent JSON file defines the agent's system prompt, role, responsibilities, and behavioral guidelines tailored to the mayu project.",
+  "status": "completed",
+  "steps": [
+    "Create directory .kiro/agents/ if it does not exist",
+    "Create .kiro/agents/product-strategist.json - Defines product strategy agent: roadmap prioritization, feature alignment with vulnerability intelligence mission, user persona understanding, competitive analysis context",
+    "Create .kiro/agents/researcher.json - Technology research agent: evaluates new data sources, analyzes competing tools (Trivy, Grype, OSV-Scanner), investigates API/protocol options, produces structured research reports",
+    "Create .kiro/agents/planner.json - Planning agent: breaks features into actionable tasks, defines acceptance criteria, sequences work by dependencies, creates task files in .agents/tasks/ format",
+    "Create .kiro/agents/architect.json - Design/architecture agent: system design decisions, API design (REST conventions used in internal/server/), database schema design (referencing .kiro/steering/erd.md), performance considerations, Go package structure",
+    "Create .kiro/agents/developer.json - Development agent: implements code following project conventions (Go stdlib preference, database/sql+pgx, TDD, Angular v22+TailwindCSS v4), runs tests, handles migrations",
+    "Create .kiro/agents/reviewer.json - Code review agent: reviews PRs for quality, security, performance, test coverage, convention compliance (references CONTRIBUTING.md and project.md conventions)",
+    "Create .kiro/agents/qa.json - QA agent: writes comprehensive tests (unit + integration), validates edge cases, checks i18n compliance, verifies migration up/down symmetry, runs full test suites",
+    "Create .kiro/agents/devops.json - DevOps agent: manages CI/CD workflows, Docker configuration, release process, monitoring setup, infrastructure as code",
+    "Create .kiro/agents/triage.json - Issue/PR triage agent: categorizes incoming issues, assigns priority labels, identifies duplicates, routes to appropriate area, requests missing information",
+    "Create .kiro/agents/marketer.json - OSS marketing agent: README optimization, social media content, release announcements, community engagement strategy, documentation for adoption",
+    "Create .kiro/agents/devils-advocate.json - Contrarian reviewer agent: challenges assumptions in designs/plans/reviews, identifies risks, questions trade-offs, presents alternative approaches, stress-tests decisions"
+  ],
+  "acceptance_criteria": [
+    "All 11 .kiro/agents/*.json files exist and are valid JSON",
+    "Each agent file contains: roleDefinition, systemPrompt/instructions field, and project-specific context relevant to mayu",
+    "Agent prompts reference actual mayu project paths, conventions, and tools from project.md and CONTRIBUTING.md",
+    "Agents can be invoked via kiro-cli chat --agent <name> syntax"
+  ],
+  "verification": [
+    "Run: for f in .kiro/agents/*.json; do jq empty \"$f\" && echo \"$f: valid\"; done",
+    "Verify all 11 expected agent files exist: ls .kiro/agents/ | wc -l should be 11",
+    "Check each agent file has required fields with: jq 'keys' .kiro/agents/developer.json"
+  ],
+  "blocked_reason": null,
+  "findings": "All 11 agent JSON files created and validated with jq. Each file uses the schema: {name, description, instructions}. Instructions are in Japanese with technical terms in English. No build/test needed as this is configuration-only. Agent files are invokable via kiro-cli chat --agent <name> where <name> is the filename without .json extension."
+}
