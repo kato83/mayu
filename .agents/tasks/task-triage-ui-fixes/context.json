@@ -1,0 +1,30 @@
+{
+  "project_type": "Go backend (chi router) + Angular 22 SPA frontend (standalone components, signals, Tailwind CSS 4, pnpm)",
+  "language": "Go + TypeScript",
+  "build_system": "Make for Go backend, pnpm for Angular frontend. `make build` does both (runs ui-build first). `make build-no-ui` for Go only.",
+  "test_framework": "Go test for backend, Vitest for frontend (ui/vitest.config.ts). Tests are run with `make test` (Go) and `pnpm --prefix ui run test --watch=false` (Angular/Vitest).",
+  "build_command": "pnpm --prefix ui install && pnpm --prefix ui run build",
+  "test_command": "cd ui && pnpm run test --watch=false",
+  "verification_instructions": "1. Run `pnpm --prefix ui install` to install deps. 2. Run `pnpm --prefix ui run build` to verify Angular builds. 3. Run `cd ui && pnpm run test --watch=false` for frontend tests. 4. Run `make build-no-ui` to verify Go backend compiles.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "pnpm --prefix ui install",
+  "environment_constraints": "OPEN_INTERNET - full access for installing packages. No database available for integration tests. Frontend can be fully built and tested. Go backend can be compiled but integration tests require PostgreSQL.",
+  "contribution_requirements": "Angular components use standalone mode with signals. Tailwind CSS classes inline. i18n via $localize and i18n attributes. No em dashes in code.",
+  "key_patterns": "1. Angular standalone components with inject() for DI. 2. Signals for state (signal(), computed()). 3. Service layer in ui/src/app/services/ using HttpClient. 4. Models in ui/src/app/models/. 5. Sidebar uses allNavItems array with optional children for expandable subnavs. 6. Routes defined in app.routes.ts with lazy-loaded components. 7. Backend handlers in internal/server/triage.go. 8. Profile system: builtin templates (default, internet-facing, internal-only, air-gapped), no custom profile CRUD in backend yet.",
+  "relevant_files": [
+    "ui/src/app/layout/sidebar/sidebar.component.ts",
+    "ui/src/app/pages/triage/triage-dashboard.component.ts",
+    "ui/src/app/pages/triage/triage-overview.component.ts",
+    "ui/src/app/pages/triage/triage-path-list.component.ts",
+    "ui/src/app/pages/triage/triage-detail.component.ts",
+    "ui/src/app/pages/triage/index.ts",
+    "ui/src/app/services/triage.service.ts",
+    "ui/src/app/services/sbom.service.ts",
+    "ui/src/app/models/triage.model.ts",
+    "ui/src/app/models/sbom.model.ts",
+    "ui/src/app/app.routes.ts",
+    "internal/server/triage.go",
+    "internal/triage/profile.go"
+  ],
+  "directory_structure": "Root: Go backend (cmd/, internal/, migrations/). ui/: Angular 22 SPA. ui/src/app/pages/triage/: all triage page components. ui/src/app/services/: API service layer. ui/src/app/models/: TypeScript interfaces."
+}

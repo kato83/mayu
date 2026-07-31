@@ -2,7 +2,9 @@ import { DecimalPipe } from '@angular/common';
 import { Component, inject, type OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import type { SBOMProject } from '../../models/sbom.model';
 import type { TriageProfile, TriageResult, TriageSummary } from '../../models/triage.model';
+import { SbomService } from '../../services/sbom.service';
 import { TriageService } from '../../services/triage.service';
 
 @Component({
@@ -59,6 +61,45 @@ import { TriageService } from '../../services/triage.service';
           <span i18n="@@triage.lastComputed">Last computed: {{ summary()?.last_computed }}</span>
         }
       </div>
+
+      <!-- Run Triage Section -->
+      <section class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 mb-6">
+        <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3" i18n="@@triage.runTriageTitle">Run Triage</h2>
+        <div class="flex flex-wrap items-end gap-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-slate-500 dark:text-slate-400" i18n="@@triage.projectLabel">Project</label>
+            <select
+              class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white min-w-[200px]"
+              [ngModel]="selectedProjectId()"
+              (ngModelChange)="selectedProjectId.set($event)">
+              <option value="" disabled i18n="@@triage.selectProject">Select a project</option>
+              @for (proj of projects(); track proj.id) {
+                <option [value]="proj.id">{{ proj.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-slate-500 dark:text-slate-400" i18n="@@triage.profileLabelRun">Profile</label>
+            <select
+              class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white min-w-[150px]"
+              [ngModel]="selectedProfile()"
+              (ngModelChange)="onProfileChange($event)">
+              @for (p of profiles(); track p.name) {
+                <option [value]="p.name">{{ p.name }}</option>
+              }
+            </select>
+          </div>
+          <button
+            class="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            [disabled]="!selectedProjectId() || triageRunning()"
+            (click)="runTriage()">
+            @if (triageRunning()) {
+              <span class="animate-spin inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+            }
+            <span i18n="@@triage.runButton">Run Triage</span>
+          </button>
+        </div>
+      </section>
 
       <!-- Triage Results Table -->
       <section class="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
@@ -124,12 +165,16 @@ import { TriageService } from '../../services/triage.service';
 })
 export class TriageDashboardComponent implements OnInit {
   private readonly triageService = inject(TriageService);
+  private readonly sbomService = inject(SbomService);
 
   readonly loading = signal(true);
   readonly summary = signal<TriageSummary | null>(null);
   readonly results = signal<TriageResult[]>([]);
   readonly profiles = signal<TriageProfile[]>([]);
   readonly selectedProfile = signal<string>('default');
+  readonly projects = signal<SBOMProject[]>([]);
+  readonly selectedProjectId = signal<string>('');
+  readonly triageRunning = signal(false);
 
   private sortField: string = 'priority_level';
   private sortAsc = false;
@@ -140,8 +185,11 @@ export class TriageDashboardComponent implements OnInit {
 
   private loadData(): void {
     this.triageService.getDashboardSummary().subscribe({
-      next: (s) => this.summary.set(s),
-      error: () => {},
+      next: (s) => {
+        this.summary.set(s);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
     });
 
     this.triageService.listProfiles().subscribe({
@@ -149,19 +197,28 @@ export class TriageDashboardComponent implements OnInit {
       error: () => {},
     });
 
-    this.triageService.triageBatch({}).subscribe({
+    this.sbomService.listProjects().subscribe({
+      next: (p) => this.projects.set(p),
+      error: () => {},
+    });
+  }
+
+  runTriage(): void {
+    const projectId = this.selectedProjectId();
+    if (!projectId) return;
+
+    this.triageRunning.set(true);
+    this.triageService.getProjectTriage(projectId, { profile: this.selectedProfile() }).subscribe({
       next: (r) => {
         this.results.set(r);
-        this.loading.set(false);
+        this.triageRunning.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => this.triageRunning.set(false),
     });
   }
 
   onProfileChange(profile: string): void {
     this.selectedProfile.set(profile);
-    this.loading.set(true);
-    this.loadData();
   }
 
   sortBy(field: string): void {
