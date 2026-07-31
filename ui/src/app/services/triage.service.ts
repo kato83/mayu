@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import type {
   CrossProjectTriageResult,
   ProfileBindingRequest,
@@ -54,7 +55,9 @@ export class TriageService {
   // --- Profiles ---
 
   listProfiles(): Observable<TriageProfile[]> {
-    return this.http.get<TriageProfile[]>('/api/v1/triage/profiles');
+    return this.http.get<{ profiles: TriageProfile[] }>('/api/v1/triage/profiles').pipe(
+      map(res => res.profiles)
+    );
   }
 
   validateProfile(profile: TriageProfile): Observable<{ valid: boolean; errors: string[] }> {
