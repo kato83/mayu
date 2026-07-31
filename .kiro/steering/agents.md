@@ -97,7 +97,7 @@ Issue または PR のコメントに `/kiro @<agent-name> <instruction>` と記
 | `agent-security-review.yml` | セキュリティ関連パス変更時 | reviewer (security focus) |
 | `agent-ci-fix.yml` | CI 失敗時 | developer |
 | `agent-docs-sync.yml` | ソースコード変更時 | developer (docs) |
-| `agent-dependency-audit.yml` | 週次スケジュール | researcher |
+| `agent-dependency-audit.yml` | 週次スケジュール | devops |
 
 ### 3. Kiro Web セッション
 

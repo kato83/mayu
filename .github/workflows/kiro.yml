@@ -56,19 +56,36 @@ jobs:
       - name: Parse agent routing from comment
         id: parse-agent
         if: github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment'
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          COMMENT_BODY="${{ github.event.comment.body }}"
+          # Use only the first line for routing to handle multiline comments safely.
+          # The full comment body is passed as the prompt via the env variable.
+          FIRST_LINE=$(echo "$COMMENT_BODY" | head -n 1)
+
           # Match pattern: /kiro @agent-name <rest of instruction>
-          if echo "$COMMENT_BODY" | grep -qP '^/kiro\s+@([\w-]+)'; then
-            AGENT_NAME=$(echo "$COMMENT_BODY" | grep -oP '^/kiro\s+@\K[\w-]+')
-            INSTRUCTION=$(echo "$COMMENT_BODY" | sed -E 's|^/kiro\s+@[\w-]+\s*||')
+          if echo "$FIRST_LINE" | grep -qP '^/kiro\s+@([\w-]+)'; then
+            AGENT_NAME=$(echo "$FIRST_LINE" | grep -oP '^/kiro\s+@\K[\w-]+')
+            INSTRUCTION=$(echo "$COMMENT_BODY" | sed -E '1s|^/kiro\s+@[\w-]+\s*||')
+
+            # Validate agent name against the known list
+            VALID_AGENTS="product-strategist researcher planner architect developer reviewer qa devops triage marketer devils-advocate"
+            if ! echo "$VALID_AGENTS" | grep -qw "$AGENT_NAME"; then
+              echo "::error::Unknown agent: $AGENT_NAME. Valid agents: $VALID_AGENTS"
+              exit 1
+            fi
+
             echo "agent=$AGENT_NAME" >> "$GITHUB_OUTPUT"
-            echo "instruction=$INSTRUCTION" >> "$GITHUB_OUTPUT"
+            echo "instruction<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$INSTRUCTION" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
             echo "routed=true" >> "$GITHUB_OUTPUT"
           else
-            INSTRUCTION=$(echo "$COMMENT_BODY" | sed -E 's|^/kiro\s*||')
+            INSTRUCTION=$(echo "$COMMENT_BODY" | sed -E '1s|^/kiro\s*||')
             echo "agent=" >> "$GITHUB_OUTPUT"
-            echo "instruction=$INSTRUCTION" >> "$GITHUB_OUTPUT"
+            echo "instruction<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$INSTRUCTION" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
             echo "routed=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -81,7 +98,11 @@ jobs:
           kiro_args: '--agent ${{ steps.parse-agent.outputs.agent }}'
           prompt: ${{ steps.parse-agent.outputs.instruction }}
 
-      # Default invocation (no agent routing, or non-comment triggers)
+      # Default invocation (no agent routing, or non-comment triggers).
+      # For label/assign events the parse-agent step is skipped entirely, so
+      # outputs.routed is empty (not 'true'). In that case kiro-action runs
+      # without an explicit prompt, which makes it operate on the issue/PR
+      # context provided by the event payload.
       - name: Run with default agent
         if: steps.parse-agent.outputs.routed != 'true'
         uses: kirodotdev-labs/kiro-action@v0
