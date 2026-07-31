@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Add a triage profile management page. Users need a UI to view builtin profile templates, create custom profiles (by adjusting weights/thresholds from a base template), and validate them via the API. A new route /triage/profiles with a dedicated component is needed.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Create a new component at ui/src/app/pages/triage/triage-profiles.component.ts. This is a standalone component following the same patterns as triage-overview.component.ts and triage-path-list.component.ts.",
     "The profiles page should: (1) List all builtin profiles from triageService.listProfiles() in a card/table layout showing name, description, and key weights. (2) Have a 'Create Custom Profile' button that opens an inline form. (3) The form should let users pick a base template, set a name, description, and adjust weights (cvss, epss, lev, kev, patch, age, exploit_db, reachability) with number inputs and thresholds (critical, high, medium). (4) Include a 'Validate' button that calls triageService.validateProfile() and shows success/error messages. (5) For now, custom profiles are validated but not persisted to the backend (no CRUD endpoint exists). Show a note explaining this.",

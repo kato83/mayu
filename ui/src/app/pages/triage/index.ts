@@ -5,3 +5,4 @@ export { TriageDetailComponent } from './triage-detail.component';
 export { TriageOverviewComponent } from './triage-overview.component';
 export { TriagePathDetailComponent } from './triage-path-detail.component';
 export { TriagePathListComponent } from './triage-path-list.component';
+export { TriageProfilesComponent } from './triage-profiles.component';
