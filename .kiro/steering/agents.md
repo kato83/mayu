@@ -21,6 +21,7 @@ The mayu project uses a multi-agent development system combining 11 specialized 
 | **triage** | `.kiro/agents/triage.json` | Issue/PR classification, priority labeling, assignment |
 | **marketer** | `.kiro/agents/marketer.json` | OSS marketing, community strategy, promotion |
 | **devils-advocate** | `.kiro/agents/devils-advocate.json` | Contrarian review, challenging assumptions, finding blind spots |
+| **vuln-triage-operator** | `.kiro/agents/vuln-triage-operator.json` | Vulnerability triage operations via Web UI, functional validation, bug discovery & reporting |
 
 ## Development Lifecycle
 
