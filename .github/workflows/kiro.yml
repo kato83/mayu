@@ -1,13 +1,18 @@
-# Default Kiro workflow — handles all four trigger modes.
+# Default Kiro workflow - handles all four trigger modes with agent routing.
 #
 # Activates when:
 #   - someone comments "/kiro <instruction>" on an issue or PR
 #   - an issue or PR is labeled with "kiro"
 #   - an issue or PR is assigned to the user "kirocli" (requires that user
-#     to be a collaborator — most teams use the label trigger instead)
+#     to be a collaborator - most teams use the label trigger instead)
 #
-# Kiro reads the context, implements the change, commits to a new branch,
-# and opens a pull request.
+# Agent routing:
+#   - "/kiro @<agent-name> <instruction>" routes to a specific agent
+#     (e.g., /kiro @architect design the new API)
+#   - "/kiro <instruction>" without @agent uses the default Kiro behavior
+#
+# Available agents: product-strategist, researcher, planner, architect,
+# developer, reviewer, qa, devops, triage, marketer, devils-advocate
 
 name: Kiro
 
@@ -48,6 +53,37 @@ jobs:
           git config user.name "kiro-agent[bot]"
           git config user.email "244629292+kiro-agent[bot]@users.noreply.github.com"
 
-      - uses: kirodotdev-labs/kiro-action@v0
+      - name: Parse agent routing from comment
+        id: parse-agent
+        if: github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment'
+        run: |
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          # Match pattern: /kiro @agent-name <rest of instruction>
+          if echo "$COMMENT_BODY" | grep -qP '^/kiro\s+@([\w-]+)'; then
+            AGENT_NAME=$(echo "$COMMENT_BODY" | grep -oP '^/kiro\s+@\K[\w-]+')
+            INSTRUCTION=$(echo "$COMMENT_BODY" | sed -E 's|^/kiro\s+@[\w-]+\s*||')
+            echo "agent=$AGENT_NAME" >> "$GITHUB_OUTPUT"
+            echo "instruction=$INSTRUCTION" >> "$GITHUB_OUTPUT"
+            echo "routed=true" >> "$GITHUB_OUTPUT"
+          else
+            INSTRUCTION=$(echo "$COMMENT_BODY" | sed -E 's|^/kiro\s*||')
+            echo "agent=" >> "$GITHUB_OUTPUT"
+            echo "instruction=$INSTRUCTION" >> "$GITHUB_OUTPUT"
+            echo "routed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Routed agent invocation (when @agent-name is specified)
+      - name: Run with routed agent
+        if: steps.parse-agent.outputs.routed == 'true'
+        uses: kirodotdev-labs/kiro-action@v0
+        with:
+          kiro_api_key: ${{ secrets.KIRO_API_KEY }}
+          kiro_args: '--agent ${{ steps.parse-agent.outputs.agent }}'
+          prompt: ${{ steps.parse-agent.outputs.instruction }}
+
+      # Default invocation (no agent routing, or non-comment triggers)
+      - name: Run with default agent
+        if: steps.parse-agent.outputs.routed != 'true'
+        uses: kirodotdev-labs/kiro-action@v0
         with:
           kiro_api_key: ${{ secrets.KIRO_API_KEY }}

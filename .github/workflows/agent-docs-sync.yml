@@ -1,0 +1,74 @@
+# Agent Docs Sync Workflow
+#
+# Checks if documentation needs updating when source code changes.
+# Triggered on PRs that modify CLI commands or internal packages.
+# Excludes test files and testdata.
+
+name: Agent - Docs Sync
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - '!internal/**/*_test.go'
+      - '!**/testdata/**'
+
+jobs:
+  docs-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Skip bot PRs to prevent loops
+    if: |
+      github.actor != 'kiro-agent[bot]' &&
+      github.actor != 'github-actions[bot]'
+    concurrency:
+      group: docs-sync-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Configure git identity for Kiro
+        run: |
+          git config user.name "kiro-agent[bot]"
+          git config user.email "244629292+kiro-agent[bot]@users.noreply.github.com"
+
+      - uses: kirodotdev-labs/kiro-action@v0
+        with:
+          kiro_api_key: ${{ secrets.KIRO_API_KEY }}
+          kiro_args: '--agent developer'
+          prompt: |
+            PR #${{ github.event.pull_request.number }} modifies source code.
+            Check if documentation needs updating.
+
+            Instructions:
+            1. Review the changed files in this PR (cmd/** and internal/**).
+            2. For each change, determine if it affects user-facing behavior:
+               - New CLI commands or flags (cmd/**)
+               - Changed API endpoints (internal/server/**)
+               - New configuration options
+               - Changed behavior or output format
+
+            3. Check if the following docs reflect the current state:
+               - README.md (English) - feature list, usage examples, CLI reference
+               - README_ja.md (Japanese) - same content in Japanese
+               - docs/ directory - detailed documentation
+
+            4. If documentation updates are needed:
+               - Make the necessary changes to keep docs in sync
+               - Ensure both README.md and README_ja.md are updated consistently
+               - Commit with message "docs: sync documentation with source changes"
+               - Push to the PR branch
+
+            5. If no documentation changes are needed:
+               - Comment on the PR confirming docs are still accurate
+
+            Note: Only update docs for user-facing changes. Internal refactoring
+            that does not change behavior does not require doc updates.

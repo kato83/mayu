@@ -1,0 +1,62 @@
+# Agent Review Workflow
+#
+# Performs comprehensive code review on pull requests using the reviewer agent.
+# Covers code quality, security, performance, test coverage, and mayu
+# convention compliance.
+
+name: Agent - Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Skip draft PRs and bot-created PRs
+    if: |
+      !github.event.pull_request.draft &&
+      github.actor != 'kiro-agent[bot]' &&
+      github.actor != 'github-actions[bot]'
+    concurrency:
+      group: review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity for Kiro
+        run: |
+          git config user.name "kiro-agent[bot]"
+          git config user.email "244629292+kiro-agent[bot]@users.noreply.github.com"
+
+      - uses: kirodotdev-labs/kiro-action@v0
+        with:
+          kiro_api_key: ${{ secrets.KIRO_API_KEY }}
+          kiro_args: '--agent reviewer'
+          prompt: |
+            Review pull request #${{ github.event.pull_request.number }}.
+
+            PR title: ${{ github.event.pull_request.title }}
+
+            Perform a comprehensive code review covering:
+            1. **Code Quality**: Clean code, readability, naming conventions, DRY principle.
+            2. **Security**: Input validation, SQL injection, path traversal, auth checks.
+            3. **Performance**: N+1 queries, unnecessary allocations, efficient algorithms.
+            4. **Test Coverage**: Are new code paths tested? Are edge cases covered?
+            5. **Convention Compliance**: Follow mayu project conventions from CONTRIBUTING.md:
+               - Go stdlib preference (no unnecessary dependencies)
+               - database/sql + pgx for database access
+               - Table-driven tests with t.Parallel()
+               - Angular v22 + TailwindCSS v4 for UI
+               - i18n keys for all user-facing strings
+            6. **API Design**: RESTful conventions, consistent error responses.
+            7. **Migration Safety**: If migrations are included, check up/down symmetry.
+
+            Provide feedback as inline PR review comments on specific lines where possible.
+            Summarize the overall review with an approve/request-changes recommendation.

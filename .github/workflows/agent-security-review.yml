@@ -1,0 +1,88 @@
+# Agent Security Review Workflow
+#
+# Performs security-focused review on PRs that modify sensitive paths:
+# HTTP handlers, database queries, migrations, CI/CD config, and
+# container configuration.
+
+name: Agent - Security Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'internal/server/**'
+      - 'internal/store/**'
+      - 'migrations/**'
+      - '.github/workflows/**'
+      - 'compose.yml'
+      - 'Dockerfile'
+
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Skip bot PRs to prevent loops
+    if: |
+      github.actor != 'kiro-agent[bot]' &&
+      github.actor != 'github-actions[bot]'
+    concurrency:
+      group: security-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity for Kiro
+        run: |
+          git config user.name "kiro-agent[bot]"
+          git config user.email "244629292+kiro-agent[bot]@users.noreply.github.com"
+
+      - uses: kirodotdev-labs/kiro-action@v0
+        with:
+          kiro_api_key: ${{ secrets.KIRO_API_KEY }}
+          kiro_args: '--agent reviewer'
+          prompt: |
+            Perform a SECURITY-FOCUSED review on PR #${{ github.event.pull_request.number }}.
+
+            PR title: ${{ github.event.pull_request.title }}
+
+            This PR modifies security-sensitive paths. Focus exclusively on security concerns:
+
+            **For internal/server/** changes:**
+            - Authentication and authorization checks on all endpoints
+            - Input validation and sanitization
+            - CORS configuration
+            - Rate limiting considerations
+            - Response data leakage (no sensitive fields in API responses)
+            - Proper error handling (no stack traces in production responses)
+
+            **For internal/store/** changes:**
+            - SQL injection vulnerabilities (parameterized queries only)
+            - Access control at the data layer
+            - Sensitive data handling (encryption at rest, masking in logs)
+            - Transaction safety for multi-step operations
+
+            **For migrations/** changes:**
+            - Destructive operations (DROP TABLE, DROP COLUMN)
+            - Data migration safety
+            - Rollback capability (down migration must be reversible)
+            - Permission/role changes
+
+            **For .github/workflows/** changes:**
+            - Secret exposure risks
+            - Untrusted input in run commands (injection via PR titles, branch names)
+            - Excessive permissions
+            - Third-party action pinning (use SHA, not tags)
+
+            **For compose.yml / Dockerfile changes:**
+            - Base image security (official images, specific tags)
+            - Exposed ports and network configuration
+            - Secret mounting
+            - Non-root user execution
+
+            Flag any findings with severity: CRITICAL, HIGH, MEDIUM, LOW.
+            Comment inline on specific vulnerable lines where possible.
