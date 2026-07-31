@@ -22,7 +22,7 @@ type TriagePath struct {
 // RemediationAction represents a concrete remediation step.
 type RemediationAction struct {
 	Type           string `json:"type"`
-	Package        string `json:"package"`
+	Package        string `json:"package_name"`
 	CurrentVersion string `json:"current_version"`
 	TargetVersion  string `json:"target_version"`
 	Ecosystem      string `json:"ecosystem"`
