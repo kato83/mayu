@@ -86,7 +86,7 @@ func EstimateSSVC(input *TriageInput) ssvc.Decision {
 // Uses direct options if available, otherwise estimates from signals.
 func EvaluateSSVC(input *TriageInput) (ssvc.Decision, string) {
 	// Try direct evaluation from SSVCOptions
-	if input.SSVCOptions != nil && len(input.SSVCOptions) > 0 {
+	if len(input.SSVCOptions) > 0 {
 		decision, ok := ssvc.EvaluateFromOptions(input.SSVCOptions)
 		if ok {
 			return decision, "direct"

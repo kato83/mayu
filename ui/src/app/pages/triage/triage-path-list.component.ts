@@ -12,7 +12,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
-import type { PriorityLevel, TriagePath } from '../../models/triage.model';
+import type { TriagePath } from '../../models/triage.model';
 import { TriageService } from '../../services/triage.service';
 
 Chart.register(...registerables);

@@ -2,7 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { Component, inject, type OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import type { PriorityLevel, TriageProfile, TriageResult, TriageSummary } from '../../models/triage.model';
+import type { TriageProfile, TriageResult, TriageSummary } from '../../models/triage.model';
 import { TriageService } from '../../services/triage.service';
 
 @Component({

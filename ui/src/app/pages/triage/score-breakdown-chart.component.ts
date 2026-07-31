@@ -2,10 +2,10 @@ import {
   type AfterViewInit,
   Component,
   type ElementRef,
+  input,
   type OnChanges,
   type OnDestroy,
   ViewChild,
-  input,
 } from '@angular/core';
 import { Chart, registerables } from 'chart.js';
 import type { SignalContribution } from '../../models/triage.model';
@@ -75,12 +75,12 @@ export class ScoreBreakdownChartComponent implements AfterViewInit, OnChanges, O
     const weights = data.map((s) => s.effective_weight);
 
     const colors = [
-      'rgba(239, 68, 68, 0.7)',   // red
-      'rgba(249, 115, 22, 0.7)',  // orange
-      'rgba(234, 179, 8, 0.7)',   // yellow
-      'rgba(34, 197, 94, 0.7)',   // green
-      'rgba(59, 130, 246, 0.7)',  // blue
-      'rgba(139, 92, 246, 0.7)',  // violet
+      'rgba(239, 68, 68, 0.7)', // red
+      'rgba(249, 115, 22, 0.7)', // orange
+      'rgba(234, 179, 8, 0.7)', // yellow
+      'rgba(34, 197, 94, 0.7)', // green
+      'rgba(59, 130, 246, 0.7)', // blue
+      'rgba(139, 92, 246, 0.7)', // violet
       'rgba(236, 72, 153, 0.7)', // pink
       'rgba(20, 184, 166, 0.7)', // teal
     ];

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -82,13 +83,13 @@ func TestTriageSingleID(t *testing.T) {
 			args := []string{"--id", tt.vulnID, "--format", tt.format}
 			err := runTriageExecute(args)
 
-			w.Close()
+			_ = w.Close()
 			os.Stdout = old
 
 			var buf [4096]byte
 			n, _ := r.Read(buf[:])
 			output := string(buf[:n])
-			r.Close()
+			_ = r.Close()
 
 			if tt.wantErr && err == nil {
 				t.Fatal("expected error but got nil")
@@ -129,13 +130,13 @@ func TestTriageBatchSBOM(t *testing.T) {
 		args := []string{"--sbom", sbomPath, "--format", "table"}
 		err := runTriageExecute(args)
 
-		w.Close()
+		_ = w.Close()
 		os.Stdout = old
 
 		var buf [8192]byte
 		n, _ := r.Read(buf[:])
 		output := string(buf[:n])
-		r.Close()
+		_ = r.Close()
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -168,13 +169,13 @@ func TestTriageBatchSBOM(t *testing.T) {
 		args := []string{"--sbom", sbomPath, "--format", "json"}
 		err := runTriageExecute(args)
 
-		w.Close()
+		_ = w.Close()
 		os.Stdout = old
 
 		var buf [16384]byte
 		n, _ := r.Read(buf[:])
 		output := string(buf[:n])
-		r.Close()
+		_ = r.Close()
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -281,7 +282,7 @@ func TestTriageFailOn(t *testing.T) {
 		PatchAvailable:  false,
 	}
 
-	results, err := engine.TriageBatch(nil, []*triage.TriageInput{input})
+	results, err := engine.TriageBatch(context.TODO(), []*triage.TriageInput{input})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

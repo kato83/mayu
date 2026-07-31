@@ -4,8 +4,6 @@ import (
 	"context"
 	"sort"
 	"time"
-
-	"github.com/kato83/mayu/internal/ssvc"
 )
 
 // Engine is the main triage computation engine.
@@ -146,13 +144,4 @@ func buildSignalValues(input *TriageInput) map[string]float64 {
 	}
 
 	return values
-}
-
-// ssvcDecisionFromMapping maps string SSVC decisions to ssvc.Decision type.
-func ssvcDecisionFromMapping(mapping map[string]string) map[ssvc.Decision]PriorityLevel {
-	result := make(map[ssvc.Decision]PriorityLevel)
-	for k, v := range mapping {
-		result[ssvc.Decision(k)] = PriorityLevel(v)
-	}
-	return result
 }

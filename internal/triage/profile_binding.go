@@ -88,7 +88,7 @@ func NewInMemoryBindingStore() *InMemoryBindingStore {
 
 func (s *InMemoryBindingStore) CreateBinding(binding *ServerProfileBinding) error {
 	// Upsert: remove existing binding for same project+server
-	s.DeleteBinding(binding.ProjectID, binding.ServerLabel)
+	_ = s.DeleteBinding(binding.ProjectID, binding.ServerLabel)
 	binding.CreatedAt = time.Now()
 	binding.UpdatedAt = time.Now()
 	s.bindings = append(s.bindings, *binding)

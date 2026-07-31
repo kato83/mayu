@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -96,7 +97,7 @@ func triageSingleVuln(engine *triage.Engine, vulnID string, format string) error
 		VulnerabilityID: vulnID,
 	}
 
-	result, err := engine.Triage(nil, input)
+	result, err := engine.Triage(context.TODO(), input)
 	if err != nil {
 		return fmt.Errorf("triage failed: %w", err)
 	}
@@ -140,7 +141,7 @@ func triageBatchSBOM(engine *triage.Engine, sbomPath string, format string, fail
 		inputs = append(inputs, input)
 	}
 
-	results, err := engine.TriageBatch(nil, inputs)
+	results, err := engine.TriageBatch(context.TODO(), inputs)
 	if err != nil {
 		return fmt.Errorf("batch triage failed: %w", err)
 	}

@@ -99,7 +99,7 @@ func ComputeTriagePaths(findings []ScanFinding) []*TriagePath {
 		// Aggregate vulnerabilities and servers
 		vulnMap := make(map[string]*ResolvedVulnEntry)
 		serverSet := make(map[string]struct{})
-		var maxPriority PriorityLevel = PriorityLow
+		maxPriority := PriorityLow
 
 		for _, f := range groupFindings {
 			// Track unique servers

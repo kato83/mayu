@@ -16,10 +16,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// triagePriorityMinFlag holds the parsed --triage-priority-min value for watchlist filtering.
-// When set, only vulnerabilities with triage priority at or above this level will trigger notifications.
-var triagePriorityMinFlag string
-
 func runWatch(args []string, cfg *config.Config) error {
 	if len(args) == 0 {
 		printWatchUsage()
@@ -148,7 +144,6 @@ func runWatchAdd(args []string, cfg *config.Config) error {
 		if _, err := watchlist.ParseTriagePriorityMin(*triagePriorityMin); err != nil {
 			return err
 		}
-		triagePriorityMinFlag = *triagePriorityMin
 	}
 
 	// Connect to database
