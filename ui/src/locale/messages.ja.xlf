@@ -330,10 +330,6 @@
         <source>MITRE</source>
         <target>MITRE</target>
       </trans-unit>
-      <trans-unit id="vulnDetail.tabGhsa" datatype="html">
-        <source>GHSA</source>
-        <target>GHSA</target>
-      </trans-unit>
       <trans-unit id="vulnDetail.ghsaPublished" datatype="html">
         <source>Published: <x id="INTERPOLATION" equiv-text="{{ entry.published_at | date:'yyyy-MM-dd' }}"/></source>
         <target>公開日: <x id="INTERPOLATION" equiv-text="{{ entry.published_at | date:'yyyy-MM-dd' }}"/></target>
