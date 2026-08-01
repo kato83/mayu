@@ -99,6 +99,9 @@ type VulnerabilityDetail struct {
 	// ExploitDB enrichment: public exploits from the Exploit Database
 	ExploitDB []ExploitDBDetail `json:"exploitdb,omitempty"`
 
+	// GHSA enrichment: GitHub Security Advisories from ghsa_entries
+	GHSA []GHSADetail `json:"ghsa,omitempty"`
+
 	// Translations contains translations for text fields when a non-English
 	// locale is requested via the Accept-Language header.
 	Translations []VulnerabilityTranslation `json:"translations,omitempty"`
@@ -468,4 +471,91 @@ type ExploitDBDetail struct {
 
 	// URL is the Exploit-DB page URL (computed from EDB-ID).
 	URL string `json:"url"`
+}
+
+// GHSADetail contains GitHub Security Advisory enrichment data for a vulnerability.
+type GHSADetail struct {
+	// GHSAID is the GitHub Security Advisory identifier (e.g., "GHSA-xxxx-yyyy-zzzz").
+	GHSAID string `json:"ghsa_id"`
+
+	// Severity is the advisory severity (critical, high, medium, low).
+	Severity string `json:"severity,omitempty"`
+
+	// Summary is the short advisory summary.
+	Summary string `json:"summary,omitempty"`
+
+	// Description is the full advisory description.
+	Description string `json:"description,omitempty"`
+
+	// State is the advisory state (published, withdrawn).
+	State string `json:"state,omitempty"`
+
+	// HTMLURL is the link to the advisory on GitHub.
+	HTMLURL string `json:"html_url,omitempty"`
+
+	// CVSSV3Vector is the CVSS v3 vector string (if available).
+	CVSSV3Vector string `json:"cvss_v3_vector,omitempty"`
+
+	// CVSSV3Score is the CVSS v3 base score (if available).
+	CVSSV3Score *float64 `json:"cvss_v3_score,omitempty"`
+
+	// CVSSV4Vector is the CVSS v4 vector string (if available).
+	CVSSV4Vector string `json:"cvss_v4_vector,omitempty"`
+
+	// CVSSV4Score is the CVSS v4 base score (if available).
+	CVSSV4Score *float64 `json:"cvss_v4_score,omitempty"`
+
+	// PublishedAt is when the advisory was published.
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+
+	// UpdatedAt is when the advisory was last updated.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// WithdrawnAt is when the advisory was withdrawn (nil if not withdrawn).
+	WithdrawnAt *time.Time `json:"withdrawn_at,omitempty"`
+
+	// Vulnerabilities lists affected packages from this advisory.
+	Vulnerabilities []GHSAVulnerabilityDetail `json:"vulnerabilities,omitempty"`
+
+	// CWEs lists associated CWE identifiers.
+	CWEs []GHSACWEDetail `json:"cwes,omitempty"`
+
+	// Credits lists credited reporters/contributors.
+	Credits []GHSACreditDetail `json:"credits,omitempty"`
+}
+
+// GHSAVulnerabilityDetail represents an affected package in a GHSA advisory.
+type GHSAVulnerabilityDetail struct {
+	// Ecosystem is the package ecosystem (e.g., "npm", "pip").
+	Ecosystem string `json:"ecosystem"`
+
+	// PackageName is the affected package name.
+	PackageName string `json:"package_name"`
+
+	// VulnerableVersionRange is the affected version range (e.g., ">= 4.0, < 4.7.1").
+	VulnerableVersionRange string `json:"vulnerable_version_range,omitempty"`
+
+	// PatchedVersions is the first patched version (e.g., "4.7.1").
+	PatchedVersions string `json:"patched_versions,omitempty"`
+
+	// VulnerableFunctions lists specific vulnerable functions (if available).
+	VulnerableFunctions []string `json:"vulnerable_functions,omitempty"`
+}
+
+// GHSACWEDetail represents a CWE association from a GHSA advisory.
+type GHSACWEDetail struct {
+	// CWEID is the CWE identifier (e.g., "CWE-79").
+	CWEID string `json:"cwe_id"`
+
+	// Name is the CWE name/description.
+	Name string `json:"name,omitempty"`
+}
+
+// GHSACreditDetail represents a credit entry from a GHSA advisory.
+type GHSACreditDetail struct {
+	// Login is the GitHub username.
+	Login string `json:"login"`
+
+	// Type is the credit type (e.g., "analyst", "reporter").
+	Type string `json:"type,omitempty"`
 }
