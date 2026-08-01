@@ -13,7 +13,7 @@ graph TD
     A[User: Submit Idea] --> B[researcher: Technical Investigation]
     B --> C[planner: Task Decomposition]
     C --> D[architect: Design]
-    D --> E[devils-advocate: Design Review]
+    D --> E[devils_advocate: Design Review]
     E --> F{Approval Checkpoint}
     F -->|Approved| G[developer: TDD Implementation]
     F -->|Revise| D
@@ -78,18 +78,18 @@ kiro-cli chat --agent architect
 
 ```bash
 # CLI
-kiro-cli chat --agent devils-advocate
+kiro-cli chat --agent devils_advocate
 > Review architect's CycloneDX 1.7 support design.
 > Identify issues from the perspectives of backward compatibility, performance impact,
 > and testability.
 
 # GitHub Issue
-/kiro @devils-advocate Critically review the above design proposal for issues
+/kiro @devils_advocate Critically review the above design proposal for issues
 ```
 
 #### Step 6: **[Approval Checkpoint]**
 
-User reviews the design proposal and devils-advocate's feedback, then makes Go/No-Go decision.
+User reviews the design proposal and devils_advocate's feedback, then makes Go/No-Go decision.
 
 #### Step 7: Implementation
 
@@ -369,9 +369,9 @@ Flow for obtaining multiple perspectives on important design decisions.
 ```mermaid
 graph TD
     A[Identify Design Challenge] --> B[architect: Create Design Proposal]
-    B --> C[devils-advocate: Critical Review]
+    B --> C[devils_advocate: Critical Review]
     C --> D[architect: Revised Proposal]
-    D --> E[devils-advocate: Re-review]
+    D --> E[devils_advocate: Re-review]
     E --> F{Approval Checkpoint}
     F -->|Approved| G[Proceed to Implementation]
     F -->|Reconsider| B
@@ -401,26 +401,26 @@ kiro-cli chat --agent architect
 
 ```bash
 # CLI
-kiro-cli chat --agent devils-advocate
+kiro-cli chat --agent devils_advocate
 > Review the 3 caching strategy proposals from architect.
 > Identify issues especially from scalability, operational burden,
 > and failure mode perspectives.
 
 # GitHub Issue
-/kiro @devils-advocate Critically review the above caching design proposals
+/kiro @devils_advocate Critically review the above caching design proposals
 ```
 
 #### Step 3: Design Revision
 
 ```bash
-/kiro @architect Revise the design based on devils-advocate's feedback.
+/kiro @architect Revise the design based on devils_advocate's feedback.
 Specifically address the single point of failure and operational cost concerns.
 ```
 
 #### Step 4: Re-review (if needed)
 
 ```bash
-/kiro @devils-advocate Re-review the revised design proposal. Confirm the previous concerns have been adequately addressed.
+/kiro @devils_advocate Re-review the revised design proposal. Confirm the previous concerns have been adequately addressed.
 ```
 
 #### Step 5: **[Approval Checkpoint]**
@@ -439,7 +439,7 @@ Flow for improving project visibility and building community.
 graph TD
     A[Identify Growth Challenge] --> B[marketer: Positioning Analysis]
     A --> C[researcher: Competitive Benchmark]
-    B --> D[product-strategist: Strategy Definition]
+    B --> D[product_strategist: Strategy Definition]
     C --> D
     D --> E{Approval Checkpoint}
     E -->|Approved| F[Execution]
@@ -481,7 +481,7 @@ kiro-cli chat --agent researcher
 
 ```bash
 # CLI
-kiro-cli chat --agent product-strategist
+kiro-cli chat --agent product_strategist
 > Based on the analysis from marketer and researcher, define a 3-month
 > growth strategy for mayu. Include:
 > - Features to focus on (for differentiation)
@@ -489,7 +489,7 @@ kiro-cli chat --agent product-strategist
 > - Marketing initiatives (blog, conferences, social media)
 
 # GitHub Issue
-/kiro @product-strategist Define a 3-month growth strategy
+/kiro @product_strategist Define a 3-month growth strategy
 ```
 
 #### Step 4: **[Approval Checkpoint]**
@@ -515,10 +515,10 @@ Based on the approved strategy, each agent executes their assigned tasks:
 | Request implementation | `/kiro @developer <implementation details>` |
 | Request review | `/kiro @reviewer <review focus>` |
 | Request testing | `/kiro @qa <test target>` |
-| Request critical review | `/kiro @devils-advocate <review target>` |
+| Request critical review | `/kiro @devils_advocate <review target>` |
 | Request release preparation | `/kiro @devops <release version>` |
 | Request marketing | `/kiro @marketer <initiative details>` |
-| Request strategy | `/kiro @product-strategist <strategy theme>` |
+| Request strategy | `/kiro @product_strategist <strategy theme>` |
 | Issue triage | Automatic (`agent-triage.yml`) |
 
 ## Tips
@@ -526,8 +526,8 @@ Based on the approved strategy, each agent executes their assigned tasks:
 ### Agent Combinations
 
 - **Quick bug fix**: developer + reviewer (2 agents)
-- **Careful new feature**: researcher + planner + architect + devils-advocate + developer + reviewer + qa (full cycle)
-- **Design decision**: architect + devils-advocate (iterative)
+- **Careful new feature**: researcher + planner + architect + devils_advocate + developer + reviewer + qa (full cycle)
+- **Design decision**: architect + devils_advocate (iterative)
 - **Release**: devops + marketer (parallel)
 
 ### Effective Prompting Tips
@@ -541,4 +541,4 @@ Based on the approved strategy, each agent executes their assigned tasks:
 
 - When CI breaks: `agent-ci-fix.yml` automatically attempts a fix
 - When review finds major issues: Request design reconsideration from architect
-- When devils-advocate identifies High risk: Return to design phase
+- When devils_advocate identifies High risk: Return to design phase

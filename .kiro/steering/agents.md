@@ -4,13 +4,14 @@
 
 ## Overview
 
-The mayu project uses a multi-agent development system combining 11 specialized agents. Each agent has a clearly defined scope of responsibility, and they collaborate through the development cycle with human approval checkpoints.
+The mayu project uses a multi-agent development system combining 13 specialized agents. Each agent has a clearly defined scope of responsibility, and they collaborate through the development cycle with human approval checkpoints.
 
 ## Agent List
 
 | Agent | Definition File | Role |
 |-------|----------------|------|
-| **product-strategist** | `.kiro/agents/product-strategist.json` | Roadmap definition, feature prioritization, product strategy |
+| **lead** | `.kiro/agents/lead.json` | Lead Orchestrator - coordinates specialized agents, plans and delegates tasks |
+| **product_strategist** | `.kiro/agents/product_strategist.json` | Roadmap definition, feature prioritization, product strategy |
 | **researcher** | `.kiro/agents/researcher.json` | Technical research, competitive analysis, data source investigation |
 | **planner** | `.kiro/agents/planner.json` | Task decomposition, dependency management, execution planning |
 | **architect** | `.kiro/agents/architect.json` | System design, API design, DB schema design, package structure |
@@ -20,8 +21,8 @@ The mayu project uses a multi-agent development system combining 11 specialized 
 | **devops** | `.kiro/agents/devops.json` | CI/CD, Docker, release process, infrastructure management |
 | **triage** | `.kiro/agents/triage.json` | Issue/PR classification, priority labeling, assignment |
 | **marketer** | `.kiro/agents/marketer.json` | OSS marketing, community strategy, promotion |
-| **devils-advocate** | `.kiro/agents/devils-advocate.json` | Contrarian review, challenging assumptions, finding blind spots |
-| **vuln-triage-operator** | `.kiro/agents/vuln-triage-operator.json` | Vulnerability triage operations via Web UI, functional validation, bug discovery & reporting |
+| **devils_advocate** | `.kiro/agents/devils_advocate.json` | Contrarian review, challenging assumptions, finding blind spots |
+| **vuln_triage_operator** | `.kiro/agents/vuln_triage_operator.json` | Vulnerability triage operations via Web UI, functional validation, bug discovery & reporting |
 
 ## Development Lifecycle
 
@@ -33,7 +34,7 @@ graph LR
     D --> E{Approval Checkpoint}
     E -->|Approved| F[developer]
     F --> G[reviewer]
-    G --> H[devils-advocate]
+    G --> H[devils_advocate]
     H --> I[qa]
     I --> J{Final Approval}
     J -->|Approved| K[Merge]
@@ -51,7 +52,7 @@ graph LR
 | **[Approval]** | **Human** | **Design review, Go/No-Go decision** |
 | Implementation | developer | Code with tests, migrations |
 | Review | reviewer | Review comments, fix proposals |
-| Critical Review | devils-advocate | Risk identification, alternative proposals |
+| Critical Review | devils_advocate | Risk identification, alternative proposals |
 | Testing | qa | Test plans, test execution results |
 | **[Final Approval]** | **Human** | **Merge decision** |
 | Release | devops | Release tag, changelog |
@@ -122,7 +123,7 @@ The multi-agent system requires **human approval** at the following points.
 
 2. **Implementation Merge Approval** (after qa completion)
    - All tests pass
-   - All reviewer / devils-advocate issues resolved
+   - All reviewer / devils_advocate issues resolved
    - `make build && make test && make lint` succeeds
 
 3. **Release Approval** (after devops release preparation)
@@ -138,7 +139,7 @@ The multi-agent system requires **human approval** at the following points.
 
 ## Devil's Advocate Integration Points
 
-It is recommended to invoke the devils-advocate agent at the following times:
+It is recommended to invoke the devils_advocate agent at the following times:
 
 ### Recommended Timing
 
@@ -153,17 +154,17 @@ It is recommended to invoke the devils-advocate agent at the following times:
 
 ```bash
 # Review a design proposal via CLI
-kiro-cli chat --agent devils-advocate
+kiro-cli chat --agent devils_advocate
 > Review the EPSS data caching design proposed by architect.
 > It's a proposal to add Redis cache to internal/fetcher/epss/.
 
 # Via GitHub Issue
-/kiro @devils-advocate Identify problems with this design: [design link or content]
+/kiro @devils_advocate Identify problems with this design: [design link or content]
 ```
 
 ### Utilizing Output
 
-Handle devils-advocate findings as follows:
+Handle devils_advocate findings as follows:
 
 1. **High risk**: Reconsider the design, request revisions from architect
 2. **Medium risk**: Human decides whether to proceed with documented mitigations
@@ -174,7 +175,7 @@ Handle devils-advocate findings as follows:
 ### Output Flow
 
 ```
-product-strategist (strategy)
+product_strategist (strategy)
     | roadmap, priorities
 researcher (research)
     | technical report, feasibility
@@ -186,7 +187,7 @@ developer (implementation)
     | code, tests, PR
 reviewer (review)
     | review comments
-devils-advocate (criticism)
+devils_advocate (criticism)
     | risk identification, alternatives
 qa (testing)
     | test result report
