@@ -393,6 +393,10 @@ func TestIsMITRECVEEntry(t *testing.T) {
 		{"empty", "", false},
 		{"just cves/", "cves/", false},
 		{"cves with json suffix", "cves/file.json", false},
+		{"valid delta path", "deltaCves/CVE-2024-1234.json", true},
+		{"valid delta path with dashes", "deltaCves/CVE-2024-99001.json", true},
+		{"deltaCves non-json", "deltaCves/CVE-2024-1234.txt", false},
+		{"deltaCves no CVE", "deltaCves/readme.json", false},
 	}
 
 	for _, tt := range tests {

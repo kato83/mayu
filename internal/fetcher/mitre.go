@@ -81,9 +81,17 @@ func mitreDeltaURL(date string, hour int) string {
 }
 
 // isMITRECVEEntry checks if a zip entry path matches the expected MITRE CVE JSON
-// pattern: cves/{YYYY}/{NNNNxxx}/CVE-{YYYY}-{NNNN}.json
+// isMITRECVEEntry matches CVE JSON entries in both baseline and delta zips.
+// Baseline pattern: cves/{YYYY}/{NNNNxxx}/CVE-{YYYY}-{NNNN}.json
+// Delta pattern:    deltaCves/CVE-{YYYY}-{NNNN}.json
 func isMITRECVEEntry(name string) bool {
-	return strings.HasPrefix(name, "cves/") && strings.HasSuffix(name, ".json") && strings.Contains(name, "/CVE-")
+	if !strings.HasSuffix(name, ".json") {
+		return false
+	}
+	if !strings.Contains(name, "CVE-") {
+		return false
+	}
+	return strings.HasPrefix(name, "cves/") || strings.HasPrefix(name, "deltaCves/")
 }
 
 // unwrapMITREZip handles the MITRE baseline zip-in-zip structure.
