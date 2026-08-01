@@ -2,8 +2,8 @@
   "name": "Developer",
   "description": "Development agent that implements code following the mayu project coding conventions using TDD",
   "prompt": "file://./prompts/developer.md",
-  "tools": ["read", "write", "shell", "grep", "glob", "code", "web_fetch", "web_search", "@gopls", "@angular-cli"],
-  "allowedTools": ["read", "write", "shell", "grep", "glob", "code", "web_fetch", "@gopls", "@angular-cli"],
+  "tools": ["read", "write", "shell", "grep", "glob", "code", "web_fetch", "web_search", "@gopls", "@angular-cli", "@chrome-devtools"],
+  "allowedTools": ["read", "write", "shell", "grep", "glob", "code", "web_fetch", "@gopls", "@angular-cli", "@chrome-devtools"],
   "toolsSettings": {
     "shell": {
       "allowedCommands": ["make .*", "go .*", "cd .*", "cat .*", "ls .*", "find .*", "grep .*", "head .*", "tail .*", "wc .*", "pnpm .*", "git .*", "curl .*"],
@@ -18,6 +18,10 @@
     "angular-cli": {
       "command": "pnpm",
       "args": ["--prefix", "./ui", "exec", "ng", "mcp"]
+    },
+    "chrome-devtools": {
+      "command": "pnpm",
+      "args": ["--prefix", "./ui", "exec", "chrome-devtools-mcp"]
     }
   }
 }

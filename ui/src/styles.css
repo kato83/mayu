@@ -24,6 +24,14 @@
   margin-right: 0.25rem;
 }
 
+/*
+ * Vulnerability detail tab panels: hide inactive panels on screen.
+ * This class is overridden by @media print rules (.print-tab-panel) to show all.
+ */
+.tab-panel-inactive {
+  display: none;
+}
+
 /* ============================================================
  * Print styles (@media print)
  *
@@ -153,5 +161,24 @@
   /* --- Utility class for elements that should never print --- */
   .no-print {
     display: none !important;
+  }
+
+  /* --- Vulnerability detail: show all tab panels when printing --- */
+
+  /* Hide the tab bar buttons (they have no meaning on paper) */
+  [role='tablist'] {
+    display: none !important;
+  }
+
+  /* Override hidden state on tab panels so all source data is printed */
+  .print-tab-panel {
+    display: block !important;
+    border-top: 1px solid #e2e8f0;
+    break-inside: avoid;
+  }
+
+  /* Show the per-panel heading (hidden on screen, shown in print) */
+  .print-tab-heading {
+    display: block !important;
   }
 }
