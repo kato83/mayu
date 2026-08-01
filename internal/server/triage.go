@@ -25,28 +25,34 @@ func buildTriageInputFromDetail(detail *model.VulnerabilityDetail) *triage.Triag
 		VulnerabilityID: detail.ID,
 	}
 
-	// CVSS: take the highest base score from NVD metrics
+	// CVSS: take the highest base score from NVD metrics (and capture vector string)
 	if detail.NVD != nil && len(detail.NVD.Metrics) > 0 {
 		var maxScore float64
+		var maxVector string
 		for _, m := range detail.NVD.Metrics {
 			if m.BaseScore > maxScore {
 				maxScore = m.BaseScore
+				maxVector = m.VectorString
 			}
 		}
 		if maxScore > 0 {
 			input.CVSSScore = &maxScore
+			input.CVSSVector = maxVector
 		}
 	}
 	// Fallback: try MITRE metrics if NVD has none
 	if input.CVSSScore == nil && detail.MITRE != nil && len(detail.MITRE.Metrics) > 0 {
 		var maxScore float64
+		var maxVector string
 		for _, m := range detail.MITRE.Metrics {
 			if m.BaseScore > maxScore {
 				maxScore = m.BaseScore
+				maxVector = m.VectorString
 			}
 		}
 		if maxScore > 0 {
 			input.CVSSScore = &maxScore
+			input.CVSSVector = maxVector
 		}
 	}
 

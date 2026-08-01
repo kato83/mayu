@@ -43,6 +43,11 @@ type TriageInput struct {
 	// CVSSScore is the base CVSS score (0.0-10.0). nil if unavailable.
 	CVSSScore *float64
 
+	// CVSSVector is the full CVSS vector string (e.g., "CVSS:3.1/AV:N/AC:L/...").
+	// Used for precise Technical Impact determination in SSVC estimation.
+	// nil/empty if unavailable.
+	CVSSVector string
+
 	// EPSSScore is the EPSS exploitation probability (0.0-1.0). nil if unavailable.
 	EPSSScore *float64
 
@@ -93,10 +98,11 @@ type SignalContribution struct {
 }
 
 // NewTriageInputFromDetail constructs a TriageInput from a VulnerabilityDetail.
-func NewTriageInputFromDetail(id string, cvss *float64, epss *float64, lev *float64, inKEV bool, patchAvailable bool, publishedAt *time.Time, hasExploit bool, isReachable *bool, ssvcOptions map[string]string) *TriageInput {
+func NewTriageInputFromDetail(id string, cvss *float64, cvssVector string, epss *float64, lev *float64, inKEV bool, patchAvailable bool, publishedAt *time.Time, hasExploit bool, isReachable *bool, ssvcOptions map[string]string) *TriageInput {
 	return &TriageInput{
 		VulnerabilityID: id,
 		CVSSScore:       cvss,
+		CVSSVector:      cvssVector,
 		EPSSScore:       epss,
 		LEVScore:        lev,
 		InKEV:           inKEV,

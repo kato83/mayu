@@ -1,6 +1,7 @@
 package triage
 
 import (
+	"github.com/kato83/mayu/internal/cvss"
 	"github.com/kato83/mayu/internal/ssvc"
 )
 
@@ -71,13 +72,8 @@ func EstimateSSVC(input *TriageInput) ssvc.Decision {
 		automatable = ssvc.AutomatableNo
 	}
 
-	// Determine TechnicalImpact
-	var technicalImpact ssvc.TechnicalImpact
-	if input.CVSSScore != nil && *input.CVSSScore >= 7.0 {
-		technicalImpact = ssvc.TechnicalImpactTotal
-	} else {
-		technicalImpact = ssvc.TechnicalImpactPartial
-	}
+	// Determine TechnicalImpact from CVSS vector C/I/A if available, else fallback to score.
+	technicalImpact := estimateTechnicalImpact(input)
 
 	return ssvc.Evaluate(exploitation, automatable, technicalImpact)
 }
@@ -99,4 +95,30 @@ func EvaluateSSVC(input *TriageInput) (ssvc.Decision, string) {
 		return ssvc.DecisionTrack, "estimated"
 	}
 	return decision, "estimated"
+}
+
+// estimateTechnicalImpact determines SSVC Technical Impact from CVSS vector C/I/A metrics.
+// It first tries to parse the CVSS vector string for precise C/I/A values.
+// If the vector is unavailable, it falls back to the CVSS base score heuristic.
+//
+// SSVC Technical Impact definition:
+//   - Total: attacker gains full control (C:High + I:High + A:High, or v2 C:Complete + I:Complete + A:Complete)
+//   - Partial: anything less than total
+func estimateTechnicalImpact(input *TriageInput) ssvc.TechnicalImpact {
+	// 1. Try vector-based CIA analysis (preferred — more accurate)
+	if input.CVSSVector != "" {
+		cia := cvss.ParseCIAImpact(input.CVSSVector)
+		if cia != nil {
+			if cia.IsAllHigh() {
+				return ssvc.TechnicalImpactTotal
+			}
+			return ssvc.TechnicalImpactPartial
+		}
+	}
+
+	// 2. Fallback: score-based heuristic (existing behavior for backwards compatibility)
+	if input.CVSSScore != nil && *input.CVSSScore >= 7.0 {
+		return ssvc.TechnicalImpactTotal
+	}
+	return ssvc.TechnicalImpactPartial
 }

@@ -199,3 +199,123 @@ func TestBaseScore(t *testing.T) {
 		})
 	}
 }
+
+func TestParseCIAImpact(t *testing.T) {
+	tests := []struct {
+		name        string
+		vector      string
+		wantNil     bool
+		wantAllHigh bool
+	}{
+		// CVSS v3.1: Full RCE (C:H/I:H/A:H) → Total
+		{
+			name:        "v3.1 full impact",
+			vector:      "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+			wantAllHigh: true,
+		},
+		// CVSS v3.1: DoS only (C:N/I:N/A:H) → Partial
+		{
+			name:        "v3.1 DoS only",
+			vector:      "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+			wantAllHigh: false,
+		},
+		// CVSS v3.1: Info disclosure only (C:H/I:N/A:N) → Partial
+		{
+			name:        "v3.1 info disclosure only",
+			vector:      "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+			wantAllHigh: false,
+		},
+		// CVSS v3.1: Integrity only (C:N/I:H/A:N) → Partial
+		{
+			name:        "v3.1 integrity only",
+			vector:      "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+			wantAllHigh: false,
+		},
+		// CVSS v3.0: Full impact
+		{
+			name:        "v3.0 full impact",
+			vector:      "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+			wantAllHigh: true,
+		},
+		// CVSS v3.0: partial
+		{
+			name:        "v3.0 partial",
+			vector:      "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:L",
+			wantAllHigh: false,
+		},
+		// CVSS v2: Complete (C:C/I:C/A:C) → Total
+		{
+			name:        "v2 complete",
+			vector:      "AV:N/AC:L/Au:N/C:C/I:C/A:C",
+			wantAllHigh: true,
+		},
+		// CVSS v2: Partial (C:P/I:P/A:P) → Partial
+		{
+			name:        "v2 partial",
+			vector:      "AV:N/AC:L/Au:N/C:P/I:P/A:P",
+			wantAllHigh: false,
+		},
+		// CVSS v2: None (C:N/I:N/A:C) → Partial (not all high)
+		{
+			name:        "v2 only availability complete",
+			vector:      "AV:N/AC:L/Au:N/C:N/I:N/A:C",
+			wantAllHigh: false,
+		},
+		// CVSS v2 with parentheses
+		{
+			name:        "v2 parenthesized complete",
+			vector:      "(AV:N/AC:L/Au:N/C:C/I:C/A:C)",
+			wantAllHigh: true,
+		},
+		// CVSS v4.0: Full VC/VI/VA
+		{
+			name:        "v4 full vulnerable system impact",
+			vector:      "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N",
+			wantAllHigh: true,
+		},
+		// CVSS v4.0: Partial (VC:H but VI:L)
+		{
+			name:        "v4 partial vulnerable system impact",
+			vector:      "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:L/VA:H/SC:N/SI:N/SA:N",
+			wantAllHigh: false,
+		},
+		// CVSS v4.0: All None
+		{
+			name:        "v4 no vulnerable system impact",
+			vector:      "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:N/SC:H/SI:H/SA:H",
+			wantAllHigh: false,
+		},
+		// Empty vector
+		{
+			name:    "empty vector",
+			vector:  "",
+			wantNil: true,
+		},
+		// Invalid vector
+		{
+			name:    "invalid vector",
+			vector:  "not-a-vector",
+			wantNil: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ParseCIAImpact(tt.vector)
+			if tt.wantNil {
+				if got != nil {
+					t.Errorf("ParseCIAImpact(%q) = %+v, want nil", tt.vector, got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatalf("ParseCIAImpact(%q) = nil, want non-nil", tt.vector)
+			}
+			if got.IsAllHigh() != tt.wantAllHigh {
+				t.Errorf("ParseCIAImpact(%q).IsAllHigh() = %v, want %v (C=%s, I=%s, A=%s)",
+					tt.vector, got.IsAllHigh(), tt.wantAllHigh,
+					got.Confidentiality, got.Integrity, got.Availability)
+			}
+		})
+	}
+}

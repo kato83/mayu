@@ -44,6 +44,7 @@ type VulnDataForTriage struct {
 	FixedVersion    string
 	Ecosystem       string
 	CVSSScore       *float64
+	CVSSVector      string
 	EPSSScore       *float64
 	LEVScore        *float64
 	InKEV           bool
@@ -102,6 +103,7 @@ func AutoTriageOnScan(ctx context.Context, cfg *TriageOnScanConfig, projectID in
 		input := triage.NewTriageInputFromDetail(
 			f.VulnerabilityID,
 			f.CVSSScore,
+			f.CVSSVector,
 			f.EPSSScore,
 			f.LEVScore,
 			f.InKEV,
