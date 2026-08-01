@@ -49,8 +49,9 @@ const (
 
 // Fetcher downloads OSV vulnerability data from the GCS bucket.
 type Fetcher struct {
-	baseURL    string
-	httpClient *http.Client
+	baseURL      string
+	httpClient   *http.Client
+	nvdSourceURL string // custom NVD Source API URL (for testing)
 }
 
 // validPathSegment matches safe path segment characters (alphanumeric, dash, dot, underscore, space).

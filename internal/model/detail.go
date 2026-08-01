@@ -216,6 +216,11 @@ type NVDMetricDetail struct {
 	// Source identifies who provided this score (e.g., "nvd@nist.gov", "contact@wpscan.com")
 	Source string `json:"source"`
 
+	// SourceName is the resolved human-readable organization name for the Source identifier.
+	// Populated from the nvd_sources table (e.g., "kernel.org" for UUID "416baaa9-...").
+	// Empty if no mapping is available.
+	SourceName string `json:"source_name,omitempty"`
+
 	// Type is Primary or Secondary
 	Type string `json:"type"`
 
