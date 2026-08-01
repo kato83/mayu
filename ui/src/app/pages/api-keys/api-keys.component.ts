@@ -12,9 +12,6 @@ import { type APIKey, ApiKeyService } from '../../services/api-key.service';
     <div class="p-6">
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white" i18n="@@apiKeys.title">
-            API Keys
-          </h1>
           <a
             href="/swagger"
             target="_blank"

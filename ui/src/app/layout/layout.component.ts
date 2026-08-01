@@ -48,13 +48,21 @@ export class LayoutComponent {
   private readonly titleMap: Record<string, string> = {
     '/dashboard': $localize`:@@layout.title.dashboard:Dashboard`,
     '/vulnerabilities': $localize`:@@layout.title.vulnerabilities:Vulnerabilities`,
-    '/ingest': $localize`:@@layout.title.ingest:Ingest`,
+    '/ingest': $localize`:@@layout.title.ingest:Data Ingest`,
     '/ingest/jobs': $localize`:@@layout.title.ingestJobs:Ingest Jobs`,
-    '/status': $localize`:@@layout.title.status:Status`,
+    '/ingest/status': $localize`:@@layout.title.status:Data Source Status`,
     '/webhooks': $localize`:@@layout.title.webhooks:Webhooks`,
     '/watchlists': $localize`:@@layout.title.watchlists:Watchlists`,
     '/api-keys': $localize`:@@layout.title.apiKeys:API Keys`,
     '/docs': $localize`:@@layout.title.docs:Docs`,
+    '/sbom': $localize`:@@layout.title.sbom:SBOM`,
+    '/epss-trending': $localize`:@@layout.title.epssTrending:EPSS Trending`,
+    '/teams': $localize`:@@layout.title.teams:Teams`,
+    '/change-password': $localize`:@@layout.title.changePassword:Change Password`,
+    '/triage': $localize`:@@layout.title.triage:Triage`,
+    '/triage/overview': $localize`:@@layout.title.triageOverview:Triage Overview`,
+    '/triage/paths': $localize`:@@layout.title.triagePaths:Triage Paths`,
+    '/triage/profiles': $localize`:@@layout.title.triageProfiles:Triage Profiles`,
   };
 
   constructor() {

@@ -9,9 +9,8 @@ import { StatusService } from '../../services/status.service';
   imports: [DatePipe, DecimalPipe],
   template: `
     <div class="space-y-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100" i18n="@@status.title">Data Source Status</h1>
+      <!-- Header actions -->
+      <div class="flex items-center justify-end">
         <button
           (click)="loadStatus()"
           [disabled]="loading()"

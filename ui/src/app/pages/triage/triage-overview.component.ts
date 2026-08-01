@@ -15,14 +15,6 @@ import { TriageService } from '../../services/triage.service';
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
       </div>
     } @else {
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-bold text-slate-900 dark:text-white" i18n="@@triageOverview.title">Cross-Project Triage Overview</h1>
-        <a routerLink="/triage"
-           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-           i18n="@@triageOverview.backToDashboard">Back to Dashboard</a>
-      </div>
-
       <!-- Priority Level Summary Cards -->
       <section class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-red-500">

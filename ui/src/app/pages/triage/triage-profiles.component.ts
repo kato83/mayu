@@ -1,28 +1,19 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, inject, type OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import type { ExtendedWeights, Thresholds, TriageProfile } from '../../models/triage.model';
 import { TriageService } from '../../services/triage.service';
 
 @Component({
   selector: 'app-triage-profiles',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, RouterLink],
+  imports: [DecimalPipe, FormsModule],
   template: `
     @if (loading()) {
       <div class="flex items-center justify-center h-64">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
       </div>
     } @else {
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-bold text-slate-900 dark:text-white" i18n="@@triageProfiles.title">Triage Profiles</h1>
-        <a routerLink="/triage"
-           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-           i18n="@@triageProfiles.backToDashboard">Back to Dashboard</a>
-      </div>
-
       <!-- Profiles List -->
       <section class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         @for (profile of profiles(); track profile.name) {

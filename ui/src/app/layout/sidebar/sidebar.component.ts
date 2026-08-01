@@ -225,12 +225,14 @@ export class SidebarComponent implements OnInit {
     { label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`, route: '/vulnerabilities', icon: '🛡️' },
     { label: $localize`:@@sidebar.nav.epssTrending:EPSS Trending`, route: '/epss-trending', icon: '📈' },
     {
-      label: $localize`:@@sidebar.nav.ingest:Ingest`,
+      label: $localize`:@@sidebar.nav.ingest:Data Ingest`,
       route: '/ingest',
       icon: '📥',
-      children: [{ label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`, route: '/ingest/jobs', icon: '📋' }],
+      children: [
+        { label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`, route: '/ingest/jobs', icon: '📋' },
+        { label: $localize`:@@sidebar.nav.status:Data Source Status`, route: '/ingest/status', icon: '⚙️' },
+      ],
     },
-    { label: $localize`:@@sidebar.nav.status:Status`, route: '/status', icon: '⚙️' },
     { label: $localize`:@@sidebar.nav.sbom:SBOM`, route: '/sbom', icon: '📦' },
     {
       label: $localize`:@@sidebar.nav.triage:Triage`,

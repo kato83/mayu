@@ -11,8 +11,7 @@ import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss
   imports: [RouterLink, DecimalPipe],
   template: `
     <div class="space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100" i18n="@@epssTrending.title">EPSS Trending</h1>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
         <div class="flex flex-wrap gap-4 items-center">
           <!-- Days selector -->
           <div class="flex items-center gap-2">
