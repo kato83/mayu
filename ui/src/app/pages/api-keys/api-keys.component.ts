@@ -37,27 +37,46 @@ import { type APIKey, ApiKeyService } from '../../services/api-key.service';
         </button>
       </div>
 
-      <!-- Created key alert -->
+      <!-- Created key dialog -->
       @if (createdKey()) {
-        <div class="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <p class="text-sm font-medium text-green-800 dark:text-green-200 mb-2" i18n="@@apiKeys.createdMessage">
-            API key created successfully. Copy it now - it will not be shown again.
-          </p>
-          <div class="flex items-center gap-2">
-            <code class="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-green-300 dark:border-green-700 rounded text-sm font-mono text-slate-900 dark:text-white break-all">
-              {{ createdKey() }}
-            </code>
-            <button
-              (click)="copyKey()"
-              class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded transition-colors cursor-pointer"
-              i18n="@@apiKeys.copyButton"
-            >
-              Copy
-            </button>
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div class="bg-white dark:bg-slate-800 rounded-lg p-6 max-w-lg w-full mx-4 shadow-xl">
+            <div class="flex items-center gap-2 mb-4">
+              <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 class="text-lg font-semibold text-slate-900 dark:text-white" i18n="@@apiKeys.createdDialogTitle">
+                API Key Created
+              </h3>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-400 mb-4" i18n="@@apiKeys.createdMessage">
+              API key created successfully. Copy it now - it will not be shown again.
+            </p>
+            <div class="flex items-center gap-2 mb-4">
+              <code class="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded text-sm font-mono text-slate-900 dark:text-white break-all select-all">
+                {{ createdKey() }}
+              </code>
+              <button
+                (click)="copyKey()"
+                class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded transition-colors cursor-pointer whitespace-nowrap"
+                i18n="@@apiKeys.copyButton"
+              >
+                Copy
+              </button>
+            </div>
+            @if (copied()) {
+              <p class="text-xs text-green-700 dark:text-green-300 mb-4" i18n="@@apiKeys.copied">Copied!</p>
+            }
+            <div class="flex justify-end">
+              <button
+                (click)="closeCreatedKeyDialog()"
+                class="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-md transition-colors cursor-pointer"
+                i18n="@@apiKeys.closeDialogButton"
+              >
+                Close
+              </button>
+            </div>
           </div>
-          @if (copied()) {
-            <p class="mt-1 text-xs text-green-700 dark:text-green-300" i18n="@@apiKeys.copied">Copied!</p>
-          }
         </div>
       }
 
@@ -267,6 +286,11 @@ export class ApiKeysComponent implements OnInit {
         this.loadKeys();
       },
     });
+  }
+
+  closeCreatedKeyDialog(): void {
+    this.createdKey.set('');
+    this.copied.set(false);
   }
 
   copyKey(): void {

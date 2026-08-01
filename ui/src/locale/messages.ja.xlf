@@ -1030,6 +1030,14 @@
         <source> Delete </source>
         <target>削除</target>
       </trans-unit>
+      <trans-unit id="apiKeys.createdDialogTitle" datatype="html">
+        <source> API Key Created </source>
+        <target>APIキーを作成しました</target>
+      </trans-unit>
+      <trans-unit id="apiKeys.closeDialogButton" datatype="html">
+        <source> Close </source>
+        <target>閉じる</target>
+      </trans-unit>
       <trans-unit id="sidebar.nav.webhooks" datatype="html">
         <source>Webhooks</source>
         <target>Webhook</target>
