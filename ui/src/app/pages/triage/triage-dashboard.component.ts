@@ -67,7 +67,7 @@ import { TriageService } from '../../services/triage.service';
           <div class="flex flex-col gap-1">
             <label class="text-xs text-slate-500 dark:text-slate-400" i18n="@@triage.projectLabel">Project</label>
             <select
-              class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white min-w-[200px]"
+              class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white min-w-50 w-full"
               [ngModel]="selectedProjectId()"
               (ngModelChange)="selectedProjectId.set($event)">
               <option value="" disabled i18n="@@triage.selectProject">Select a project</option>
@@ -79,7 +79,7 @@ import { TriageService } from '../../services/triage.service';
           <div class="flex flex-col gap-1">
             <label class="text-xs text-slate-500 dark:text-slate-400" i18n="@@triage.profileLabelRun">Profile</label>
             <select
-              class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white min-w-[150px]"
+              class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white min-w-37.5"
               [ngModel]="selectedProfile()"
               (ngModelChange)="onProfileChange($event)">
               @for (p of profiles(); track p.name) {
@@ -108,11 +108,11 @@ import { TriageService } from '../../services/triage.service';
           <table class="w-full text-sm text-left">
             <thead>
               <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                <th class="px-4 py-2 font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('vulnerability_id')" i18n="@@triage.colId">Vulnerability</th>
-                <th class="px-4 py-2 font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('priority_level')" i18n="@@triage.colPriority">Priority</th>
-                <th class="px-4 py-2 font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('composite_score')" i18n="@@triage.colScore">Score</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triage.colSSVC">SSVC</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triage.colRationale">Rationale</th>
+                <th class="px-4 py-2 whitespace-nowrap font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('vulnerability_id')" i18n="@@triage.colId">Vulnerability</th>
+                <th class="px-4 py-2 whitespace-nowrap font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('priority_level')" i18n="@@triage.colPriority">Priority</th>
+                <th class="px-4 py-2 whitespace-nowrap font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('composite_score')" i18n="@@triage.colScore">Score</th>
+                <th class="px-4 py-2 whitespace-nowrap font-medium" i18n="@@triage.colSSVC">SSVC</th>
+                <th class="px-4 py-2 whitespace-nowrap font-medium" i18n="@@triage.colRationale">Rationale</th>
               </tr>
             </thead>
             <tbody>

@@ -37,9 +37,9 @@ export interface ParsedMetric {
         <table class="text-xs border-collapse w-full max-w-lg">
           <thead>
             <tr class="text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-              <th class="py-1 pr-3 font-medium" i18n="@@cvssVector.table.metric">Metric</th>
-              <th class="py-1 pr-3 font-medium" i18n="@@cvssVector.table.name">Name</th>
-              <th class="py-1 font-medium" i18n="@@cvssVector.table.value">Value</th>
+              <th class="py-1 whitespace-nowrap pr-3 font-medium" i18n="@@cvssVector.table.metric">Metric</th>
+              <th class="py-1 whitespace-nowrap pr-3 font-medium" i18n="@@cvssVector.table.name">Name</th>
+              <th class="py-1 whitespace-nowrap font-medium" i18n="@@cvssVector.table.value">Value</th>
             </tr>
           </thead>
           <tbody>

@@ -104,10 +104,10 @@ import { TeamService } from '../../services/team.service';
           <table class="w-full text-sm text-left">
             <thead class="text-xs uppercase bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               <tr>
-                <th class="px-4 py-3" i18n="@@sbom.projects.col.name">Name</th>
-                <th class="px-4 py-3" i18n="@@sbom.projects.col.team">Team</th>
-                <th class="px-4 py-3" i18n="@@sbom.projects.col.created">Created</th>
-                <th class="px-4 py-3" i18n="@@sbom.projects.col.actions">Actions</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.projects.col.name">Name</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.projects.col.team">Team</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.projects.col.created">Created</th>
+                <th class="px-4 py-3 whitespace-nowrap" i18n="@@sbom.projects.col.actions">Actions</th>
               </tr>
             </thead>
             <tbody>

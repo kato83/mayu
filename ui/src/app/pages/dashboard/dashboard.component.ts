@@ -142,10 +142,10 @@ Chart.register(...registerables);
             <table class="w-full text-sm text-left">
               <thead>
                 <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                  <th class="pb-2 font-medium" i18n="@@dashboard.trendingColId">ID</th>
-                  <th class="pb-2 font-medium" i18n="@@dashboard.trendingColEpss">EPSS</th>
-                  <th class="pb-2 font-medium" i18n="@@dashboard.trendingColDelta">Delta</th>
-                  <th class="pb-2 font-medium" i18n="@@dashboard.trendingColSeverity">Severity</th>
+                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColId">ID</th>
+                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColEpss">EPSS</th>
+                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColDelta">Delta</th>
+                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColSeverity">Severity</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,9 +183,9 @@ Chart.register(...registerables);
             <table class="w-full text-sm text-left">
               <thead>
                 <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                  <th class="pb-2 font-medium" i18n="@@dashboard.tableId">ID</th>
-                  <th class="pb-2 font-medium" i18n="@@dashboard.tableEpss">EPSS</th>
-                  <th class="pb-2 font-medium" i18n="@@dashboard.tableSeverity">Severity</th>
+                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.tableId">ID</th>
+                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.tableEpss">EPSS</th>
+                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.tableSeverity">Severity</th>
                 </tr>
               </thead>
               <tbody>
@@ -215,9 +215,9 @@ Chart.register(...registerables);
             <table class="w-full text-sm text-left">
               <thead>
                 <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                  <th class="pb-2 font-medium" i18n="@@dashboard.tableId">ID</th>
-                  <th class="pb-2 font-medium" i18n="@@dashboard.tableLev">LEV</th>
-                  <th class="pb-2 font-medium" i18n="@@dashboard.tableSeverity">Severity</th>
+                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.tableId">ID</th>
+                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.tableLev">LEV</th>
+                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.tableSeverity">Severity</th>
                 </tr>
               </thead>
               <tbody>

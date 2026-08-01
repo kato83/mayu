@@ -140,10 +140,10 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
               <table class="w-full text-sm text-left">
                 <thead class="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                   <tr>
-                    <th class="px-4 py-3" i18n="@@teamDetail.colEmail">Email</th>
-                    <th class="px-4 py-3" i18n="@@teamDetail.colName">Name</th>
-                    <th class="px-4 py-3" i18n="@@teamDetail.colRole">Role</th>
-                    <th class="px-4 py-3" i18n="@@teamDetail.colActions">Actions</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@teamDetail.colEmail">Email</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@teamDetail.colName">Name</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@teamDetail.colRole">Role</th>
+                    <th class="px-4 py-3 whitespace-nowrap" i18n="@@teamDetail.colActions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
