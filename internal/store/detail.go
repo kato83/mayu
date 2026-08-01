@@ -116,6 +116,15 @@ func (s *PostgresStore) GetVulnerabilityDetail(ctx context.Context, id string) (
 		detail.ExploitDB = exploitDBDetail
 	}
 
+	// Step 11: Enrich with GHSA data (GitHub Security Advisories)
+	ghsaDetail, err := s.fetchGHSADetail(ctx, vulnID)
+	if err != nil {
+		// Non-fatal: continue without GHSA data
+		_ = err
+	} else if len(ghsaDetail) > 0 {
+		detail.GHSA = ghsaDetail
+	}
+
 	return detail, nil
 }
 
@@ -158,6 +167,16 @@ func (s *PostgresStore) resolveVulnerabilityID(ctx context.Context, id string) (
 	}
 	if err != sql.ErrNoRows {
 		return "", fmt.Errorf("resolve via aliases: %w", err)
+	}
+
+	// Try ghsa_entries.ghsa_id → vulnerability_id
+	err = s.db.QueryRowContext(ctx,
+		`SELECT vulnerability_id FROM ghsa_entries WHERE ghsa_id = $1`, id).Scan(&vulnID)
+	if err == nil {
+		return vulnID, nil
+	}
+	if err != sql.ErrNoRows {
+		return "", fmt.Errorf("resolve via ghsa_entries: %w", err)
 	}
 
 	return "", nil
@@ -1238,4 +1257,161 @@ func parseTextArray(s string) []string {
 		result = append(result, string(current))
 	}
 	return result
+}
+
+// fetchGHSADetail retrieves GitHub Security Advisory entries for a vulnerability.
+// Returns nil if no GHSA data exists.
+func (s *PostgresStore) fetchGHSADetail(ctx context.Context, vulnID string) ([]model.GHSADetail, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, ghsa_id, severity, summary, description, state, html_url,
+		       cvss_v3_vector, cvss_v3_score, cvss_v4_vector, cvss_v4_score,
+		       published_at, updated_at, withdrawn_at
+		FROM ghsa_entries
+		WHERE vulnerability_id = $1
+		ORDER BY published_at DESC NULLS LAST`, vulnID)
+	if err != nil {
+		return nil, fmt.Errorf("query ghsa_entries: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	type entryWithID struct {
+		id     int64
+		detail model.GHSADetail
+	}
+	var entries []entryWithID
+
+	for rows.Next() {
+		var e entryWithID
+		var severity, summary, description, state, htmlURL sql.NullString
+		var cvssV3Vec, cvssV4Vec sql.NullString
+		var cvssV3Score, cvssV4Score sql.NullFloat64
+		var publishedAt, updatedAt, withdrawnAt sql.NullTime
+
+		if err := rows.Scan(
+			&e.id, &e.detail.GHSAID,
+			&severity, &summary, &description, &state, &htmlURL,
+			&cvssV3Vec, &cvssV3Score, &cvssV4Vec, &cvssV4Score,
+			&publishedAt, &updatedAt, &withdrawnAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan ghsa_entry: %w", err)
+		}
+
+		e.detail.Severity = severity.String
+		e.detail.Summary = summary.String
+		e.detail.Description = description.String
+		e.detail.State = state.String
+		e.detail.HTMLURL = htmlURL.String
+		e.detail.CVSSV3Vector = cvssV3Vec.String
+		if cvssV3Score.Valid {
+			e.detail.CVSSV3Score = &cvssV3Score.Float64
+		}
+		e.detail.CVSSV4Vector = cvssV4Vec.String
+		if cvssV4Score.Valid {
+			e.detail.CVSSV4Score = &cvssV4Score.Float64
+		}
+		if publishedAt.Valid {
+			t := publishedAt.Time
+			e.detail.PublishedAt = &t
+		}
+		if updatedAt.Valid {
+			t := updatedAt.Time
+			e.detail.UpdatedAt = &t
+		}
+		if withdrawnAt.Valid {
+			t := withdrawnAt.Time
+			e.detail.WithdrawnAt = &t
+		}
+
+		entries = append(entries, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(entries) == 0 {
+		return nil, nil
+	}
+
+	// Fetch child records for each GHSA entry
+	for i := range entries {
+		entryID := entries[i].id
+
+		// Fetch vulnerabilities (affected packages)
+		vulnRows, err := s.db.QueryContext(ctx, `
+			SELECT ecosystem, package_name, vulnerable_version_range, patched_versions, vulnerable_functions
+			FROM ghsa_vulnerabilities
+			WHERE ghsa_entry_id = $1
+			ORDER BY ecosystem, package_name`, entryID)
+		if err != nil {
+			return nil, fmt.Errorf("query ghsa_vulnerabilities: %w", err)
+		}
+		for vulnRows.Next() {
+			var v model.GHSAVulnerabilityDetail
+			var vvr, pv sql.NullString
+			var vf []byte
+			if err := vulnRows.Scan(&v.Ecosystem, &v.PackageName, &vvr, &pv, &vf); err != nil {
+				_ = vulnRows.Close()
+				return nil, fmt.Errorf("scan ghsa_vulnerability: %w", err)
+			}
+			v.VulnerableVersionRange = vvr.String
+			v.PatchedVersions = pv.String
+			if vf != nil {
+				v.VulnerableFunctions = parseTextArray(string(vf))
+			}
+			entries[i].detail.Vulnerabilities = append(entries[i].detail.Vulnerabilities, v)
+		}
+		_ = vulnRows.Close()
+		if err := vulnRows.Err(); err != nil {
+			return nil, err
+		}
+
+		// Fetch CWEs
+		cweRows, err := s.db.QueryContext(ctx, `
+			SELECT cwe_id, name FROM ghsa_cwes WHERE ghsa_entry_id = $1 ORDER BY cwe_id`, entryID)
+		if err != nil {
+			return nil, fmt.Errorf("query ghsa_cwes: %w", err)
+		}
+		for cweRows.Next() {
+			var c model.GHSACWEDetail
+			var name sql.NullString
+			if err := cweRows.Scan(&c.CWEID, &name); err != nil {
+				_ = cweRows.Close()
+				return nil, fmt.Errorf("scan ghsa_cwe: %w", err)
+			}
+			c.Name = name.String
+			entries[i].detail.CWEs = append(entries[i].detail.CWEs, c)
+		}
+		_ = cweRows.Close()
+		if err := cweRows.Err(); err != nil {
+			return nil, err
+		}
+
+		// Fetch credits
+		creditRows, err := s.db.QueryContext(ctx, `
+			SELECT login, credit_type FROM ghsa_credits WHERE ghsa_entry_id = $1 ORDER BY login`, entryID)
+		if err != nil {
+			return nil, fmt.Errorf("query ghsa_credits: %w", err)
+		}
+		for creditRows.Next() {
+			var c model.GHSACreditDetail
+			var creditType sql.NullString
+			if err := creditRows.Scan(&c.Login, &creditType); err != nil {
+				_ = creditRows.Close()
+				return nil, fmt.Errorf("scan ghsa_credit: %w", err)
+			}
+			c.Type = creditType.String
+			entries[i].detail.Credits = append(entries[i].detail.Credits, c)
+		}
+		_ = creditRows.Close()
+		if err := creditRows.Err(); err != nil {
+			return nil, err
+		}
+	}
+
+	// Build result
+	var result []model.GHSADetail
+	for _, e := range entries {
+		result = append(result, e.detail)
+	}
+	return result, nil
 }

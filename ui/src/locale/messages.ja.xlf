@@ -330,6 +330,42 @@
         <source>MITRE</source>
         <target>MITRE</target>
       </trans-unit>
+      <trans-unit id="vulnDetail.ghsaPublished" datatype="html">
+        <source>Published: <x id="INTERPOLATION" equiv-text="{{ entry.published_at | date:'yyyy-MM-dd' }}"/></source>
+        <target>公開日: <x id="INTERPOLATION" equiv-text="{{ entry.published_at | date:'yyyy-MM-dd' }}"/></target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.ghsaUpdated" datatype="html">
+        <source>Updated: <x id="INTERPOLATION" equiv-text="{{ entry.updated_at | date:'yyyy-MM-dd' }}"/></source>
+        <target>更新日: <x id="INTERPOLATION" equiv-text="{{ entry.updated_at | date:'yyyy-MM-dd' }}"/></target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.ghsaWithdrawn" datatype="html">
+        <source>Withdrawn: <x id="INTERPOLATION" equiv-text="{{ entry.withdrawn_at | date:'yyyy-MM-dd' }}"/></source>
+        <target>撤回日: <x id="INTERPOLATION" equiv-text="{{ entry.withdrawn_at | date:'yyyy-MM-dd' }}"/></target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.ghsaAffectedPackages" datatype="html">
+        <source>Affected Packages</source>
+        <target>影響を受けるパッケージ</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.ghsaPatched" datatype="html">
+        <source>Patched: <x id="INTERPOLATION" equiv-text="{{ vuln.patched_versions }}"/></source>
+        <target>修正済み: <x id="INTERPOLATION" equiv-text="{{ vuln.patched_versions }}"/></target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.ghsaVulnFunctions" datatype="html">
+        <source>Vulnerable functions: </source>
+        <target>脆弱な関数: </target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.ghsaCwes" datatype="html">
+        <source>CWEs</source>
+        <target>CWE</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.ghsaCredits" datatype="html">
+        <source>Credits</source>
+        <target>クレジット</target>
+      </trans-unit>
+      <trans-unit id="vulnDetail.ghsaViewOnGithub" datatype="html">
+        <source>View on GitHub</source>
+        <target>GitHubで表示</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.mergedScores" datatype="html">
         <source>Severity</source>
         <target>深刻度</target>
