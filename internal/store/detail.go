@@ -395,6 +395,7 @@ func (s *PostgresStore) fetchNVDMetrics(ctx context.Context, entryID int64) ([]m
 	defer func() { _ = rows.Close() }()
 
 	var metrics []model.NVDMetricDetail
+	var sourceIdentifiers []string
 	for rows.Next() {
 		var m model.NVDMetricDetail
 		var vector sql.NullString
@@ -411,8 +412,28 @@ func (s *PostgresStore) fetchNVDMetrics(ctx context.Context, entryID int64) ([]m
 			m.ImpactScore = &impact.Float64
 		}
 		metrics = append(metrics, m)
+		sourceIdentifiers = append(sourceIdentifiers, m.Source)
 	}
-	return metrics, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Resolve source identifiers to human-readable names
+	if len(metrics) > 0 {
+		names, err := s.GetNVDSourceNames(ctx, sourceIdentifiers)
+		if err != nil {
+			// Non-fatal: continue without source names
+			_ = err
+		} else {
+			for i := range metrics {
+				if name, ok := names[metrics[i].Source]; ok {
+					metrics[i].SourceName = name
+				}
+			}
+		}
+	}
+
+	return metrics, nil
 }
 
 // fetchNVDWeaknesses retrieves CWE classifications for an NVD entry.

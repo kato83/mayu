@@ -16,7 +16,8 @@ import (
 
 // PostgresStore implements Store using database/sql with the pgx stdlib driver.
 type PostgresStore struct {
-	db *sql.DB
+	db             *sql.DB
+	nvdSourceCache *nvdSourceCache
 }
 
 // NewPostgresStore creates a new PostgresStore connected to the given database URL.
@@ -36,7 +37,7 @@ func NewPostgresStore(ctx context.Context, databaseURL string) (*PostgresStore, 
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
 
-	return &PostgresStore{db: db}, nil
+	return &PostgresStore{db: db, nvdSourceCache: newNVDSourceCache()}, nil
 }
 
 // Close releases the database connection pool.

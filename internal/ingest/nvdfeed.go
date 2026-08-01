@@ -52,6 +52,12 @@ func (ing *Ingester) ImportNVDNativeYears(ctx context.Context, years []int) (*St
 		IsFullSync: true,
 	}
 
+	// Sync NVD source organizations (for source name resolution).
+	// Non-fatal: log warning and continue if this fails.
+	if err := ing.SyncNVDSources(ctx); err != nil {
+		ing.logger.Printf("warning: failed to sync NVD sources: %v (continuing with CVE import)", err)
+	}
+
 	explicitYear := len(years) == 1
 	if len(years) == 0 {
 		years = fetcher.NVDFeedYears()

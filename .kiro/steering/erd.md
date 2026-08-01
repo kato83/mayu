@@ -207,6 +207,15 @@ erDiagram
         TEXT_ARRAY tags
     }
 
+    nvd_sources {
+        TEXT source_identifier PK "UUID or email"
+        TEXT name "NOT NULL, organization name"
+        TEXT contact_email "nullable"
+        TEXT acceptance_level "nullable, e.g. Contributor"
+        TIMESTAMPTZ last_modified "nullable"
+        TIMESTAMPTZ created_at "nullable"
+    }
+
     mitre_entries {
         BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
         TEXT cve_id UK
@@ -572,6 +581,8 @@ erDiagram
     nvd_entries ||--o{ nvd_configurations : "has"
     nvd_configurations ||--o{ nvd_cpe_matches : "has"
     nvd_entries ||--o{ nvd_references : "has"
+    nvd_sources ||..o{ nvd_entries : "logical source_identifier"
+    nvd_sources ||..o{ nvd_metrics : "logical source"
     mitre_entries ||--o{ mitre_containers : "has"
     mitre_containers ||--o{ mitre_affected : "has"
     mitre_containers ||--o{ mitre_metrics : "has"
@@ -889,6 +900,15 @@ erDiagram
         TIMESTAMPTZ translated_at
     }
 
+    nvd_sources {
+        TEXT source_identifier PK "UUID or email"
+        TEXT name "NOT NULL, organization name"
+        TEXT contact_email "nullable"
+        TEXT acceptance_level "nullable, e.g. Contributor"
+        TIMESTAMPTZ last_modified "nullable"
+        TIMESTAMPTZ created_at "nullable"
+    }
+
     vulnerabilities ||--o{ nvd_entries : "has"
     nvd_entries ||--o{ nvd_descriptions : "has"
     nvd_entries ||--o{ nvd_metrics : "has"
@@ -897,6 +917,8 @@ erDiagram
     nvd_configurations ||--o{ nvd_cpe_matches : "has"
     nvd_entries ||--o{ nvd_references : "has"
     nvd_descriptions ||--o{ nvd_descriptions_translation : "translated"
+    nvd_sources ||..o{ nvd_entries : "logical source_identifier"
+    nvd_sources ||..o{ nvd_metrics : "logical source"
 ```
 
 ### MITRE Data

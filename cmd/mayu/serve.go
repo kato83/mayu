@@ -74,6 +74,11 @@ func runServe(args []string, cfg *config.Config) error {
 	}
 	defer func() { _ = s.Close() }()
 
+	// Prime NVD source name cache (non-fatal)
+	if err := s.LoadNVDSourceCache(ctx); err != nil {
+		log.Printf("warning: failed to prime NVD source cache: %v", err)
+	}
+
 	// Initialize auth provider based on config
 	var authProvider auth.AuthProvider
 	var apiKeyStore auth.APIKeyStore
