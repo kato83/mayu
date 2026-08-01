@@ -3452,6 +3452,62 @@
         <source>Triage Paths</source>
         <target>修正パス</target>
       </trans-unit>
+      <trans-unit id="triage.viewProfiles" datatype="html">
+        <source>Profiles</source>
+        <target>プロファイル</target>
+      </trans-unit>
+      <trans-unit id="triage.orgTotal" datatype="html">
+        <source>Total vulnerabilities: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_vulnerabilities ?? 0 }}"/></source>
+        <target>脆弱性合計: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_vulnerabilities ?? 0 }}"/></target>
+      </trans-unit>
+      <trans-unit id="triage.orgProjects" datatype="html">
+        <source>Projects: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_projects ?? 0 }}"/></source>
+        <target>プロジェクト数: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_projects ?? 0 }}"/></target>
+      </trans-unit>
+      <trans-unit id="triage.topRisksTitle" datatype="html">
+        <source>Top Risks Across Projects</source>
+        <target>プロジェクト横断 - 高リスク脆弱性</target>
+      </trans-unit>
+      <trans-unit id="triage.viewAllOverview" datatype="html">
+        <source>View all</source>
+        <target>すべて表示</target>
+      </trans-unit>
+      <trans-unit id="triage.topRisksColProjects" datatype="html">
+        <source>Projects</source>
+        <target>プロジェクト数</target>
+      </trans-unit>
+      <trans-unit id="triage.projectsTitle" datatype="html">
+        <source>SBOM Projects</source>
+        <target>SBOMプロジェクト</target>
+      </trans-unit>
+      <trans-unit id="triage.projectColName" datatype="html">
+        <source>Project</source>
+        <target>プロジェクト</target>
+      </trans-unit>
+      <trans-unit id="triage.projectColCreated" datatype="html">
+        <source>Created</source>
+        <target>作成日</target>
+      </trans-unit>
+      <trans-unit id="triage.projectColAction" datatype="html">
+        <source>Action</source>
+        <target>アクション</target>
+      </trans-unit>
+      <trans-unit id="triage.runForProject" datatype="html">
+        <source>Run Triage</source>
+        <target>トリアージ実行</target>
+      </trans-unit>
+      <trans-unit id="triage.noProjects" datatype="html">
+        <source> No SBOM projects found. Upload an SBOM to get started with vulnerability triage. </source>
+        <target> SBOMプロジェクトが見つかりません。脆弱性トリアージを開始するにはSBOMをアップロードしてください。 </target>
+      </trans-unit>
+      <trans-unit id="triage.goToSbom" datatype="html">
+        <source>Go to SBOM Management</source>
+        <target>SBOM管理へ</target>
+      </trans-unit>
+      <trans-unit id="triage.runTriageDescription" datatype="html">
+        <source> Select a project and profile to run an on-demand triage analysis. Results will appear below. </source>
+        <target> プロジェクトとプロファイルを選択し、オンデマンドのトリアージ分析を実行します。結果は下に表示されます。 </target>
+      </trans-unit>
       <!-- Triage Overview -->
       <trans-unit id="triageOverview.title" datatype="html">
         <source>Cross-Project Triage Overview</source>
