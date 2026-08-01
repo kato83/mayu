@@ -26,14 +26,6 @@ Chart.register(...registerables);
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
       </div>
     } @else {
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-bold text-slate-900 dark:text-white" i18n="@@triagePaths.title">Triage Paths</h1>
-        <a routerLink="/triage"
-           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-           i18n="@@triagePaths.backToDashboard">Back to Dashboard</a>
-      </div>
-
       <!-- Filters -->
       <div class="flex items-center gap-3 mb-4 flex-wrap">
         <select

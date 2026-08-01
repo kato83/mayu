@@ -9,9 +9,8 @@ import { IngestService } from '../../services/ingest.service';
   imports: [DatePipe, JsonPipe],
   template: `
     <div class="space-y-4">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100" i18n="@@ingestJobs.title">Ingest Jobs</h1>
+      <!-- Header actions -->
+      <div class="flex items-center justify-end">
         <button
           (click)="loadJobs()"
           [disabled]="loading()"

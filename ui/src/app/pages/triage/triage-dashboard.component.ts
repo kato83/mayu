@@ -16,9 +16,8 @@ import { TriageService } from '../../services/triage.service';
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
       </div>
     } @else {
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-xl font-bold text-slate-900 dark:text-white" i18n="@@triage.dashboardTitle">Triage Dashboard</h1>
+      <!-- Header actions -->
+      <div class="flex items-center justify-end mb-6">
         <div class="flex items-center gap-3">
           <label class="text-sm text-slate-600 dark:text-slate-400" i18n="@@triage.profileLabel">Profile:</label>
           <select

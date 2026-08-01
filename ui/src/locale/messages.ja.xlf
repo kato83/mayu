@@ -519,7 +519,7 @@
         <target>新しいタブで開く</target>
       </trans-unit>
       <trans-unit id="sidebar.nav.ingest" datatype="html">
-        <source>Ingest</source>
+        <source>Data Ingest</source>
         <target>データ取込</target>
       </trans-unit>
       <trans-unit id="ingest.title" datatype="html">
@@ -743,8 +743,8 @@
         <target>ジョブ詳細を読み込み中...</target>
       </trans-unit>
       <trans-unit id="sidebar.nav.status" datatype="html">
-        <source>Status</source>
-        <target>ステータス</target>
+        <source>Data Source Status</source>
+        <target>データソース状況</target>
       </trans-unit>
       <trans-unit id="status.title" datatype="html">
         <source>Data Source Status</source>
@@ -1635,7 +1635,7 @@
         <target>脆弱性一覧</target>
       </trans-unit>
       <trans-unit id="layout.title.ingest" datatype="html">
-        <source>Ingest</source>
+        <source>Data Ingest</source>
         <target>データ取込</target>
       </trans-unit>
       <trans-unit id="layout.title.ingestJobs" datatype="html">
@@ -1643,8 +1643,8 @@
         <target>取込ジョブ</target>
       </trans-unit>
       <trans-unit id="layout.title.status" datatype="html">
-        <source>Status</source>
-        <target>ステータス</target>
+        <source>Data Source Status</source>
+        <target>データソース状況</target>
       </trans-unit>
       <trans-unit id="layout.title.webhooks" datatype="html">
         <source>Webhooks</source>
@@ -1661,6 +1661,38 @@
       <trans-unit id="layout.title.docs" datatype="html">
         <source>Docs</source>
         <target>ドキュメント</target>
+      </trans-unit>
+      <trans-unit id="layout.title.sbom" datatype="html">
+        <source>SBOM</source>
+        <target>SBOM</target>
+      </trans-unit>
+      <trans-unit id="layout.title.epssTrending" datatype="html">
+        <source>EPSS Trending</source>
+        <target>EPSSトレンド</target>
+      </trans-unit>
+      <trans-unit id="layout.title.teams" datatype="html">
+        <source>Teams</source>
+        <target>チーム</target>
+      </trans-unit>
+      <trans-unit id="layout.title.changePassword" datatype="html">
+        <source>Change Password</source>
+        <target>パスワード変更</target>
+      </trans-unit>
+      <trans-unit id="layout.title.triage" datatype="html">
+        <source>Triage</source>
+        <target>トリアージ</target>
+      </trans-unit>
+      <trans-unit id="layout.title.triageOverview" datatype="html">
+        <source>Triage Overview</source>
+        <target>トリアージ概要</target>
+      </trans-unit>
+      <trans-unit id="layout.title.triagePaths" datatype="html">
+        <source>Triage Paths</source>
+        <target>トリアージ修正パス</target>
+      </trans-unit>
+      <trans-unit id="layout.title.triageProfiles" datatype="html">
+        <source>Triage Profiles</source>
+        <target>トリアージプロファイル</target>
       </trans-unit>
       <trans-unit id="route.title.login" datatype="html">
         <source>Sign In</source>
@@ -1679,7 +1711,7 @@
         <target>脆弱性詳細</target>
       </trans-unit>
       <trans-unit id="route.title.ingest" datatype="html">
-        <source>Ingest</source>
+        <source>Data Ingest</source>
         <target>データ取込</target>
       </trans-unit>
       <trans-unit id="route.title.ingestJobs" datatype="html">
@@ -1687,8 +1719,8 @@
         <target>取込ジョブ</target>
       </trans-unit>
       <trans-unit id="route.title.status" datatype="html">
-        <source>Status</source>
-        <target>ステータス</target>
+        <source>Data Source Status</source>
+        <target>データソース状況</target>
       </trans-unit>
       <trans-unit id="route.title.webhooks" datatype="html">
         <source>Webhooks</source>
@@ -1759,8 +1791,8 @@
         <target>SBOM</target>
       </trans-unit>
       <trans-unit id="route.title.sbom" datatype="html">
-        <source>SBOM Monitoring</source>
-        <target>SBOM モニタリング</target>
+        <source>SBOM</source>
+        <target>SBOM</target>
       </trans-unit>
       <trans-unit id="route.title.sbomDetail" datatype="html">
         <source>SBOM Project Detail</source>

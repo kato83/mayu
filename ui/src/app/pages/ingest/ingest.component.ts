@@ -22,10 +22,9 @@ interface IngestOption {
   imports: [FormsModule, DecimalPipe],
   template: `
     <div class="space-y-6">
-      <!-- Header -->
+      <!-- Description -->
       <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100" i18n="@@ingest.title">Data Ingest</h1>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400" i18n="@@ingest.description">
+        <p class="text-sm text-slate-600 dark:text-slate-400" i18n="@@ingest.description">
           Import vulnerability data from various sources into the local database.
         </p>
       </div>

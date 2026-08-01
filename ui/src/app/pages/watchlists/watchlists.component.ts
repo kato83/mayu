@@ -18,10 +18,7 @@ import { WatchlistService } from '../../services/watchlist.service';
   imports: [FormsModule, DatePipe, RouterLink],
   template: `
     <div class="p-6">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white" i18n="@@watchlists.title">
-          Watchlists
-        </h1>
+      <div class="flex items-center justify-end mb-6">
         <button
           (click)="onCreateNew()"
           class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors cursor-pointer"

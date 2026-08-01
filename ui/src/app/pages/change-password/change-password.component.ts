@@ -10,10 +10,6 @@ import { ToastService } from '../../shared/toast/toast.service';
   imports: [FormsModule],
   template: `
     <div class="p-6">
-      <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-6" i18n="@@changePassword.title">
-        Change Password
-      </h1>
-
       <div class="max-w-md">
         <form (ngSubmit)="onSubmit()" class="space-y-4">
           <div>

@@ -46,12 +46,12 @@ export const routes: Routes = [
       },
       {
         path: 'ingest',
-        title: $localize`:@@route.title.ingest:Ingest`,
+        title: $localize`:@@route.title.ingest:Data Ingest`,
         loadComponent: () => import('./pages/ingest/ingest.component').then((m) => m.IngestComponent),
       },
       {
-        path: 'status',
-        title: $localize`:@@route.title.status:Status`,
+        path: 'ingest/status',
+        title: $localize`:@@route.title.status:Data Source Status`,
         loadComponent: () => import('./pages/status/status.component').then((m) => m.StatusComponent),
       },
       {
@@ -67,7 +67,7 @@ export const routes: Routes = [
       },
       {
         path: 'sbom',
-        title: $localize`:@@route.title.sbom:SBOM Monitoring`,
+        title: $localize`:@@route.title.sbom:SBOM`,
         loadComponent: () => import('./pages/sbom/sbom-projects.component').then((m) => m.SbomProjectsComponent),
       },
       {
