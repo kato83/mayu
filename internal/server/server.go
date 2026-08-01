@@ -4,6 +4,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"embed"
 	"encoding/json"
@@ -451,6 +452,18 @@ func (s *Server) handleOpenAPISpec(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to read OpenAPI spec")
 		return
 	}
+
+	// Dynamically set the server URL based on the incoming request.
+	scheme := "http"
+	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	serverURL := scheme + "://" + r.Host
+	data = bytes.Replace(data,
+		[]byte("url: /\n    description: Current server (relative URL)"),
+		[]byte("url: "+serverURL+"\n    description: Current server"),
+		1)
+
 	w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(data)

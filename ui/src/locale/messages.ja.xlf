@@ -918,6 +918,10 @@
         <source> API Keys </source>
         <target>APIキー</target>
       </trans-unit>
+      <trans-unit id="apiKeys.docsLink" datatype="html">
+        <source><x id="START_TAG__SVG_SVG" ctype="x-svg" equiv-text="&lt;svg&gt;"/><x id="START_TAG__SVG_PATH" ctype="x-path" equiv-text="&lt;path&gt;"/><x id="CLOSE_TAG__SVG_PATH" ctype="x-path" equiv-text="&lt;/path&gt;"/><x id="CLOSE_TAG__SVG_SVG" ctype="x-svg" equiv-text="&lt;/svg&gt;"/> API Docs </source>
+        <target><x id="START_TAG__SVG_SVG" ctype="x-svg"/><x id="START_TAG__SVG_PATH" ctype="x-path"/><x id="CLOSE_TAG__SVG_PATH" ctype="x-path"/><x id="CLOSE_TAG__SVG_SVG" ctype="x-svg"/> APIドキュメント</target>
+      </trans-unit>
       <trans-unit id="apiKeys.createButton" datatype="html">
         <source> Create API Key </source>
         <target>APIキーを作成</target>

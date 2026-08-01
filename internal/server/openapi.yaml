@@ -10,8 +10,11 @@ info:
     url: https://github.com/kato83/mayu/blob/main/LICENSE
 
 servers:
-  - url: http://localhost:8080
-    description: Local development server
+  - url: /
+    description: Current server (relative URL)
+
+security:
+  - BearerAuth: []
 
 paths:
   /api/v1/vulnerabilities:
@@ -302,6 +305,7 @@ paths:
       description: Returns the current application version string.
       tags:
         - system
+      security: []
       responses:
         "200":
           description: Version information
@@ -319,6 +323,7 @@ paths:
         and translation are available.
       tags:
         - system
+      security: []
       responses:
         "200":
           description: Server capabilities
@@ -582,6 +587,7 @@ paths:
       description: Returns the health status of the API server.
       tags:
         - system
+      security: []
       responses:
         "200":
           description: Server is healthy
@@ -591,6 +597,16 @@ paths:
                 $ref: "#/components/schemas/HealthResponse"
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        API key authentication. Create an API key via the Web UI or CLI (`mayu apikey create`),
+        then pass it in the Authorization header as a Bearer token.
+
+        Example: `Authorization: Bearer mayu_xxxxxxxx...`
+
   schemas:
     SearchResponse:
       type: object
