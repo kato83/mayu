@@ -108,11 +108,11 @@ import { TriageService } from '../../services/triage.service';
           <table class="w-full text-sm text-left">
             <thead>
               <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                <th class="px-4 py-2 font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('vulnerability_id')" i18n="@@triage.colId">Vulnerability</th>
-                <th class="px-4 py-2 font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('priority_level')" i18n="@@triage.colPriority">Priority</th>
-                <th class="px-4 py-2 font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('composite_score')" i18n="@@triage.colScore">Score</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triage.colSSVC">SSVC</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triage.colRationale">Rationale</th>
+                <th class="px-4 py-2 whitespace-nowrap font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('vulnerability_id')" i18n="@@triage.colId">Vulnerability</th>
+                <th class="px-4 py-2 whitespace-nowrap font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('priority_level')" i18n="@@triage.colPriority">Priority</th>
+                <th class="px-4 py-2 whitespace-nowrap font-medium cursor-pointer hover:text-slate-700 dark:hover:text-slate-200" (click)="sortBy('composite_score')" i18n="@@triage.colScore">Score</th>
+                <th class="px-4 py-2 whitespace-nowrap font-medium" i18n="@@triage.colSSVC">SSVC</th>
+                <th class="px-4 py-2 whitespace-nowrap font-medium" i18n="@@triage.colRationale">Rationale</th>
               </tr>
             </thead>
             <tbody>

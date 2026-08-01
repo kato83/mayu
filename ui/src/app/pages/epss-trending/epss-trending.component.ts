@@ -54,12 +54,12 @@ import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss
             <table class="w-full text-sm text-left">
               <thead>
                 <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                  <th class="px-4 py-3 font-medium" i18n="@@epssTrending.colCveId">CVE ID</th>
-                  <th class="px-4 py-3 font-medium" i18n="@@epssTrending.colCurrentEpss">Current EPSS</th>
-                  <th class="px-4 py-3 font-medium" i18n="@@epssTrending.colPreviousEpss">Previous EPSS</th>
-                  <th class="px-4 py-3 font-medium" i18n="@@epssTrending.colDelta">Delta</th>
-                  <th class="px-4 py-3 font-medium" i18n="@@epssTrending.colPercentile">Percentile</th>
-                  <th class="px-4 py-3 font-medium" i18n="@@epssTrending.colSeverity">Severity</th>
+                  <th class="px-4 py-3 font-medium whitespace-nowrap" i18n="@@epssTrending.colCveId">CVE ID</th>
+                  <th class="px-4 py-3 font-medium whitespace-nowrap" i18n="@@epssTrending.colCurrentEpss">Current EPSS</th>
+                  <th class="px-4 py-3 font-medium whitespace-nowrap" i18n="@@epssTrending.colPreviousEpss">Previous EPSS</th>
+                  <th class="px-4 py-3 font-medium whitespace-nowrap" i18n="@@epssTrending.colDelta">Delta</th>
+                  <th class="px-4 py-3 font-medium whitespace-nowrap" i18n="@@epssTrending.colPercentile">Percentile</th>
+                  <th class="px-4 py-3 font-medium whitespace-nowrap" i18n="@@epssTrending.colSeverity">Severity</th>
                 </tr>
               </thead>
               <tbody>

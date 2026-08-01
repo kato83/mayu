@@ -68,13 +68,13 @@ Chart.register(...registerables);
           <table class="w-full text-sm text-left">
             <thead>
               <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                <th class="px-4 py-2 font-medium" i18n="@@triagePaths.colAction">Action</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triagePaths.colImpact">Impact Score</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triagePaths.colPriority">Priority</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triagePaths.colVulns">Resolved CVEs</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triagePaths.colServers">Servers</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triagePaths.colEcosystem">Ecosystem</th>
-                <th class="px-4 py-2 font-medium"></th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triagePaths.colAction">Action</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triagePaths.colImpact">Impact Score</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triagePaths.colPriority">Priority</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triagePaths.colVulns">Resolved CVEs</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triagePaths.colServers">Servers</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triagePaths.colEcosystem">Ecosystem</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap"></th>
               </tr>
             </thead>
             <tbody>

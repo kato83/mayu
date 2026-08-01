@@ -106,11 +106,11 @@ import { TriageService } from '../../services/triage.service';
         <table class="w-full text-sm text-left">
           <thead>
             <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-              <th class="px-4 py-2 font-medium" i18n="@@profileBinding.colServer">Server</th>
-              <th class="px-4 py-2 font-medium" i18n="@@profileBinding.colEnv">Environment</th>
-              <th class="px-4 py-2 font-medium" i18n="@@profileBinding.colProfile">Profile</th>
-              <th class="px-4 py-2 font-medium" i18n="@@profileBinding.colDesc">Description</th>
-              <th class="px-4 py-2 font-medium" i18n="@@profileBinding.colActions">Actions</th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@profileBinding.colServer">Server</th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@profileBinding.colEnv">Environment</th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@profileBinding.colProfile">Profile</th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@profileBinding.colDesc">Description</th>
+              <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@profileBinding.colActions">Actions</th>
             </tr>
           </thead>
           <tbody>
