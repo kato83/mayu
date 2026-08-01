@@ -767,7 +767,7 @@ func strPtr(s string) *string {
 	return &s
 }
 
-// triggerSBOMReEvaluation runs the SBOM re-evaluator in a background goroutine
+// triggerSBOMReEvaluation runs the SBOM re-evaluator synchronously
 // after a successful ingest operation. This re-scans all tracked SBOM versions
 // against the updated vulnerability database.
 func triggerSBOMReEvaluation(ctx context.Context, s *store.PostgresStore) {
@@ -776,7 +776,7 @@ func triggerSBOMReEvaluation(ctx context.Context, s *store.PostgresStore) {
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	reEvaluator := sbommon.NewSBOMReEvaluator(sbomStore, scanner, logger)
 
-	// Run in a background goroutine with a fresh context (not tied to signal handling)
-	go reEvaluator.ReEvaluate(context.Background(), nil)
-	fmt.Println("  SBOM re-evaluation triggered in background.")
+	fmt.Print("  SBOM re-evaluation running...")
+	reEvaluator.ReEvaluate(context.Background(), nil)
+	fmt.Println(" done.")
 }
