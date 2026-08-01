@@ -68,6 +68,22 @@ func (s *PostgresStore) UpsertNVDSources(ctx context.Context, sources []model.NV
 		return nil
 	}
 
+	// Deduplicate by SourceIdentifier (last-wins) to avoid PostgreSQL
+	// "ON CONFLICT DO UPDATE command cannot affect row a second time" error
+	// when the NVD Source API returns duplicate identifiers across organizations.
+	seen := make(map[string]int, len(sources))
+	deduped := make([]model.NVDSource, 0, len(sources))
+	for _, src := range sources {
+		if idx, exists := seen[src.SourceIdentifier]; exists {
+			// Overwrite with the later entry (last-wins)
+			deduped[idx] = src
+		} else {
+			seen[src.SourceIdentifier] = len(deduped)
+			deduped = append(deduped, src)
+		}
+	}
+	sources = deduped
+
 	// Process in batches of 100 to avoid overly large queries
 	const batchSize = 100
 	for i := 0; i < len(sources); i += batchSize {
