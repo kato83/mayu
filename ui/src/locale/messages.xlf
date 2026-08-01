@@ -3244,116 +3244,172 @@
           <context context-type="linenumber">23,26</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="triageProfiles.builtinBadge" datatype="html">
+        <source>Built-in</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">33,35</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.editBtn" datatype="html">
+        <source>Edit</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">39,41</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.deleteBtn" datatype="html">
+        <source>Delete</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">44,46</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="triageProfiles.weights" datatype="html">
         <source>Weights</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">35,36</context>
+          <context context-type="linenumber">53,54</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.thresholds" datatype="html">
         <source>Thresholds</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">50,51</context>
+          <context context-type="linenumber">68,69</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.noProfiles" datatype="html">
         <source> No profiles available. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">60,63</context>
+          <context context-type="linenumber">78,81</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.createBtn" datatype="html">
-        <source> <x id="INTERPOLATION" equiv-text="{{ showCreateForm() ? &apos;Cancel&apos; : &apos;Create Custom Profile&apos; }}"/> </source>
+        <source> <x id="INTERPOLATION" equiv-text="{{ showForm() ? &apos;Cancel&apos; : (editingProfile() ? &apos;Cancel Edit&apos; : &apos;Create Custom Profile&apos;) }}"/> </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">72,73</context>
+          <context context-type="linenumber">90,91</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.editTitle" datatype="html">
+        <source>Edit Profile</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">99,101</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.createTitle" datatype="html">
         <source>Create Custom Profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">79,81</context>
+          <context context-type="linenumber">101,105</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.nameLabel" datatype="html">
         <source>Name</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">84,85</context>
+          <context context-type="linenumber">108,109</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.descLabel" datatype="html">
         <source>Description</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">94,95</context>
+          <context context-type="linenumber">119,120</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.baseLabel" datatype="html">
         <source>Base Template</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">105,107</context>
+          <context context-type="linenumber">130,132</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.selectBase" datatype="html">
         <source>-- Select a base template --</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">110,111</context>
+          <context context-type="linenumber">135,136</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.weightsSection" datatype="html">
         <source>Weights</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">119,120</context>
+          <context context-type="linenumber">144,145</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.thresholdsSection" datatype="html">
         <source>Thresholds</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">182,183</context>
+          <context context-type="linenumber">207,208</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="triageProfiles.validateBtn" datatype="html">
-        <source> Validate </source>
+      <trans-unit id="triageProfiles.saveBtn" datatype="html">
+        <source> <x id="INTERPOLATION" equiv-text="{{ editingProfile() ? &apos;Update&apos; : &apos;Save&apos; }}"/> </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">216,218</context>
+          <context context-type="linenumber">241,242</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="triageProfiles.validating" datatype="html">
-        <source>Validating...</source>
+      <trans-unit id="triageProfiles.saving" datatype="html">
+        <source>Saving...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">219,223</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="triageProfiles.validSuccess" datatype="html">
-        <source> Profile is valid. </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">227,229</context>
+          <context context-type="linenumber">244,246</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.validErrors" datatype="html">
-        <source>Validation errors:</source>
+        <source>Errors:</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">231,232</context>
+          <context context-type="linenumber">256,257</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="triageProfiles.persistenceNote" datatype="html">
-        <source> Custom profiles are validated locally. Server-side persistence coming soon. </source>
+      <trans-unit id="triageProfiles.deleteConfirmTitle" datatype="html">
+        <source>Delete Profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">243,245</context>
+          <context context-type="linenumber">272,273</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.deleteConfirmMsg" datatype="html">
+        <source>Are you sure you want to delete the profile</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">274,275</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.cancelBtn" datatype="html">
+        <source>Cancel</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">282,284</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.confirmDeleteBtn" datatype="html">
+        <source>Delete</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">287,290</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.updateSuccess" datatype="html">
+        <source>Profile updated successfully.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">414</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.createSuccess" datatype="html">
+        <source>Profile created successfully.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">426</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.fulltextSearch" datatype="html">

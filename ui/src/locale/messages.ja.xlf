@@ -3584,9 +3584,21 @@
         <source>Back to Dashboard</source>
         <target>ダッシュボードに戻る</target>
       </trans-unit>
+      <trans-unit id="triageProfiles.builtinBadge" datatype="html">
+        <source>Built-in</source>
+        <target>組み込み</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.editBtn" datatype="html">
+        <source>Edit</source>
+        <target>編集</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.deleteBtn" datatype="html">
+        <source>Delete</source>
+        <target>削除</target>
+      </trans-unit>
       <trans-unit id="triageProfiles.createBtn" datatype="html">
-        <source><x id="INTERPOLATION" equiv-text="{{ showCreateForm() ? 'Cancel' : 'Create Custom Profile' }}"/></source>
-        <target><x id="INTERPOLATION" equiv-text="{{ showCreateForm() ? 'Cancel' : 'Create Custom Profile' }}"/></target>
+        <source><x id="INTERPOLATION" equiv-text="{{ showForm() ? 'Cancel' : (editingProfile() ? 'Cancel Edit' : 'Create Custom Profile') }}"/></source>
+        <target><x id="INTERPOLATION" equiv-text="{{ showForm() ? 'Cancel' : (editingProfile() ? 'Cancel Edit' : 'Create Custom Profile') }}"/></target>
       </trans-unit>
       <trans-unit id="triageProfiles.weights" datatype="html">
         <source>Weights</source>
@@ -3599,6 +3611,10 @@
       <trans-unit id="triageProfiles.noProfiles" datatype="html">
         <source> No profiles available. </source>
         <target>プロファイルがありません。</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.editTitle" datatype="html">
+        <source>Edit Profile</source>
+        <target>プロファイル編集</target>
       </trans-unit>
       <trans-unit id="triageProfiles.createTitle" datatype="html">
         <source>Create Custom Profile</source>
@@ -3628,25 +3644,41 @@
         <source>Thresholds</source>
         <target>閾値</target>
       </trans-unit>
-      <trans-unit id="triageProfiles.validateBtn" datatype="html">
-        <source> Validate </source>
-        <target>検証</target>
+      <trans-unit id="triageProfiles.saveBtn" datatype="html">
+        <source><x id="INTERPOLATION" equiv-text="{{ editingProfile() ? 'Update' : 'Save' }}"/></source>
+        <target><x id="INTERPOLATION" equiv-text="{{ editingProfile() ? 'Update' : 'Save' }}"/></target>
       </trans-unit>
-      <trans-unit id="triageProfiles.persistenceNote" datatype="html">
-        <source> Custom profiles are validated locally. Server-side persistence coming soon. </source>
-        <target>カスタムプロファイルはローカルで検証されます。サーバー側の永続化は今後対応予定です。</target>
-      </trans-unit>
-      <trans-unit id="triageProfiles.validating" datatype="html">
-        <source>Validating...</source>
-        <target>検証中...</target>
-      </trans-unit>
-      <trans-unit id="triageProfiles.validSuccess" datatype="html">
-        <source> Profile is valid. </source>
-        <target>プロファイルは有効です。</target>
+      <trans-unit id="triageProfiles.saving" datatype="html">
+        <source>Saving...</source>
+        <target>保存中...</target>
       </trans-unit>
       <trans-unit id="triageProfiles.validErrors" datatype="html">
-        <source>Validation errors:</source>
-        <target>検証エラー:</target>
+        <source>Errors:</source>
+        <target>エラー:</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.deleteConfirmTitle" datatype="html">
+        <source>Delete Profile</source>
+        <target>プロファイル削除</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.deleteConfirmMsg" datatype="html">
+        <source>Are you sure you want to delete the profile</source>
+        <target>本当にこのプロファイルを削除しますか</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.cancelBtn" datatype="html">
+        <source>Cancel</source>
+        <target>キャンセル</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.confirmDeleteBtn" datatype="html">
+        <source>Delete</source>
+        <target>削除</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.updateSuccess" datatype="html">
+        <source>Profile updated successfully.</source>
+        <target>プロファイルを更新しました。</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.createSuccess" datatype="html">
+        <source>Profile created successfully.</source>
+        <target>プロファイルを作成しました。</target>
       </trans-unit>
     </body>
   </file>

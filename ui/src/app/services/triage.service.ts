@@ -60,6 +60,27 @@ export class TriageService {
     return this.http.get<{ profiles: TriageProfile[] }>('/api/v1/triage/profiles').pipe(map((res) => res.profiles));
   }
 
+  getProfile(name: string): Observable<TriageProfile> {
+    return this.http.get<TriageProfile>(`/api/v1/triage/profiles/${encodeURIComponent(name)}`);
+  }
+
+  createProfile(
+    profile: Omit<TriageProfile, 'id' | 'builtin' | 'created_at' | 'updated_at'>,
+  ): Observable<TriageProfile> {
+    return this.http.post<TriageProfile>('/api/v1/triage/profiles', profile);
+  }
+
+  updateProfile(
+    name: string,
+    profile: Omit<TriageProfile, 'id' | 'name' | 'builtin' | 'created_at' | 'updated_at'>,
+  ): Observable<TriageProfile> {
+    return this.http.put<TriageProfile>(`/api/v1/triage/profiles/${encodeURIComponent(name)}`, profile);
+  }
+
+  deleteProfile(name: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/triage/profiles/${encodeURIComponent(name)}`);
+  }
+
   validateProfile(profile: TriageProfile): Observable<{ valid: boolean; errors: string[] }> {
     return this.http.post<{ valid: boolean; errors: string[] }>('/api/v1/triage/profiles/validate', profile);
   }

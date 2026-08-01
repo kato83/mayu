@@ -596,6 +596,228 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
 
+  /api/v1/triage/profiles:
+    get:
+      operationId: listTriageProfiles
+      summary: List all triage profiles
+      description: Returns both built-in and custom triage profiles.
+      tags:
+        - triage
+      responses:
+        "200":
+          description: List of all triage profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profiles:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TriageProfile"
+    post:
+      operationId: createTriageProfile
+      summary: Create a custom triage profile
+      description: |
+        Creates a new custom triage profile. Built-in profile names
+        (default, internet-facing, internal-only, air-gapped) are reserved and cannot be used.
+      tags:
+        - triage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriageProfileInput"
+      responses:
+        "201":
+          description: Profile created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TriageProfile"
+        "400":
+          description: Invalid request (missing fields or invalid data)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Profile name already exists or is reserved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation failed (weights don't sum to 1.0, invalid thresholds, etc.)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: false
+                  errors:
+                    type: array
+                    items:
+                      type: string
+
+  /api/v1/triage/profiles/validate:
+    post:
+      operationId: validateTriageProfile
+      summary: Validate a triage profile
+      description: Validates a triage profile configuration without persisting it.
+      tags:
+        - triage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriageProfileInput"
+      responses:
+        "200":
+          description: Profile is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: true
+        "422":
+          description: Validation errors found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: false
+                  errors:
+                    type: array
+                    items:
+                      type: string
+
+  /api/v1/triage/profiles/{name}:
+    get:
+      operationId: getTriageProfile
+      summary: Get a triage profile by name
+      description: Retrieves a single triage profile (built-in or custom) by name.
+      tags:
+        - triage
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Profile name
+      responses:
+        "200":
+          description: Profile found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TriageProfile"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateTriageProfile
+      summary: Update a custom triage profile
+      description: |
+        Updates an existing custom triage profile. Built-in profiles cannot be modified.
+      tags:
+        - triage
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Profile name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriageProfileInput"
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TriageProfile"
+        "403":
+          description: Cannot modify built-in profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  errors:
+                    type: array
+                    items:
+                      type: string
+    delete:
+      operationId: deleteTriageProfile
+      summary: Delete a custom triage profile
+      description: |
+        Deletes a custom triage profile. Built-in profiles cannot be deleted.
+      tags:
+        - triage
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Profile name
+      responses:
+        "200":
+          description: Profile deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "403":
+          description: Cannot delete built-in profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     BearerAuth:
@@ -608,6 +830,150 @@ components:
         Example: `Authorization: Bearer mayu_xxxxxxxx...`
 
   schemas:
+    TriageProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Database ID (only for custom profiles)
+        name:
+          type: string
+          description: Profile name
+          example: internet-facing
+        description:
+          type: string
+          description: Human-readable description
+          example: Internet-facing services profile
+        base:
+          type: string
+          description: Base template name (for inheritance)
+          example: default
+        weights:
+          $ref: "#/components/schemas/TriageWeights"
+        thresholds:
+          $ref: "#/components/schemas/TriageThresholds"
+        ssvc_mapping:
+          type: object
+          additionalProperties:
+            type: string
+          description: SSVC decision to priority level mapping
+          example:
+            Act: Critical
+            Attend: High
+            "Track*": Medium
+            Track: Low
+        builtin:
+          type: boolean
+          description: Whether this is a built-in (protected) profile
+        created_by:
+          type: integer
+          format: int64
+          description: User ID of the creator (custom profiles only)
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TriageProfileInput:
+      type: object
+      required:
+        - name
+        - weights
+        - thresholds
+      properties:
+        name:
+          type: string
+          description: Unique profile name
+          example: my-custom-profile
+        description:
+          type: string
+          description: Human-readable description
+        base:
+          type: string
+          description: Base template to inherit defaults from
+          example: default
+        weights:
+          $ref: "#/components/schemas/TriageWeights"
+        thresholds:
+          $ref: "#/components/schemas/TriageThresholds"
+        ssvc_mapping:
+          type: object
+          additionalProperties:
+            type: string
+
+    TriageWeights:
+      type: object
+      description: Signal weights (must sum to 1.0)
+      required:
+        - cvss
+        - epss
+        - lev
+        - kev
+        - patch
+        - age
+        - exploitdb
+        - reachability
+      properties:
+        cvss:
+          type: number
+          format: double
+          example: 0.20
+        epss:
+          type: number
+          format: double
+          example: 0.20
+        lev:
+          type: number
+          format: double
+          example: 0.15
+        kev:
+          type: number
+          format: double
+          example: 0.15
+        patch:
+          type: number
+          format: double
+          example: 0.08
+        age:
+          type: number
+          format: double
+          example: 0.05
+        exploitdb:
+          type: number
+          format: double
+          example: 0.10
+        reachability:
+          type: number
+          format: double
+          example: 0.07
+
+    TriageThresholds:
+      type: object
+      description: Priority level thresholds (composite score boundaries)
+      required:
+        - critical
+        - high
+        - medium
+      properties:
+        critical:
+          type: number
+          format: double
+          description: Score >= this value maps to Critical priority
+          example: 0.85
+        high:
+          type: number
+          format: double
+          description: Score >= this value maps to High priority
+          example: 0.65
+        medium:
+          type: number
+          format: double
+          description: Score >= this value maps to Medium priority
+          example: 0.40
+
     SearchResponse:
       type: object
       required:

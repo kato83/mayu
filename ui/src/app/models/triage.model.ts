@@ -61,11 +61,17 @@ export interface TriageSummary {
 
 /** A triage profile definition */
 export interface TriageProfile {
+  id?: number;
   name: string;
   description: string;
-  base: string;
+  base?: string;
   weights: ExtendedWeights;
   thresholds: Thresholds;
+  ssvc_mapping?: Record<string, string>;
+  builtin?: boolean;
+  created_by?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 /** Extended weights for the composite score calculation */

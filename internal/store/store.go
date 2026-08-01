@@ -202,6 +202,25 @@ type Store interface {
 	// For global trends (ProjectID == 0): aggregates from vulnerabilities + vulnerability_summary by published date.
 	// For project-level trends (ProjectID > 0): aggregates from sbom_scan_results by scanned_at date.
 	GetStatsTrend(ctx context.Context, query StatsTrendQuery) (*StatsTrendResponse, error)
+
+	// --- Triage Profile CRUD ---
+
+	// CreateTriageProfile inserts a new custom triage profile.
+	CreateTriageProfile(ctx context.Context, row *TriageProfileRow) (*TriageProfileRow, error)
+
+	// GetTriageProfile retrieves a custom triage profile by name.
+	// Returns nil, nil if not found.
+	GetTriageProfile(ctx context.Context, name string) (*TriageProfileRow, error)
+
+	// ListTriageProfiles returns all custom triage profiles.
+	ListTriageProfiles(ctx context.Context) ([]*TriageProfileRow, error)
+
+	// UpdateTriageProfile updates a custom triage profile by name.
+	// Returns nil, nil if the profile does not exist.
+	UpdateTriageProfile(ctx context.Context, name string, row *TriageProfileRow) (*TriageProfileRow, error)
+
+	// DeleteTriageProfile deletes a custom triage profile by name.
+	DeleteTriageProfile(ctx context.Context, name string) error
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.

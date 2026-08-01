@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, inject, type OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import type { TriagePath } from '../../models/triage.model';
@@ -7,7 +6,7 @@ import { TriageService } from '../../services/triage.service';
 @Component({
   selector: 'app-triage-path-detail',
   standalone: true,
-  imports: [DecimalPipe, RouterLink],
+  imports: [RouterLink],
   template: `
     @if (loading()) {
       <div class="flex items-center justify-center h-64">

@@ -13,6 +13,7 @@ import (
 	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/sbommon"
+	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/triage"
 )
 
@@ -157,7 +158,7 @@ func (s *Server) handleTriageBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profile := resolveTriageProfile(req.Profile)
+	profile := s.resolveTriageProfileWithStore(r.Context(), req.Profile)
 	engine := triage.NewEngine(profile)
 
 	// Build inputs from vulnerability IDs with full signal data from DB
@@ -191,7 +192,7 @@ func (s *Server) handleGetVulnerabilityTriage(w http.ResponseWriter, r *http.Req
 	}
 
 	profileName := r.URL.Query().Get("profile")
-	profile := resolveTriageProfile(profileName)
+	profile := s.resolveTriageProfileWithStore(r.Context(), profileName)
 	engine := triage.NewEngine(profile)
 
 	input := s.buildTriageInputForVulnID(r.Context(), id)
@@ -214,7 +215,7 @@ func (s *Server) handleGetProjectTriage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	profileName := r.URL.Query().Get("profile")
-	profile := resolveTriageProfile(profileName)
+	profile := s.resolveTriageProfileWithStore(r.Context(), profileName)
 	engine := triage.NewEngine(profile)
 
 	limitStr := r.URL.Query().Get("limit")
@@ -310,14 +311,6 @@ func (s *Server) handleGetProjectTriage(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-// handleListTriageProfiles handles GET /api/v1/triage/profiles
-func (s *Server) handleListTriageProfiles(w http.ResponseWriter, r *http.Request) {
-	templates := triage.BuiltinTemplates()
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"profiles": templates,
-	})
-}
-
 // handleValidateTriageProfile handles POST /api/v1/triage/profiles/validate
 func (s *Server) handleValidateTriageProfile(w http.ResponseWriter, r *http.Request) {
 	var profile triage.Profile
@@ -386,7 +379,7 @@ func (s *Server) handleSetServerProfile(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Verify profile exists
-	if p := resolveTriageProfile(req.ProfileName); p.Name == "default" && req.ProfileName != "default" {
+	if p := s.resolveTriageProfileWithStore(r.Context(), req.ProfileName); p.Name == "default" && req.ProfileName != "default" {
 		writeError(w, http.StatusBadRequest, "profile not found: "+req.ProfileName)
 		return
 	}
@@ -822,17 +815,60 @@ func (s *Server) handleDashboardTriage(w http.ResponseWriter, r *http.Request) {
 
 // --- Helper functions ---
 
-func resolveTriageProfile(name string) *triage.Profile {
+// resolveTriageProfileWithStore resolves a profile name by checking built-in templates
+// first, then falling back to custom profiles stored in the database.
+func (s *Server) resolveTriageProfileWithStore(ctx context.Context, name string) *triage.Profile {
 	if name == "" {
 		return triage.DefaultProfile()
 	}
 	name = strings.TrimSpace(name)
+
+	// Check built-in templates first
 	for _, t := range triage.BuiltinTemplates() {
 		if t.Name == name {
 			return &t
 		}
 	}
+
+	// Check custom profiles in DB
+	row, err := s.store.GetTriageProfile(ctx, name)
+	if err == nil && row != nil {
+		if p := rowToProfile(row); p != nil {
+			return p
+		}
+	}
+
 	return triage.DefaultProfile()
+}
+
+// rowToProfile converts a TriageProfileRow to a triage.Profile.
+func rowToProfile(row *store.TriageProfileRow) *triage.Profile {
+	var weights triage.ExtendedWeights
+	if err := json.Unmarshal(row.Weights, &weights); err != nil {
+		return nil
+	}
+
+	var thresholds triage.Thresholds
+	if err := json.Unmarshal(row.Thresholds, &thresholds); err != nil {
+		return nil
+	}
+
+	p := &triage.Profile{
+		Name:        row.Name,
+		Description: row.Description,
+		Base:        row.Base,
+		Weights:     &weights,
+		Thresholds:  &thresholds,
+	}
+
+	if row.SSVCMapping != nil {
+		var ssvc map[string]string
+		if err := json.Unmarshal(*row.SSVCMapping, &ssvc); err == nil {
+			p.SSVCMapping = ssvc
+		}
+	}
+
+	return p
 }
 
 func computeSummary(results []*triage.TriageResult) map[string]int {

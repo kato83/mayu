@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import {
   type AfterViewInit,
   Component,
@@ -20,7 +19,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-triage-path-list',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   template: `
     @if (loading()) {
       <div class="flex items-center justify-center h-64">

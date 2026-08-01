@@ -213,6 +213,20 @@ func (m *mockStore) GetStatsTrend(ctx context.Context, query store.StatsTrendQue
 	}, nil
 }
 
+func (m *mockStore) CreateTriageProfile(ctx context.Context, row *store.TriageProfileRow) (*store.TriageProfileRow, error) {
+	return row, nil
+}
+func (m *mockStore) GetTriageProfile(ctx context.Context, name string) (*store.TriageProfileRow, error) {
+	return nil, nil
+}
+func (m *mockStore) ListTriageProfiles(ctx context.Context) ([]*store.TriageProfileRow, error) {
+	return nil, nil
+}
+func (m *mockStore) UpdateTriageProfile(ctx context.Context, name string, row *store.TriageProfileRow) (*store.TriageProfileRow, error) {
+	return nil, nil
+}
+func (m *mockStore) DeleteTriageProfile(ctx context.Context, name string) error { return nil }
+
 // newTestServer creates a Server with the given mock store for testing.
 // By default it uses NoAuthProvider so existing tests don't need auth.
 func newTestServer(ms *mockStore) *Server {
