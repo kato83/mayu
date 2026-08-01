@@ -466,13 +466,19 @@ func (s *Server) handleTriageOverviewVulnerabilities(w http.ResponseWriter, r *h
 func (s *Server) handleTriageOverviewSummary(w http.ResponseWriter, r *http.Request) {
 	summary, crossResults := s.computeCrossProjectOverview(r.Context())
 
-	// Compute total projects and servers from cross-project results
+	// Compute total unique servers across all vulnerabilities.
+	// This is a cross-vulnerability union — a server affected by multiple
+	// vulnerabilities is counted only once.
+	type serverKey struct {
+		projectID   int64
+		serverLabel string
+	}
 	projectSet := make(map[int64]struct{})
-	totalServers := 0
+	serverSet := make(map[serverKey]struct{})
 	for _, cr := range crossResults {
-		totalServers += cr.AffectedServers
 		for _, srv := range cr.ServerBreakdown {
 			projectSet[srv.ProjectID] = struct{}{}
+			serverSet[serverKey{srv.ProjectID, srv.ServerLabel}] = struct{}{}
 		}
 	}
 
@@ -486,7 +492,7 @@ func (s *Server) handleTriageOverviewSummary(w http.ResponseWriter, r *http.Requ
 			"Low":      summary.Low,
 		},
 		"total_projects": len(projectSet),
-		"total_servers":  totalServers,
+		"total_servers":  len(serverSet),
 	})
 }
 

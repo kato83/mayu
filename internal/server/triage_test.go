@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/kato83/mayu/internal/auth"
+	"github.com/kato83/mayu/internal/sbommon"
 	"github.com/kato83/mayu/internal/triage"
 )
 
@@ -562,5 +564,132 @@ func TestWatchlistNotificationPayload(t *testing.T) {
 		if _, ok := payload[field]; !ok {
 			t.Errorf("notification payload missing required field: %s", field)
 		}
+	}
+}
+
+// TestHandleTriageOverviewSummary_EmptyResults tests GET /api/v1/triage/overview/summary
+// with no SBOM store configured (returns zero counts).
+func TestHandleTriageOverviewSummary_EmptyResults(t *testing.T) {
+	srv := newTestServer(&mockStore{})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/triage/overview/summary", nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		TotalVulnerabilities int            `json:"total_vulnerabilities"`
+		PriorityCounts       map[string]int `json:"priority_counts"`
+		TotalProjects        int            `json:"total_projects"`
+		TotalServers         int            `json:"total_servers"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	if resp.TotalVulnerabilities != 0 {
+		t.Errorf("expected total_vulnerabilities=0, got %d", resp.TotalVulnerabilities)
+	}
+	if resp.TotalProjects != 0 {
+		t.Errorf("expected total_projects=0, got %d", resp.TotalProjects)
+	}
+	if resp.TotalServers != 0 {
+		t.Errorf("expected total_servers=0, got %d", resp.TotalServers)
+	}
+	if resp.PriorityCounts == nil {
+		t.Error("expected non-nil priority_counts")
+	}
+}
+
+// TestHandleTriageOverviewSummary_CrossVulnDeduplication tests that
+// total_servers counts unique servers across all vulnerabilities as a union.
+// A server affected by multiple vulnerabilities is counted only once.
+func TestHandleTriageOverviewSummary_CrossVulnDeduplication(t *testing.T) {
+	ms := &mockStore{}
+	// Set up two projects: project 1 (production) and project 2 (staging).
+	// Both have findings for the same CVE (CVE-2024-001) plus project 1 has
+	// an additional CVE (CVE-2024-002). This tests that the cross-vulnerability
+	// union deduplication correctly counts project1|production once even though
+	// it appears in results for both CVEs.
+	sbomStore := &mockSBOMStoreForPortfolio{
+		projects: []*sbommon.SBOMProject{
+			{ID: 1, UserID: 0, Name: "service-a"},
+			{ID: 2, UserID: 0, Name: "service-b"},
+		},
+		versions: map[int64]*sbommon.SBOMVersion{
+			10: {ID: 10, ProjectID: 1, Version: "1.0.0", Environment: "production", ComponentCount: 50},
+			20: {ID: 20, ProjectID: 2, Version: "2.0.0", Environment: "staging", ComponentCount: 30},
+		},
+		scanResults: map[int64]*sbommon.SBOMScanResult{
+			10: {
+				ID:            1,
+				VersionID:     10,
+				ScannedAt:     time.Now(),
+				TotalFindings: 2,
+				Findings: []sbommon.ScanFinding{
+					{VulnID: "CVE-2024-001", Severity: "HIGH", Purl: "pkg:npm/foo@1.0.0", Ecosystem: "npm"},
+					{VulnID: "CVE-2024-002", Severity: "MEDIUM", Purl: "pkg:npm/bar@2.0.0", Ecosystem: "npm"},
+				},
+			},
+			20: {
+				ID:            2,
+				VersionID:     20,
+				ScannedAt:     time.Now(),
+				TotalFindings: 1,
+				Findings: []sbommon.ScanFinding{
+					{VulnID: "CVE-2024-001", Severity: "HIGH", Purl: "pkg:npm/foo@1.0.0", Ecosystem: "npm"},
+				},
+			},
+		},
+	}
+
+	srv := New(Config{
+		Addr:         ":0",
+		Store:        ms,
+		Version:      "test",
+		AuthProvider: auth.NewNoAuthProvider(),
+		SBOMStore:    sbomStore,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/triage/overview/summary", nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		TotalVulnerabilities int            `json:"total_vulnerabilities"`
+		PriorityCounts       map[string]int `json:"priority_counts"`
+		TotalProjects        int            `json:"total_projects"`
+		TotalServers         int            `json:"total_servers"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	// Two vulnerabilities total (CVE-2024-001, CVE-2024-002)
+	if resp.TotalVulnerabilities != 2 {
+		t.Errorf("expected total_vulnerabilities=2, got %d", resp.TotalVulnerabilities)
+	}
+
+	// Two projects (service-a, service-b)
+	if resp.TotalProjects != 2 {
+		t.Errorf("expected total_projects=2, got %d", resp.TotalProjects)
+	}
+
+	// Two unique servers (project1|production, project2|staging).
+	// Even though project1|production appears in both CVE results, it should
+	// be counted only once in the cross-vulnerability union.
+	if resp.TotalServers != 2 {
+		t.Errorf("expected total_servers=2 (cross-vuln dedup), got %d", resp.TotalServers)
+	}
+
+	if resp.PriorityCounts == nil {
+		t.Error("expected non-nil priority_counts")
 	}
 }

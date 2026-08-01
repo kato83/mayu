@@ -32,6 +32,13 @@ type OverviewSummary struct {
 	Low      int `json:"low"`
 }
 
+// serverKey uniquely identifies a server by its project ID and label.
+// Used as a map key for deduplication (collision-proof by construction).
+type serverKey struct {
+	projectID   int64
+	serverLabel string
+}
+
 // AggregateCrossProject computes the cross-project aggregation for a single
 // vulnerability from multiple server triage entries.
 // It uses the max priority and max score across all servers.
@@ -44,14 +51,15 @@ func AggregateCrossProject(vulnID string, entries []ServerTriageEntry) *CrossPro
 		VulnerabilityID:  vulnID,
 		OrgPriorityLevel: PriorityLow,
 		ServerBreakdown:  entries,
-		AffectedServers:  len(entries),
 	}
 
-	// Track unique projects
+	// Track unique projects and unique servers (project + server label)
 	projectSet := make(map[int64]struct{})
+	serverSet := make(map[serverKey]struct{})
 
 	for _, entry := range entries {
 		projectSet[entry.ProjectID] = struct{}{}
+		serverSet[serverKey{entry.ProjectID, entry.ServerLabel}] = struct{}{}
 
 		if entry.TriageResult == nil {
 			continue
@@ -68,6 +76,7 @@ func AggregateCrossProject(vulnID string, entries []ServerTriageEntry) *CrossPro
 		}
 	}
 
+	result.AffectedServers = len(serverSet)
 	result.AffectedProjects = len(projectSet)
 	return result
 }
