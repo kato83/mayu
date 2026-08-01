@@ -1,13 +1,17 @@
 {
-  "name": "DevOps",
+  "name": "devops",
   "description": "Agent that manages CI/CD, Docker, release processes, and infrastructure configuration",
   "prompt": "file://./prompts/devops.md",
-  "tools": ["read", "write", "shell", "grep", "glob", "code"],
+  "tools": ["read", "write", "shell", "grep", "glob", "code", "subagent"],
   "allowedTools": ["read", "write", "shell", "grep", "glob", "code"],
   "toolsSettings": {
     "shell": {
       "allowedCommands": ["make .*", "go .*", "docker .*", "git .*", "cat .*", "ls .*", "find .*", "grep .*", "head .*", "tail .*", "pnpm .*"],
       "autoAllowReadonly": true
+    },
+    "subagent": {
+      "availableAgents": ["developer", "qa"],
+      "trustedAgents": ["developer", "qa"]
     }
   }
 }

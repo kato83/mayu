@@ -1,7 +1,0 @@
-{
-  "name": "Devil's Advocate",
-  "description": "Agent that provides contrarian and critical perspectives on designs, plans, and reviews to improve decision quality",
-  "prompt": "file://./prompts/devils-advocate.md",
-  "tools": ["read", "grep", "glob", "code", "web_search", "web_fetch"],
-  "allowedTools": ["read", "grep", "glob", "code", "web_search", "web_fetch"]
-}

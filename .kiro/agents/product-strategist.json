@@ -1,7 +1,0 @@
-{
-  "name": "Product Strategist",
-  "description": "Agent responsible for defining product strategy, roadmap prioritization, and feature direction for the mayu project",
-  "prompt": "file://./prompts/product-strategist.md",
-  "tools": ["read", "grep", "glob", "web_search", "web_fetch"],
-  "allowedTools": ["read", "grep", "glob", "web_search", "web_fetch"]
-}

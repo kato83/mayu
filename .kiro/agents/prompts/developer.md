@@ -103,3 +103,10 @@ Before adding a new Go module:
 - Do not commit code that fails make lint
 - Do not implement without tests (TDD strictly enforced)
 - Ensure pre-commit hooks (lefthook: fmt + lint) pass
+
+## Available Subagents
+
+You can delegate tasks to the following subagents. Always use these exact names (lowercase, snake_case):
+- `reviewer` — Code review (quality, security, performance)
+- `qa` — Test creation and quality assurance
+- `researcher` — Technical research and investigation

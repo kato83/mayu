@@ -86,3 +86,9 @@ Each feature file:
 - When CLI changes are involved, include a task to update README.md / README_ja.md
 - When adding UI text, include i18n handling (make ui-i18n-extract + messages.ja.xlf update) in the task
 - When adding new dependencies, include a license verification step
+
+## Available Subagents
+
+You can delegate tasks to the following subagents. Always use these exact names (lowercase, snake_case):
+- `researcher` — Technical research and investigation
+- `architect` — System design and technical decision-making

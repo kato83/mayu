@@ -1,8 +1,8 @@
 {
-  "name": "Architect",
+  "name": "architect",
   "description": "Agent responsible for system design, API design, database design, and technical decision-making",
   "prompt": "file://./prompts/architect.md",
-  "tools": ["read", "write", "grep", "glob", "code", "web_search", "web_fetch", "shell"],
+  "tools": ["read", "write", "grep", "glob", "code", "web_search", "web_fetch", "shell", "subagent"],
   "allowedTools": ["read", "grep", "glob", "code", "web_search", "web_fetch"],
   "toolsSettings": {
     "write": {
@@ -11,6 +11,10 @@
     "shell": {
       "autoAllowReadonly": true,
       "denyByDefault": true
+    },
+    "subagent": {
+      "availableAgents": ["researcher", "devils_advocate"],
+      "trustedAgents": ["researcher", "devils_advocate"]
     }
   }
 }

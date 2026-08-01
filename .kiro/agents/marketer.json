@@ -1,12 +1,16 @@
 {
-  "name": "Marketer",
+  "name": "marketer",
   "description": "Agent responsible for OSS marketing strategy, README optimization, and community engagement",
   "prompt": "file://./prompts/marketer.md",
-  "tools": ["read", "write", "grep", "glob", "web_search", "web_fetch"],
+  "tools": ["read", "write", "grep", "glob", "web_search", "web_fetch", "subagent"],
   "allowedTools": ["read", "grep", "glob", "web_search", "web_fetch"],
   "toolsSettings": {
     "write": {
       "allowedPaths": ["README.md", "README_ja.md", "docs/**"]
+    },
+    "subagent": {
+      "availableAgents": ["researcher"],
+      "trustedAgents": ["researcher"]
     }
   }
 }

@@ -137,3 +137,8 @@ Test plan:
 - Be mindful of test execution time (keep unit tests fast)
 - Do not write flaky tests (unstable tests)
 - When output is lengthy, narrow the scope to specific packages
+
+## Available Subagents
+
+You can delegate tasks to the following subagents. Always use these exact names (lowercase, snake_case):
+- `developer` — Code implementation and bug fixes

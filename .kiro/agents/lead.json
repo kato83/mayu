@@ -1,0 +1,13 @@
+{
+  "name": "lead",
+  "description": "Orchestrator agent that coordinates all specialized agents without writing code directly",
+  "prompt": "file://./prompts/lead.md",
+  "tools": ["read", "grep", "glob", "code", "web_search", "web_fetch", "subagent"],
+  "allowedTools": ["read", "grep", "glob", "code", "web_search", "web_fetch", "subagent"],
+  "toolsSettings": {
+    "subagent": {
+      "availableAgents": ["developer", "reviewer", "qa", "researcher", "architect", "planner", "devops", "devils_advocate", "marketer", "product_strategist", "triage", "vuln_triage_operator"],
+      "trustedAgents": ["developer", "reviewer", "qa", "researcher", "architect", "planner", "devops", "devils_advocate"]
+    }
+  }
+}

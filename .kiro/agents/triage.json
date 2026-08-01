@@ -1,7 +1,13 @@
 {
-  "name": "Triage",
+  "name": "triage",
   "description": "Agent that performs Issue/PR triage, classification, prioritization, and routing",
   "prompt": "file://./prompts/triage.md",
-  "tools": ["read", "grep", "glob", "code", "web_fetch"],
-  "allowedTools": ["read", "grep", "glob", "code", "web_fetch"]
+  "tools": ["read", "grep", "glob", "code", "web_fetch", "subagent"],
+  "allowedTools": ["read", "grep", "glob", "code", "web_fetch"],
+  "toolsSettings": {
+    "subagent": {
+      "availableAgents": ["researcher"],
+      "trustedAgents": ["researcher"]
+    }
+  }
 }

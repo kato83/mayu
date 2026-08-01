@@ -149,3 +149,8 @@ When testing a feature, verify:
 - When triage results seem wrong, investigate the scoring logic before reporting
 - Prioritize bugs that block the triage workflow over cosmetic issues
 - Use `make build` (not manual `go build -tags uiembed`) when testing production builds
+
+## Available Subagents
+
+You can delegate tasks to the following subagents. Always use these exact names (lowercase, snake_case):
+- `developer` — Bug fix implementation

@@ -1,13 +1,17 @@
 {
-  "name": "Vuln Triage Operator",
+  "name": "vuln_triage_operator",
   "description": "Agent that performs vulnerability triage as an information security operator, validates UI/API functionality through actual usage, and files bug reports with reproduction steps for engineers",
-  "prompt": "file://./prompts/vuln-triage-operator.md",
-  "tools": ["read", "shell", "grep", "glob", "web_fetch", "@chrome-devtools"],
+  "prompt": "file://./prompts/vuln_triage_operator.md",
+  "tools": ["read", "shell", "grep", "glob", "web_fetch", "@chrome-devtools", "subagent"],
   "allowedTools": ["read", "shell", "grep", "glob", "web_fetch", "@chrome-devtools"],
   "toolsSettings": {
     "shell": {
       "allowedCommands": ["curl .*", "cat .*", "ls .*", "find .*", "grep .*", "head .*", "tail .*", "wc .*", "cd .* && ./bin/mayu .*", "./bin/mayu .*", "make build"],
       "autoAllowReadonly": true
+    },
+    "subagent": {
+      "availableAgents": ["developer"],
+      "trustedAgents": ["developer"]
     }
   },
   "mcpServers": {

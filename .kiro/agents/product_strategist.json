@@ -1,0 +1,13 @@
+{
+  "name": "product_strategist",
+  "description": "Agent responsible for defining product strategy, roadmap prioritization, and feature direction for the mayu project",
+  "prompt": "file://./prompts/product_strategist.md",
+  "tools": ["read", "grep", "glob", "web_search", "web_fetch", "subagent"],
+  "allowedTools": ["read", "grep", "glob", "web_search", "web_fetch"],
+  "toolsSettings": {
+    "subagent": {
+      "availableAgents": ["researcher", "planner", "marketer"],
+      "trustedAgents": ["researcher", "planner", "marketer"]
+    }
+  }
+}

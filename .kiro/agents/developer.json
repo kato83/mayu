@@ -1,13 +1,17 @@
 {
-  "name": "Developer",
+  "name": "developer",
   "description": "Development agent that implements code following the mayu project coding conventions using TDD",
   "prompt": "file://./prompts/developer.md",
-  "tools": ["read", "write", "shell", "grep", "glob", "code", "web_fetch", "web_search", "@gopls", "@angular-cli", "@chrome-devtools"],
+  "tools": ["read", "write", "shell", "grep", "glob", "code", "web_fetch", "web_search", "@gopls", "@angular-cli", "@chrome-devtools", "subagent"],
   "allowedTools": ["read", "write", "shell", "grep", "glob", "code", "web_fetch", "@gopls", "@angular-cli", "@chrome-devtools"],
   "toolsSettings": {
     "shell": {
       "allowedCommands": ["make .*", "go .*", "cd .*", "cat .*", "ls .*", "find .*", "grep .*", "head .*", "tail .*", "wc .*", "pnpm .*", "git .*", "curl .*"],
       "autoAllowReadonly": true
+    },
+    "subagent": {
+      "availableAgents": ["reviewer", "qa", "researcher"],
+      "trustedAgents": ["reviewer", "qa", "researcher"]
     }
   },
   "mcpServers": {

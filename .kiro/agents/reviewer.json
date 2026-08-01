@@ -1,5 +1,5 @@
 {
-  "name": "Reviewer",
+  "name": "reviewer",
   "description": "Agent that reviews code from the perspectives of quality, security, performance, and convention compliance",
   "prompt": "file://./prompts/reviewer.md",
   "tools": ["read", "grep", "glob", "code", "shell"],

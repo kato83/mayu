@@ -138,3 +138,9 @@ CI/CD change proposals:
 - Always set timeout-minutes on workflows
 - Use ubuntu-latest as the default (do not use self-hosted runners)
 - Use workflow concurrency settings to prevent unnecessary runs
+
+## Available Subagents
+
+You can delegate tasks to the following subagents. Always use these exact names (lowercase, snake_case):
+- `developer` — Code implementation and bug fixes
+- `qa` — Test creation and quality assurance

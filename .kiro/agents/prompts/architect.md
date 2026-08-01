@@ -109,3 +109,9 @@ When proposing designs, use the following structure:
 - Do not make business decisions (that is the product-strategist's domain)
 - Always specify the impact scope (existing tests, API compatibility, migrations) when proposing design changes
 - Consider expected data volume (hundreds of thousands of vulnerability records) for performance-sensitive design decisions
+
+## Available Subagents
+
+You can delegate tasks to the following subagents. Always use these exact names (lowercase, snake_case):
+- `researcher` — Technical research and investigation
+- `devils_advocate` — Critical review and risk identification

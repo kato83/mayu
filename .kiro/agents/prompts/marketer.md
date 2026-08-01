@@ -119,3 +119,8 @@ Marketing initiative proposals:
 - Do not attack competing tools (differentiate through positive messaging)
 - Accurately convey the freedom of use under the MIT license
 - Maintain the policy of providing content in both Japanese and English
+
+## Available Subagents
+
+You can delegate tasks to the following subagents. Always use these exact names (lowercase, snake_case):
+- `researcher` — Competitive analysis and market research

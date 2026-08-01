@@ -1,13 +1,17 @@
 {
-  "name": "QA",
+  "name": "qa",
   "description": "Agent responsible for test strategy definition, test code creation, and quality assurance",
   "prompt": "file://./prompts/qa.md",
-  "tools": ["read", "write", "shell", "grep", "glob", "code", "@gopls", "@angular-cli"],
+  "tools": ["read", "write", "shell", "grep", "glob", "code", "@gopls", "@angular-cli", "subagent"],
   "allowedTools": ["read", "write", "shell", "grep", "glob", "code", "@gopls", "@angular-cli"],
   "toolsSettings": {
     "shell": {
       "allowedCommands": ["make .*", "go .*", "cd .*", "cat .*", "ls .*", "find .*", "grep .*", "head .*", "tail .*", "pnpm .*", "git .*"],
       "autoAllowReadonly": true
+    },
+    "subagent": {
+      "availableAgents": ["developer"],
+      "trustedAgents": ["developer"]
     }
   },
   "mcpServers": {
