@@ -37,9 +37,9 @@ import { TriageService } from '../../services/triage.service';
 
       <!-- Meta stats -->
       <div class="flex items-center gap-4 mb-4 text-xs text-slate-500 dark:text-slate-400">
-        <span>Total: {{ overviewSummary()?.total_vulnerabilities ?? 0 }}</span>
-        <span>Projects: {{ overviewSummary()?.total_projects ?? 0 }}</span>
-        <span>Servers: {{ overviewSummary()?.total_servers ?? 0 }}</span>
+        <span i18n="@@triageOverview.metaTotal">Total: {{ overviewSummary()?.total_vulnerabilities ?? 0 }}</span>
+        <span i18n="@@triageOverview.metaProjects">Projects: {{ overviewSummary()?.total_projects ?? 0 }}</span>
+        <span i18n="@@triageOverview.metaServers">Servers: {{ overviewSummary()?.total_servers ?? 0 }}</span>
       </div>
 
       <!-- Filters -->
@@ -70,11 +70,11 @@ import { TriageService } from '../../services/triage.service';
           <table class="w-full text-sm text-left">
             <thead>
               <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                <th class="px-4 py-2 font-medium" i18n="@@triageOverview.colId">Vulnerability</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triageOverview.colOrgPriority">Org Priority</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triageOverview.colScore">Max Score</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triageOverview.colProjects">Projects</th>
-                <th class="px-4 py-2 font-medium" i18n="@@triageOverview.colServers">Servers</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triageOverview.colId">Vulnerability</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triageOverview.colOrgPriority">Org Priority</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triageOverview.colScore">Max Score</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triageOverview.colProjects">Projects</th>
+                <th class="px-4 py-2 font-medium whitespace-nowrap" i18n="@@triageOverview.colServers">Servers</th>
                 <th class="px-4 py-2 font-medium w-8"></th>
               </tr>
             </thead>
@@ -109,12 +109,12 @@ import { TriageService } from '../../services/triage.service';
                         <table class="w-full text-xs text-left">
                           <thead>
                             <tr class="text-slate-400 dark:text-slate-500">
-                              <th class="px-2 py-1">Project</th>
-                              <th class="px-2 py-1">Server</th>
-                              <th class="px-2 py-1">Environment</th>
-                              <th class="px-2 py-1">Profile</th>
-                              <th class="px-2 py-1">Priority</th>
-                              <th class="px-2 py-1">Score</th>
+                              <th class="px-2 py-1 whitespace-nowrap" i18n="@@triageOverview.subColProject">Project</th>
+                              <th class="px-2 py-1 whitespace-nowrap" i18n="@@triageOverview.subColServer">Server</th>
+                              <th class="px-2 py-1 whitespace-nowrap" i18n="@@triageOverview.subColEnvironment">Environment</th>
+                              <th class="px-2 py-1 whitespace-nowrap" i18n="@@triageOverview.subColProfile">Profile</th>
+                              <th class="px-2 py-1 whitespace-nowrap" i18n="@@triageOverview.subColPriority">Priority</th>
+                              <th class="px-2 py-1 whitespace-nowrap" i18n="@@triageOverview.subColScore">Score</th>
                             </tr>
                           </thead>
                           <tbody>

@@ -3477,6 +3477,42 @@
         <source>Servers</source>
         <target>サーバー</target>
       </trans-unit>
+      <trans-unit id="triageOverview.metaTotal" datatype="html">
+        <source>Total: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_vulnerabilities ?? 0 }}"/></source>
+        <target>合計: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_vulnerabilities ?? 0 }}"/></target>
+      </trans-unit>
+      <trans-unit id="triageOverview.metaProjects" datatype="html">
+        <source>Projects: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_projects ?? 0 }}"/></source>
+        <target>プロジェクト: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_projects ?? 0 }}"/></target>
+      </trans-unit>
+      <trans-unit id="triageOverview.metaServers" datatype="html">
+        <source>Servers: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_servers ?? 0 }}"/></source>
+        <target>サーバー: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_servers ?? 0 }}"/></target>
+      </trans-unit>
+      <trans-unit id="triageOverview.subColProject" datatype="html">
+        <source>Project</source>
+        <target>プロジェクト</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.subColServer" datatype="html">
+        <source>Server</source>
+        <target>サーバー</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.subColEnvironment" datatype="html">
+        <source>Environment</source>
+        <target>環境</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.subColProfile" datatype="html">
+        <source>Profile</source>
+        <target>プロファイル</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.subColPriority" datatype="html">
+        <source>Priority</source>
+        <target>優先度</target>
+      </trans-unit>
+      <trans-unit id="triageOverview.subColScore" datatype="html">
+        <source>Score</source>
+        <target>スコア</target>
+      </trans-unit>
       <trans-unit id="triageOverview.noResults" datatype="html">
         <source> No cross-project triage data available. </source>
         <target>プロジェクト横断トリアージデータがありません。</target>
