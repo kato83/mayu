@@ -67,7 +67,7 @@ import { TriageService } from '../../services/triage.service';
           <div class="flex flex-col gap-1">
             <label class="text-xs text-slate-500 dark:text-slate-400" i18n="@@triage.projectLabel">Project</label>
             <select
-              class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white min-w-[200px]"
+              class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white min-w-50 w-full"
               [ngModel]="selectedProjectId()"
               (ngModelChange)="selectedProjectId.set($event)">
               <option value="" disabled i18n="@@triage.selectProject">Select a project</option>
@@ -79,7 +79,7 @@ import { TriageService } from '../../services/triage.service';
           <div class="flex flex-col gap-1">
             <label class="text-xs text-slate-500 dark:text-slate-400" i18n="@@triage.profileLabelRun">Profile</label>
             <select
-              class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white min-w-[150px]"
+              class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white min-w-37.5"
               [ngModel]="selectedProfile()"
               (ngModelChange)="onProfileChange($event)">
               @for (p of profiles(); track p.name) {
