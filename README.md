@@ -78,8 +78,8 @@ Release binaries include the Web UI embedded — just run `mayu serve` and acces
 
 ```bash
 # Example: Linux x86_64
-curl -LO https://github.com/kato83/mayu/releases/latest/download/mayu_0.0.1-alpha.1_linux_amd64.tar.gz
-tar xzf mayu_0.0.1-alpha.1_linux_amd64.tar.gz
+curl -LO https://github.com/kato83/mayu/releases/latest/download/mayu_0.0.27_linux_amd64.tar.gz
+tar xzf mayu_0.0.27_linux_amd64.tar.gz
 sudo mv mayu /usr/local/bin/
 
 # Verify installation
