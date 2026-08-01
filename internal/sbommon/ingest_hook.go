@@ -28,8 +28,9 @@ func NewSBOMReEvaluator(store SBOMStore, scanner *Scanner, logger *log.Logger) *
 }
 
 // ReEvaluate re-scans all SBOM versions against the current vulnerability database.
-// It computes diffs and returns the total number of new findings detected across
-// all versions. This method is designed to be called in a goroutine after ingest.
+// It computes diffs and logs new findings detected across all versions.
+// Must be called before the database connection is closed (runs synchronously
+// with a 10-minute internal timeout).
 func (r *SBOMReEvaluator) ReEvaluate(ctx context.Context, _ []string) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
