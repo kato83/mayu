@@ -12,15 +12,15 @@ func TestEngine_Triage_Critical(t *testing.T) {
 	published := time.Now().Add(-60 * 24 * time.Hour)
 
 	input := &TriageInput{
-		VulnerabilityID: "CVE-2024-1234",
-		CVSSScore:       float64Ptr(9.8),
-		EPSSScore:       float64Ptr(0.97),
-		LEVScore:        float64Ptr(1.0),
-		InKEV:           true,
-		PatchAvailable:  false,
-		PublishedAt:     &published,
-		HasExploit:      true,
-		IsReachable:     boolPtr(true),
+		VulnerabilityID:     "CVE-2024-1234",
+		CVSSScore:           float64Ptr(9.8),
+		EPSSScore:           float64Ptr(0.97),
+		LEVScore:            float64Ptr(1.0),
+		InKEV:               true,
+		PatchAvailable:      false,
+		PublishedAt:         &published,
+		HasExploit:          true,
+		ExploitabilityScore: float64Ptr(3.9),
 	}
 
 	result, err := engine.Triage(ctx, input)
@@ -50,14 +50,14 @@ func TestEngine_Triage_Low(t *testing.T) {
 	ctx := context.Background()
 
 	input := &TriageInput{
-		VulnerabilityID: "CVE-2024-5678",
-		CVSSScore:       float64Ptr(2.5),
-		EPSSScore:       float64Ptr(0.01),
-		LEVScore:        float64Ptr(0.05),
-		InKEV:           false,
-		PatchAvailable:  true,
-		HasExploit:      false,
-		IsReachable:     boolPtr(false),
+		VulnerabilityID:     "CVE-2024-5678",
+		CVSSScore:           float64Ptr(2.5),
+		EPSSScore:           float64Ptr(0.01),
+		LEVScore:            float64Ptr(0.05),
+		InKEV:               false,
+		PatchAvailable:      true,
+		HasExploit:          false,
+		ExploitabilityScore: float64Ptr(0.5),
 	}
 
 	result, err := engine.Triage(ctx, input)
@@ -120,13 +120,13 @@ func TestEngine_TriageBatch_Sorting(t *testing.T) {
 			HasExploit:      false,
 		},
 		{
-			VulnerabilityID: "CRITICAL-1",
-			CVSSScore:       float64Ptr(9.8),
-			EPSSScore:       float64Ptr(0.95),
-			InKEV:           true,
-			PatchAvailable:  false,
-			HasExploit:      true,
-			IsReachable:     boolPtr(true),
+			VulnerabilityID:     "CRITICAL-1",
+			CVSSScore:           float64Ptr(9.8),
+			EPSSScore:           float64Ptr(0.95),
+			InKEV:               true,
+			PatchAvailable:      false,
+			HasExploit:          true,
+			ExploitabilityScore: float64Ptr(3.9),
 		},
 		{
 			VulnerabilityID: "MEDIUM-1",
@@ -162,7 +162,7 @@ func TestEngine_CustomProfile(t *testing.T) {
 		Description: "Internet-facing services",
 		Weights: &ExtendedWeights{
 			CVSS: 0.15, EPSS: 0.25, LEV: 0.15, KEV: 0.20,
-			Patch: 0.05, Age: 0.03, ExploitDB: 0.12, Reachability: 0.05,
+			Patch: 0.05, Age: 0.03, ExploitDB: 0.12, Exploitability: 0.05,
 		},
 		Thresholds: &Thresholds{Critical: 0.80, High: 0.60, Medium: 0.35},
 	}

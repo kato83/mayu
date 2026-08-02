@@ -12,7 +12,7 @@ func TestTriageProfileCRUD(t *testing.T) {
 	ctx := context.Background()
 	s := setupTestStore(t)
 
-	weightsJSON := json.RawMessage(`{"cvss":0.25,"epss":0.25,"lev":0.10,"kev":0.10,"patch":0.10,"age":0.05,"exploitdb":0.10,"reachability":0.05}`)
+	weightsJSON := json.RawMessage(`{"cvss":0.25,"epss":0.25,"lev":0.10,"kev":0.10,"patch":0.10,"age":0.05,"exploitdb":0.10,"exploitability":0.05}`)
 	thresholdsJSON := json.RawMessage(`{"critical":0.80,"high":0.60,"medium":0.35}`)
 	ssvcJSON := json.RawMessage(`{"Act":"Critical","Attend":"High","Track*":"Medium","Track":"Low"}`)
 

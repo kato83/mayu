@@ -2,7 +2,7 @@
 // multiple risk signals into a prioritized assessment.
 //
 // The triage engine computes a composite score from 8 risk signals (CVSS, EPSS,
-// LEV, KEV, Patch availability, Age, ExploitDB, Reachability), determines a
+// LEV, KEV, Patch availability, Age, ExploitDB, Exploitability), determines a
 // priority level using both score thresholds and SSVC decision tree outcomes,
 // and produces a human-readable rationale for each decision.
 package triage
@@ -66,9 +66,10 @@ type TriageInput struct {
 	// HasExploit indicates whether a public exploit exists in Exploit-DB.
 	HasExploit bool
 
-	// IsReachable indicates whether reachability analysis confirms
-	// the vulnerable code is reachable. nil if analysis not performed.
-	IsReachable *bool
+	// ExploitabilityScore is the CVSS exploitability sub-score (0.0-3.9 for v3).
+	// Derived from Attack Vector, Attack Complexity, Privileges Required, and User Interaction.
+	// nil if unavailable.
+	ExploitabilityScore *float64
 
 	// SSVCOptions contains SSVC decision points (Exploitation, Automatable, TechnicalImpact).
 	// nil if SSVC data is not available.
@@ -98,18 +99,18 @@ type SignalContribution struct {
 }
 
 // NewTriageInputFromDetail constructs a TriageInput from a VulnerabilityDetail.
-func NewTriageInputFromDetail(id string, cvss *float64, cvssVector string, epss *float64, lev *float64, inKEV bool, patchAvailable bool, publishedAt *time.Time, hasExploit bool, isReachable *bool, ssvcOptions map[string]string) *TriageInput {
+func NewTriageInputFromDetail(id string, cvss *float64, cvssVector string, epss *float64, lev *float64, inKEV bool, patchAvailable bool, publishedAt *time.Time, hasExploit bool, exploitabilityScore *float64, ssvcOptions map[string]string) *TriageInput {
 	return &TriageInput{
-		VulnerabilityID: id,
-		CVSSScore:       cvss,
-		CVSSVector:      cvssVector,
-		EPSSScore:       epss,
-		LEVScore:        lev,
-		InKEV:           inKEV,
-		PatchAvailable:  patchAvailable,
-		PublishedAt:     publishedAt,
-		HasExploit:      hasExploit,
-		IsReachable:     isReachable,
-		SSVCOptions:     ssvcOptions,
+		VulnerabilityID:     id,
+		CVSSScore:           cvss,
+		CVSSVector:          cvssVector,
+		EPSSScore:           epss,
+		LEVScore:            lev,
+		InKEV:               inKEV,
+		PatchAvailable:      patchAvailable,
+		PublishedAt:         publishedAt,
+		HasExploit:          hasExploit,
+		ExploitabilityScore: exploitabilityScore,
+		SSVCOptions:         ssvcOptions,
 	}
 }

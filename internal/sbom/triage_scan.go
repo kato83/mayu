@@ -38,20 +38,20 @@ type TriagePathCacheStore interface {
 // VulnDataForTriage holds the vulnerability data needed for triage computation.
 // This is populated from the scan results or vulnerability database.
 type VulnDataForTriage struct {
-	VulnerabilityID string
-	PackagePurl     string
-	CurrentVersion  string
-	FixedVersion    string
-	Ecosystem       string
-	CVSSScore       *float64
-	CVSSVector      string
-	EPSSScore       *float64
-	LEVScore        *float64
-	InKEV           bool
-	PatchAvailable  bool
-	PublishedAt     *time.Time
-	HasExploit      bool
-	IsReachable     *bool
+	VulnerabilityID     string
+	PackagePurl         string
+	CurrentVersion      string
+	FixedVersion        string
+	Ecosystem           string
+	CVSSScore           *float64
+	CVSSVector          string
+	EPSSScore           *float64
+	LEVScore            *float64
+	InKEV               bool
+	PatchAvailable      bool
+	PublishedAt         *time.Time
+	HasExploit          bool
+	ExploitabilityScore *float64
 }
 
 // ScanTriageResult holds the outcome of automatic triage execution on scan.
@@ -110,7 +110,7 @@ func AutoTriageOnScan(ctx context.Context, cfg *TriageOnScanConfig, projectID in
 			f.PatchAvailable,
 			f.PublishedAt,
 			f.HasExploit,
-			f.IsReachable,
+			f.ExploitabilityScore,
 			nil, // SSVCOptions - populated separately if available
 		)
 		inputs = append(inputs, input)

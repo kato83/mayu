@@ -32,7 +32,7 @@ func ValidateProfile(p *Profile) []error {
 		{"patch", p.Weights.Patch},
 		{"age", p.Weights.Age},
 		{"exploitdb", p.Weights.ExploitDB},
-		{"reachability", p.Weights.Reachability},
+		{"exploitability", p.Weights.Exploitability},
 	}
 
 	for _, w := range weights {
@@ -43,7 +43,7 @@ func ValidateProfile(p *Profile) []error {
 
 	// 2. Weight sum check (tolerance ±0.001)
 	sum := p.Weights.CVSS + p.Weights.EPSS + p.Weights.LEV + p.Weights.KEV +
-		p.Weights.Patch + p.Weights.Age + p.Weights.ExploitDB + p.Weights.Reachability
+		p.Weights.Patch + p.Weights.Age + p.Weights.ExploitDB + p.Weights.Exploitability
 	if math.Abs(sum-1.0) > 0.001 {
 		errs = append(errs, fmt.Errorf("weights sum %.6f does not equal 1.0 (tolerance ±0.001)", sum))
 	}

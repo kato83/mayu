@@ -95,11 +95,13 @@ func signalDescription(signal string, rawValue float64) string {
 			return "Public exploit exists in Exploit-DB"
 		}
 		return "No known public exploit"
-	case "reachability":
-		if rawValue >= 1.0 {
-			return "Vulnerable code is reachable"
+	case "exploitability":
+		if rawValue >= 0.8 {
+			return "High exploitability (easy to attack: network, low complexity, no auth)"
+		} else if rawValue >= 0.5 {
+			return "Moderate exploitability"
 		}
-		return "Vulnerable code not reachable"
+		return "Low exploitability (difficult to attack)"
 	default:
 		return fmt.Sprintf("%s: %.2f", signal, rawValue)
 	}

@@ -50,7 +50,7 @@ import { TriageService } from '../../services/triage.service';
                 <span class="text-slate-500 dark:text-slate-400">patch: {{ profile.weights.patch | number:'1.2-2' }}</span>
                 <span class="text-slate-500 dark:text-slate-400">age: {{ profile.weights.age | number:'1.2-2' }}</span>
                 <span class="text-slate-500 dark:text-slate-400">exploit_db: {{ profile.weights.exploitdb | number:'1.2-2' }}</span>
-                <span class="text-slate-500 dark:text-slate-400">reachability: {{ profile.weights.reachability | number:'1.2-2' }}</span>
+                <span class="text-slate-500 dark:text-slate-400">exploitability: {{ profile.weights.exploitability | number:'1.2-2' }}</span>
               </div>
             </div>
 
@@ -184,11 +184,11 @@ import { TriageService } from '../../services/triage.service';
                        (ngModelChange)="updateWeight('exploitdb', $event)" />
               </div>
               <div>
-                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-0.5">reachability</label>
+                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-0.5">exploitability</label>
                 <input type="number" step="0.01" min="0" max="1"
                        class="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-2 py-1 text-slate-900 dark:text-white"
-                       [ngModel]="formWeights().reachability"
-                       (ngModelChange)="updateWeight('reachability', $event)" />
+                       [ngModel]="formWeights().exploitability"
+                       (ngModelChange)="updateWeight('exploitability', $event)" />
               </div>
             </div>
           </div>
@@ -303,7 +303,7 @@ export class TriageProfilesComponent implements OnInit {
     patch: 0.08,
     age: 0.05,
     exploitdb: 0.1,
-    reachability: 0.07,
+    exploitability: 0.07,
   });
   readonly formThresholds = signal<Thresholds>({
     critical: 0.85,
@@ -462,7 +462,7 @@ export class TriageProfilesComponent implements OnInit {
       patch: 0.08,
       age: 0.05,
       exploitdb: 0.1,
-      reachability: 0.07,
+      exploitability: 0.07,
     });
     this.formThresholds.set({
       critical: 0.85,

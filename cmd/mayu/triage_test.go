@@ -482,7 +482,7 @@ weights:
   patch: 0.08
   age: 0.05
   exploitdb: 0.10
-  reachability: 0.07
+  exploitability: 0.07
 thresholds:
   critical: 0.85
   high: 0.65
@@ -528,7 +528,7 @@ weights:
   patch: 0.00
   age: 0.00
   exploitdb: 0.00
-  reachability: 0.00
+  exploitability: 0.00
 thresholds:
   critical: 0.85
   high: 0.65
@@ -574,7 +574,7 @@ weights:
   patch: 0.08
   age: 0.05
   exploitdb: 0.10
-  reachability: 0.07
+  exploitability: 0.07
 thresholds:
   critical: 0.40
   high: 0.65

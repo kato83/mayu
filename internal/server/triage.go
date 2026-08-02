@@ -101,6 +101,21 @@ func buildTriageInputFromDetail(detail *model.VulnerabilityDetail) *triage.Triag
 		input.HasExploit = true
 	}
 
+	// Exploitability: take the exploitability sub-score from the same NVD metric used for CVSS
+	if detail.NVD != nil && len(detail.NVD.Metrics) > 0 {
+		var bestExploitability *float64
+		var bestBaseScore float64
+		for _, m := range detail.NVD.Metrics {
+			if m.ExploitabilityScore != nil && m.BaseScore >= bestBaseScore {
+				bestBaseScore = m.BaseScore
+				bestExploitability = m.ExploitabilityScore
+			}
+		}
+		if bestExploitability != nil {
+			input.ExploitabilityScore = bestExploitability
+		}
+	}
+
 	// SSVC: extract from NVD or MITRE if available
 	input.SSVCOptions = extractSSVCOptions(detail)
 

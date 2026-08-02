@@ -48,7 +48,7 @@ func TestHandleCreateTriageProfile(t *testing.T) {
 	ms := &mockStore{}
 	s := newTestServer(ms)
 
-	body := `{"name":"my-custom","description":"test","weights":{"cvss":0.25,"epss":0.25,"lev":0.10,"kev":0.10,"patch":0.10,"age":0.05,"exploitdb":0.10,"reachability":0.05},"thresholds":{"critical":0.80,"high":0.60,"medium":0.35}}`
+	body := `{"name":"my-custom","description":"test","weights":{"cvss":0.25,"epss":0.25,"lev":0.10,"kev":0.10,"patch":0.10,"age":0.05,"exploitdb":0.10,"exploitability":0.05},"thresholds":{"critical":0.80,"high":0.60,"medium":0.35}}`
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/triage/profiles", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -64,7 +64,7 @@ func TestHandleCreateTriageProfile_BuiltinNameRejected(t *testing.T) {
 	ms := &mockStore{}
 	s := newTestServer(ms)
 
-	body := `{"name":"default","description":"test","weights":{"cvss":1.0,"epss":0,"lev":0,"kev":0,"patch":0,"age":0,"exploitdb":0,"reachability":0},"thresholds":{"critical":0.80,"high":0.60,"medium":0.35}}`
+	body := `{"name":"default","description":"test","weights":{"cvss":1.0,"epss":0,"lev":0,"kev":0,"patch":0,"age":0,"exploitdb":0,"exploitability":0},"thresholds":{"critical":0.80,"high":0.60,"medium":0.35}}`
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/triage/profiles", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -93,7 +93,7 @@ func TestHandleUpdateTriageProfile_BuiltinRejected(t *testing.T) {
 	ms := &mockStore{}
 	s := newTestServer(ms)
 
-	body := `{"description":"hacked","weights":{"cvss":1.0,"epss":0,"lev":0,"kev":0,"patch":0,"age":0,"exploitdb":0,"reachability":0},"thresholds":{"critical":0.80,"high":0.60,"medium":0.35}}`
+	body := `{"description":"hacked","weights":{"cvss":1.0,"epss":0,"lev":0,"kev":0,"patch":0,"age":0,"exploitdb":0,"exploitability":0},"thresholds":{"critical":0.80,"high":0.60,"medium":0.35}}`
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/triage/profiles/default", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -149,7 +149,7 @@ func TestHandleCreateTriageProfile_InvalidWeights(t *testing.T) {
 	s := newTestServer(ms)
 
 	// weights don't sum to 1.0
-	body := `{"name":"bad-profile","description":"test","weights":{"cvss":0.50,"epss":0.50,"lev":0.50,"kev":0,"patch":0,"age":0,"exploitdb":0,"reachability":0},"thresholds":{"critical":0.80,"high":0.60,"medium":0.35}}`
+	body := `{"name":"bad-profile","description":"test","weights":{"cvss":0.50,"epss":0.50,"lev":0.50,"kev":0,"patch":0,"age":0,"exploitdb":0,"exploitability":0},"thresholds":{"critical":0.80,"high":0.60,"medium":0.35}}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/triage/profiles", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

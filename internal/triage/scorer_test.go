@@ -7,22 +7,21 @@ import (
 )
 
 func float64Ptr(v float64) *float64 { return &v }
-func boolPtr(v bool) *bool          { return &v }
 
 func TestComputeScore_AllSignalsAvailable(t *testing.T) {
 	scorer := NewScorer(DefaultExtendedWeights())
 	published := time.Now().Add(-90 * 24 * time.Hour)
 
 	input := &TriageInput{
-		VulnerabilityID: "CVE-2024-1234",
-		CVSSScore:       float64Ptr(9.8),
-		EPSSScore:       float64Ptr(0.95),
-		LEVScore:        float64Ptr(0.8),
-		InKEV:           true,
-		PatchAvailable:  false,
-		PublishedAt:     &published,
-		HasExploit:      true,
-		IsReachable:     boolPtr(true),
+		VulnerabilityID:     "CVE-2024-1234",
+		CVSSScore:           float64Ptr(9.8),
+		EPSSScore:           float64Ptr(0.95),
+		LEVScore:            float64Ptr(0.8),
+		InKEV:               true,
+		PatchAvailable:      false,
+		PublishedAt:         &published,
+		HasExploit:          true,
+		ExploitabilityScore: float64Ptr(3.9),
 	}
 
 	score, contributions := scorer.ComputeScore(input)
@@ -52,15 +51,15 @@ func TestComputeScore_AllLowRisk(t *testing.T) {
 	scorer := NewScorer(DefaultExtendedWeights())
 
 	input := &TriageInput{
-		VulnerabilityID: "CVE-2024-5678",
-		CVSSScore:       float64Ptr(2.0),
-		EPSSScore:       float64Ptr(0.01),
-		LEVScore:        float64Ptr(0.05),
-		InKEV:           false,
-		PatchAvailable:  true,
-		PublishedAt:     nil,
-		HasExploit:      false,
-		IsReachable:     boolPtr(false),
+		VulnerabilityID:     "CVE-2024-5678",
+		CVSSScore:           float64Ptr(2.0),
+		EPSSScore:           float64Ptr(0.01),
+		LEVScore:            float64Ptr(0.05),
+		InKEV:               false,
+		PatchAvailable:      true,
+		PublishedAt:         nil,
+		HasExploit:          false,
+		ExploitabilityScore: float64Ptr(0.5),
 	}
 
 	score, _ := scorer.ComputeScore(input)
@@ -109,14 +108,14 @@ func TestComputeScore_ZeroCVSS(t *testing.T) {
 	scorer := NewScorer(DefaultExtendedWeights())
 
 	input := &TriageInput{
-		VulnerabilityID: "CVE-2024-0000",
-		CVSSScore:       float64Ptr(0.0),
-		EPSSScore:       float64Ptr(0.0),
-		LEVScore:        float64Ptr(0.0),
-		InKEV:           false,
-		PatchAvailable:  true,
-		HasExploit:      false,
-		IsReachable:     boolPtr(false),
+		VulnerabilityID:     "CVE-2024-0000",
+		CVSSScore:           float64Ptr(0.0),
+		EPSSScore:           float64Ptr(0.0),
+		LEVScore:            float64Ptr(0.0),
+		InKEV:               false,
+		PatchAvailable:      true,
+		HasExploit:          false,
+		ExploitabilityScore: float64Ptr(0.0),
 	}
 
 	score, _ := scorer.ComputeScore(input)
@@ -131,15 +130,15 @@ func TestComputeScore_MaxCVSS(t *testing.T) {
 	published := time.Now().Add(-1000 * 24 * time.Hour) // Very old
 
 	input := &TriageInput{
-		VulnerabilityID: "CVE-2024-MAX",
-		CVSSScore:       float64Ptr(10.0),
-		EPSSScore:       float64Ptr(1.0),
-		LEVScore:        float64Ptr(1.0),
-		InKEV:           true,
-		PatchAvailable:  false,
-		PublishedAt:     &published,
-		HasExploit:      true,
-		IsReachable:     boolPtr(true),
+		VulnerabilityID:     "CVE-2024-MAX",
+		CVSSScore:           float64Ptr(10.0),
+		EPSSScore:           float64Ptr(1.0),
+		LEVScore:            float64Ptr(1.0),
+		InKEV:               true,
+		PatchAvailable:      false,
+		PublishedAt:         &published,
+		HasExploit:          true,
+		ExploitabilityScore: float64Ptr(3.9),
 	}
 
 	score, _ := scorer.ComputeScore(input)

@@ -83,7 +83,7 @@ export interface ExtendedWeights {
   patch: number;
   age: number;
   exploitdb: number;
-  reachability: number;
+  exploitability: number;
 }
 
 /** Priority level thresholds */

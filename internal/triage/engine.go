@@ -135,12 +135,8 @@ func buildSignalValues(input *TriageInput) map[string]float64 {
 	} else {
 		values["exploitdb"] = 0.0
 	}
-	if input.IsReachable != nil {
-		if *input.IsReachable {
-			values["reachability"] = 1.0
-		} else {
-			values["reachability"] = 0.0
-		}
+	if input.ExploitabilityScore != nil {
+		values["exploitability"] = *input.ExploitabilityScore
 	}
 
 	return values

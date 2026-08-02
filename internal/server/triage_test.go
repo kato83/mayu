@@ -451,7 +451,7 @@ func TestHandleValidateTriageProfile_Valid(t *testing.T) {
 		Description: "Test profile",
 		Weights: &triage.ExtendedWeights{
 			CVSS: 0.20, EPSS: 0.20, LEV: 0.15, KEV: 0.15,
-			Patch: 0.08, Age: 0.05, ExploitDB: 0.10, Reachability: 0.07,
+			Patch: 0.08, Age: 0.05, ExploitDB: 0.10, Exploitability: 0.07,
 		},
 		Thresholds: &triage.Thresholds{Critical: 0.85, High: 0.65, Medium: 0.40},
 	}
@@ -486,7 +486,7 @@ func TestHandleValidateTriageProfile_Invalid(t *testing.T) {
 		Description: "Invalid profile",
 		Weights: &triage.ExtendedWeights{
 			CVSS: 0.50, EPSS: 0.50, LEV: 0.50, KEV: 0.00,
-			Patch: 0.00, Age: 0.00, ExploitDB: 0.00, Reachability: 0.00,
+			Patch: 0.00, Age: 0.00, ExploitDB: 0.00, Exploitability: 0.00,
 		},
 		Thresholds: &triage.Thresholds{Critical: 0.85, High: 0.65, Medium: 0.40},
 	}

@@ -37,7 +37,7 @@ func (s *Scorer) ComputeScore(input *TriageInput) (float64, []SignalContribution
 		{name: "patch", value: normalizePatch(input.PatchAvailable), weight: s.weights.Patch, available: true},
 		{name: "age", value: normalizeAge(input.PublishedAt), weight: s.weights.Age, available: input.PublishedAt != nil},
 		{name: "exploitdb", value: normalizeExploitDB(input.HasExploit), weight: s.weights.ExploitDB, available: true},
-		{name: "reachability", value: normalizeReachability(input.IsReachable), weight: s.weights.Reachability, available: input.IsReachable != nil},
+		{name: "exploitability", value: normalizeExploitability(input.ExploitabilityScore), weight: s.weights.Exploitability, available: input.ExploitabilityScore != nil},
 	}
 
 	// Calculate total weight and available weight for redistribution.
@@ -142,15 +142,17 @@ func normalizeExploitDB(hasExploit bool) float64 {
 	return 0.0
 }
 
-// normalizeReachability returns 1.0 if reachable, 0.0 if unreachable.
-func normalizeReachability(isReachable *bool) float64 {
-	if isReachable == nil {
+// normalizeExploitability normalizes the CVSS exploitability sub-score to [0.0, 1.0].
+// CVSS v3 exploitability sub-score ranges from 0.0 to 3.9.
+// CVSS v2 exploitability sub-score ranges from 0.0 to 10.0.
+func normalizeExploitability(score *float64) float64 {
+	if score == nil {
 		return 0
 	}
-	if *isReachable {
-		return 1.0
-	}
-	return 0.0
+	// CVSS v3 max is 3.9; v2 max is 10.0
+	// Use 3.9 as divisor (v3 is the dominant standard)
+	// Scores > 3.9 (v2) are clamped to 1.0
+	return clamp(*score / 3.9)
 }
 
 // clamp restricts a value to [0.0, 1.0].

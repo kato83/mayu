@@ -26,14 +26,14 @@ func TestProperty_ProfileValidationEquivalence(t *testing.T) {
 		reachability := rapid.Float64Range(0.0, 2.0).Draw(t, "reachability")
 
 		weights := &ExtendedWeights{
-			CVSS:         cvss,
-			EPSS:         epss,
-			LEV:          lev,
-			KEV:          kev,
-			Patch:        patch,
-			Age:          age,
-			ExploitDB:    exploitdb,
-			Reachability: reachability,
+			CVSS:           cvss,
+			EPSS:           epss,
+			LEV:            lev,
+			KEV:            kev,
+			Patch:          patch,
+			Age:            age,
+			ExploitDB:      exploitdb,
+			Exploitability: reachability,
 		}
 
 		// Use valid thresholds so we only test weight validation

@@ -39,7 +39,7 @@ func TestValidateProfile_NegativeWeight(t *testing.T) {
 		Name: "test",
 		Weights: &ExtendedWeights{
 			CVSS: -0.1, EPSS: 0.25, LEV: 0.20, KEV: 0.15,
-			Patch: 0.10, Age: 0.05, ExploitDB: 0.10, Reachability: 0.25,
+			Patch: 0.10, Age: 0.05, ExploitDB: 0.10, Exploitability: 0.25,
 		},
 		Thresholds: DefaultThresholds(),
 	}
@@ -60,7 +60,7 @@ func TestValidateProfile_WeightSumNotOne(t *testing.T) {
 		Name: "test",
 		Weights: &ExtendedWeights{
 			CVSS: 0.50, EPSS: 0.25, LEV: 0.20, KEV: 0.15,
-			Patch: 0.10, Age: 0.05, ExploitDB: 0.10, Reachability: 0.10,
+			Patch: 0.10, Age: 0.05, ExploitDB: 0.10, Exploitability: 0.10,
 		},
 		Thresholds: DefaultThresholds(),
 	}

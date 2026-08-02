@@ -21,14 +21,14 @@ type Profile struct {
 // ExtendedWeights defines weights for all 8 risk signals.
 // All weights must sum to 1.0.
 type ExtendedWeights struct {
-	CVSS         float64 `yaml:"cvss" json:"cvss"`
-	EPSS         float64 `yaml:"epss" json:"epss"`
-	LEV          float64 `yaml:"lev" json:"lev"`
-	KEV          float64 `yaml:"kev" json:"kev"`
-	Patch        float64 `yaml:"patch" json:"patch"`
-	Age          float64 `yaml:"age" json:"age"`
-	ExploitDB    float64 `yaml:"exploitdb" json:"exploitdb"`
-	Reachability float64 `yaml:"reachability" json:"reachability"`
+	CVSS           float64 `yaml:"cvss" json:"cvss"`
+	EPSS           float64 `yaml:"epss" json:"epss"`
+	LEV            float64 `yaml:"lev" json:"lev"`
+	KEV            float64 `yaml:"kev" json:"kev"`
+	Patch          float64 `yaml:"patch" json:"patch"`
+	Age            float64 `yaml:"age" json:"age"`
+	ExploitDB      float64 `yaml:"exploitdb" json:"exploitdb"`
+	Exploitability float64 `yaml:"exploitability" json:"exploitability"`
 }
 
 // Thresholds defines the score boundaries for each priority level.
@@ -41,14 +41,14 @@ type Thresholds struct {
 // DefaultExtendedWeights returns the default weight configuration.
 func DefaultExtendedWeights() *ExtendedWeights {
 	return &ExtendedWeights{
-		CVSS:         0.20,
-		EPSS:         0.20,
-		LEV:          0.15,
-		KEV:          0.15,
-		Patch:        0.08,
-		Age:          0.05,
-		ExploitDB:    0.10,
-		Reachability: 0.07,
+		CVSS:           0.20,
+		EPSS:           0.20,
+		LEV:            0.15,
+		KEV:            0.15,
+		Patch:          0.08,
+		Age:            0.05,
+		ExploitDB:      0.10,
+		Exploitability: 0.07,
 	}
 }
 
@@ -145,7 +145,7 @@ func BuiltinTemplates() []Profile {
 			Description: "Internet-facing services: emphasizes EPSS, KEV, and ExploitDB",
 			Weights: &ExtendedWeights{
 				CVSS: 0.15, EPSS: 0.25, LEV: 0.15, KEV: 0.20,
-				Patch: 0.05, Age: 0.03, ExploitDB: 0.12, Reachability: 0.05,
+				Patch: 0.05, Age: 0.03, ExploitDB: 0.12, Exploitability: 0.05,
 			},
 			Thresholds: &Thresholds{Critical: 0.80, High: 0.60, Medium: 0.35},
 			SSVCMapping: map[string]string{
@@ -157,7 +157,7 @@ func BuiltinTemplates() []Profile {
 			Description: "Internal systems: emphasizes CVSS and patch availability",
 			Weights: &ExtendedWeights{
 				CVSS: 0.30, EPSS: 0.10, LEV: 0.10, KEV: 0.10,
-				Patch: 0.15, Age: 0.08, ExploitDB: 0.10, Reachability: 0.07,
+				Patch: 0.15, Age: 0.08, ExploitDB: 0.10, Exploitability: 0.07,
 			},
 			Thresholds: &Thresholds{Critical: 0.90, High: 0.70, Medium: 0.45},
 			SSVCMapping: map[string]string{
@@ -169,7 +169,7 @@ func BuiltinTemplates() []Profile {
 			Description: "Air-gapped environments: de-emphasizes KEV/EPSS, focuses on CVSS and patch",
 			Weights: &ExtendedWeights{
 				CVSS: 0.35, EPSS: 0.05, LEV: 0.05, KEV: 0.05,
-				Patch: 0.20, Age: 0.10, ExploitDB: 0.10, Reachability: 0.10,
+				Patch: 0.20, Age: 0.10, ExploitDB: 0.10, Exploitability: 0.10,
 			},
 			Thresholds: &Thresholds{Critical: 0.90, High: 0.70, Medium: 0.45},
 			SSVCMapping: map[string]string{
