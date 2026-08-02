@@ -44,7 +44,7 @@ import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss
       @if (stale()) {
         <div role="alert" class="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-4">
           <div class="flex">
-            <div class="flex-shrink-0">
+            <div class="shrink-0">
               <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
               </svg>
@@ -61,11 +61,13 @@ import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss
       <!-- Comparison dates -->
       @if (!loading() && latestDate() && !previousDateMissing()) {
         <div class="text-sm text-slate-500 dark:text-slate-400">
-          <span i18n="@@epssTrending.comparingDates">Comparing:</span> <span class="font-mono">{{ latestDate() }}</span> vs <span class="font-mono">{{ previousDate() }}</span>
+          <div>
+            <span i18n="@@epssTrending.comparingDates">Comparing: </span> <span class="font-mono">{{ latestDate() }}</span> vs <span class="font-mono">{{ previousDate() }}</span>
+          </div>
           @if (previousDateApproximate()) {
-            <span class="ml-2 text-amber-600 dark:text-amber-400" i18n="@@epssTrending.approximateDate">
-              (Expected {{ expectedPreviousDate() }}, but data not available. Using nearest available date.)
-            </span>
+            <div class="text-amber-600 dark:text-amber-400" i18n="@@epssTrending.approximateDate">
+              *Expected {{ expectedPreviousDate() }}, but data not available. Using nearest available date.
+            </div>
           }
         </div>
       }
@@ -74,7 +76,7 @@ import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss
       @if (previousDateMissing()) {
         <div role="alert" class="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-4">
           <div class="flex">
-            <div class="flex-shrink-0">
+            <div class="shrink-0">
               <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
               </svg>
@@ -112,7 +114,7 @@ import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss
               </thead>
               <tbody>
                 @for (entry of entries(); track entry.vulnerability_id) {
-                  <tr class="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                  <tr class="border-b border-slate-100 dark:border-slate-700/50 whitespace-nowrap hover:bg-slate-50 dark:hover:bg-slate-700/30">
                     <td class="px-4 py-3">
                       <a [routerLink]="['/vulnerabilities', entry.vulnerability_id]"
                          class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">

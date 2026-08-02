@@ -2319,16 +2319,16 @@
         <target>EPSSデータが古くなっています。最新のスコア日付は <x id="INTERPOLATION" equiv-text="{{ latestDate() }}"/> です。<x id="START_TAG_CODE" ctype="x-code" equiv-text="&lt;code&gt;"/>mayu ingest --source epss --update<x id="CLOSE_TAG_CODE" ctype="x-code" equiv-text="&lt;/code&gt;"/> を実行してデータを更新してください。</target>
       </trans-unit>
       <trans-unit id="epssTrending.comparingDates" datatype="html">
-        <source>Comparing:</source>
-        <target>比較期間:</target>
+        <source>Comparing: </source>
+        <target>比較期間: </target>
       </trans-unit>
       <trans-unit id="epssTrending.previousDateMissing" datatype="html">
         <source>No comparison data available for the selected period. EPSS data for <x id="INTERPOLATION" equiv-text="{{ selectedDays() }}"/> days ago does not exist. Try a shorter period or run backfill.</source>
         <target>選択された期間の比較データがありません。<x id="INTERPOLATION" equiv-text="{{ selectedDays() }}"/>日前のEPSSデータが存在しません。より短い期間を選択するか、バックフィルを実行してください。</target>
       </trans-unit>
       <trans-unit id="epssTrending.approximateDate" datatype="html">
-        <source>(Expected <x id="INTERPOLATION" equiv-text="{{ expectedPreviousDate() }}"/>, but data not available. Using nearest available date.)</source>
-        <target>（本来 <x id="INTERPOLATION" equiv-text="{{ expectedPreviousDate() }}"/> のデータを使用しますが、データが存在しないため最も近い日付を使用しています）</target>
+        <source>*Expected <x id="INTERPOLATION" equiv-text="{{ expectedPreviousDate() }}"/>, but data not available. Using nearest available date.</source>
+        <target>※本来 <x id="INTERPOLATION" equiv-text="{{ expectedPreviousDate() }}"/> のデータを使用しますが、データが存在しないため最も近い日付を使用しています。</target>
       </trans-unit>
       <trans-unit id="vulnDetail.levTrend" datatype="html">
         <source>LEV Trend</source>
