@@ -10,7 +10,7 @@
     },
     "shell": {
       "autoAllowReadonly": true,
-      "denyByDefault": true
+      "denyByDefault": false
     },
     "subagent": {
       "availableAgents": ["researcher", "devils_advocate"],

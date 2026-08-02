@@ -7,7 +7,7 @@
   "toolsSettings": {
     "shell": {
       "autoAllowReadonly": true,
-      "denyByDefault": true
+      "denyByDefault": false
     }
   }
 }

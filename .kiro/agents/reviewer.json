@@ -8,7 +8,7 @@
     "shell": {
       "allowedCommands": ["git diff.*", "git log.*", "git show.*", "go vet.*", "make lint"],
       "autoAllowReadonly": true,
-      "denyByDefault": true
+      "denyByDefault": false
     }
   }
 }
