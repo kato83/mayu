@@ -303,7 +303,7 @@ func TestGetLEVHistory_EmptyResult(t *testing.T) {
 
 func TestGetEPSSTrending_Defaults(t *testing.T) {
 	ms := &mockStore{
-		getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) ([]store.EPSSTrendingEntry, error) {
+		getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error) {
 			if params.Days != 7 {
 				t.Errorf("expected default days 7, got %d", params.Days)
 			}
@@ -313,17 +313,21 @@ func TestGetEPSSTrending_Defaults(t *testing.T) {
 			if params.Limit != 20 {
 				t.Errorf("expected default limit 20, got %d", params.Limit)
 			}
-			return []store.EPSSTrendingEntry{
-				{
-					VulnerabilityID:   "CVE-2024-5678",
-					CVEID:             "CVE-2024-5678",
-					CurrentEPSS:       0.85,
-					PreviousEPSS:      0.2,
-					Delta:             0.65,
-					CurrentPercentile: 0.99,
-					Severity:          "CRITICAL",
-					Summary:           "Critical vuln",
+			return &store.EPSSTrendingResult{
+				Entries: []store.EPSSTrendingEntry{
+					{
+						VulnerabilityID:   "CVE-2024-5678",
+						CVEID:             "CVE-2024-5678",
+						CurrentEPSS:       0.85,
+						PreviousEPSS:      0.2,
+						Delta:             0.65,
+						CurrentPercentile: 0.99,
+						Severity:          "CRITICAL",
+						Summary:           "Critical vuln",
+					},
 				},
+				LatestDate:   "2025-12-31",
+				PreviousDate: "2025-12-24",
 			}, nil
 		},
 	}
@@ -365,11 +369,26 @@ func TestGetEPSSTrending_Defaults(t *testing.T) {
 	if entry["severity"] != "CRITICAL" {
 		t.Errorf("expected severity CRITICAL, got %v", entry["severity"])
 	}
+	// Verify new date fields
+	if resp["latest_date"] != "2025-12-31" {
+		t.Errorf("expected latest_date 2025-12-31, got %v", resp["latest_date"])
+	}
+	if resp["previous_date"] != "2025-12-24" {
+		t.Errorf("expected previous_date 2025-12-24, got %v", resp["previous_date"])
+	}
+	// stale should be true since 2025-12-31 is far in the past relative to now (2026-08-02)
+	if resp["stale"] != true {
+		t.Errorf("expected stale true, got %v", resp["stale"])
+	}
+	// previous_date_missing should be false when previous_date is set
+	if resp["previous_date_missing"] != false {
+		t.Errorf("expected previous_date_missing false, got %v", resp["previous_date_missing"])
+	}
 }
 
 func TestGetEPSSTrending_CustomParams(t *testing.T) {
 	ms := &mockStore{
-		getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) ([]store.EPSSTrendingEntry, error) {
+		getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error) {
 			if params.Days != 14 {
 				t.Errorf("expected days 14, got %d", params.Days)
 			}
@@ -379,7 +398,7 @@ func TestGetEPSSTrending_CustomParams(t *testing.T) {
 			if params.Limit != 10 {
 				t.Errorf("expected limit 10, got %d", params.Limit)
 			}
-			return nil, nil
+			return &store.EPSSTrendingResult{}, nil
 		},
 	}
 	srv := newTestServer(ms)
@@ -472,7 +491,7 @@ func TestGetEPSSTrending_InvalidLimit(t *testing.T) {
 
 func TestGetEPSSTrending_StoreError(t *testing.T) {
 	ms := &mockStore{
-		getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) ([]store.EPSSTrendingEntry, error) {
+		getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error) {
 			return nil, errors.New("db error")
 		},
 	}
@@ -489,8 +508,11 @@ func TestGetEPSSTrending_StoreError(t *testing.T) {
 
 func TestGetEPSSTrending_EmptyResult(t *testing.T) {
 	ms := &mockStore{
-		getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) ([]store.EPSSTrendingEntry, error) {
-			return nil, nil
+		getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error) {
+			return &store.EPSSTrendingResult{
+				LatestDate:   "2026-08-01",
+				PreviousDate: "2026-07-25",
+			}, nil
 		},
 	}
 	srv := newTestServer(ms)
@@ -510,5 +532,105 @@ func TestGetEPSSTrending_EmptyResult(t *testing.T) {
 	entries := resp["entries"].([]interface{})
 	if len(entries) != 0 {
 		t.Errorf("expected empty entries array, got %d entries", len(entries))
+	}
+	// Verify dates are still returned even when entries is empty
+	if resp["latest_date"] != "2026-08-01" {
+		t.Errorf("expected latest_date 2026-08-01, got %v", resp["latest_date"])
+	}
+	if resp["previous_date"] != "2026-07-25" {
+		t.Errorf("expected previous_date 2026-07-25, got %v", resp["previous_date"])
+	}
+}
+
+func TestGetEPSSTrending_StaleFlag(t *testing.T) {
+	today := time.Now().UTC().Format("2006-01-02")
+	yesterday := time.Now().UTC().AddDate(0, 0, -1).Format("2006-01-02")
+	weekAgo := time.Now().UTC().AddDate(0, 0, -8).Format("2006-01-02")
+	threeDaysAgo := time.Now().UTC().AddDate(0, 0, -3).Format("2006-01-02")
+
+	tests := []struct {
+		name         string
+		latestDate   string
+		previousDate string
+		wantStale    bool
+	}{
+		{"today - not stale", today, weekAgo, false},
+		{"yesterday - not stale", yesterday, weekAgo, false},
+		{"3 days ago - stale", threeDaysAgo, weekAgo, true},
+		{"empty date - not stale", "", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &mockStore{
+				getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error) {
+					return &store.EPSSTrendingResult{
+						LatestDate:   tt.latestDate,
+						PreviousDate: tt.previousDate,
+					}, nil
+				},
+			}
+			srv := newTestServer(ms)
+
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/epss/trending", nil)
+			w := httptest.NewRecorder()
+			srv.httpServer.Handler.ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
+			}
+
+			var resp map[string]interface{}
+			if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+				t.Fatalf("failed to decode response: %v", err)
+			}
+			if got := resp["stale"].(bool); got != tt.wantStale {
+				t.Errorf("expected stale=%v, got %v (latest_date=%s)", tt.wantStale, got, tt.latestDate)
+			}
+		})
+	}
+}
+
+func TestGetEPSSTrending_PreviousDateMissing(t *testing.T) {
+	today := time.Now().UTC().Format("2006-01-02")
+
+	tests := []struct {
+		name         string
+		latestDate   string
+		previousDate string
+		wantMissing  bool
+	}{
+		{"previous_date present", today, "2026-07-25", false},
+		{"previous_date empty", today, "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &mockStore{
+				getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error) {
+					return &store.EPSSTrendingResult{
+						LatestDate:   tt.latestDate,
+						PreviousDate: tt.previousDate,
+					}, nil
+				},
+			}
+			srv := newTestServer(ms)
+
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/epss/trending", nil)
+			w := httptest.NewRecorder()
+			srv.httpServer.Handler.ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
+			}
+
+			var resp map[string]interface{}
+			if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+				t.Fatalf("failed to decode response: %v", err)
+			}
+			if got := resp["previous_date_missing"].(bool); got != tt.wantMissing {
+				t.Errorf("expected previous_date_missing=%v, got %v", tt.wantMissing, got)
+			}
+		})
 	}
 }

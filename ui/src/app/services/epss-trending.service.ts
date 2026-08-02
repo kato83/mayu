@@ -20,6 +20,10 @@ export interface EpssTrendingResponse {
     threshold: number;
     limit: number;
   };
+  latest_date: string;
+  previous_date: string;
+  stale: boolean;
+  previous_date_missing: boolean;
 }
 
 @Injectable({ providedIn: 'root' })

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"github.com/kato83/mayu/internal/model"
 )
@@ -16,7 +17,10 @@ import (
 // approach: first identify the latest and previous score dates via index lookups,
 // then join only those specific date slices. This avoids full-table scans on the
 // 100M+ row epss_scores table.
-func (s *PostgresStore) GetEPSSTrending(ctx context.Context, params EPSSTrendingQuery) ([]EPSSTrendingEntry, error) {
+//
+// Uses LEFT JOIN so that CVEs without a previous score (new entries) are still
+// included with previous_epss = 0.
+func (s *PostgresStore) GetEPSSTrending(ctx context.Context, params EPSSTrendingQuery) (*EPSSTrendingResult, error) {
 	// Apply defaults
 	if params.Days <= 0 {
 		params.Days = 7
@@ -40,19 +44,21 @@ func (s *PostgresStore) GetEPSSTrending(ctx context.Context, params EPSSTrending
 			cur.vulnerability_id,
 			cur.vulnerability_id AS cve_id,
 			cur.epss AS current_epss,
-			prev.epss AS previous_epss,
-			cur.epss - prev.epss AS delta,
+			COALESCE(prev.epss, 0) AS previous_epss,
+			cur.epss - COALESCE(prev.epss, 0) AS delta,
 			cur.percentile AS current_percentile,
 			COALESCE(vs.severity_worst, 0) AS severity_worst,
-			COALESCE(v.summary, '') AS summary
+			COALESCE(v.summary, '') AS summary,
+			(SELECT d FROM latest_date) AS latest_date,
+			(SELECT d FROM previous_date) AS previous_date
 		FROM epss_scores cur
-		JOIN epss_scores prev ON prev.vulnerability_id = cur.vulnerability_id
+		LEFT JOIN epss_scores prev ON prev.vulnerability_id = cur.vulnerability_id
 			AND prev.score_date = (SELECT d FROM previous_date)
 		LEFT JOIN vulnerabilities v ON v.id = cur.vulnerability_id
 		LEFT JOIN vulnerability_summary vs ON vs.vulnerability_id = cur.vulnerability_id
 		WHERE cur.score_date = (SELECT d FROM latest_date)
-			AND cur.epss - prev.epss >= $2
-		ORDER BY cur.epss - prev.epss DESC
+			AND cur.epss - COALESCE(prev.epss, 0) >= $2
+		ORDER BY cur.epss - COALESCE(prev.epss, 0) DESC
 		LIMIT $3`,
 		params.Days, params.Threshold, params.Limit,
 	)
@@ -61,20 +67,56 @@ func (s *PostgresStore) GetEPSSTrending(ctx context.Context, params EPSSTrending
 	}
 	defer func() { _ = rows.Close() }()
 
-	var entries []EPSSTrendingEntry
+	result := &EPSSTrendingResult{}
 	for rows.Next() {
 		var e EPSSTrendingEntry
 		var summary sql.NullString
 		var severityLevel int
+		var latestDate, previousDate sql.NullTime
 		if err := rows.Scan(&e.VulnerabilityID, &e.CVEID, &e.CurrentEPSS,
-			&e.PreviousEPSS, &e.Delta, &e.CurrentPercentile, &severityLevel, &summary); err != nil {
+			&e.PreviousEPSS, &e.Delta, &e.CurrentPercentile, &severityLevel, &summary,
+			&latestDate, &previousDate); err != nil {
 			return nil, fmt.Errorf("scan epss trending: %w", err)
 		}
 		e.Summary = summary.String
 		if severityLevel > 0 {
 			e.Severity = model.SeverityLevelName(severityLevel)
 		}
-		entries = append(entries, e)
+		result.Entries = append(result.Entries, e)
+		// Set dates from first row (same for all rows)
+		if result.LatestDate == "" && latestDate.Valid {
+			result.LatestDate = latestDate.Time.Format("2006-01-02")
+		}
+		if result.PreviousDate == "" && previousDate.Valid {
+			result.PreviousDate = previousDate.Time.Format("2006-01-02")
+		}
 	}
-	return entries, rows.Err()
+
+	// If no rows returned, fetch dates separately to still report them
+	if result.LatestDate == "" {
+		var latestDate, previousDate sql.NullTime
+		err := s.db.QueryRowContext(ctx, `
+			WITH latest_date AS (
+				SELECT MAX(score_date) AS d FROM epss_scores
+			),
+			previous_date AS (
+				SELECT MAX(score_date) AS d FROM epss_scores
+				WHERE score_date <= (SELECT d FROM latest_date) - ($1::int)
+			)
+			SELECT (SELECT d FROM latest_date), (SELECT d FROM previous_date)`,
+			params.Days,
+		).Scan(&latestDate, &previousDate)
+		if err != nil {
+			slog.Debug("failed to fetch fallback dates for trending", "error", err)
+		} else {
+			if latestDate.Valid {
+				result.LatestDate = latestDate.Time.Format("2006-01-02")
+			}
+			if previousDate.Valid {
+				result.PreviousDate = previousDate.Time.Format("2006-01-02")
+			}
+		}
+	}
+
+	return result, rows.Err()
 }

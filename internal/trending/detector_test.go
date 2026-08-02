@@ -16,10 +16,15 @@ type mockDetectorStore struct {
 	params  store.EPSSTrendingQuery
 }
 
-func (m *mockDetectorStore) GetEPSSTrending(ctx context.Context, params store.EPSSTrendingQuery) ([]store.EPSSTrendingEntry, error) {
+func (m *mockDetectorStore) GetEPSSTrending(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error) {
 	m.called = true
 	m.params = params
-	return m.entries, m.err
+	if m.err != nil {
+		return nil, m.err
+	}
+	return &store.EPSSTrendingResult{
+		Entries: m.entries,
+	}, nil
 }
 
 func TestDetectSpikes_Success(t *testing.T) {

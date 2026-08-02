@@ -25,7 +25,7 @@ type SpikeResult struct {
 // DetectorStore defines the store interface needed by the spike detector.
 // This is satisfied by any store implementing GetEPSSTrending.
 type DetectorStore interface {
-	GetEPSSTrending(ctx context.Context, params store.EPSSTrendingQuery) ([]store.EPSSTrendingEntry, error)
+	GetEPSSTrending(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error)
 }
 
 // DetectorParams configures the spike detection query.
@@ -63,9 +63,14 @@ func DetectSpikes(ctx context.Context, s DetectorStore, params DetectorParams) (
 		Limit:     params.Limit,
 	}
 
-	entries, err := s.GetEPSSTrending(ctx, query)
+	trendingResult, err := s.GetEPSSTrending(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("detect EPSS spikes: %w", err)
+	}
+
+	var entries []store.EPSSTrendingEntry
+	if trendingResult != nil {
+		entries = trendingResult.Entries
 	}
 
 	results := make([]SpikeResult, 0, len(entries))

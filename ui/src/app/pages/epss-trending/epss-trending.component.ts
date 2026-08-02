@@ -40,6 +40,49 @@ import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss
         </div>
       </div>
 
+      <!-- Stale data warning -->
+      @if (stale()) {
+        <div role="alert" class="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-amber-700 dark:text-amber-300" i18n="@@epssTrending.staleWarning">
+                EPSS data is outdated. The latest score date is {{ latestDate() }}. Run <code class="font-mono bg-amber-100 dark:bg-amber-800/40 px-1 rounded">mayu ingest --source epss --update</code> to refresh.
+              </p>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Comparison dates -->
+      @if (!loading() && latestDate() && !previousDateMissing()) {
+        <div class="text-sm text-slate-500 dark:text-slate-400">
+          <span i18n="@@epssTrending.comparingDates">Comparing:</span> <span class="font-mono">{{ latestDate() }}</span> vs <span class="font-mono">{{ previousDate() }}</span>
+        </div>
+      }
+
+      <!-- Previous date missing warning -->
+      @if (previousDateMissing()) {
+        <div role="alert" class="rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-blue-700 dark:text-blue-300" i18n="@@epssTrending.previousDateMissing">
+                No comparison data available for the selected period. EPSS data for {{ selectedDays() }} days ago does not exist. Try a shorter period or run backfill.
+              </p>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Loading -->
       @if (loading()) {
         <div class="flex items-center justify-center py-12">
@@ -111,6 +154,10 @@ export class EpssTrendingComponent implements OnInit {
 
   readonly loading = signal(true);
   readonly entries = signal<EpssTrendingEntry[]>([]);
+  readonly latestDate = signal('');
+  readonly previousDate = signal('');
+  readonly stale = signal(false);
+  readonly previousDateMissing = signal(false);
   readonly selectedDays = signal(7);
   readonly selectedThreshold = signal(0.1);
 
@@ -169,10 +216,18 @@ export class EpssTrendingComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.entries.set(res.entries || []);
+          this.latestDate.set(res.latest_date || '');
+          this.previousDate.set(res.previous_date || '');
+          this.stale.set(res.stale || false);
+          this.previousDateMissing.set(res.previous_date_missing || false);
           this.loading.set(false);
         },
         error: () => {
           this.entries.set([]);
+          this.latestDate.set('');
+          this.previousDate.set('');
+          this.stale.set(false);
+          this.previousDateMissing.set(false);
           this.loading.set(false);
         },
       });

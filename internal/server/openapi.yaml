@@ -268,6 +268,118 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/epss/trending:
+    get:
+      operationId: getEPSSTrending
+      summary: Get EPSS trending CVEs (spike detection)
+      description: |
+        Returns CVEs with rapidly rising EPSS scores. Compares the latest EPSS score
+        with the score N days ago, filtering for entries where delta >= threshold.
+      tags:
+        - epss
+      parameters:
+        - name: days
+          in: query
+          description: Lookback window in days for comparison
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            default: 7
+        - name: threshold
+          in: query
+          description: Minimum EPSS delta to qualify as trending
+          schema:
+            type: number
+            format: double
+            minimum: 0
+            maximum: 1
+            default: 0.1
+        - name: limit
+          in: query
+          description: Maximum number of results
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: Trending EPSS data with comparison metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - entries
+                  - query
+                  - latest_date
+                  - previous_date
+                  - stale
+                  - previous_date_missing
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        vulnerability_id:
+                          type: string
+                        cve_id:
+                          type: string
+                        current_epss:
+                          type: number
+                          format: double
+                        previous_epss:
+                          type: number
+                          format: double
+                        delta:
+                          type: number
+                          format: double
+                        current_percentile:
+                          type: number
+                          format: double
+                        severity:
+                          type: string
+                        summary:
+                          type: string
+                  query:
+                    type: object
+                    properties:
+                      days:
+                        type: integer
+                      threshold:
+                        type: number
+                        format: double
+                      limit:
+                        type: integer
+                  latest_date:
+                    type: string
+                    format: date
+                    description: The latest EPSS score date used for comparison (YYYY-MM-DD)
+                  previous_date:
+                    type: string
+                    format: date
+                    description: The previous EPSS score date used for comparison (YYYY-MM-DD)
+                  stale:
+                    type: boolean
+                    description: True if latest_date is 2+ days before current UTC date
+                  previous_date_missing:
+                    type: boolean
+                    description: True if no comparison date exists for the selected lookback period (EPSS data too sparse)
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/status:
     get:
       operationId: getStatus

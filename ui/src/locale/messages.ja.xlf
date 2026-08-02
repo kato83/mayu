@@ -2314,6 +2314,18 @@
         <source>30 Days</source>
         <target>30日間</target>
       </trans-unit>
+      <trans-unit id="epssTrending.staleWarning" datatype="html">
+        <source>EPSS data is outdated. The latest score date is <x id="INTERPOLATION" equiv-text="{{ latestDate() }}"/>. Run <x id="START_TAG_CODE" ctype="x-code" equiv-text="&lt;code&gt;"/>mayu ingest --source epss --update<x id="CLOSE_TAG_CODE" ctype="x-code" equiv-text="&lt;/code&gt;"/> to refresh.</source>
+        <target>EPSSデータが古くなっています。最新のスコア日付は <x id="INTERPOLATION" equiv-text="{{ latestDate() }}"/> です。<x id="START_TAG_CODE" ctype="x-code" equiv-text="&lt;code&gt;"/>mayu ingest --source epss --update<x id="CLOSE_TAG_CODE" ctype="x-code" equiv-text="&lt;/code&gt;"/> を実行してデータを更新してください。</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.comparingDates" datatype="html">
+        <source>Comparing:</source>
+        <target>比較期間:</target>
+      </trans-unit>
+      <trans-unit id="epssTrending.previousDateMissing" datatype="html">
+        <source>No comparison data available for the selected period. EPSS data for <x id="INTERPOLATION" equiv-text="{{ selectedDays() }}"/> days ago does not exist. Try a shorter period or run backfill.</source>
+        <target>選択された期間の比較データがありません。<x id="INTERPOLATION" equiv-text="{{ selectedDays() }}"/>日前のEPSSデータが存在しません。より短い期間を選択するか、バックフィルを実行してください。</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.levTrend" datatype="html">
         <source>LEV Trend</source>
         <target>LEVトレンド</target>

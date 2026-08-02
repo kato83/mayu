@@ -27,7 +27,7 @@ type mockStore struct {
 	getStatsTrendFunc          func(ctx context.Context, query store.StatsTrendQuery) (*store.StatsTrendResponse, error)
 	getEPSSHistoryFunc         func(ctx context.Context, vulnID string, since *time.Time) ([]store.EPSSHistoryEntry, error)
 	getLEVHistoryFunc          func(ctx context.Context, vulnID string, since *time.Time) ([]store.LEVHistoryEntry, error)
-	getEPSSTrendingFunc        func(ctx context.Context, params store.EPSSTrendingQuery) ([]store.EPSSTrendingEntry, error)
+	getEPSSTrendingFunc        func(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error)
 }
 
 func (m *mockStore) Insert(ctx context.Context, vuln *model.Vulnerability) error { return nil }
@@ -125,11 +125,11 @@ func (m *mockStore) GetLEVHistory(ctx context.Context, vulnID string, since *tim
 	}
 	return nil, nil
 }
-func (m *mockStore) GetEPSSTrending(ctx context.Context, params store.EPSSTrendingQuery) ([]store.EPSSTrendingEntry, error) {
+func (m *mockStore) GetEPSSTrending(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error) {
 	if m.getEPSSTrendingFunc != nil {
 		return m.getEPSSTrendingFunc(ctx, params)
 	}
-	return nil, nil
+	return &store.EPSSTrendingResult{}, nil
 }
 func (m *mockStore) UpsertEOLProduct(ctx context.Context, product store.EOLProduct) error {
 	return nil

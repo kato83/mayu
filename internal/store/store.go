@@ -124,7 +124,7 @@ type Store interface {
 	GetLEVHistory(ctx context.Context, vulnID string, since *time.Time) ([]LEVHistoryEntry, error)
 
 	// GetEPSSTrending returns CVEs with rapidly rising EPSS scores (spike detection).
-	GetEPSSTrending(ctx context.Context, params EPSSTrendingQuery) ([]EPSSTrendingEntry, error)
+	GetEPSSTrending(ctx context.Context, params EPSSTrendingQuery) (*EPSSTrendingResult, error)
 
 	// UpsertEOLProduct upserts a product from endoflife.date.
 	UpsertEOLProduct(ctx context.Context, product EOLProduct) error
@@ -347,6 +347,14 @@ type EPSSTrendingEntry struct {
 	CurrentPercentile float64 `json:"current_percentile"`
 	Severity          string  `json:"severity"`
 	Summary           string  `json:"summary"`
+}
+
+// EPSSTrendingResult wraps the trending entries with metadata about the
+// comparison dates used for the spike detection query.
+type EPSSTrendingResult struct {
+	Entries      []EPSSTrendingEntry `json:"entries"`
+	LatestDate   string              `json:"latest_date"`   // YYYY-MM-DD
+	PreviousDate string              `json:"previous_date"` // YYYY-MM-DD
 }
 
 // EOLProduct represents a product for storage.

@@ -11,6 +11,9 @@ import (
 	"github.com/kato83/mayu/internal/store"
 )
 
+// staleDaysThreshold is the number of days after which EPSS data is considered stale.
+const staleDaysThreshold = 2
+
 // validPeriods defines allowed values for the period query parameter.
 var validPeriods = map[string]bool{
 	"30d":  true,
@@ -123,23 +126,39 @@ func (s *Server) handleGetEPSSTrending(w http.ResponseWriter, r *http.Request) {
 		Limit:     limit,
 	}
 
-	results, err := s.store.GetEPSSTrending(r.Context(), params)
+	result, err := s.store.GetEPSSTrending(r.Context(), params)
 	if err != nil {
 		slog.Error("failed to get EPSS trending", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	if results == nil {
-		results = []store.EPSSTrendingEntry{}
+	entries := result.Entries
+	if entries == nil {
+		entries = []store.EPSSTrendingEntry{}
 	}
 
+	// Determine staleness: latest_date is staleDaysThreshold+ days before current UTC date
+	stale := false
+	if result.LatestDate != "" {
+		if latestTime, err := time.Parse("2006-01-02", result.LatestDate); err == nil {
+			stale = time.Now().UTC().Truncate(24*time.Hour).Sub(latestTime) >= time.Duration(staleDaysThreshold)*24*time.Hour
+		}
+	}
+
+	// Determine if previous_date data is missing
+	previousDateMissing := result.PreviousDate == ""
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"entries": results,
+		"entries": entries,
 		"query": map[string]interface{}{
 			"days":      days,
 			"threshold": threshold,
 			"limit":     limit,
 		},
+		"latest_date":           result.LatestDate,
+		"previous_date":         result.PreviousDate,
+		"stale":                 stale,
+		"previous_date_missing": previousDateMissing,
 	})
 }
