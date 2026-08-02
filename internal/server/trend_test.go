@@ -326,8 +326,9 @@ func TestGetEPSSTrending_Defaults(t *testing.T) {
 						Summary:           "Critical vuln",
 					},
 				},
-				LatestDate:   "2025-12-31",
-				PreviousDate: "2025-12-24",
+				LatestDate:           "2025-12-31",
+				PreviousDate:         "2025-12-24",
+				ExpectedPreviousDate: "2025-12-24",
 			}, nil
 		},
 	}
@@ -383,6 +384,14 @@ func TestGetEPSSTrending_Defaults(t *testing.T) {
 	// previous_date_missing should be false when previous_date is set
 	if resp["previous_date_missing"] != false {
 		t.Errorf("expected previous_date_missing false, got %v", resp["previous_date_missing"])
+	}
+	// expected_previous_date should match the computed date (latest_date - 7 days)
+	if resp["expected_previous_date"] != "2025-12-24" {
+		t.Errorf("expected expected_previous_date 2025-12-24, got %v", resp["expected_previous_date"])
+	}
+	// previous_date_approximate should be false when previous_date == expected_previous_date
+	if resp["previous_date_approximate"] != false {
+		t.Errorf("expected previous_date_approximate false, got %v", resp["previous_date_approximate"])
 	}
 }
 
@@ -510,8 +519,9 @@ func TestGetEPSSTrending_EmptyResult(t *testing.T) {
 	ms := &mockStore{
 		getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error) {
 			return &store.EPSSTrendingResult{
-				LatestDate:   "2026-08-01",
-				PreviousDate: "2026-07-25",
+				LatestDate:           "2026-08-01",
+				PreviousDate:         "2026-07-25",
+				ExpectedPreviousDate: "2026-07-25",
 			}, nil
 		},
 	}
@@ -630,6 +640,83 @@ func TestGetEPSSTrending_PreviousDateMissing(t *testing.T) {
 			}
 			if got := resp["previous_date_missing"].(bool); got != tt.wantMissing {
 				t.Errorf("expected previous_date_missing=%v, got %v", tt.wantMissing, got)
+			}
+		})
+	}
+}
+
+func TestGetEPSSTrending_PreviousDateApproximate(t *testing.T) {
+	tests := []struct {
+		name                 string
+		latestDate           string
+		previousDate         string
+		expectedPreviousDate string
+		wantApproximate      bool
+	}{
+		{
+			name:                 "exact match - not approximate",
+			latestDate:           "2026-08-01",
+			previousDate:         "2026-07-25",
+			expectedPreviousDate: "2026-07-25",
+			wantApproximate:      false,
+		},
+		{
+			name:                 "data gap - approximate",
+			latestDate:           "2026-08-01",
+			previousDate:         "2026-07-24",
+			expectedPreviousDate: "2026-07-25",
+			wantApproximate:      true,
+		},
+		{
+			name:                 "empty previous_date - not approximate",
+			latestDate:           "2026-08-01",
+			previousDate:         "",
+			expectedPreviousDate: "2026-07-25",
+			wantApproximate:      false,
+		},
+		{
+			name:                 "empty expected - not approximate",
+			latestDate:           "",
+			previousDate:         "",
+			expectedPreviousDate: "",
+			wantApproximate:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &mockStore{
+				getEPSSTrendingFunc: func(ctx context.Context, params store.EPSSTrendingQuery) (*store.EPSSTrendingResult, error) {
+					return &store.EPSSTrendingResult{
+						LatestDate:           tt.latestDate,
+						PreviousDate:         tt.previousDate,
+						ExpectedPreviousDate: tt.expectedPreviousDate,
+					}, nil
+				},
+			}
+			srv := newTestServer(ms)
+
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/epss/trending", nil)
+			w := httptest.NewRecorder()
+			srv.httpServer.Handler.ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
+			}
+
+			var resp map[string]interface{}
+			if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+				t.Fatalf("failed to decode response: %v", err)
+			}
+
+			gotApprox := resp["previous_date_approximate"].(bool)
+			if gotApprox != tt.wantApproximate {
+				t.Errorf("expected previous_date_approximate=%v, got %v", tt.wantApproximate, gotApprox)
+			}
+
+			gotExpected := resp["expected_previous_date"]
+			if gotExpected != tt.expectedPreviousDate {
+				t.Errorf("expected expected_previous_date=%q, got %v", tt.expectedPreviousDate, gotExpected)
 			}
 		})
 	}

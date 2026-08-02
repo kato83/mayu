@@ -149,6 +149,9 @@ func (s *Server) handleGetEPSSTrending(w http.ResponseWriter, r *http.Request) {
 	// Determine if previous_date data is missing
 	previousDateMissing := result.PreviousDate == ""
 
+	// Determine if previous_date differs from expected (data gap)
+	previousDateApprox := result.PreviousDate != "" && result.ExpectedPreviousDate != "" && result.PreviousDate != result.ExpectedPreviousDate
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"entries": entries,
 		"query": map[string]interface{}{
@@ -156,9 +159,11 @@ func (s *Server) handleGetEPSSTrending(w http.ResponseWriter, r *http.Request) {
 			"threshold": threshold,
 			"limit":     limit,
 		},
-		"latest_date":           result.LatestDate,
-		"previous_date":         result.PreviousDate,
-		"stale":                 stale,
-		"previous_date_missing": previousDateMissing,
+		"latest_date":               result.LatestDate,
+		"previous_date":             result.PreviousDate,
+		"expected_previous_date":    result.ExpectedPreviousDate,
+		"stale":                     stale,
+		"previous_date_missing":     previousDateMissing,
+		"previous_date_approximate": previousDateApprox,
 	})
 }

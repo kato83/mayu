@@ -352,9 +352,10 @@ type EPSSTrendingEntry struct {
 // EPSSTrendingResult wraps the trending entries with metadata about the
 // comparison dates used for the spike detection query.
 type EPSSTrendingResult struct {
-	Entries      []EPSSTrendingEntry `json:"entries"`
-	LatestDate   string              `json:"latest_date"`   // YYYY-MM-DD
-	PreviousDate string              `json:"previous_date"` // YYYY-MM-DD
+	Entries              []EPSSTrendingEntry `json:"entries"`
+	LatestDate           string              `json:"latest_date"`            // YYYY-MM-DD
+	PreviousDate         string              `json:"previous_date"`          // YYYY-MM-DD
+	ExpectedPreviousDate string              `json:"expected_previous_date"` // latest_date - N days
 }
 
 // EOLProduct represents a product for storage.

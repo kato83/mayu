@@ -22,8 +22,10 @@ export interface EpssTrendingResponse {
   };
   latest_date: string;
   previous_date: string;
+  expected_previous_date: string;
   stale: boolean;
   previous_date_missing: boolean;
+  previous_date_approximate: boolean;
 }
 
 @Injectable({ providedIn: 'root' })

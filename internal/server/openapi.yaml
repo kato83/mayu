@@ -315,8 +315,10 @@ paths:
                   - query
                   - latest_date
                   - previous_date
+                  - expected_previous_date
                   - stale
                   - previous_date_missing
+                  - previous_date_approximate
                 properties:
                   entries:
                     type: array
@@ -361,12 +363,19 @@ paths:
                     type: string
                     format: date
                     description: The previous EPSS score date used for comparison (YYYY-MM-DD)
+                  expected_previous_date:
+                    type: string
+                    format: date
+                    description: The expected previous date (latest_date - N days). May differ from previous_date if exact data is unavailable.
                   stale:
                     type: boolean
                     description: True if latest_date is 2+ days before current UTC date
                   previous_date_missing:
                     type: boolean
                     description: True if no comparison date exists for the selected lookback period (EPSS data too sparse)
+                  previous_date_approximate:
+                    type: boolean
+                    description: True if previous_date differs from expected_previous_date (data gap, nearest available date was used)
         "400":
           description: Invalid parameters
           content:

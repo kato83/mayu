@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/kato83/mayu/internal/model"
 )
@@ -115,6 +116,13 @@ func (s *PostgresStore) GetEPSSTrending(ctx context.Context, params EPSSTrending
 			if previousDate.Valid {
 				result.PreviousDate = previousDate.Time.Format("2006-01-02")
 			}
+		}
+	}
+
+	// Compute expected previous date from latest_date - N days
+	if result.LatestDate != "" {
+		if lt, err := time.Parse("2006-01-02", result.LatestDate); err == nil {
+			result.ExpectedPreviousDate = lt.AddDate(0, 0, -params.Days).Format("2006-01-02")
 		}
 	}
 

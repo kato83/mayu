@@ -62,6 +62,11 @@ import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss
       @if (!loading() && latestDate() && !previousDateMissing()) {
         <div class="text-sm text-slate-500 dark:text-slate-400">
           <span i18n="@@epssTrending.comparingDates">Comparing:</span> <span class="font-mono">{{ latestDate() }}</span> vs <span class="font-mono">{{ previousDate() }}</span>
+          @if (previousDateApproximate()) {
+            <span class="ml-2 text-amber-600 dark:text-amber-400" i18n="@@epssTrending.approximateDate">
+              (Expected {{ expectedPreviousDate() }}, but data not available. Using nearest available date.)
+            </span>
+          }
         </div>
       }
 
@@ -158,6 +163,8 @@ export class EpssTrendingComponent implements OnInit {
   readonly previousDate = signal('');
   readonly stale = signal(false);
   readonly previousDateMissing = signal(false);
+  readonly expectedPreviousDate = signal('');
+  readonly previousDateApproximate = signal(false);
   readonly selectedDays = signal(7);
   readonly selectedThreshold = signal(0.1);
 
@@ -220,6 +227,8 @@ export class EpssTrendingComponent implements OnInit {
           this.previousDate.set(res.previous_date || '');
           this.stale.set(res.stale || false);
           this.previousDateMissing.set(res.previous_date_missing || false);
+          this.expectedPreviousDate.set(res.expected_previous_date || '');
+          this.previousDateApproximate.set(res.previous_date_approximate || false);
           this.loading.set(false);
         },
         error: () => {
@@ -228,6 +237,8 @@ export class EpssTrendingComponent implements OnInit {
           this.previousDate.set('');
           this.stale.set(false);
           this.previousDateMissing.set(false);
+          this.expectedPreviousDate.set('');
+          this.previousDateApproximate.set(false);
           this.loading.set(false);
         },
       });

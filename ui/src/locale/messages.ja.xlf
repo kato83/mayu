@@ -2326,6 +2326,10 @@
         <source>No comparison data available for the selected period. EPSS data for <x id="INTERPOLATION" equiv-text="{{ selectedDays() }}"/> days ago does not exist. Try a shorter period or run backfill.</source>
         <target>選択された期間の比較データがありません。<x id="INTERPOLATION" equiv-text="{{ selectedDays() }}"/>日前のEPSSデータが存在しません。より短い期間を選択するか、バックフィルを実行してください。</target>
       </trans-unit>
+      <trans-unit id="epssTrending.approximateDate" datatype="html">
+        <source>(Expected <x id="INTERPOLATION" equiv-text="{{ expectedPreviousDate() }}"/>, but data not available. Using nearest available date.)</source>
+        <target>（本来 <x id="INTERPOLATION" equiv-text="{{ expectedPreviousDate() }}"/> のデータを使用しますが、データが存在しないため最も近い日付を使用しています）</target>
+      </trans-unit>
       <trans-unit id="vulnDetail.levTrend" datatype="html">
         <source>LEV Trend</source>
         <target>LEVトレンド</target>
