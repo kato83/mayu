@@ -2262,6 +2262,14 @@
         <source>No trending data available.</source>
         <target>トレンドデータがありません。</target>
       </trans-unit>
+      <trans-unit id="dashboard.epssTrendingStale" datatype="html">
+        <source>EPSS data is outdated (latest: <x id="INTERPOLATION" equiv-text="{{ trendingLatestDate() }}"/>). Run <x id="START_TAG_CODE" ctype="x-code" equiv-text="&lt;code&gt;"/>mayu ingest --source epss --update<x id="CLOSE_TAG_CODE" ctype="x-code" equiv-text="&lt;/code&gt;"/> to refresh.</source>
+        <target>EPSSデータが古くなっています（最新: <x id="INTERPOLATION" equiv-text="{{ trendingLatestDate() }}"/>）。<x id="START_TAG_CODE" ctype="x-code" equiv-text="&lt;code&gt;"/>mayu ingest --source epss --update<x id="CLOSE_TAG_CODE" ctype="x-code" equiv-text="&lt;/code&gt;"/> を実行して更新してください。</target>
+      </trans-unit>
+      <trans-unit id="dashboard.epssTrendingApproximate" datatype="html">
+        <source>*Using nearest available date</source>
+        <target>※最も近い利用可能な日付を使用</target>
+      </trans-unit>
       <trans-unit id="epssTrending.title" datatype="html">
         <source>EPSS Trending</source>
         <target>EPSSトレンド</target>

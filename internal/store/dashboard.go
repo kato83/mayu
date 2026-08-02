@@ -319,7 +319,7 @@ func (s *PostgresStore) queryTopRisks(ctx context.Context, scoreColumn, whereCla
 		FROM vulnerability_summary vs
 		JOIN vulnerabilities v ON v.id = vs.vulnerability_id
 		WHERE %s
-		ORDER BY vs.%s DESC
+		ORDER BY vs.%s DESC, v.published DESC NULLS LAST
 		LIMIT $1`,
 		strings.Join(cols, ", "),
 		whereClause,

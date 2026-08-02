@@ -137,6 +137,24 @@ Chart.register(...registerables);
           <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-200" i18n="@@dashboard.epssTrendingTitle">EPSS Trending</h2>
           <a routerLink="/epss-trending" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline" i18n="@@dashboard.epssTrendingViewAll">View All</a>
         </div>
+        @if (trendingStale()) {
+          <div role="alert" class="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-3 py-2 mb-3">
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4 text-amber-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+              </svg>
+              <p class="text-xs text-amber-700 dark:text-amber-300" i18n="@@dashboard.epssTrendingStale">EPSS data is outdated (latest: {{ trendingLatestDate() }}). Run <code class="font-mono bg-amber-100 dark:bg-amber-800/40 px-0.5 rounded text-xs">mayu ingest --source epss --update</code> to refresh.</p>
+            </div>
+          </div>
+        }
+        @if (trendingLatestDate() && trendingPreviousDate()) {
+          <div class="text-xs text-slate-500 dark:text-slate-400 mb-2">
+            <span i18n="@@epssTrending.comparingDates">Comparing: </span> <span class="font-mono">{{ trendingLatestDate() }}</span> vs <span class="font-mono">{{ trendingPreviousDate() }}</span>
+            @if (trendingPreviousDateApproximate()) {
+              <span class="ml-2 text-amber-600 dark:text-amber-400" i18n="@@dashboard.epssTrendingApproximate">*Using nearest available date</span>
+            }
+          </div>
+        }
         @if (trendingEntries().length > 0) {
           <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
@@ -257,6 +275,11 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   readonly topRisks = signal<DashboardTopRisks | null>(null);
   readonly statsTrend = signal<StatsTrendResponse | null>(null);
   readonly trendingEntries = signal<EpssTrendingEntry[]>([]);
+  readonly trendingLatestDate = signal('');
+  readonly trendingPreviousDate = signal('');
+  readonly trendingStale = signal(false);
+  readonly trendingPreviousDateApproximate = signal(false);
+  readonly trendingExpectedPreviousDate = signal('');
 
   // Trend chart controls
   readonly selectedTrendRange = signal('30d');
@@ -361,9 +384,19 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
     this.epssTrendingService.getTrending({ days: 7, threshold: 0.1, limit: 5 }).subscribe({
       next: (res) => {
         this.trendingEntries.set(res.entries || []);
+        this.trendingLatestDate.set(res.latest_date || '');
+        this.trendingPreviousDate.set(res.previous_date || '');
+        this.trendingStale.set(res.stale || false);
+        this.trendingPreviousDateApproximate.set(res.previous_date_approximate || false);
+        this.trendingExpectedPreviousDate.set(res.expected_previous_date || '');
       },
       error: () => {
         this.trendingEntries.set([]);
+        this.trendingLatestDate.set('');
+        this.trendingPreviousDate.set('');
+        this.trendingStale.set(false);
+        this.trendingPreviousDateApproximate.set(false);
+        this.trendingExpectedPreviousDate.set('');
       },
     });
   }
