@@ -3557,6 +3557,10 @@
         <source>Low</source>
         <target>Low</target>
       </trans-unit>
+      <trans-unit id="triageOverview.accepted" datatype="html">
+        <source>Accepted</source>
+        <target>受容済み</target>
+      </trans-unit>
       <trans-unit id="triageOverview.allPriorities" datatype="html">
         <source>All Priorities</source>
         <target>全優先度</target>

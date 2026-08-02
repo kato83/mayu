@@ -16,7 +16,7 @@ import { TriageService } from '../../services/triage.service';
       </div>
     } @else {
       <!-- Priority Level Summary Cards -->
-      <section class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <section class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-red-500">
           <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide" i18n="@@triageOverview.critical">Critical</p>
           <p class="text-2xl font-bold text-red-500 mt-1">{{ overviewSummary()?.priority_counts?.Critical ?? 0 | number }}</p>
@@ -32,6 +32,10 @@ import { TriageService } from '../../services/triage.service';
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-blue-500">
           <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide" i18n="@@triageOverview.low">Low</p>
           <p class="text-2xl font-bold text-blue-500 mt-1">{{ overviewSummary()?.priority_counts?.Low ?? 0 | number }}</p>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border-l-4 border-slate-400">
+          <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide" i18n="@@triageOverview.accepted">Accepted</p>
+          <p class="text-2xl font-bold text-slate-500 mt-1">{{ overviewSummary()?.risk_accepted_count ?? 0 | number }}</p>
         </div>
       </section>
 

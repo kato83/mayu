@@ -585,6 +585,7 @@ func TestHandleTriageOverviewSummary_EmptyResults(t *testing.T) {
 		PriorityCounts       map[string]int `json:"priority_counts"`
 		TotalProjects        int            `json:"total_projects"`
 		TotalServers         int            `json:"total_servers"`
+		RiskAcceptedCount    int            `json:"risk_accepted_count"`
 	}
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode response: %v", err)
@@ -601,6 +602,9 @@ func TestHandleTriageOverviewSummary_EmptyResults(t *testing.T) {
 	}
 	if resp.PriorityCounts == nil {
 		t.Error("expected non-nil priority_counts")
+	}
+	if resp.RiskAcceptedCount != 0 {
+		t.Errorf("expected risk_accepted_count=0, got %d", resp.RiskAcceptedCount)
 	}
 }
 
@@ -667,6 +671,7 @@ func TestHandleTriageOverviewSummary_CrossVulnDeduplication(t *testing.T) {
 		PriorityCounts       map[string]int `json:"priority_counts"`
 		TotalProjects        int            `json:"total_projects"`
 		TotalServers         int            `json:"total_servers"`
+		RiskAcceptedCount    int            `json:"risk_accepted_count"`
 	}
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode response: %v", err)
@@ -691,5 +696,190 @@ func TestHandleTriageOverviewSummary_CrossVulnDeduplication(t *testing.T) {
 
 	if resp.PriorityCounts == nil {
 		t.Error("expected non-nil priority_counts")
+	}
+
+	// No risk_accepted findings in this test data
+	if resp.RiskAcceptedCount != 0 {
+		t.Errorf("expected risk_accepted_count=0, got %d", resp.RiskAcceptedCount)
+	}
+}
+
+// TestHandleTriageOverviewSummary_RiskAcceptedCount tests that risk_accepted_count
+// correctly counts vulnerabilities that are excluded due to risk_accepted status
+// and are not present as active findings in other projects.
+func TestHandleTriageOverviewSummary_RiskAcceptedCount(t *testing.T) {
+	ms := &mockStore{}
+	sbomStore := &mockSBOMStoreForPortfolio{
+		projects: []*sbommon.SBOMProject{
+			{ID: 1, UserID: 0, Name: "service-a"},
+			{ID: 2, UserID: 0, Name: "service-b"},
+		},
+		versions: map[int64]*sbommon.SBOMVersion{
+			10: {ID: 10, ProjectID: 1, Version: "1.0.0", Environment: "production", ComponentCount: 50},
+			20: {ID: 20, ProjectID: 2, Version: "2.0.0", Environment: "staging", ComponentCount: 30},
+		},
+		scanResults: map[int64]*sbommon.SBOMScanResult{
+			10: {
+				ID:            1,
+				VersionID:     10,
+				ScannedAt:     time.Now(),
+				TotalFindings: 3,
+				Findings: []sbommon.ScanFinding{
+					{VulnID: "CVE-2024-001", Severity: "HIGH", Purl: "pkg:npm/foo@1.0.0", Ecosystem: "npm"},
+					{VulnID: "CVE-2024-002", Severity: "MEDIUM", Purl: "pkg:npm/bar@2.0.0", Ecosystem: "npm"},
+					{VulnID: "CVE-2024-003", Severity: "LOW", Purl: "pkg:npm/baz@3.0.0", Ecosystem: "npm"},
+				},
+			},
+			20: {
+				ID:            2,
+				VersionID:     20,
+				ScannedAt:     time.Now(),
+				TotalFindings: 2,
+				Findings: []sbommon.ScanFinding{
+					{VulnID: "CVE-2024-001", Severity: "HIGH", Purl: "pkg:npm/foo@1.0.0", Ecosystem: "npm"},
+					{VulnID: "CVE-2024-003", Severity: "LOW", Purl: "pkg:npm/baz@3.0.0", Ecosystem: "npm"},
+				},
+			},
+		},
+		statuses: map[int64][]*sbommon.FindingStatus{
+			// In project 1: CVE-2024-002 is risk_accepted, CVE-2024-003 is risk_accepted
+			10: {
+				{VersionID: 10, VulnID: "CVE-2024-002", Purl: "pkg:npm/bar@2.0.0", Status: sbommon.FindingStatusRiskAccepted},
+				{VersionID: 10, VulnID: "CVE-2024-003", Purl: "pkg:npm/baz@3.0.0", Status: sbommon.FindingStatusRiskAccepted},
+			},
+			// In project 2: CVE-2024-003 is risk_accepted
+			20: {
+				{VersionID: 20, VulnID: "CVE-2024-003", Purl: "pkg:npm/baz@3.0.0", Status: sbommon.FindingStatusRiskAccepted},
+			},
+		},
+	}
+
+	srv := New(Config{
+		Addr:         ":0",
+		Store:        ms,
+		Version:      "test",
+		AuthProvider: auth.NewNoAuthProvider(),
+		SBOMStore:    sbomStore,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/triage/overview/summary", nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		TotalVulnerabilities int            `json:"total_vulnerabilities"`
+		PriorityCounts       map[string]int `json:"priority_counts"`
+		TotalProjects        int            `json:"total_projects"`
+		TotalServers         int            `json:"total_servers"`
+		RiskAcceptedCount    int            `json:"risk_accepted_count"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	// CVE-2024-001 is active in both projects (not risk_accepted)
+	// CVE-2024-002 is risk_accepted in project 1 only, not active anywhere -> counted
+	// CVE-2024-003 is risk_accepted in both projects, not active anywhere -> counted
+	// So total active = 1 (CVE-2024-001), risk_accepted = 2 (CVE-2024-002, CVE-2024-003)
+	if resp.TotalVulnerabilities != 1 {
+		t.Errorf("expected total_vulnerabilities=1, got %d", resp.TotalVulnerabilities)
+	}
+
+	if resp.RiskAcceptedCount != 2 {
+		t.Errorf("expected risk_accepted_count=2, got %d", resp.RiskAcceptedCount)
+	}
+}
+
+// TestHandleTriageOverviewSummary_RiskAcceptedCrossProjectEdgeCase tests that
+// a vulnerability with risk_accepted in project A but still active (open/no override)
+// in project B is NOT counted in risk_accepted_count, but IS counted in total_vulnerabilities.
+// This ensures risk_accepted_count only includes vulnerabilities fully accepted across all projects.
+func TestHandleTriageOverviewSummary_RiskAcceptedCrossProjectEdgeCase(t *testing.T) {
+	ms := &mockStore{}
+	sbomStore := &mockSBOMStoreForPortfolio{
+		projects: []*sbommon.SBOMProject{
+			{ID: 1, UserID: 0, Name: "project-a"},
+			{ID: 2, UserID: 0, Name: "project-b"},
+		},
+		versions: map[int64]*sbommon.SBOMVersion{
+			10: {ID: 10, ProjectID: 1, Version: "1.0.0", Environment: "production", ComponentCount: 10},
+			20: {ID: 20, ProjectID: 2, Version: "1.0.0", Environment: "staging", ComponentCount: 10},
+		},
+		scanResults: map[int64]*sbommon.SBOMScanResult{
+			10: {
+				ID:            1,
+				VersionID:     10,
+				ScannedAt:     time.Now(),
+				TotalFindings: 1,
+				Findings: []sbommon.ScanFinding{
+					{VulnID: "CVE-2024-CROSS", Severity: "HIGH", Purl: "pkg:npm/shared-lib@1.0.0", Ecosystem: "npm"},
+				},
+			},
+			20: {
+				ID:            2,
+				VersionID:     20,
+				ScannedAt:     time.Now(),
+				TotalFindings: 1,
+				Findings: []sbommon.ScanFinding{
+					{VulnID: "CVE-2024-CROSS", Severity: "HIGH", Purl: "pkg:npm/shared-lib@1.0.0", Ecosystem: "npm"},
+				},
+			},
+		},
+		statuses: map[int64][]*sbommon.FindingStatus{
+			// Project A: CVE-2024-CROSS is risk_accepted
+			10: {
+				{VersionID: 10, VulnID: "CVE-2024-CROSS", Purl: "pkg:npm/shared-lib@1.0.0", Status: sbommon.FindingStatusRiskAccepted},
+			},
+			// Project B: no status override (open by default)
+			20: {},
+		},
+	}
+
+	srv := New(Config{
+		Addr:         ":0",
+		Store:        ms,
+		Version:      "test",
+		AuthProvider: auth.NewNoAuthProvider(),
+		SBOMStore:    sbomStore,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/triage/overview/summary", nil)
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		TotalVulnerabilities int            `json:"total_vulnerabilities"`
+		PriorityCounts       map[string]int `json:"priority_counts"`
+		TotalProjects        int            `json:"total_projects"`
+		TotalServers         int            `json:"total_servers"`
+		RiskAcceptedCount    int            `json:"risk_accepted_count"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	// CVE-2024-CROSS is risk_accepted in project A but still active in project B.
+	// Since it's still active in at least one project, it should:
+	// - Be included in total_vulnerabilities (it's an active finding)
+	// - NOT be included in risk_accepted_count (it's not fully accepted everywhere)
+	if resp.TotalVulnerabilities != 1 {
+		t.Errorf("expected total_vulnerabilities=1 (CVE-2024-CROSS is active in project B), got %d", resp.TotalVulnerabilities)
+	}
+
+	if resp.RiskAcceptedCount != 0 {
+		t.Errorf("expected risk_accepted_count=0 (CVE-2024-CROSS is still active in project B), got %d", resp.RiskAcceptedCount)
+	}
+
+	// Should count project B as having the active finding
+	if resp.TotalProjects < 1 {
+		t.Errorf("expected total_projects>=1, got %d", resp.TotalProjects)
 	}
 }

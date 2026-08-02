@@ -119,6 +119,7 @@ export interface TriageOverviewSummary {
   priority_counts: Record<PriorityLevel, number>;
   total_projects: number;
   total_servers: number;
+  risk_accepted_count?: number;
 }
 
 /** Triage Path: a grouped remediation action */

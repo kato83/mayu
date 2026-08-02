@@ -874,173 +874,198 @@
           <context context-type="linenumber">138,140</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="dashboard.epssTrendingStale" datatype="html">
+        <source>EPSS data is outdated (latest: <x id="INTERPOLATION" equiv-text="{{ trendingLatestDate() }}"/>). Run <x id="START_TAG_CODE" ctype="x-code" equiv-text="&lt;code class=&quot;font-mono bg-amber-100 dark:bg-amber-800/40 px-0.5 rounded text-xs&quot;&gt;"/>mayu ingest --source epss --update<x id="CLOSE_TAG_CODE" ctype="x-code" equiv-text="&lt;/code&gt;"/> to refresh.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">151,152</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="epssTrending.comparingDates" datatype="html">
+        <source>Comparing: </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">157</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
+          <context context-type="linenumber">65</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="dashboard.epssTrendingApproximate" datatype="html">
+        <source>*Using nearest available date</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">159,162</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="dashboard.trendingColId" datatype="html">
         <source>ID</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">146</context>
+          <context context-type="linenumber">169</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendingColEpss" datatype="html">
         <source>EPSS</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">146,147</context>
+          <context context-type="linenumber">169,170</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendingColDelta" datatype="html">
         <source>Delta</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">147,148</context>
+          <context context-type="linenumber">170,171</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendingColSeverity" datatype="html">
         <source>Severity</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">148,150</context>
+          <context context-type="linenumber">171,173</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.epssTrendingEmpty" datatype="html">
         <source>No trending data available.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">173,177</context>
+          <context context-type="linenumber">196,199</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.topEpss" datatype="html">
         <source>Top EPSS Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">181,182</context>
+          <context context-type="linenumber">205,206</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.tableId" datatype="html">
         <source>ID</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">187</context>
+          <context context-type="linenumber">211</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">219</context>
+          <context context-type="linenumber">243</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.tableEpss" datatype="html">
         <source>EPSS</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">187,188</context>
+          <context context-type="linenumber">211,212</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.tableSeverity" datatype="html">
         <source>Severity</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">188,190</context>
+          <context context-type="linenumber">212,214</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">220,222</context>
+          <context context-type="linenumber">244,246</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.topLev" datatype="html">
         <source>Top LEV Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">213,214</context>
+          <context context-type="linenumber">237,238</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.tableLev" datatype="html">
         <source>LEV</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">220</context>
+          <context context-type="linenumber">244</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendRange30d" datatype="html">
         <source>30 Days</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">266</context>
+          <context context-type="linenumber">296</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendRange90d" datatype="html">
         <source>90 Days</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">267</context>
+          <context context-type="linenumber">297</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendRange180d" datatype="html">
         <source>180 Days</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">268</context>
+          <context context-type="linenumber">298</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendRange365d" datatype="html">
         <source>365 Days</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">269</context>
+          <context context-type="linenumber">299</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendGroupDay" datatype="html">
         <source>Day</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">273</context>
+          <context context-type="linenumber">303</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendGroupWeek" datatype="html">
         <source>Week</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">274</context>
+          <context context-type="linenumber">304</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.trendGroupMonth" datatype="html">
         <source>Month</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">275</context>
+          <context context-type="linenumber">305</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.chartCritical" datatype="html">
         <source>Critical</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">451</context>
+          <context context-type="linenumber">494</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.chartHigh" datatype="html">
         <source>High</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">463</context>
+          <context context-type="linenumber">506</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.chartMedium" datatype="html">
         <source>Medium</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">475</context>
+          <context context-type="linenumber">518</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.chartLow" datatype="html">
         <source>Low</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">487</context>
+          <context context-type="linenumber">530</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.chartVulnCount" datatype="html">
         <source>Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">626</context>
+          <context context-type="linenumber">669</context>
         </context-group>
       </trans-unit>
       <trans-unit id="docs.title" datatype="html">
@@ -1085,88 +1110,95 @@
           <context context-type="linenumber">30,31</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="epssTrending.staleWarning" datatype="html">
+        <source> EPSS data is outdated. The latest score date is <x id="INTERPOLATION" equiv-text="{{ latestDate() }}"/>. Run <x id="START_TAG_CODE" ctype="x-code" equiv-text="&lt;code class=&quot;font-mono bg-amber-100 dark:bg-amber-800/40 px-1 rounded&quot;&gt;"/>mayu ingest --source epss --update<x id="CLOSE_TAG_CODE" ctype="x-code" equiv-text="&lt;/code&gt;"/> to refresh. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
+          <context context-type="linenumber">54,55</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="epssTrending.approximateDate" datatype="html">
+        <source> *Expected <x id="INTERPOLATION" equiv-text="{{ expectedPreviousDate() }}"/>, but data not available. Using nearest available date. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
+          <context context-type="linenumber">69,70</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="epssTrending.previousDateMissing" datatype="html">
+        <source> No comparison data available for the selected period. EPSS data for <x id="INTERPOLATION" equiv-text="{{ selectedDays() }}"/> days ago does not exist. Try a shorter period or run backfill. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
+          <context context-type="linenumber">86,87</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="epssTrending.colCveId" datatype="html">
         <source>CVE ID</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">57,58</context>
+          <context context-type="linenumber">107,108</context>
         </context-group>
       </trans-unit>
       <trans-unit id="epssTrending.colCurrentEpss" datatype="html">
         <source>Current EPSS</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">58,59</context>
+          <context context-type="linenumber">108,109</context>
         </context-group>
       </trans-unit>
       <trans-unit id="epssTrending.colPreviousEpss" datatype="html">
         <source>Previous EPSS</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">59,60</context>
+          <context context-type="linenumber">109,110</context>
         </context-group>
       </trans-unit>
       <trans-unit id="epssTrending.colDelta" datatype="html">
         <source>Delta</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">60,61</context>
+          <context context-type="linenumber">110,111</context>
         </context-group>
       </trans-unit>
       <trans-unit id="epssTrending.colPercentile" datatype="html">
         <source>Percentile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">61,62</context>
+          <context context-type="linenumber">111,112</context>
         </context-group>
       </trans-unit>
       <trans-unit id="epssTrending.colSeverity" datatype="html">
         <source>Severity</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">62,64</context>
+          <context context-type="linenumber">112,114</context>
         </context-group>
       </trans-unit>
       <trans-unit id="epssTrending.empty" datatype="html">
         <source>No trending CVEs found for the selected criteria.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">102,105</context>
+          <context context-type="linenumber">152,155</context>
         </context-group>
       </trans-unit>
       <trans-unit id="epssTrending.days7" datatype="html">
         <source>7 Days</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">118</context>
+          <context context-type="linenumber">174</context>
         </context-group>
       </trans-unit>
       <trans-unit id="epssTrending.days14" datatype="html">
         <source>14 Days</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">119</context>
+          <context context-type="linenumber">175</context>
         </context-group>
       </trans-unit>
       <trans-unit id="epssTrending.days30" datatype="html">
         <source>30 Days</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">120</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="epssTrending.staleWarning" datatype="html">
-        <source>EPSS data is outdated. The latest score date is <x id="INTERPOLATION" equiv-text="{{ latestDate() }}"/>. Run <x id="START_TAG_CODE" ctype="x-code" equiv-text="&lt;code&gt;"/>mayu ingest --source epss --update<x id="CLOSE_TAG_CODE" ctype="x-code" equiv-text="&lt;/code&gt;"/> to refresh.</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">50</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="epssTrending.comparingDates" datatype="html">
-        <source>Comparing: </source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/epss-trending/epss-trending.component.ts</context>
-          <context context-type="linenumber">62</context>
+          <context context-type="linenumber">176</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ingestJobs.refresh" datatype="html">
@@ -2758,229 +2790,229 @@
         <source>Critical</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">23,24</context>
+          <context context-type="linenumber">28,29</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.high" datatype="html">
         <source>High</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">28</context>
+          <context context-type="linenumber">33</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.medium" datatype="html">
         <source>Medium</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">31,32</context>
+          <context context-type="linenumber">36,37</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.low" datatype="html">
         <source>Low</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">36</context>
+          <context context-type="linenumber">41</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.orgTotal" datatype="html">
         <source>Total vulnerabilities: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_vulnerabilities ?? 0 }}"/></source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">42,43</context>
+          <context context-type="linenumber">47,48</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.orgProjects" datatype="html">
         <source>Projects: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_projects ?? 0 }}"/></source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">43,44</context>
+          <context context-type="linenumber">48,49</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.topRisksTitle" datatype="html">
         <source>Top Risks Across Projects</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">50,51</context>
+          <context context-type="linenumber">55,56</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.viewAllOverview" datatype="html">
         <source>View all</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">53,55</context>
+          <context context-type="linenumber">58,60</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.colId" datatype="html">
         <source>Vulnerability</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">59,60</context>
+          <context context-type="linenumber">64,65</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">190,191</context>
+          <context context-type="linenumber">195,196</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.colPriority" datatype="html">
         <source>Priority</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">60,61</context>
+          <context context-type="linenumber">65,66</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">191,192</context>
+          <context context-type="linenumber">196,197</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.colScore" datatype="html">
         <source>Score</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">61,62</context>
+          <context context-type="linenumber">66,67</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">192,193</context>
+          <context context-type="linenumber">197,198</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.topRisksColProjects" datatype="html">
         <source>Projects</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">62,64</context>
+          <context context-type="linenumber">67,69</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.projectsTitle" datatype="html">
         <source>SBOM Projects</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">95,97</context>
+          <context context-type="linenumber">100,102</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.projectColName" datatype="html">
         <source>Project</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">101,102</context>
+          <context context-type="linenumber">106,107</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.projectColCreated" datatype="html">
         <source>Created</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">102,103</context>
+          <context context-type="linenumber">107,108</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.projectColAction" datatype="html">
         <source>Action</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">103,105</context>
+          <context context-type="linenumber">108,110</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.runForProject" datatype="html">
         <source>Run Triage</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">116,117</context>
+          <context context-type="linenumber">121,122</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.noProjects" datatype="html">
         <source> No SBOM projects found. Upload an SBOM to get started with vulnerability triage. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">127,129</context>
+          <context context-type="linenumber">132,134</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.goToSbom" datatype="html">
         <source>Go to SBOM Management</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">131,133</context>
+          <context context-type="linenumber">136,138</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.runTriageTitle" datatype="html">
         <source>Run Triage</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">137,138</context>
+          <context context-type="linenumber">142,143</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.runTriageDescription" datatype="html">
         <source> Select a project and profile to run an on-demand triage analysis. Results will appear below. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">139,141</context>
+          <context context-type="linenumber">144,146</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.projectLabel" datatype="html">
         <source>Project</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">143,145</context>
+          <context context-type="linenumber">148,150</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.selectProject" datatype="html">
         <source>Select a project</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">148,149</context>
+          <context context-type="linenumber">153,154</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.profileLabelRun" datatype="html">
         <source>Profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">155,157</context>
+          <context context-type="linenumber">160,162</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.runButton" datatype="html">
         <source>Run Triage</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">172,174</context>
+          <context context-type="linenumber">177,179</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.resultsTitle" datatype="html">
         <source>Triage Results</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">181,182</context>
+          <context context-type="linenumber">186,187</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.colSSVC" datatype="html">
         <source>SSVC</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">193,194</context>
+          <context context-type="linenumber">198,199</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.colRationale" datatype="html">
         <source>Rationale</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">194,196</context>
+          <context context-type="linenumber">199,201</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.viewOverview" datatype="html">
         <source>Cross-Project Overview</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">230,231</context>
+          <context context-type="linenumber">235,236</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.viewPaths" datatype="html">
         <source>Triage Paths</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">233,234</context>
+          <context context-type="linenumber">238,239</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.viewProfiles" datatype="html">
         <source>Profiles</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-dashboard.component.ts</context>
-          <context context-type="linenumber">236,241</context>
+          <context context-type="linenumber">241,246</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.critical" datatype="html">
@@ -3011,137 +3043,144 @@
           <context context-type="linenumber">34</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="triageOverview.accepted" datatype="html">
+        <source>Accepted</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
+          <context context-type="linenumber">37,38</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="triageOverview.metaTotal" datatype="html">
         <source>Total: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_vulnerabilities ?? 0 }}"/></source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">40,41</context>
+          <context context-type="linenumber">44,45</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.metaProjects" datatype="html">
         <source>Projects: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_projects ?? 0 }}"/></source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">41,42</context>
+          <context context-type="linenumber">45,46</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.metaServers" datatype="html">
         <source>Servers: <x id="INTERPOLATION" equiv-text="{{ overviewSummary()?.total_servers ?? 0 }}"/></source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">42,43</context>
+          <context context-type="linenumber">46,47</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.allPriorities" datatype="html">
         <source>All Priorities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">51,52</context>
+          <context context-type="linenumber">55,56</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.sortPriority" datatype="html">
         <source>Sort: Priority</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">61,62</context>
+          <context context-type="linenumber">65,66</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.sortAffected" datatype="html">
         <source>Sort: Affected Servers</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">62,63</context>
+          <context context-type="linenumber">66,67</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.sortScore" datatype="html">
         <source>Sort: Score</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">63,65</context>
+          <context context-type="linenumber">67,69</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.colId" datatype="html">
         <source>Vulnerability</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">73,74</context>
+          <context context-type="linenumber">77,78</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.colOrgPriority" datatype="html">
         <source>Org Priority</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">74,75</context>
+          <context context-type="linenumber">78,79</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.colScore" datatype="html">
         <source>Max Score</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">75,76</context>
+          <context context-type="linenumber">79,80</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.colProjects" datatype="html">
         <source>Projects</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">76,77</context>
+          <context context-type="linenumber">80,81</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.colServers" datatype="html">
         <source>Servers</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">77,78</context>
+          <context context-type="linenumber">81,82</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.subColProject" datatype="html">
         <source>Project</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">112,113</context>
+          <context context-type="linenumber">116,117</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.subColServer" datatype="html">
         <source>Server</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">113,114</context>
+          <context context-type="linenumber">117,118</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.subColEnvironment" datatype="html">
         <source>Environment</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">114,115</context>
+          <context context-type="linenumber">118,119</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.subColProfile" datatype="html">
         <source>Profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">115,116</context>
+          <context context-type="linenumber">119,120</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.subColPriority" datatype="html">
         <source>Priority</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">116,117</context>
+          <context context-type="linenumber">120,121</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.subColScore" datatype="html">
         <source>Score</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">117,119</context>
+          <context context-type="linenumber">121,123</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageOverview.noResults" datatype="html">
         <source> No cross-project triage data available. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-overview.component.ts</context>
-          <context context-type="linenumber">142,143</context>
+          <context context-type="linenumber">146,147</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.title" datatype="html">
@@ -3155,112 +3194,112 @@
         <source>Remediation Action</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">29,30</context>
+          <context context-type="linenumber">26,27</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.type" datatype="html">
         <source>Type</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">33</context>
+          <context context-type="linenumber">30</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.package" datatype="html">
         <source>Package</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">36,37</context>
+          <context context-type="linenumber">33,34</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.version" datatype="html">
         <source>Version Change</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">40,41</context>
+          <context context-type="linenumber">37,38</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.ecosystem" datatype="html">
         <source>Ecosystem</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">46,47</context>
+          <context context-type="linenumber">43,44</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.impactScore" datatype="html">
         <source>Impact Score</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">55,56</context>
+          <context context-type="linenumber">52,53</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.maxPriority" datatype="html">
         <source>Max Priority</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">59,60</context>
+          <context context-type="linenumber">56,57</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.vulnCount" datatype="html">
         <source>Resolved CVEs</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">65,66</context>
+          <context context-type="linenumber">62,63</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.serverCount" datatype="html">
         <source>Affected Servers</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">69,70</context>
+          <context context-type="linenumber">66,67</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.resolvedTitle" datatype="html">
         <source>Resolved Vulnerabilities</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">77,79</context>
+          <context context-type="linenumber">74,76</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.colId" datatype="html">
         <source>Vulnerability</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">83,84</context>
+          <context context-type="linenumber">80,81</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.colPriority" datatype="html">
         <source>Priority</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">84,85</context>
+          <context context-type="linenumber">81,82</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.colScore" datatype="html">
         <source>Score</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">85,86</context>
+          <context context-type="linenumber">82,83</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.colFixed" datatype="html">
         <source>Fixed In</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">86,88</context>
+          <context context-type="linenumber">83,85</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.serversTitle" datatype="html">
         <source>Affected Servers</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">121,123</context>
+          <context context-type="linenumber">118,120</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePathDetail.notFound" datatype="html">
         <source>Triage path not found.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">137,142</context>
+          <context context-type="linenumber">134,139</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePaths.allPriorities" datatype="html">
@@ -3281,63 +3320,63 @@
         <source>Impact Score Comparison (Top 10)</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-list.component.ts</context>
-          <context context-type="linenumber">58,59</context>
+          <context context-type="linenumber">55,56</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePaths.colAction" datatype="html">
         <source>Action</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-list.component.ts</context>
-          <context context-type="linenumber">71,72</context>
+          <context context-type="linenumber">68,69</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePaths.colImpact" datatype="html">
         <source>Impact Score</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-list.component.ts</context>
-          <context context-type="linenumber">72,73</context>
+          <context context-type="linenumber">69,70</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePaths.colPriority" datatype="html">
         <source>Priority</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-list.component.ts</context>
-          <context context-type="linenumber">73,74</context>
+          <context context-type="linenumber">70,71</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePaths.colVulns" datatype="html">
         <source>Resolved CVEs</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-list.component.ts</context>
-          <context context-type="linenumber">74,75</context>
+          <context context-type="linenumber">71,72</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePaths.colServers" datatype="html">
         <source>Servers</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-list.component.ts</context>
-          <context context-type="linenumber">75,76</context>
+          <context context-type="linenumber">72,73</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePaths.colEcosystem" datatype="html">
         <source>Ecosystem</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-list.component.ts</context>
-          <context context-type="linenumber">76,77</context>
+          <context context-type="linenumber">73,74</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePaths.viewDetail" datatype="html">
         <source>Details</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-list.component.ts</context>
-          <context context-type="linenumber">106,108</context>
+          <context context-type="linenumber">103,105</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triagePaths.noPaths" datatype="html">
         <source> No triage paths available. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-path-list.component.ts</context>
-          <context context-type="linenumber">112,113</context>
+          <context context-type="linenumber">109,110</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.builtinBadge" datatype="html">

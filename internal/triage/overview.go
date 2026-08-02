@@ -25,11 +25,12 @@ type ServerTriageEntry struct {
 
 // OverviewSummary holds aggregated counts by priority level.
 type OverviewSummary struct {
-	Total    int `json:"total"`
-	Critical int `json:"critical"`
-	High     int `json:"high"`
-	Medium   int `json:"medium"`
-	Low      int `json:"low"`
+	Total        int `json:"total"`
+	Critical     int `json:"critical"`
+	High         int `json:"high"`
+	Medium       int `json:"medium"`
+	Low          int `json:"low"`
+	RiskAccepted int `json:"risk_accepted_count"`
 }
 
 // serverKey uniquely identifies a server by its project ID and label.

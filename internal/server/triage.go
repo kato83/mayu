@@ -259,13 +259,14 @@ func (s *Server) handleGetProjectTriage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Get finding statuses to exclude suppressed/false_positive/resolved findings
+	// Get finding statuses to exclude suppressed/false_positive/resolved/risk_accepted findings
 	excludedStatuses := map[string]bool{}
 	statuses, _ := s.sbomStore.ListFindingStatuses(r.Context(), latestVersion.ID, nil)
 	for _, fs := range statuses {
 		if fs.Status == sbommon.FindingStatusFalsePositive ||
 			fs.Status == sbommon.FindingStatusSuppressed ||
-			fs.Status == sbommon.FindingStatusResolved {
+			fs.Status == sbommon.FindingStatusResolved ||
+			fs.Status == sbommon.FindingStatusRiskAccepted {
 			excludedStatuses[fs.VulnID+"|"+fs.Purl] = true
 		}
 	}
@@ -491,8 +492,9 @@ func (s *Server) handleTriageOverviewSummary(w http.ResponseWriter, r *http.Requ
 			"Medium":   summary.Medium,
 			"Low":      summary.Low,
 		},
-		"total_projects": len(projectSet),
-		"total_servers":  len(serverSet),
+		"total_projects":      len(projectSet),
+		"total_servers":       len(serverSet),
+		"risk_accepted_count": summary.RiskAccepted,
 	})
 }
 
@@ -518,6 +520,7 @@ func (s *Server) computeCrossProjectOverview(ctx context.Context) (*triage.Overv
 
 	// Collect triage entries grouped by vulnerability ID across all projects
 	entriesByVuln := make(map[string][]triage.ServerTriageEntry)
+	riskAcceptedVulnIDs := make(map[string]bool)
 
 	for _, proj := range projects {
 		latestVer, err := s.sbomStore.GetLatestVersion(ctx, proj.ID)
@@ -530,23 +533,32 @@ func (s *Server) computeCrossProjectOverview(ctx context.Context) (*triage.Overv
 			continue
 		}
 
-		// Exclude suppressed/false_positive/resolved findings
+		// Exclude suppressed/false_positive/resolved/risk_accepted findings
 		excludedStatuses := make(map[string]bool)
+		riskAcceptedKeys := make(map[string]bool)
 		statuses, _ := s.sbomStore.ListFindingStatuses(ctx, latestVer.ID, nil)
 		for _, fs := range statuses {
 			if fs.Status == sbommon.FindingStatusFalsePositive ||
 				fs.Status == sbommon.FindingStatusSuppressed ||
-				fs.Status == sbommon.FindingStatusResolved {
+				fs.Status == sbommon.FindingStatusResolved ||
+				fs.Status == sbommon.FindingStatusRiskAccepted {
 				excludedStatuses[fs.VulnID+"|"+fs.Purl] = true
+			}
+			if fs.Status == sbommon.FindingStatusRiskAccepted {
+				riskAcceptedKeys[fs.VulnID+"|"+fs.Purl] = true
 			}
 		}
 
-		// Collect unique vulnerability IDs from active findings
+		// Collect unique vulnerability IDs from active findings and risk_accepted findings
 		vulnIDsSeen := make(map[string]bool)
 		var vulnIDs []string
 		for _, f := range scanResult.Findings {
 			key := f.VulnID + "|" + f.Purl
 			if excludedStatuses[key] {
+				// Track risk_accepted vuln IDs separately
+				if riskAcceptedKeys[key] {
+					riskAcceptedVulnIDs[f.VulnID] = true
+				}
 				continue
 			}
 			if !vulnIDsSeen[f.VulnID] {
@@ -589,12 +601,27 @@ func (s *Server) computeCrossProjectOverview(ctx context.Context) (*triage.Overv
 	}
 
 	if len(entriesByVuln) == 0 {
-		return &triage.OverviewSummary{}, nil
+		// Still count risk_accepted even when no active vulns
+		riskAcceptedCount := 0
+		for vulnID := range riskAcceptedVulnIDs {
+			if _, active := entriesByVuln[vulnID]; !active {
+				riskAcceptedCount++
+			}
+		}
+		s := &triage.OverviewSummary{RiskAccepted: riskAcceptedCount}
+		return s, nil
 	}
 
 	// Aggregate cross-project results
 	crossResults := triage.AggregateCrossProjectBatch(entriesByVuln)
 	summary := triage.ComputeOverviewSummary(crossResults)
+
+	// Count risk_accepted vuln IDs that are NOT in active results
+	for vulnID := range riskAcceptedVulnIDs {
+		if _, active := entriesByVuln[vulnID]; !active {
+			summary.RiskAccepted++
+		}
+	}
 
 	return summary, crossResults
 }
@@ -697,13 +724,14 @@ func (s *Server) computeTriagePaths(ctx context.Context) []*triage.TriagePath {
 			continue
 		}
 
-		// Exclude suppressed/false_positive/resolved findings
+		// Exclude suppressed/false_positive/resolved/risk_accepted findings
 		excludedStatuses := make(map[string]bool)
 		statuses, _ := s.sbomStore.ListFindingStatuses(ctx, latestVer.ID, nil)
 		for _, fs := range statuses {
 			if fs.Status == sbommon.FindingStatusFalsePositive ||
 				fs.Status == sbommon.FindingStatusSuppressed ||
-				fs.Status == sbommon.FindingStatusResolved {
+				fs.Status == sbommon.FindingStatusResolved ||
+				fs.Status == sbommon.FindingStatusRiskAccepted {
 				excludedStatuses[fs.VulnID+"|"+fs.Purl] = true
 			}
 		}
