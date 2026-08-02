@@ -77,13 +77,13 @@ Chart.register(...registerables);
             <tbody>
               @for (path of paths(); track path.id) {
                 <tr class="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                  <td class="px-4 py-2">
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <div class="text-xs font-mono text-slate-900 dark:text-white">{{ path.action.package_name }}</div>
                     <div class="text-xs text-slate-500 dark:text-slate-400">
                       {{ path.action.current_version }} &rarr; {{ path.action.target_version }}
                     </div>
                   </td>
-                  <td class="px-4 py-2">
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <div class="flex items-center gap-2">
                       <div class="w-16 h-2 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
                         <div class="h-full bg-indigo-500 rounded-full" [style.width.%]="path.impact_score * 100"></div>
@@ -91,13 +91,13 @@ Chart.register(...registerables);
                       <span class="font-mono text-xs text-slate-700 dark:text-slate-200">{{ path.impact_score.toFixed(3) }}</span>
                     </div>
                   </td>
-                  <td class="px-4 py-2">
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <span [class]="priorityBadgeClass(path.max_priority_level)">{{ path.max_priority_level }}</span>
                   </td>
-                  <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300">{{ path.total_vuln_count }}</td>
-                  <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300">{{ path.total_server_count }}</td>
-                  <td class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">{{ path.action.ecosystem }}</td>
-                  <td class="px-4 py-2">
+                  <td class="px-4 py-2 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">{{ path.total_vuln_count }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">{{ path.total_server_count }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">{{ path.action.ecosystem }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <a [routerLink]="['/triage/paths', path.id]"
                        class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
                        i18n="@@triagePaths.viewDetail">Details</a>

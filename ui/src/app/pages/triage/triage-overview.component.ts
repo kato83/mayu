@@ -82,22 +82,22 @@ import { TriageService } from '../../services/triage.service';
               @for (item of vulnerabilities(); track item.vulnerability_id) {
                 <tr class="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer"
                     (click)="toggleExpand(item.vulnerability_id)">
-                  <td class="px-4 py-2">
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <a [routerLink]="['/vulnerabilities', item.vulnerability_id]"
                        class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs"
                        (click)="$event.stopPropagation()">
                       {{ item.vulnerability_id }}
                     </a>
                   </td>
-                  <td class="px-4 py-2">
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <span [class]="priorityBadgeClass(item.org_priority_level)">{{ item.org_priority_level }}</span>
                   </td>
-                  <td class="px-4 py-2 font-mono text-xs text-slate-700 dark:text-slate-200">
+                  <td class="px-4 py-2 whitespace-nowrap font-mono text-xs text-slate-700 dark:text-slate-200">
                     {{ (item.max_composite_score * 100).toFixed(1) }}%
                   </td>
-                  <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300">{{ item.affected_projects }}</td>
-                  <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300">{{ item.affected_servers }}</td>
-                  <td class="px-4 py-2 text-xs text-slate-400">
+                  <td class="px-4 py-2 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">{{ item.affected_projects }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">{{ item.affected_servers }}</td>
+                  <td class="px-4 py-2 whitespace-nowrap text-xs text-slate-400">
                     <span [class]="expandedId() === item.vulnerability_id ? 'rotate-90 inline-block transition-transform' : 'inline-block transition-transform'">&#9654;</span>
                   </td>
                 </tr>

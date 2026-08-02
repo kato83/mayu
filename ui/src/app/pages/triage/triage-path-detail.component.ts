@@ -27,18 +27,18 @@ import { TriageService } from '../../services/triage.service';
       <!-- Action Summary -->
       <section class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 mb-6">
         <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3" i18n="@@triagePathDetail.actionTitle">Remediation Action</h2>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <p class="text-xs text-slate-500 dark:text-slate-400" i18n="@@triagePathDetail.type">Type</p>
             <p class="text-sm font-medium text-slate-900 dark:text-white">{{ path()!.action.type }}</p>
           </div>
           <div>
             <p class="text-xs text-slate-500 dark:text-slate-400" i18n="@@triagePathDetail.package">Package</p>
-            <p class="text-sm font-medium font-mono text-slate-900 dark:text-white">{{ path()!.action.package_name }}</p>
+            <p class="text-sm font-medium font-mono text-slate-900 dark:text-white break-all">{{ path()!.action.package_name }}</p>
           </div>
           <div>
             <p class="text-xs text-slate-500 dark:text-slate-400" i18n="@@triagePathDetail.version">Version Change</p>
-            <p class="text-sm font-medium font-mono text-slate-900 dark:text-white">
+            <p class="text-sm font-medium font-mono text-slate-900 dark:text-white break-all">
               {{ path()!.action.current_version }} &rarr; {{ path()!.action.target_version }}
             </p>
           </div>
@@ -89,19 +89,19 @@ import { TriageService } from '../../services/triage.service';
             <tbody>
               @for (vuln of path()!.resolved_vulnerabilities; track vuln.vulnerability_id) {
                 <tr class="border-b border-slate-100 dark:border-slate-700/50">
-                  <td class="px-4 py-2">
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <a [routerLink]="['/vulnerabilities', vuln.vulnerability_id]"
                        class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">
                       {{ vuln.vulnerability_id }}
                     </a>
                   </td>
-                  <td class="px-4 py-2">
+                  <td class="px-4 py-2 whitespace-nowrap">
                     <span [class]="priorityBadgeClass(vuln.priority_level)">{{ vuln.priority_level }}</span>
                   </td>
-                  <td class="px-4 py-2 font-mono text-xs text-slate-700 dark:text-slate-200">
+                  <td class="px-4 py-2 whitespace-nowrap font-mono text-xs text-slate-700 dark:text-slate-200">
                     {{ (vuln.composite_score * 100).toFixed(1) }}%
                   </td>
-                  <td class="px-4 py-2 font-mono text-xs text-slate-600 dark:text-slate-300">
+                  <td class="px-4 py-2 whitespace-nowrap font-mono text-xs text-slate-600 dark:text-slate-300">
                     {{ vuln.fixed_version }}
                   </td>
                 </tr>
