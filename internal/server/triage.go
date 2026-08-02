@@ -643,7 +643,7 @@ func (s *Server) handleListTriagePaths(w http.ResponseWriter, r *http.Request) {
 	if project != "" {
 		var filtered []*triage.TriagePath
 		for _, p := range paths {
-			for _, srv := range p.AffectedServers {
+			for _, srv := range p.Servers {
 				if strings.EqualFold(srv.ProjectName, project) {
 					filtered = append(filtered, p)
 					break
@@ -783,7 +783,14 @@ func (s *Server) handleGetTriagePath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// In production, this would look up from the triage_paths table
+	paths := s.computeTriagePaths(r.Context())
+	for _, p := range paths {
+		if p.ID == pathID {
+			writeJSON(w, http.StatusOK, p)
+			return
+		}
+	}
+
 	writeError(w, http.StatusNotFound, "triage path not found: "+pathID)
 }
 

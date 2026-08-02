@@ -12,7 +12,8 @@ type TriagePath struct {
 	ID                      string              `json:"id"`
 	Action                  RemediationAction   `json:"action"`
 	ResolvedVulnerabilities []ResolvedVulnEntry `json:"resolved_vulnerabilities"`
-	AffectedServers         []ServerTriageEntry `json:"affected_servers"`
+	Servers                 []ServerTriageEntry `json:"-"`
+	AffectedServers         []string            `json:"affected_servers"`
 	ImpactScore             float64             `json:"impact_score"`
 	MaxPriorityLevel        PriorityLevel       `json:"max_priority_level"`
 	TotalVulnCount          int                 `json:"total_vuln_count"`
@@ -33,6 +34,7 @@ type ResolvedVulnEntry struct {
 	VulnerabilityID string        `json:"vulnerability_id"`
 	PriorityLevel   PriorityLevel `json:"priority_level"`
 	CompositeScore  float64       `json:"composite_score"`
+	FixedVersion    string        `json:"fixed_version"`
 	AffectedServers []string      `json:"affected_servers"`
 }
 
@@ -118,11 +120,15 @@ func ComputeTriagePaths(findings []ScanFinding) []*TriagePath {
 					entry.CompositeScore = f.CompositeScore
 					entry.PriorityLevel = f.PriorityLevel
 				}
+				if f.FixedVersion != "" && VersionGreaterThan(f.FixedVersion, entry.FixedVersion) {
+					entry.FixedVersion = f.FixedVersion
+				}
 			} else {
 				vulnMap[f.VulnerabilityID] = &ResolvedVulnEntry{
 					VulnerabilityID: f.VulnerabilityID,
 					PriorityLevel:   f.PriorityLevel,
 					CompositeScore:  f.CompositeScore,
+					FixedVersion:    f.FixedVersion,
 					AffectedServers: []string{f.ServerLabel},
 				}
 			}
@@ -136,6 +142,27 @@ func ComputeTriagePaths(findings []ScanFinding) []*TriagePath {
 		path.MaxPriorityLevel = maxPriority
 		path.TotalVulnCount = len(vulnMap)
 		path.TotalServerCount = len(serverSet)
+
+		// Build Servers (internal, for filtering) and AffectedServers (JSON output)
+		serverEntrySeen := make(map[string]bool)
+		labelSeen := make(map[string]bool)
+		for _, f := range groupFindings {
+			entryKey := fmt.Sprintf("%d:%s", f.ProjectID, f.ServerLabel)
+			if !serverEntrySeen[entryKey] {
+				serverEntrySeen[entryKey] = true
+				path.Servers = append(path.Servers, ServerTriageEntry{
+					ProjectID:   f.ProjectID,
+					ProjectName: f.ProjectName,
+					ServerLabel: f.ServerLabel,
+					Environment: f.Environment,
+				})
+			}
+			label := f.ServerLabel
+			if !labelSeen[label] {
+				labelSeen[label] = true
+				path.AffectedServers = append(path.AffectedServers, label)
+			}
+		}
 
 		// Step 3: Compute Impact Score
 		path.ImpactScore = ComputeImpactScore(groupFindings)
