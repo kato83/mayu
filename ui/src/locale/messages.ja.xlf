@@ -3561,6 +3561,10 @@
         <source>Accepted</source>
         <target>受容済み</target>
       </trans-unit>
+      <trans-unit id="triageOverview.defaultProfileNote" datatype="html">
+        <source>Overview counts are computed using the default profile. Custom profile settings are not reflected here.</source>
+        <target>概要の数値はデフォルトプロファイルで計算されています。カスタムプロファイルの設定はここには反映されません。</target>
+      </trans-unit>
       <trans-unit id="triageOverview.allPriorities" datatype="html">
         <source>All Priorities</source>
         <target>全優先度</target>
