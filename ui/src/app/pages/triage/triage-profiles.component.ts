@@ -49,7 +49,7 @@ import { TriageService } from '../../services/triage.service';
                 <span class="text-slate-500 dark:text-slate-400">kev: {{ profile.weights.kev | number:'1.2-2' }}</span>
                 <span class="text-slate-500 dark:text-slate-400">patch: {{ profile.weights.patch | number:'1.2-2' }}</span>
                 <span class="text-slate-500 dark:text-slate-400">age: {{ profile.weights.age | number:'1.2-2' }}</span>
-                <span class="text-slate-500 dark:text-slate-400">exploit_db: {{ profile.weights.exploit_db | number:'1.2-2' }}</span>
+                <span class="text-slate-500 dark:text-slate-400">exploit_db: {{ profile.weights.exploitdb | number:'1.2-2' }}</span>
                 <span class="text-slate-500 dark:text-slate-400">reachability: {{ profile.weights.reachability | number:'1.2-2' }}</span>
               </div>
             </div>
@@ -180,8 +180,8 @@ import { TriageService } from '../../services/triage.service';
                 <label class="block text-xs text-slate-500 dark:text-slate-400 mb-0.5">exploit_db</label>
                 <input type="number" step="0.01" min="0" max="1"
                        class="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-2 py-1 text-slate-900 dark:text-white"
-                       [ngModel]="formWeights().exploit_db"
-                       (ngModelChange)="updateWeight('exploit_db', $event)" />
+                       [ngModel]="formWeights().exploitdb"
+                       (ngModelChange)="updateWeight('exploitdb', $event)" />
               </div>
               <div>
                 <label class="block text-xs text-slate-500 dark:text-slate-400 mb-0.5">reachability</label>
@@ -302,7 +302,7 @@ export class TriageProfilesComponent implements OnInit {
     kev: 0.15,
     patch: 0.08,
     age: 0.05,
-    exploit_db: 0.1,
+    exploitdb: 0.1,
     reachability: 0.07,
   });
   readonly formThresholds = signal<Thresholds>({
@@ -461,7 +461,7 @@ export class TriageProfilesComponent implements OnInit {
       kev: 0.15,
       patch: 0.08,
       age: 0.05,
-      exploit_db: 0.1,
+      exploitdb: 0.1,
       reachability: 0.07,
     });
     this.formThresholds.set({

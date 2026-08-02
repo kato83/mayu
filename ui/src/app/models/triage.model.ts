@@ -82,7 +82,7 @@ export interface ExtendedWeights {
   kev: number;
   patch: number;
   age: number;
-  exploit_db: number;
+  exploitdb: number;
   reachability: number;
 }
 
