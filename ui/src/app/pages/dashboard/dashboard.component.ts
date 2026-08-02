@@ -137,58 +137,64 @@ Chart.register(...registerables);
           <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-200" i18n="@@dashboard.epssTrendingTitle">EPSS Trending</h2>
           <a routerLink="/epss-trending" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline" i18n="@@dashboard.epssTrendingViewAll">View All</a>
         </div>
-        @if (trendingStale()) {
-          <div role="alert" class="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-3 py-2 mb-3">
-            <div class="flex items-center gap-2">
-              <svg class="h-4 w-4 text-amber-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-              </svg>
-              <p class="text-xs text-amber-700 dark:text-amber-300" i18n="@@dashboard.epssTrendingStale">EPSS data is outdated (latest: {{ trendingLatestDate() }}). Run <code class="font-mono bg-amber-100 dark:bg-amber-800/40 px-0.5 rounded text-xs">mayu ingest --source epss --update</code> to refresh.</p>
-            </div>
-          </div>
-        }
-        @if (trendingLatestDate() && trendingPreviousDate()) {
-          <div class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-            <span i18n="@@epssTrending.comparingDates">Comparing: </span> <span class="font-mono">{{ trendingLatestDate() }}</span> vs <span class="font-mono">{{ trendingPreviousDate() }}</span>
-            @if (trendingPreviousDateApproximate()) {
-              <span class="ml-2 text-amber-600 dark:text-amber-400" i18n="@@dashboard.epssTrendingApproximate">*Using nearest available date</span>
-            }
-          </div>
-        }
-        @if (trendingEntries().length > 0) {
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
-              <thead>
-                <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColId">ID</th>
-                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColEpss">EPSS</th>
-                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColDelta">Delta</th>
-                  <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColSeverity">Severity</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (entry of trendingEntries(); track entry.vulnerability_id) {
-                  <tr class="border-b border-slate-100 dark:border-slate-700/50">
-                    <td class="py-2">
-                      <a [routerLink]="['/vulnerabilities', entry.vulnerability_id]"
-                         class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">
-                        {{ entry.cve_id || entry.vulnerability_id }}
-                      </a>
-                    </td>
-                    <td class="py-2 font-mono text-xs text-slate-700 dark:text-slate-200">{{ (entry.current_epss * 100).toFixed(1) }}%</td>
-                    <td class="py-2">
-                      <span class="font-mono text-xs font-semibold text-green-600 dark:text-green-400">+{{ (entry.delta * 100).toFixed(2) }}%</span>
-                    </td>
-                    <td class="py-2">
-                      <span [class]="severityBadgeClass(entry.severity)">{{ entry.severity ?? '-' }}</span>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+        @if (trendingLoading()) {
+          <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
           </div>
         } @else {
-          <p class="text-sm text-slate-500 dark:text-slate-400" i18n="@@dashboard.epssTrendingEmpty">No trending data available.</p>
+          @if (trendingStale()) {
+            <div role="alert" class="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-3 py-2 mb-3">
+              <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-amber-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                </svg>
+                <p class="text-xs text-amber-700 dark:text-amber-300" i18n="@@dashboard.epssTrendingStale">EPSS data is outdated (latest: {{ trendingLatestDate() }}). Run <code class="font-mono bg-amber-100 dark:bg-amber-800/40 px-0.5 rounded text-xs">mayu ingest --source epss --update</code> to refresh.</p>
+              </div>
+            </div>
+          }
+          @if (trendingLatestDate() && trendingPreviousDate()) {
+            <div class="text-xs text-slate-500 dark:text-slate-400 mb-2">
+              <span i18n="@@epssTrending.comparingDates">Comparing: </span> <span class="font-mono">{{ trendingLatestDate() }}</span> vs <span class="font-mono">{{ trendingPreviousDate() }}</span>
+              @if (trendingPreviousDateApproximate()) {
+                <span class="ml-2 text-amber-600 dark:text-amber-400" i18n="@@dashboard.epssTrendingApproximate">*Using nearest available date</span>
+              }
+            </div>
+          }
+          @if (trendingEntries().length > 0) {
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead>
+                  <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                    <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColId">ID</th>
+                    <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColEpss">EPSS</th>
+                    <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColDelta">Delta</th>
+                    <th class="pb-2 font-medium whitespace-nowrap" i18n="@@dashboard.trendingColSeverity">Severity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (entry of trendingEntries(); track entry.vulnerability_id) {
+                    <tr class="border-b border-slate-100 dark:border-slate-700/50">
+                      <td class="py-2">
+                        <a [routerLink]="['/vulnerabilities', entry.vulnerability_id]"
+                           class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">
+                          {{ entry.cve_id || entry.vulnerability_id }}
+                        </a>
+                      </td>
+                      <td class="py-2 font-mono text-xs text-slate-700 dark:text-slate-200">{{ (entry.current_epss * 100).toFixed(1) }}%</td>
+                      <td class="py-2">
+                        <span class="font-mono text-xs font-semibold text-green-600 dark:text-green-400">+{{ (entry.delta * 100).toFixed(2) }}%</span>
+                      </td>
+                      <td class="py-2">
+                        <span [class]="severityBadgeClass(entry.severity)">{{ entry.severity ?? '-' }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="text-sm text-slate-500 dark:text-slate-400" i18n="@@dashboard.epssTrendingEmpty">No trending data available.</p>
+          }
         }
       </section>
 
@@ -274,6 +280,7 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
   readonly distributions = signal<DashboardDistributions | null>(null);
   readonly topRisks = signal<DashboardTopRisks | null>(null);
   readonly statsTrend = signal<StatsTrendResponse | null>(null);
+  readonly trendingLoading = signal(true);
   readonly trendingEntries = signal<EpssTrendingEntry[]>([]);
   readonly trendingLatestDate = signal('');
   readonly trendingPreviousDate = signal('');
@@ -381,6 +388,7 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
     });
 
     // Load trending data separately (non-blocking)
+    this.trendingLoading.set(true);
     this.epssTrendingService.getTrending({ days: 7, threshold: 0.1, limit: 5 }).subscribe({
       next: (res) => {
         this.trendingEntries.set(res.entries || []);
@@ -389,6 +397,7 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
         this.trendingStale.set(res.stale || false);
         this.trendingPreviousDateApproximate.set(res.previous_date_approximate || false);
         this.trendingExpectedPreviousDate.set(res.expected_previous_date || '');
+        this.trendingLoading.set(false);
       },
       error: () => {
         this.trendingEntries.set([]);
@@ -397,6 +406,7 @@ export class DashboardComponent implements AfterViewInit, OnDestroy {
         this.trendingStale.set(false);
         this.trendingPreviousDateApproximate.set(false);
         this.trendingExpectedPreviousDate.set('');
+        this.trendingLoading.set(false);
       },
     });
   }
