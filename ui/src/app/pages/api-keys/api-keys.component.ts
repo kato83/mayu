@@ -9,7 +9,7 @@ import { type APIKey, ApiKeyService } from '../../services/api-key.service';
   standalone: true,
   imports: [FormsModule, DatePipe],
   template: `
-    <div class="p-6">
+    <div>
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-3">
           <a

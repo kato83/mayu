@@ -17,7 +17,7 @@ import { WatchlistService } from '../../services/watchlist.service';
   standalone: true,
   imports: [FormsModule, DatePipe, RouterLink],
   template: `
-    <div class="p-6">
+    <div>
       <div class="flex items-center justify-end mb-6">
         <button
           (click)="onCreateNew()"

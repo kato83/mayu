@@ -10,7 +10,7 @@ import { type Webhook, WebhookService } from '../../services/webhook.service';
   standalone: true,
   imports: [FormsModule, RouterLink],
   template: `
-    <div class="p-6">
+    <div>
       <div class="flex items-center justify-end mb-6">
         <button
           (click)="showCreateForm.set(true)"
@@ -271,7 +271,7 @@ import { type Webhook, WebhookService } from '../../services/webhook.service';
                       </span>
                     }
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 whitespace-nowrap">
                     <div class="flex items-center gap-2">
                       <button
                         (click)="onEdit(webhook)"

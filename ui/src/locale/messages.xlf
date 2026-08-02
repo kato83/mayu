@@ -3151,13 +3151,6 @@
           <context context-type="linenumber">19,20</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="triagePathDetail.backToList" datatype="html">
-        <source>Back to Paths</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/pages/triage/triage-path-detail.component.ts</context>
-          <context context-type="linenumber">24,27</context>
-        </context-group>
-      </trans-unit>
       <trans-unit id="triagePathDetail.actionTitle" datatype="html">
         <source>Remediation Action</source>
         <context-group purpose="location">

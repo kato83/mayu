@@ -17,11 +17,8 @@ import { TriageService } from '../../services/triage.service';
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-xl font-bold text-slate-900 dark:text-white" i18n="@@triagePathDetail.title">Triage Path Detail</h1>
-          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 font-mono">{{ path()!.action.package_name }}</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 font-mono break-all">{{ path()!.action.package_name }}</p>
         </div>
-        <a routerLink="/triage/paths"
-           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
-           i18n="@@triagePathDetail.backToList">Back to Paths</a>
       </div>
 
       <!-- Action Summary -->

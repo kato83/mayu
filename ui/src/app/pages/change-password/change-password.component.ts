@@ -9,7 +9,7 @@ import { ToastService } from '../../shared/toast/toast.service';
   standalone: true,
   imports: [FormsModule],
   template: `
-    <div class="p-6">
+    <div>
       <div class="max-w-md">
         <form (ngSubmit)="onSubmit()" class="space-y-4">
           <div>

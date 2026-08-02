@@ -127,7 +127,7 @@ import { StatusService } from '../../services/status.service';
                       <span [class]="sourceTypeBadgeClasses(state.source_type)">{{ state.source_type }}</span>
                     </td>
                     <td class="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{{ state.source }}</td>
-                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ state.last_synced_at | date:'yyyy-MM-dd HH:mm' }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ state.last_synced_at | date:'yyyy-MM-dd HH:mm' }}</td>
                     <td class="px-4 py-3 text-sm text-right text-slate-700 dark:text-slate-300">{{ state.record_count | number }}</td>
                   </tr>
                 }

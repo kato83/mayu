@@ -12,7 +12,7 @@ import { TeamService } from '../../services/team.service';
   standalone: true,
   imports: [FormsModule, DatePipe, RouterLink],
   template: `
-    <div class="p-6">
+    <div>
       <div class="flex items-center justify-end mb-6">
         <button
           (click)="onCreateNew()"
@@ -122,8 +122,8 @@ import { TeamService } from '../../services/team.service';
                     </a>
                   </td>
                   <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ getTeamName(project.team_id) }}</td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ project.created_at | date:'short' }}</td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ project.created_at | date:'short' }}</td>
+                  <td class="px-4 py-3 whitespace-nowrap">
                     <button
                       (click)="onEdit(project)"
                       class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium cursor-pointer mr-3"

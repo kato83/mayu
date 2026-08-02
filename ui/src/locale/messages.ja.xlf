@@ -3691,10 +3691,6 @@
         <source>Triage Path Detail</source>
         <target>修正パス詳細</target>
       </trans-unit>
-      <trans-unit id="triagePathDetail.backToList" datatype="html">
-        <source>Back to Paths</source>
-        <target>修正パス一覧に戻る</target>
-      </trans-unit>
       <trans-unit id="triagePathDetail.actionTitle" datatype="html">
         <source>Remediation Action</source>
         <target>修正アクション</target>

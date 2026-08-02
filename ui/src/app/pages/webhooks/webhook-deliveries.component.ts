@@ -9,7 +9,7 @@ import { type WebhookDeliveryLog, WebhookService } from '../../services/webhook.
   standalone: true,
   imports: [DatePipe, RouterLink],
   template: `
-    <div class="p-6">
+    <div>
       <div class="flex items-center gap-4 mb-6">
         <a
           routerLink="/webhooks"

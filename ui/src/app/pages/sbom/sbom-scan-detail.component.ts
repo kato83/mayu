@@ -13,7 +13,7 @@ const ALL_STATUSES = ['open', 'in_triage', 'suppressed', 'false_positive', 'risk
   standalone: true,
   imports: [DatePipe, RouterLink, FormsModule],
   template: `
-    <div class="p-6">
+    <div>
       <!-- Header -->
       <div class="flex items-center gap-4 mb-6">
         <a [routerLink]="['/sbom', projectId]" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" i18n="@@sbom.scan.backToProject">

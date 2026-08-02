@@ -202,7 +202,7 @@ import { TriageService } from '../../services/triage.service';
               <tbody>
                 @for (result of results(); track result.vulnerability_id) {
                   <tr class="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                    <td class="px-4 py-2">
+                    <td class="px-4 py-2 whitespace-nowrap">
                       <a [routerLink]="['/vulnerabilities', result.vulnerability_id]"
                          class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">
                         {{ result.vulnerability_id }}

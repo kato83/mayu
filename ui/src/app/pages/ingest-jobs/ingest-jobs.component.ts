@@ -69,7 +69,7 @@ import { IngestService } from '../../services/ingest.service';
                     <td class="px-4 py-3">
                       <span [class]="statusBadgeClasses(job.status)">{{ job.status }}</span>
                     </td>
-                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ job.started_at | date:'short' }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ job.started_at | date:'short' }}</td>
                     <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ formatDuration(job) }}</td>
                     <td class="px-4 py-3 text-sm text-right text-slate-700 dark:text-slate-300">{{ job.total_count ?? '—' }}</td>
                     <td class="px-4 py-3 text-sm text-right text-green-700 dark:text-green-400">{{ job.success_count ?? '—' }}</td>
