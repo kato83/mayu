@@ -1,6 +1,8 @@
 package triage
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"sort"
 	"strings"
@@ -77,12 +79,17 @@ func ComputeTriagePaths(findings []ScanFinding) []*TriagePath {
 	}
 
 	var paths []*TriagePath
-	pathID := 0
 
 	for key, groupFindings := range groups {
-		pathID++
+		// Generate a deterministic ID from the group key so that the same
+		// package+version+ecosystem always maps to the same path ID regardless
+		// of Go map iteration order.
+		idInput := key.PackagePurl + "|" + key.CurrentVersion + "|" + key.Ecosystem
+		hash := sha256.Sum256([]byte(idInput))
+		pathIDStr := "path-" + hex.EncodeToString(hash[:8])
+
 		path := &TriagePath{
-			ID: fmt.Sprintf("path-%03d", pathID),
+			ID: pathIDStr,
 			Action: RemediationAction{
 				Type:           "upgrade",
 				Package:        key.PackagePurl,
