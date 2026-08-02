@@ -95,12 +95,15 @@ func TestComputeTriagePaths_IDFormat(t *testing.T) {
 	if len(id) == 0 {
 		t.Fatal("path ID is empty")
 	}
-	if id[:5] != "path-" {
-		t.Errorf("path ID should start with 'path-', got %q", id)
+	// Should be 16 hex chars (8 bytes encoded)
+	if len(id) != 16 {
+		t.Errorf("expected path ID length 16, got %d (%q)", len(id), id)
 	}
-	// Should be "path-" + 16 hex chars = 21 chars total
-	if len(id) != 21 {
-		t.Errorf("expected path ID length 21, got %d (%q)", len(id), id)
+	for _, c := range id {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			t.Errorf("path ID contains non-hex character %q in %q", string(c), id)
+			break
+		}
 	}
 }
 

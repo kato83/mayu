@@ -86,7 +86,7 @@ func ComputeTriagePaths(findings []ScanFinding) []*TriagePath {
 		// of Go map iteration order.
 		idInput := key.PackagePurl + "|" + key.CurrentVersion + "|" + key.Ecosystem
 		hash := sha256.Sum256([]byte(idInput))
-		pathIDStr := "path-" + hex.EncodeToString(hash[:8])
+		pathIDStr := hex.EncodeToString(hash[:8])
 
 		path := &TriagePath{
 			ID: pathIDStr,
