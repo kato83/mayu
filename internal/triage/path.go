@@ -145,7 +145,6 @@ func ComputeTriagePaths(findings []ScanFinding) []*TriagePath {
 
 		// Build Servers (internal, for filtering) and AffectedServers (JSON output)
 		serverEntrySeen := make(map[string]bool)
-		labelSeen := make(map[string]bool)
 		for _, f := range groupFindings {
 			entryKey := fmt.Sprintf("%d:%s", f.ProjectID, f.ServerLabel)
 			if !serverEntrySeen[entryKey] {
@@ -156,11 +155,14 @@ func ComputeTriagePaths(findings []ScanFinding) []*TriagePath {
 					ServerLabel: f.ServerLabel,
 					Environment: f.Environment,
 				})
-			}
-			label := f.ServerLabel
-			if !labelSeen[label] {
-				labelSeen[label] = true
-				path.AffectedServers = append(path.AffectedServers, label)
+				// Build display label: "ProjectName / ServerLabel" or just "ProjectName" if default
+				var displayLabel string
+				if f.ServerLabel == "" || f.ServerLabel == "default" {
+					displayLabel = f.ProjectName
+				} else {
+					displayLabel = f.ProjectName + " / " + f.ServerLabel
+				}
+				path.AffectedServers = append(path.AffectedServers, displayLabel)
 			}
 		}
 
