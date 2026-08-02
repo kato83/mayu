@@ -43,12 +43,9 @@ Chart.register(...registerables);
           [ngModel]="filterEcosystem()"
           (ngModelChange)="onFilterChange('ecosystem', $event)">
           <option value="" i18n="@@triagePaths.allEcosystems">All Ecosystems</option>
-          <option value="npm">npm</option>
-          <option value="maven">Maven</option>
-          <option value="pypi">PyPI</option>
-          <option value="go">Go</option>
-          <option value="cargo">Cargo</option>
-          <option value="nuget">NuGet</option>
+          @for (eco of ecosystems(); track eco) {
+            <option [value]="eco">{{ eco }}</option>
+          }
         </select>
       </div>
 
@@ -125,6 +122,7 @@ export class TriagePathListComponent implements OnInit, AfterViewInit, OnDestroy
 
   readonly loading = signal(true);
   readonly paths = signal<TriagePath[]>([]);
+  readonly ecosystems = signal<string[]>([]);
   readonly filterPriority = signal<string>('');
   readonly filterEcosystem = signal<string>('');
 
@@ -152,7 +150,12 @@ export class TriagePathListComponent implements OnInit, AfterViewInit, OnDestroy
 
     this.triageService.listPaths(opts).subscribe({
       next: (p) => {
-        this.paths.set(Array.isArray(p) ? p : []);
+        const pathsData = Array.isArray(p) ? p : [];
+        this.paths.set(pathsData);
+        if (!this.filterEcosystem()) {
+          const ecoSet = new Set(pathsData.map((path) => path.action.ecosystem).filter(Boolean));
+          this.ecosystems.set([...ecoSet].sort());
+        }
         this.loading.set(false);
         setTimeout(() => this.renderChart(), 0);
       },
