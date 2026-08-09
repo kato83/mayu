@@ -1255,6 +1255,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding conventions
 
 [MIT](LICENSE)
 
+Emoji graphics by [Twemoji](https://github.com/jdecked/twemoji) are licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 ## Roadmap
 
 See [.agents/tasks/PLAN.md](.agents/tasks/PLAN.md) for the full implementation plan.

@@ -1254,6 +1254,8 @@ curl "http://localhost:8080/api/v1/vulnerabilities/CVE-2023-38831?detail=true" |
 
 [MIT](LICENSE)
 
+絵文字グラフィックは [Twemoji](https://github.com/jdecked/twemoji) を使用しています（[CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) ライセンス）。
+
 ## ロードマップ
 
 完全な実装計画については [.agents/tasks/PLAN.md](.agents/tasks/PLAN.md) を参照してください。

@@ -51,7 +51,7 @@ interface NavItem {
                   [class.bg-slate-800]="isExpanded(item.route)"
                   [attr.aria-expanded]="isExpanded(item.route)"
                 >
-                  <span class="text-lg">{{ item.icon }}</span>
+                  <img [src]="item.icon" class="w-5 h-5" alt="" aria-hidden="true">
                   <span class="flex-1 text-left">{{ item.label }}</span>
                   <svg
                     class="w-4 h-4 transition-transform duration-200"
@@ -72,7 +72,7 @@ interface NavItem {
                         (click)="closed.emit()"
                         class="flex items-center gap-3 pl-6 pr-3 py-2.5 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                       >
-                        <span class="text-lg">{{ item.icon }}</span>
+                        <img [src]="item.icon" class="w-5 h-5" alt="" aria-hidden="true">
                         <span>{{ item.label }}</span>
                       </a>
                     </li>
@@ -85,7 +85,7 @@ interface NavItem {
                           (click)="closed.emit()"
                           class="flex items-center gap-3 pl-6 pr-3 py-2.5 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                         >
-                          <span class="text-lg">{{ child.icon }}</span>
+                          <img [src]="child.icon" class="w-5 h-5" alt="" aria-hidden="true">
                           <span>{{ child.label }}</span>
                         </a>
                       </li>
@@ -100,7 +100,7 @@ interface NavItem {
                   (click)="closed.emit()"
                   class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                 >
-                  <span class="text-lg">{{ item.icon }}</span>
+                  <img [src]="item.icon" class="w-5 h-5" alt="" aria-hidden="true">
                   <span>{{ item.label }}</span>
                 </a>
               }
@@ -118,19 +118,19 @@ interface NavItem {
             [class]="themeButtonClasses('light')"
             title="Light"
             i18n-title="@@sidebar.themeLight"
-          >☀️</button>
+          ><img src="assets/twemoji/2600.svg" class="w-4 h-4 inline-block" alt="" aria-hidden="true"></button>
           <button
             (click)="setTheme('dark')"
             [class]="themeButtonClasses('dark')"
             title="Dark"
             i18n-title="@@sidebar.themeDark"
-          >🌙</button>
+          ><img src="assets/twemoji/1f319.svg" class="w-4 h-4 inline-block" alt="" aria-hidden="true"></button>
           <button
             (click)="setTheme('system')"
             [class]="themeButtonClasses('system')"
             title="System"
             i18n-title="@@sidebar.themeSystem"
-          >💻</button>
+          ><img src="assets/twemoji/1f4bb.svg" class="w-4 h-4 inline-block" alt="" aria-hidden="true"></button>
         </div>
       </div>
 
@@ -222,34 +222,66 @@ export class SidebarComponent implements OnInit {
   }
 
   private readonly allNavItems: NavItem[] = [
-    { label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`, route: '/vulnerabilities', icon: '🛡️' },
-    { label: $localize`:@@sidebar.nav.epssTrending:EPSS Trending`, route: '/epss-trending', icon: '📈' },
+    {
+      label: $localize`:@@sidebar.nav.vulnerabilities:Vulnerabilities`,
+      route: '/vulnerabilities',
+      icon: 'assets/twemoji/1f6e1.svg',
+    },
+    {
+      label: $localize`:@@sidebar.nav.epssTrending:EPSS Trending`,
+      route: '/epss-trending',
+      icon: 'assets/twemoji/1f4c8.svg',
+    },
     {
       label: $localize`:@@sidebar.nav.ingest:Data Ingest`,
       route: '/ingest',
-      icon: '📥',
+      icon: 'assets/twemoji/1f4e5.svg',
       children: [
-        { label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`, route: '/ingest/jobs', icon: '📋' },
-        { label: $localize`:@@sidebar.nav.status:Data Source Status`, route: '/ingest/status', icon: '⚙️' },
+        {
+          label: $localize`:@@sidebar.nav.ingestJobs:Ingest Jobs`,
+          route: '/ingest/jobs',
+          icon: 'assets/twemoji/1f4cb.svg',
+        },
+        {
+          label: $localize`:@@sidebar.nav.status:Data Source Status`,
+          route: '/ingest/status',
+          icon: 'assets/twemoji/2699.svg',
+        },
       ],
     },
-    { label: $localize`:@@sidebar.nav.sbom:SBOM`, route: '/sbom', icon: '📦' },
+    { label: $localize`:@@sidebar.nav.sbom:SBOM`, route: '/sbom', icon: 'assets/twemoji/1f4e6.svg' },
     {
       label: $localize`:@@sidebar.nav.triage:Triage`,
       route: '/triage',
-      icon: '🔬',
+      icon: 'assets/twemoji/1f52c.svg',
       children: [
-        { label: $localize`:@@sidebar.nav.triageOverview:Overview`, route: '/triage/overview', icon: '📊' },
-        { label: $localize`:@@sidebar.nav.triagePaths:Paths`, route: '/triage/paths', icon: '🛤️' },
-        { label: $localize`:@@sidebar.nav.triageProfiles:Profiles`, route: '/triage/profiles', icon: '📋' },
+        {
+          label: $localize`:@@sidebar.nav.triageOverview:Overview`,
+          route: '/triage/overview',
+          icon: 'assets/twemoji/1f4ca.svg',
+        },
+        {
+          label: $localize`:@@sidebar.nav.triagePaths:Paths`,
+          route: '/triage/paths',
+          icon: 'assets/twemoji/1f6e4.svg',
+        },
+        {
+          label: $localize`:@@sidebar.nav.triageProfiles:Profiles`,
+          route: '/triage/profiles',
+          icon: 'assets/twemoji/1f4cb.svg',
+        },
       ],
     },
-    { label: $localize`:@@sidebar.nav.teams:Teams`, route: '/teams', icon: '👥' },
-    { label: $localize`:@@sidebar.nav.webhooks:Webhooks`, route: '/webhooks', icon: '🔔' },
-    { label: $localize`:@@sidebar.nav.watchlists:Watchlists`, route: '/watchlists', icon: '🏷️' },
-    { label: $localize`:@@sidebar.nav.apiKeys:API Keys`, route: '/api-keys', icon: '🔑' },
-    { label: $localize`:@@sidebar.nav.changePassword:Change Password`, route: '/change-password', icon: '🔒' },
-    { label: $localize`:@@sidebar.nav.docs:Docs`, route: '/docs', icon: '📖' },
+    { label: $localize`:@@sidebar.nav.teams:Teams`, route: '/teams', icon: 'assets/twemoji/1f465.svg' },
+    { label: $localize`:@@sidebar.nav.webhooks:Webhooks`, route: '/webhooks', icon: 'assets/twemoji/1f514.svg' },
+    { label: $localize`:@@sidebar.nav.watchlists:Watchlists`, route: '/watchlists', icon: 'assets/twemoji/1f3f7.svg' },
+    { label: $localize`:@@sidebar.nav.apiKeys:API Keys`, route: '/api-keys', icon: 'assets/twemoji/1f511.svg' },
+    {
+      label: $localize`:@@sidebar.nav.changePassword:Change Password`,
+      route: '/change-password',
+      icon: 'assets/twemoji/1f512.svg',
+    },
+    { label: $localize`:@@sidebar.nav.docs:Docs`, route: '/docs', icon: 'assets/twemoji/1f4d6.svg' },
   ];
 
   readonly navItems = computed(() => {
