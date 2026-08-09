@@ -125,8 +125,10 @@ func TestTriageProfileCRUD(t *testing.T) {
 
 	t.Run("Update_NotFound", func(t *testing.T) {
 		row := &TriageProfileRow{
-			Weights:    weightsJSON,
-			Thresholds: thresholdsJSON,
+			ScoreWeight: 0.60,
+			ActFloor:    "Critical",
+			Weights:     weightsJSON,
+			Thresholds:  thresholdsJSON,
 		}
 		updated, err := s.UpdateTriageProfile(ctx, "nonexistent", row)
 		if err != nil {
