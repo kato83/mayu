@@ -21,7 +21,7 @@ type Rationale struct {
 	SSVCDecision string `json:"ssvc_decision,omitempty"`
 
 	// ResolutionMethod describes how the final priority was determined
-	// (e.g., "score_based", "ssvc_override", "combined_max").
+	// (e.g., "score_dominant", "ssvc_dominant", "act_floor").
 	ResolutionMethod string `json:"resolution_method"`
 }
 

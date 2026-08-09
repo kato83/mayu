@@ -370,9 +370,16 @@ func (s *Server) routes() http.Handler {
 			// Triage endpoints for SBOM projects
 			r.Get("/projects/{id}/triage", s.handleGetProjectTriage)
 			r.Get("/projects/{id}/triage/paths", s.handleGetProjectTriagePaths)
-			r.Get("/projects/{id}/servers", s.handleListServerProfileBindings)
-			r.Put("/projects/{id}/servers/{label}/profile", s.handleSetServerProfile)
-			r.Delete("/projects/{id}/servers/{label}/profile", s.handleDeleteServerProfile)
+			// Environment profile bindings (v2)
+			r.Get("/projects/{id}/environments", s.handleListEnvironmentBindings)
+			r.Get("/projects/{id}/environments/{environment}", s.handleGetEnvironmentBinding)
+			r.Put("/projects/{id}/environments/{environment}", s.handleSetEnvironmentBinding)
+			r.Delete("/projects/{id}/environments/{environment}", s.handleDeleteEnvironmentBinding)
+			// Project default profile
+			r.Get("/projects/{id}/default-profile", s.handleGetProjectDefaultProfile)
+			r.Put("/projects/{id}/default-profile", s.handleSetProjectDefaultProfile)
+			r.Delete("/projects/{id}/default-profile", s.handleDeleteProjectDefaultProfile)
+
 		})
 	}
 

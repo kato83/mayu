@@ -4,8 +4,8 @@ import type { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import type {
   CrossProjectTriageResult,
+  EnvironmentProfileBinding,
   ProfileBindingRequest,
-  ServerProfileBinding,
   TriageOverviewSummary,
   TriagePath,
   TriageProfile,
@@ -133,19 +133,35 @@ export class TriageService {
       .pipe(map((res) => res.paths ?? []));
   }
 
-  // --- Server Profile Bindings ---
+  // --- Environment Profile Bindings ---
 
-  listBindings(projectId: string): Observable<ServerProfileBinding[]> {
+  listBindings(projectId: string): Observable<EnvironmentProfileBinding[]> {
     return this.http
-      .get<{ servers: ServerProfileBinding[] }>(`/api/v1/sbom/projects/${projectId}/servers`)
-      .pipe(map((res) => res.servers ?? []));
+      .get<{ bindings: EnvironmentProfileBinding[] }>(`/api/v1/sbom/projects/${projectId}/environments`)
+      .pipe(map((res) => res.bindings ?? []));
   }
 
-  setBinding(projectId: string, serverLabel: string, request: ProfileBindingRequest): Observable<void> {
-    return this.http.put<void>(`/api/v1/sbom/projects/${projectId}/servers/${serverLabel}/profile`, request);
+  setBinding(projectId: string, environment: string, request: ProfileBindingRequest): Observable<void> {
+    return this.http.put<void>(`/api/v1/sbom/projects/${projectId}/environments/${environment}`, request);
   }
 
-  deleteBinding(projectId: string, serverLabel: string): Observable<void> {
-    return this.http.delete<void>(`/api/v1/sbom/projects/${projectId}/servers/${serverLabel}/profile`);
+  deleteBinding(projectId: string, environment: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/sbom/projects/${projectId}/environments/${environment}`);
+  }
+
+  // --- Default Profile ---
+
+  getDefaultProfile(projectId: string): Observable<{ profile_name: string } | null> {
+    return this.http.get<{ profile_name: string }>(`/api/v1/sbom/projects/${projectId}/default-profile`);
+  }
+
+  setDefaultProfile(projectId: string, profileName: string): Observable<void> {
+    return this.http.put<void>(`/api/v1/sbom/projects/${projectId}/default-profile`, {
+      profile_name: profileName,
+    });
+  }
+
+  clearDefaultProfile(projectId: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/sbom/projects/${projectId}/default-profile`);
   }
 }

@@ -17,13 +17,14 @@ import type { StatsTrendResponse } from '../../models/stats-trend.model';
 import { SbomService } from '../../services/sbom.service';
 import { StatsTrendService } from '../../services/stats-trend.service';
 import { ThemeService } from '../../services/theme.service';
+import { EnvironmentProfileBindingComponent } from '../triage/environment-profile-binding.component';
 
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-sbom-project-detail',
   standalone: true,
-  imports: [FormsModule, DatePipe, RouterLink],
+  imports: [FormsModule, DatePipe, RouterLink, EnvironmentProfileBindingComponent],
   template: `
     <div>
       <!-- Header -->
@@ -193,6 +194,14 @@ Chart.register(...registerables);
           </table>
         </div>
       }
+
+      <!-- Triage Profile Settings -->
+      <section class="mb-8">
+        <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-4" i18n="@@sbom.detail.triageProfileTitle">
+          Triage Profile Settings
+        </h2>
+        <app-environment-profile-binding [projectId]="projectId" />
+      </section>
 
       <!-- Scan results for selected version -->
       @if (selectedVersion()) {

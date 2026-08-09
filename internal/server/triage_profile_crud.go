@@ -28,6 +28,8 @@ type triageProfileResponse struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
 	Base        string            `json:"base,omitempty"`
+	ScoreWeight float64           `json:"score_weight"`
+	ActFloor    string            `json:"act_floor"`
 	Weights     interface{}       `json:"weights"`
 	Thresholds  interface{}       `json:"thresholds"`
 	SSVCMapping map[string]string `json:"ssvc_mapping,omitempty"`
@@ -50,6 +52,8 @@ func (s *Server) handleListTriageProfilesAll(w http.ResponseWriter, r *http.Requ
 		profiles = append(profiles, triageProfileResponse{
 			Name:        b.Name,
 			Description: b.Description,
+			ScoreWeight: b.ScoreWeight,
+			ActFloor:    string(b.ActFloor),
 			Weights:     b.Weights,
 			Thresholds:  b.Thresholds,
 			SSVCMapping: b.SSVCMapping,
@@ -67,6 +71,8 @@ func (s *Server) handleListTriageProfilesAll(w http.ResponseWriter, r *http.Requ
 				Name:        cp.Name,
 				Description: cp.Description,
 				Base:        cp.Base,
+				ScoreWeight: cp.ScoreWeight,
+				ActFloor:    cp.ActFloor,
 				Builtin:     false,
 				ID:          &cp.ID,
 				CreatedBy:   cp.CreatedBy,
@@ -105,6 +111,8 @@ func (s *Server) handleCreateTriageProfile(w http.ResponseWriter, r *http.Reques
 		Name        string            `json:"name"`
 		Description string            `json:"description"`
 		Base        string            `json:"base,omitempty"`
+		ScoreWeight *float64          `json:"score_weight,omitempty"`
+		ActFloor    string            `json:"act_floor,omitempty"`
 		Weights     json.RawMessage   `json:"weights"`
 		Thresholds  json.RawMessage   `json:"thresholds"`
 		SSVCMapping map[string]string `json:"ssvc_mapping,omitempty"`
@@ -135,12 +143,24 @@ func (s *Server) handleCreateTriageProfile(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Default score_weight and act_floor
+	scoreWeight := 0.60
+	if req.ScoreWeight != nil {
+		scoreWeight = *req.ScoreWeight
+	}
+	actFloor := "Critical"
+	if req.ActFloor != "" {
+		actFloor = req.ActFloor
+	}
+
 	// Validate profile
 	profile := buildProfileFromRequest(req.Name, req.Description, req.Base, req.Weights, req.Thresholds, req.SSVCMapping)
 	if profile == nil {
 		writeError(w, http.StatusBadRequest, "invalid profile data")
 		return
 	}
+	profile.ScoreWeight = scoreWeight
+	profile.ActFloor = triage.PriorityLevel(actFloor)
 	errs := triage.ValidateProfile(profile)
 	if len(errs) > 0 {
 		errStrs := make([]string, len(errs))
@@ -171,6 +191,8 @@ func (s *Server) handleCreateTriageProfile(w http.ResponseWriter, r *http.Reques
 		Name:        req.Name,
 		Description: req.Description,
 		Base:        req.Base,
+		ScoreWeight: scoreWeight,
+		ActFloor:    actFloor,
 		Weights:     req.Weights,
 		Thresholds:  req.Thresholds,
 		SSVCMapping: ssvcMapping,
@@ -205,6 +227,8 @@ func (s *Server) handleGetTriageProfile(w http.ResponseWriter, r *http.Request) 
 			writeJSON(w, http.StatusOK, map[string]interface{}{
 				"name":         b.Name,
 				"description":  b.Description,
+				"score_weight": b.ScoreWeight,
+				"act_floor":    string(b.ActFloor),
 				"weights":      b.Weights,
 				"thresholds":   b.Thresholds,
 				"ssvc_mapping": b.SSVCMapping,
@@ -244,6 +268,8 @@ func (s *Server) handleUpdateTriageProfile(w http.ResponseWriter, r *http.Reques
 	var req struct {
 		Description string            `json:"description"`
 		Base        string            `json:"base,omitempty"`
+		ScoreWeight *float64          `json:"score_weight,omitempty"`
+		ActFloor    string            `json:"act_floor,omitempty"`
 		Weights     json.RawMessage   `json:"weights"`
 		Thresholds  json.RawMessage   `json:"thresholds"`
 		SSVCMapping map[string]string `json:"ssvc_mapping,omitempty"`
@@ -263,12 +289,24 @@ func (s *Server) handleUpdateTriageProfile(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Default score_weight and act_floor
+	scoreWeight := 0.60
+	if req.ScoreWeight != nil {
+		scoreWeight = *req.ScoreWeight
+	}
+	actFloor := "Critical"
+	if req.ActFloor != "" {
+		actFloor = req.ActFloor
+	}
+
 	// Validate
 	profile := buildProfileFromRequest(name, req.Description, req.Base, req.Weights, req.Thresholds, req.SSVCMapping)
 	if profile == nil {
 		writeError(w, http.StatusBadRequest, "invalid profile data")
 		return
 	}
+	profile.ScoreWeight = scoreWeight
+	profile.ActFloor = triage.PriorityLevel(actFloor)
 	errs := triage.ValidateProfile(profile)
 	if len(errs) > 0 {
 		errStrs := make([]string, len(errs))
@@ -292,6 +330,8 @@ func (s *Server) handleUpdateTriageProfile(w http.ResponseWriter, r *http.Reques
 	row := &store.TriageProfileRow{
 		Description: req.Description,
 		Base:        req.Base,
+		ScoreWeight: scoreWeight,
+		ActFloor:    actFloor,
 		Weights:     req.Weights,
 		Thresholds:  req.Thresholds,
 		SSVCMapping: ssvcMapping,
@@ -367,12 +407,14 @@ func buildProfileFromRequest(name, description, base string, weightsJSON, thresh
 // formatProfileRow converts a store.TriageProfileRow to a JSON-friendly response.
 func formatProfileRow(row *store.TriageProfileRow) map[string]interface{} {
 	resp := map[string]interface{}{
-		"id":          row.ID,
-		"name":        row.Name,
-		"description": row.Description,
-		"builtin":     false,
-		"created_at":  row.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		"updated_at":  row.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		"id":           row.ID,
+		"name":         row.Name,
+		"description":  row.Description,
+		"score_weight": row.ScoreWeight,
+		"act_floor":    row.ActFloor,
+		"builtin":      false,
+		"created_at":   row.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		"updated_at":   row.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	if row.Base != "" {

@@ -41,6 +41,11 @@ import { TriageService } from '../../services/triage.service';
 
             <!-- Weights grid -->
             <div class="mb-2">
+              <p class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1" i18n="@@triageProfiles.scoreParams">Score Parameters</p>
+              <div class="flex gap-3 text-xs mb-2">
+                <span class="text-slate-500 dark:text-slate-400">score_weight (α): {{ profile.score_weight | number:'1.2-2' }}</span>
+                <span class="text-slate-500 dark:text-slate-400">act_floor: {{ profile.act_floor }}</span>
+              </div>
               <p class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-1" i18n="@@triageProfiles.weights">Weights</p>
               <div class="grid grid-cols-4 gap-1 text-xs">
                 <span class="text-slate-500 dark:text-slate-400">cvss: {{ profile.weights.cvss | number:'1.2-2' }}</span>
@@ -128,6 +133,31 @@ import { TriageService } from '../../services/triage.service';
                 <option [value]="p.name">{{ p.name }}</option>
               }
             </select>
+          </div>
+
+          <!-- Score Parameters -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1" i18n="@@triageProfiles.scoreWeightLabel">Score Weight (α)</label>
+              <input type="number" step="0.01" min="0" max="1"
+                     class="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white"
+                     [ngModel]="formScoreWeight()"
+                     (ngModelChange)="formScoreWeight.set($event)" />
+              <p class="text-xs text-slate-400 mt-0.5" i18n="@@triageProfiles.scoreWeightHint">Blend ratio (0.0 = pure SSVC, 1.0 = pure composite score)</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1" i18n="@@triageProfiles.actFloorLabel">Act Floor</label>
+              <select
+                class="w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-3 py-1.5 text-slate-900 dark:text-white"
+                [ngModel]="formActFloor()"
+                (ngModelChange)="formActFloor.set($event)">
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+              <p class="text-xs text-slate-400 mt-0.5" i18n="@@triageProfiles.actFloorHint">Minimum priority level when SSVC decision is "Act"</p>
+            </div>
           </div>
 
           <!-- Weights -->
@@ -295,6 +325,8 @@ export class TriageProfilesComponent implements OnInit {
   readonly formName = signal('');
   readonly formDescription = signal('');
   readonly formBase = signal('');
+  readonly formScoreWeight = signal(0.6);
+  readonly formActFloor = signal('Critical');
   readonly formWeights = signal<ExtendedWeights>({
     cvss: 0.2,
     epss: 0.2,
@@ -337,6 +369,8 @@ export class TriageProfilesComponent implements OnInit {
     this.formName.set(profile.name);
     this.formDescription.set(profile.description);
     this.formBase.set(profile.base ?? '');
+    this.formScoreWeight.set(profile.score_weight ?? 0.6);
+    this.formActFloor.set(profile.act_floor ?? 'Critical');
     this.formWeights.set({ ...profile.weights });
     this.formThresholds.set({ ...profile.thresholds });
     this.showForm.set(true);
@@ -371,6 +405,8 @@ export class TriageProfilesComponent implements OnInit {
     this.formBase.set(baseName);
     const base = this.profiles().find((p) => p.name === baseName);
     if (base) {
+      this.formScoreWeight.set(base.score_weight ?? 0.6);
+      this.formActFloor.set(base.act_floor ?? 'Critical');
       this.formWeights.set({ ...base.weights });
       this.formThresholds.set({ ...base.thresholds });
     }
@@ -392,6 +428,8 @@ export class TriageProfilesComponent implements OnInit {
       name: this.formName(),
       description: this.formDescription(),
       base: this.formBase() || undefined,
+      score_weight: this.formScoreWeight(),
+      act_floor: this.formActFloor(),
       weights: this.formWeights(),
       thresholds: this.formThresholds(),
     };
@@ -454,6 +492,8 @@ export class TriageProfilesComponent implements OnInit {
     this.formName.set('');
     this.formDescription.set('');
     this.formBase.set('');
+    this.formScoreWeight.set(0.6);
+    this.formActFloor.set('Critical');
     this.formWeights.set({
       cvss: 0.2,
       epss: 0.2,

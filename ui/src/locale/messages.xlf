@@ -1639,309 +1639,316 @@
         <source> ← Back to Projects </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">32,35</context>
+          <context context-type="linenumber">33,36</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.trendTitle" datatype="html">
         <source>Vulnerability Trend</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">44,45</context>
+          <context context-type="linenumber">45,46</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.uploadButton" datatype="html">
         <source> Upload SBOM </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">67,70</context>
+          <context context-type="linenumber">68,71</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.uploadTitle" datatype="html">
         <source> Upload SBOM File </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">73,75</context>
+          <context context-type="linenumber">74,76</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.versionLabel" datatype="html">
         <source> Version </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">78,79</context>
+          <context context-type="linenumber">79,80</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.versionPlaceholder" datatype="html">
         <source>e.g. 1.0.0</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">89,90</context>
+          <context context-type="linenumber">90,91</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.environmentLabel" datatype="html">
         <source> Environment </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">95,97</context>
+          <context context-type="linenumber">96,98</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.environmentPlaceholder" datatype="html">
         <source>e.g. production</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">103,104</context>
+          <context context-type="linenumber">104,105</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.fileLabel" datatype="html">
         <source> SBOM File (JSON) </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">109,110</context>
+          <context context-type="linenumber">110,111</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.uploadSubmitButton" datatype="html">
         <source> Upload </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">126,128</context>
+          <context context-type="linenumber">127,129</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.cancelButton" datatype="html">
         <source> Cancel </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">134,135</context>
+          <context context-type="linenumber">135,136</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.versionsTitle" datatype="html">
         <source> Versions </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">147,150</context>
+          <context context-type="linenumber">148,151</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.loading" datatype="html">
         <source>Loading...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">151,152</context>
+          <context context-type="linenumber">152,153</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">228,229</context>
+          <context context-type="linenumber">237,238</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.noVersions" datatype="html">
         <source> No versions uploaded yet. Upload an SBOM to get started. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">154,156</context>
+          <context context-type="linenumber">155,157</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.version" datatype="html">
         <source>Version</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">161,162</context>
+          <context context-type="linenumber">162,163</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.format" datatype="html">
         <source>Format</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">162,163</context>
+          <context context-type="linenumber">163,164</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.components" datatype="html">
         <source>Components</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">163,164</context>
+          <context context-type="linenumber">164,165</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.environment" datatype="html">
         <source>Environment</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">164,165</context>
+          <context context-type="linenumber">165,166</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.created" datatype="html">
         <source>Created</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">165,166</context>
+          <context context-type="linenumber">166,167</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.actions" datatype="html">
         <source>Actions</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">166,168</context>
+          <context context-type="linenumber">167,169</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">244,246</context>
+          <context context-type="linenumber">253,255</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.viewScansButton" datatype="html">
         <source> Scans </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">187,188</context>
+          <context context-type="linenumber">188,189</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sbom.detail.triageProfileTitle" datatype="html">
+        <source> Triage Profile Settings </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
+          <context context-type="linenumber">201,203</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.scanResultsFor" datatype="html">
         <source>Scan Results for</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">202,203</context>
+          <context context-type="linenumber">211,212</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.rescanButton" datatype="html">
         <source> Rescan </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">211,213</context>
+          <context context-type="linenumber">220,222</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.closeScans" datatype="html">
         <source> Close </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">218,220</context>
+          <context context-type="linenumber">227,229</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.noScans" datatype="html">
         <source> No scan results available for this version. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">231,233</context>
+          <context context-type="linenumber">240,242</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.scannedAt" datatype="html">
         <source>Scanned At</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">238,239</context>
+          <context context-type="linenumber">247,248</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.status" datatype="html">
         <source>Status</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">239,240</context>
+          <context context-type="linenumber">248,249</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.findings" datatype="html">
         <source>Findings</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">240,241</context>
+          <context context-type="linenumber">249,250</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.new" datatype="html">
         <source>New</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">242</context>
+          <context context-type="linenumber">251</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.resolved" datatype="html">
         <source>Resolved</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">242,243</context>
+          <context context-type="linenumber">251,252</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.col.trigger" datatype="html">
         <source>Trigger</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">243,244</context>
+          <context context-type="linenumber">252,253</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.viewDetailButton" datatype="html">
         <source> Details </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">280,281</context>
+          <context context-type="linenumber">289,290</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.trendRange30d" datatype="html">
         <source>30d</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">312</context>
+          <context context-type="linenumber">321</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.trendRange90d" datatype="html">
         <source>90d</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">313</context>
+          <context context-type="linenumber">322</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.trendRange180d" datatype="html">
         <source>180d</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">314</context>
+          <context context-type="linenumber">323</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.trendRange365d" datatype="html">
         <source>365d</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">315</context>
+          <context context-type="linenumber">324</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.chartTotalFindings" datatype="html">
         <source>Total Findings</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">394</context>
+          <context context-type="linenumber">403</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.chartNewFindings" datatype="html">
         <source>New</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">408</context>
+          <context context-type="linenumber">417</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.chartResolved" datatype="html">
         <source>Resolved</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">419</context>
+          <context context-type="linenumber">428</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.axisTotal" datatype="html">
         <source>Total</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">454</context>
+          <context context-type="linenumber">463</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.axisChanges" datatype="html">
         <source>Changes</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">467</context>
+          <context context-type="linenumber">476</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.rescanReloadFailed" datatype="html">
         <source>Failed to reload scan results</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">583</context>
+          <context context-type="linenumber">592</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.detail.rescanFailed" datatype="html">
         <source>Rescan failed</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/sbom/sbom-project-detail.component.ts</context>
-          <context context-type="linenumber">589</context>
+          <context context-type="linenumber">598</context>
         </context-group>
       </trans-unit>
       <trans-unit id="sbom.projects.createButton" datatype="html">
@@ -2786,6 +2793,195 @@
           <context context-type="linenumber">99</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="envProfileBinding.title" datatype="html">
+        <source>Triage Profile Configuration</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">14,17</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.defaultProfileLabel" datatype="html">
+        <source>Project Default Profile</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">19,20</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.noDefault" datatype="html">
+        <source>-- None --</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">25,26</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.saveDefault" datatype="html">
+        <source>Save</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">34,36</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.clearDefault" datatype="html">
+        <source>Clear</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">39,40</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.bindingsTitle" datatype="html">
+        <source>Environment Bindings</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">48,50</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.addBinding" datatype="html">
+        <source> <x id="INTERPOLATION" equiv-text="{{ showForm() ? &apos;Cancel&apos; : &apos;+ Add&apos; }}"/> </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">53,54</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.environmentLabel" datatype="html">
+        <source>Environment</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">62,64</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.customEnvTooltip" datatype="html">
+        <source>Use custom environment name</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">92,94</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.profileLabel" datatype="html">
+        <source>Profile</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">97,99</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.descriptionLabel" datatype="html">
+        <source>Description</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">108,110</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.descriptionPlaceholder" datatype="html">
+        <source>Optional description</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">115,117</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.saveBinding" datatype="html">
+        <source>Save</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">122,124</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.colEnvironment" datatype="html">
+        <source>Environment</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">133,134</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.colProfile" datatype="html">
+        <source>Profile</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">134,135</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.colDescription" datatype="html">
+        <source>Description</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">135,136</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.colActions" datatype="html">
+        <source>Actions</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">136,139</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.remove" datatype="html">
+        <source>Remove</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">151,153</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.noBindings" datatype="html">
+        <source> No environment bindings configured. Add a binding to assign triage profiles per environment. </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">157,159</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.defaultSaved" datatype="html">
+        <source>Default profile saved</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">236</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.defaultSaveError" datatype="html">
+        <source>Error saving default profile</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">240</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.defaultCleared" datatype="html">
+        <source>Default profile cleared</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">251</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.defaultClearError" datatype="html">
+        <source>Error clearing default profile</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">255</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.bindingSaved" datatype="html">
+        <source>Binding saved</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">276</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.bindingSaveError" datatype="html">
+        <source>Error saving binding</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">280</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.bindingRemoved" datatype="html">
+        <source>Binding removed</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">288</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.bindingRemoveError" datatype="html">
+        <source>Error removing binding</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
+          <context context-type="linenumber">292</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="triage.critical" datatype="html">
         <source>Critical</source>
         <context-group purpose="location">
@@ -3407,151 +3603,186 @@
           <context context-type="linenumber">35,37</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="triageProfiles.scoreParams" datatype="html">
+        <source>Score Parameters</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">44,45</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="triageProfiles.weights" datatype="html">
         <source>Weights</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">44,45</context>
+          <context context-type="linenumber">49,50</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.thresholds" datatype="html">
         <source>Thresholds</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">59,60</context>
+          <context context-type="linenumber">64,65</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.noProfiles" datatype="html">
         <source> No profiles available. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">69,72</context>
+          <context context-type="linenumber">74,77</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.createBtn" datatype="html">
         <source> <x id="INTERPOLATION" equiv-text="{{ showForm() ? &apos;Cancel&apos; : (editingProfile() ? &apos;Cancel Edit&apos; : &apos;Create Custom Profile&apos;) }}"/> </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">81,82</context>
+          <context context-type="linenumber">86,87</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.editTitle" datatype="html">
         <source>Edit Profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">90,92</context>
+          <context context-type="linenumber">95,97</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.createTitle" datatype="html">
         <source>Create Custom Profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">92,96</context>
+          <context context-type="linenumber">97,101</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.nameLabel" datatype="html">
         <source>Name</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">99,100</context>
+          <context context-type="linenumber">104,105</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.descLabel" datatype="html">
         <source>Description</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">110,111</context>
+          <context context-type="linenumber">115,116</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.baseLabel" datatype="html">
         <source>Base Template</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">121,123</context>
+          <context context-type="linenumber">126,128</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.selectBase" datatype="html">
         <source>-- Select a base template --</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">126,127</context>
+          <context context-type="linenumber">131,132</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.scoreWeightLabel" datatype="html">
+        <source>Score Weight (α)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">141,142</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.scoreWeightHint" datatype="html">
+        <source>Blend ratio (0.0 = pure SSVC, 1.0 = pure composite score)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">146,149</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.actFloorLabel" datatype="html">
+        <source>Act Floor</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">149,151</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="triageProfiles.actFloorHint" datatype="html">
+        <source>Minimum priority level when SSVC decision is &quot;Act&quot;</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
+          <context context-type="linenumber">159,163</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.weightsSection" datatype="html">
         <source>Weights</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">135,136</context>
+          <context context-type="linenumber">165,166</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.thresholdsSection" datatype="html">
         <source>Thresholds</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">198,199</context>
+          <context context-type="linenumber">228,229</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.saveBtn" datatype="html">
         <source> <x id="INTERPOLATION" equiv-text="{{ editingProfile() ? &apos;Update&apos; : &apos;Save&apos; }}"/> </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">232,233</context>
+          <context context-type="linenumber">262,263</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.saving" datatype="html">
         <source>Saving...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">235,237</context>
+          <context context-type="linenumber">265,267</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.validErrors" datatype="html">
         <source>Errors:</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">247,248</context>
+          <context context-type="linenumber">277,278</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.deleteConfirmTitle" datatype="html">
         <source>Delete Profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">263,264</context>
+          <context context-type="linenumber">293,294</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.deleteConfirmMsg" datatype="html">
         <source>Are you sure you want to delete the profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">265,266</context>
+          <context context-type="linenumber">295,296</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.cancelBtn" datatype="html">
         <source>Cancel</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">273,275</context>
+          <context context-type="linenumber">303,305</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.confirmDeleteBtn" datatype="html">
         <source>Delete</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">278,281</context>
+          <context context-type="linenumber">308,311</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.updateSuccess" datatype="html">
         <source>Profile updated successfully.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">407</context>
+          <context context-type="linenumber">445</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triageProfiles.createSuccess" datatype="html">
         <source>Profile created successfully.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/triage-profiles.component.ts</context>
-          <context context-type="linenumber">423</context>
+          <context context-type="linenumber">461</context>
         </context-group>
       </trans-unit>
       <trans-unit id="vulnList.fulltextSearch" datatype="html">

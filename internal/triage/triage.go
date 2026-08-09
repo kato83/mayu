@@ -78,14 +78,17 @@ type TriageInput struct {
 
 // TriageResult is the complete triage assessment for a single vulnerability.
 type TriageResult struct {
-	VulnerabilityID string             `json:"vulnerability_id"`
-	PriorityLevel   PriorityLevel      `json:"priority_level"`
-	CompositeScore  float64            `json:"composite_score"`
-	SSVCDecision    string             `json:"ssvc_decision,omitempty"`
-	Rationale       *Rationale         `json:"rationale"`
-	SignalValues    map[string]float64 `json:"signal_values"`
-	ProfileUsed     string             `json:"profile_used"`
-	ComputedAt      time.Time          `json:"computed_at"`
+	VulnerabilityID  string             `json:"vulnerability_id"`
+	PriorityLevel    PriorityLevel      `json:"priority_level"`
+	CompositeScore   float64            `json:"composite_score"`
+	SSVCScore        float64            `json:"ssvc_score"`  // numeric SSVC score [0.0, 1.0]
+	FinalScore       float64            `json:"final_score"` // α×composite + (1-α)×ssvc
+	SSVCDecision     string             `json:"ssvc_decision,omitempty"`
+	ResolutionMethod string             `json:"resolution_method"` // "score_dominant", "ssvc_dominant", "act_floor"
+	Rationale        *Rationale         `json:"rationale"`
+	SignalValues     map[string]float64 `json:"signal_values"`
+	ProfileUsed      string             `json:"profile_used"`
+	ComputedAt       time.Time          `json:"computed_at"`
 }
 
 // SignalContribution represents a single signal's contribution to the composite score.

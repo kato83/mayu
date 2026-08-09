@@ -56,5 +56,21 @@ func ValidateProfile(p *Profile) []error {
 		errs = append(errs, fmt.Errorf("threshold high (%.2f) must be >= medium (%.2f)", p.Thresholds.High, p.Thresholds.Medium))
 	}
 
+	// 4. ScoreWeight range check
+	if p.ScoreWeight < 0.0 || p.ScoreWeight > 1.0 {
+		errs = append(errs, fmt.Errorf("score_weight %.4f is out of range [0.0, 1.0]", p.ScoreWeight))
+	}
+
+	// 5. ActFloor validity check
+	validFloors := map[PriorityLevel]bool{
+		PriorityCritical: true,
+		PriorityHigh:     true,
+		PriorityMedium:   true,
+		PriorityLow:      true,
+	}
+	if p.ActFloor != "" && !validFloors[p.ActFloor] {
+		errs = append(errs, fmt.Errorf("act_floor %q is not a valid priority level", p.ActFloor))
+	}
+
 	return errs
 }

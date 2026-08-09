@@ -12,6 +12,7 @@ import (
 	"github.com/kato83/mayu/internal/auth"
 	"github.com/kato83/mayu/internal/model"
 	"github.com/kato83/mayu/internal/store"
+	"github.com/kato83/mayu/internal/triage"
 )
 
 // mockStore implements store.Store for testing.
@@ -226,6 +227,27 @@ func (m *mockStore) UpdateTriageProfile(ctx context.Context, name string, row *s
 	return nil, nil
 }
 func (m *mockStore) DeleteTriageProfile(ctx context.Context, name string) error { return nil }
+func (m *mockStore) CreateOrUpdateEnvironmentBinding(ctx context.Context, projectID int64, environment, profileName, description string) error {
+	return nil
+}
+func (m *mockStore) GetEnvironmentBinding(ctx context.Context, projectID int64, environment string) (*triage.EnvironmentProfileBinding, error) {
+	return nil, nil
+}
+func (m *mockStore) ListEnvironmentBindings(ctx context.Context, projectID int64) ([]triage.EnvironmentProfileBinding, error) {
+	return nil, nil
+}
+func (m *mockStore) DeleteEnvironmentBinding(ctx context.Context, projectID int64, environment string) error {
+	return nil
+}
+func (m *mockStore) GetProjectDefaultProfile(ctx context.Context, projectID int64) (string, error) {
+	return "", nil
+}
+func (m *mockStore) SetProjectDefaultProfile(ctx context.Context, projectID int64, profileName string) error {
+	return nil
+}
+func (m *mockStore) ClearProjectDefaultProfile(ctx context.Context, projectID int64) error {
+	return nil
+}
 
 // newTestServer creates a Server with the given mock store for testing.
 // By default it uses NoAuthProvider so existing tests don't need auth.

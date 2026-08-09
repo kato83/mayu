@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/kato83/mayu/internal/model"
+	"github.com/kato83/mayu/internal/triage"
 )
 
 // Store defines the interface for vulnerability data persistence.
@@ -221,6 +222,30 @@ type Store interface {
 
 	// DeleteTriageProfile deletes a custom triage profile by name.
 	DeleteTriageProfile(ctx context.Context, name string) error
+
+	// --- Environment Profile Bindings ---
+
+	// CreateOrUpdateEnvironmentBinding creates or updates an environment profile binding.
+	CreateOrUpdateEnvironmentBinding(ctx context.Context, projectID int64, environment, profileName, description string) error
+
+	// GetEnvironmentBinding retrieves an environment profile binding for a project+environment.
+	// Returns nil, nil if not found.
+	GetEnvironmentBinding(ctx context.Context, projectID int64, environment string) (*triage.EnvironmentProfileBinding, error)
+
+	// ListEnvironmentBindings returns all environment profile bindings for a project.
+	ListEnvironmentBindings(ctx context.Context, projectID int64) ([]triage.EnvironmentProfileBinding, error)
+
+	// DeleteEnvironmentBinding removes an environment profile binding.
+	DeleteEnvironmentBinding(ctx context.Context, projectID int64, environment string) error
+
+	// GetProjectDefaultProfile returns the default triage profile name for an SBOM project.
+	GetProjectDefaultProfile(ctx context.Context, projectID int64) (string, error)
+
+	// SetProjectDefaultProfile sets the default triage profile for an SBOM project.
+	SetProjectDefaultProfile(ctx context.Context, projectID int64, profileName string) error
+
+	// ClearProjectDefaultProfile removes the default triage profile from an SBOM project.
+	ClearProjectDefaultProfile(ctx context.Context, projectID int64) error
 }
 
 // PackageQuery identifies a package to search for in the vulnerability database.

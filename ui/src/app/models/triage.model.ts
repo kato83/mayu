@@ -65,6 +65,8 @@ export interface TriageProfile {
   name: string;
   description: string;
   base?: string;
+  score_weight: number; // α (0.0-1.0) — blend ratio between composite score and SSVC
+  act_floor: string; // Minimum priority when SSVC=Act: 'Critical' | 'High' | 'Medium' | 'Low'
   weights: ExtendedWeights;
   thresholds: Thresholds;
   ssvc_mapping?: Record<string, string>;
@@ -151,17 +153,19 @@ export interface ResolvedVulnEntry {
   fixed_version: string;
 }
 
-/** Server profile binding */
-export interface ServerProfileBinding {
+/** Environment profile binding */
+export interface EnvironmentProfileBinding {
   id: string;
   project_id: string;
-  server_label: string;
   environment: string;
   profile_name: string;
   description: string;
   created_at: string;
   updated_at: string;
 }
+
+/** @deprecated Use EnvironmentProfileBinding instead */
+export type ServerProfileBinding = EnvironmentProfileBinding;
 
 /** Request to create/update a profile binding */
 export interface ProfileBindingRequest {

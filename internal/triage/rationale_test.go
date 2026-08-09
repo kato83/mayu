@@ -14,7 +14,7 @@ func TestBuildRationale_CriticalPriority(t *testing.T) {
 		{Signal: "reachability", RawValue: 1.0, Weight: 0.07, EffectiveWeight: 0.07, Contribution: 0.070, Available: true},
 	}
 
-	rationale := BuildRationale(contributions, "Act", "direct", PriorityCritical, "combined_max")
+	rationale := BuildRationale(contributions, "Act", "direct", PriorityCritical, "score_dominant")
 
 	if rationale == nil {
 		t.Fatal("expected non-nil rationale")
@@ -37,8 +37,8 @@ func TestBuildRationale_CriticalPriority(t *testing.T) {
 		t.Errorf("expected SSVC decision 'Act', got %q", rationale.SSVCDecision)
 	}
 
-	if rationale.ResolutionMethod != "combined_max" {
-		t.Errorf("expected resolution method 'combined_max', got %q", rationale.ResolutionMethod)
+	if rationale.ResolutionMethod != "score_dominant" {
+		t.Errorf("expected resolution method 'score_dominant', got %q", rationale.ResolutionMethod)
 	}
 }
 
@@ -48,7 +48,7 @@ func TestBuildRationale_NoContributions(t *testing.T) {
 		{Signal: "epss", RawValue: 0, Weight: 0.20, EffectiveWeight: 0.20, Contribution: 0, Available: true},
 	}
 
-	rationale := BuildRationale(contributions, "Track", "estimated", PriorityLow, "score_based")
+	rationale := BuildRationale(contributions, "Track", "estimated", PriorityLow, "score_dominant")
 
 	if rationale == nil {
 		t.Fatal("expected non-nil rationale")

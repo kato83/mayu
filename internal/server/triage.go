@@ -353,30 +353,80 @@ func (s *Server) handleValidateTriageProfile(w http.ResponseWriter, r *http.Requ
 	})
 }
 
-// --- Server Profile Binding API Handlers ---
+// --- Environment Profile Binding API Handlers ---
 
-// handleListServerProfileBindings handles GET /api/v1/sbom/projects/{project}/servers
-func (s *Server) handleListServerProfileBindings(w http.ResponseWriter, r *http.Request) {
+// handleListEnvironmentBindings handles GET /api/v1/sbom/projects/{id}/environments
+func (s *Server) handleListEnvironmentBindings(w http.ResponseWriter, r *http.Request) {
 	projectID := chi.URLParam(r, "id")
 	if projectID == "" {
 		writeError(w, http.StatusBadRequest, "project ID is required")
 		return
 	}
 
-	// In production, this would query the binding store
+	pid, err := strconv.ParseInt(projectID, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project ID")
+		return
+	}
+
+	bindings, err := s.store.ListEnvironmentBindings(r.Context(), pid)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to list environment bindings")
+		return
+	}
+
+	if bindings == nil {
+		bindings = []triage.EnvironmentProfileBinding{}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"project_id": projectID,
-		"servers":    []interface{}{},
+		"bindings":   bindings,
 	})
 }
 
-// handleSetServerProfile handles PUT /api/v1/sbom/projects/{project}/servers/{label}/profile
-func (s *Server) handleSetServerProfile(w http.ResponseWriter, r *http.Request) {
+// handleGetEnvironmentBinding handles GET /api/v1/sbom/projects/{id}/environments/{environment}
+func (s *Server) handleGetEnvironmentBinding(w http.ResponseWriter, r *http.Request) {
 	projectID := chi.URLParam(r, "id")
-	label := chi.URLParam(r, "label")
+	environment := chi.URLParam(r, "environment")
 
-	if projectID == "" || label == "" {
-		writeError(w, http.StatusBadRequest, "project ID and server label are required")
+	if projectID == "" || environment == "" {
+		writeError(w, http.StatusBadRequest, "project ID and environment are required")
+		return
+	}
+
+	pid, err := strconv.ParseInt(projectID, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project ID")
+		return
+	}
+
+	binding, err := s.store.GetEnvironmentBinding(r.Context(), pid, environment)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get environment binding")
+		return
+	}
+	if binding == nil {
+		writeError(w, http.StatusNotFound, "environment binding not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, binding)
+}
+
+// handleSetEnvironmentBinding handles PUT /api/v1/sbom/projects/{id}/environments/{environment}
+func (s *Server) handleSetEnvironmentBinding(w http.ResponseWriter, r *http.Request) {
+	projectID := chi.URLParam(r, "id")
+	environment := chi.URLParam(r, "environment")
+
+	if projectID == "" || environment == "" {
+		writeError(w, http.StatusBadRequest, "project ID and environment are required")
+		return
+	}
+
+	pid, err := strconv.ParseInt(projectID, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project ID")
 		return
 	}
 
@@ -400,26 +450,151 @@ func (s *Server) handleSetServerProfile(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"project_id":   projectID,
-		"server_label": label,
-		"profile_name": req.ProfileName,
-		"message":      "profile binding created",
-	})
-}
-
-// handleDeleteServerProfile handles DELETE /api/v1/sbom/projects/{project}/servers/{label}/profile
-func (s *Server) handleDeleteServerProfile(w http.ResponseWriter, r *http.Request) {
-	projectID := chi.URLParam(r, "id")
-	label := chi.URLParam(r, "label")
-
-	if projectID == "" || label == "" {
-		writeError(w, http.StatusBadRequest, "project ID and server label are required")
+	if err := s.store.CreateOrUpdateEnvironmentBinding(r.Context(), pid, environment, req.ProfileName, req.Description); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create/update environment binding")
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"message": "profile binding removed",
+		"project_id":   projectID,
+		"environment":  environment,
+		"profile_name": req.ProfileName,
+		"message":      "environment binding created/updated",
+	})
+}
+
+// handleDeleteEnvironmentBinding handles DELETE /api/v1/sbom/projects/{id}/environments/{environment}
+func (s *Server) handleDeleteEnvironmentBinding(w http.ResponseWriter, r *http.Request) {
+	projectID := chi.URLParam(r, "id")
+	environment := chi.URLParam(r, "environment")
+
+	if projectID == "" || environment == "" {
+		writeError(w, http.StatusBadRequest, "project ID and environment are required")
+		return
+	}
+
+	pid, err := strconv.ParseInt(projectID, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project ID")
+		return
+	}
+
+	if err := s.store.DeleteEnvironmentBinding(r.Context(), pid, environment); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			writeError(w, http.StatusNotFound, "environment binding not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to delete environment binding")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"message": "environment binding removed",
+	})
+}
+
+// --- Project Default Profile API Handlers ---
+
+// handleGetProjectDefaultProfile handles GET /api/v1/sbom/projects/{id}/default-profile
+func (s *Server) handleGetProjectDefaultProfile(w http.ResponseWriter, r *http.Request) {
+	projectID := chi.URLParam(r, "id")
+	if projectID == "" {
+		writeError(w, http.StatusBadRequest, "project ID is required")
+		return
+	}
+
+	pid, err := strconv.ParseInt(projectID, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project ID")
+		return
+	}
+
+	profileName, err := s.store.GetProjectDefaultProfile(r.Context(), pid)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get project default profile")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"project_id":   projectID,
+		"profile_name": profileName,
+	})
+}
+
+// handleSetProjectDefaultProfile handles PUT /api/v1/sbom/projects/{id}/default-profile
+func (s *Server) handleSetProjectDefaultProfile(w http.ResponseWriter, r *http.Request) {
+	projectID := chi.URLParam(r, "id")
+	if projectID == "" {
+		writeError(w, http.StatusBadRequest, "project ID is required")
+		return
+	}
+
+	pid, err := strconv.ParseInt(projectID, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project ID")
+		return
+	}
+
+	var req struct {
+		ProfileName string `json:"profile_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if req.ProfileName == "" {
+		writeError(w, http.StatusBadRequest, "profile_name is required")
+		return
+	}
+
+	// Verify profile exists
+	if p := s.resolveTriageProfileWithStore(r.Context(), req.ProfileName); p.Name == "default" && req.ProfileName != "default" {
+		writeError(w, http.StatusBadRequest, "profile not found: "+req.ProfileName)
+		return
+	}
+
+	if err := s.store.SetProjectDefaultProfile(r.Context(), pid, req.ProfileName); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			writeError(w, http.StatusNotFound, "project not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to set project default profile")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"project_id":   projectID,
+		"profile_name": req.ProfileName,
+		"message":      "default profile set",
+	})
+}
+
+// handleDeleteProjectDefaultProfile handles DELETE /api/v1/sbom/projects/{id}/default-profile
+func (s *Server) handleDeleteProjectDefaultProfile(w http.ResponseWriter, r *http.Request) {
+	projectID := chi.URLParam(r, "id")
+	if projectID == "" {
+		writeError(w, http.StatusBadRequest, "project ID is required")
+		return
+	}
+
+	pid, err := strconv.ParseInt(projectID, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project ID")
+		return
+	}
+
+	if err := s.store.ClearProjectDefaultProfile(r.Context(), pid); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			writeError(w, http.StatusNotFound, "project not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to clear project default profile")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{
+		"message": "default profile cleared",
 	})
 }
 
@@ -513,6 +688,31 @@ func (s *Server) handleTriageOverviewSummary(w http.ResponseWriter, r *http.Requ
 	})
 }
 
+// resolveProfileForProjectEnvironment resolves the triage profile for a given
+// project and environment using the priority: environment binding > project default > built-in default.
+func (s *Server) resolveProfileForProjectEnvironment(ctx context.Context, projectID int64, environment string) *triage.Profile {
+	// 1. Try environment binding
+	if environment != "" {
+		binding, err := s.store.GetEnvironmentBinding(ctx, projectID, environment)
+		if err == nil && binding != nil {
+			if p := s.resolveTriageProfileWithStore(ctx, binding.ProfileName); p.Name != "default" || binding.ProfileName == "default" {
+				return p
+			}
+		}
+	}
+
+	// 2. Try project default
+	defaultName, err := s.store.GetProjectDefaultProfile(ctx, projectID)
+	if err == nil && defaultName != "" {
+		if p := s.resolveTriageProfileWithStore(ctx, defaultName); p.Name != "default" || defaultName == "default" {
+			return p
+		}
+	}
+
+	// 3. Fall back to built-in default
+	return triage.DefaultProfile()
+}
+
 // computeCrossProjectOverview aggregates triage results across all SBOM projects.
 // It returns the summary counts and the full list of cross-project results.
 func (s *Server) computeCrossProjectOverview(ctx context.Context) (*triage.OverviewSummary, []*triage.CrossProjectTriageResult) {
@@ -530,9 +730,6 @@ func (s *Server) computeCrossProjectOverview(ctx context.Context) (*triage.Overv
 		return &triage.OverviewSummary{}, nil
 	}
 
-	profile := triage.DefaultProfile()
-	engine := triage.NewEngine(profile)
-
 	// Collect triage entries grouped by vulnerability ID across all projects
 	entriesByVuln := make(map[string][]triage.ServerTriageEntry)
 	riskAcceptedVulnIDs := make(map[string]bool)
@@ -547,6 +744,10 @@ func (s *Server) computeCrossProjectOverview(ctx context.Context) (*triage.Overv
 		if err != nil || scanResult == nil || len(scanResult.Findings) == 0 {
 			continue
 		}
+
+		// Resolve profile for this project/environment
+		profile := s.resolveProfileForProjectEnvironment(ctx, proj.ID, latestVer.Environment)
+		engine := triage.NewEngine(profile)
 
 		// Exclude suppressed/false_positive/resolved/risk_accepted findings
 		excludedStatuses := make(map[string]bool)
@@ -723,9 +924,6 @@ func (s *Server) computeTriagePaths(ctx context.Context) []*triage.TriagePath {
 		return nil
 	}
 
-	profile := triage.DefaultProfile()
-	engine := triage.NewEngine(profile)
-
 	var scanFindings []triage.ScanFinding
 
 	for _, proj := range projects {
@@ -738,6 +936,10 @@ func (s *Server) computeTriagePaths(ctx context.Context) []*triage.TriagePath {
 		if err != nil || scanResult == nil || len(scanResult.Findings) == 0 {
 			continue
 		}
+
+		// Resolve profile for this project/environment
+		profile := s.resolveProfileForProjectEnvironment(ctx, proj.ID, latestVer.Environment)
+		engine := triage.NewEngine(profile)
 
 		// Exclude suppressed/false_positive/resolved/risk_accepted findings
 		excludedStatuses := make(map[string]bool)
@@ -845,12 +1047,159 @@ func (s *Server) handleGetProjectTriagePaths(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	pid, err := strconv.ParseInt(projectID, 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project ID")
+		return
+	}
+
+	limitStr := r.URL.Query().Get("limit")
+	priority := r.URL.Query().Get("priority")
+
+	limit := 20
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	paths := s.computeTriagePathsForProject(r.Context(), pid)
+
+	// Filter by priority
+	if priority != "" {
+		var filtered []*triage.TriagePath
+		for _, p := range paths {
+			if strings.EqualFold(string(p.MaxPriorityLevel), priority) {
+				filtered = append(filtered, p)
+			}
+		}
+		paths = filtered
+	}
+
+	// Apply limit
+	if limit < len(paths) {
+		paths = paths[:limit]
+	}
+
+	if paths == nil {
+		paths = []*triage.TriagePath{}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"project_id":  projectID,
-		"paths":       []interface{}{},
-		"total":       0,
+		"paths":       paths,
+		"total":       len(paths),
 		"computed_at": time.Now().UTC().Format(time.RFC3339),
 	})
+}
+
+// computeTriagePathsForProject computes remediation paths for a single SBOM project.
+func (s *Server) computeTriagePathsForProject(ctx context.Context, projectID int64) []*triage.TriagePath {
+	if s.sbomStore == nil {
+		return nil
+	}
+
+	latestVer, err := s.sbomStore.GetLatestVersion(ctx, projectID)
+	if err != nil || latestVer == nil {
+		return nil
+	}
+
+	scanResult, err := s.sbomStore.GetLatestScanResult(ctx, latestVer.ID)
+	if err != nil || scanResult == nil || len(scanResult.Findings) == 0 {
+		return nil
+	}
+
+	// Resolve profile for this project/environment
+	profile := s.resolveProfileForProjectEnvironment(ctx, projectID, latestVer.Environment)
+	engine := triage.NewEngine(profile)
+
+	// Exclude suppressed/false_positive/resolved/risk_accepted findings
+	excludedStatuses := make(map[string]bool)
+	statuses, _ := s.sbomStore.ListFindingStatuses(ctx, latestVer.ID, nil)
+	for _, fs := range statuses {
+		if fs.Status == sbommon.FindingStatusFalsePositive ||
+			fs.Status == sbommon.FindingStatusSuppressed ||
+			fs.Status == sbommon.FindingStatusResolved ||
+			fs.Status == sbommon.FindingStatusRiskAccepted {
+			excludedStatuses[fs.VulnID+"|"+fs.Purl] = true
+		}
+	}
+
+	// Build triage inputs for scoring
+	vulnScores := make(map[string]*triage.TriageResult)
+	var vulnIDs []string
+	vulnIDsSeen := make(map[string]bool)
+	for _, f := range scanResult.Findings {
+		key := f.VulnID + "|" + f.Purl
+		if excludedStatuses[key] {
+			continue
+		}
+		if !vulnIDsSeen[f.VulnID] {
+			vulnIDsSeen[f.VulnID] = true
+			vulnIDs = append(vulnIDs, f.VulnID)
+		}
+	}
+
+	if len(vulnIDs) == 0 {
+		return nil
+	}
+
+	var inputs []*triage.TriageInput
+	for _, vulnID := range vulnIDs {
+		inputs = append(inputs, s.buildTriageInputForVulnID(ctx, vulnID))
+	}
+
+	results, err := engine.TriageBatch(ctx, inputs)
+	if err != nil {
+		return nil
+	}
+	for _, r := range results {
+		vulnScores[r.VulnerabilityID] = r
+	}
+
+	// Get project info for the ScanFinding (we need project name)
+	var projectName string
+	user := auth.UserFromContext(ctx)
+	if user != nil {
+		proj, err := s.sbomStore.GetProject(ctx, projectID, user.ID)
+		if err == nil && proj != nil {
+			projectName = proj.Name
+		}
+	}
+
+	// Build ScanFindings for path computation
+	var scanFindings []triage.ScanFinding
+	for _, f := range scanResult.Findings {
+		key := f.VulnID + "|" + f.Purl
+		if excludedStatuses[key] {
+			continue
+		}
+		sf := triage.ScanFinding{
+			VulnerabilityID: f.VulnID,
+			PackagePurl:     f.Purl,
+			CurrentVersion:  f.Version,
+			FixedVersion:    f.FixedVersion,
+			Ecosystem:       f.Ecosystem,
+			ServerLabel:     latestVer.Environment,
+			ProjectID:       projectID,
+			ProjectName:     projectName,
+			Environment:     latestVer.Environment,
+		}
+		if sf.ServerLabel == "" {
+			sf.ServerLabel = "default"
+		}
+		if result, ok := vulnScores[f.VulnID]; ok {
+			sf.CompositeScore = result.CompositeScore
+			sf.PriorityLevel = result.PriorityLevel
+		}
+		scanFindings = append(scanFindings, sf)
+	}
+
+	if len(scanFindings) == 0 {
+		return nil
+	}
+
+	return triage.ComputeTriagePaths(scanFindings)
 }
 
 // handleDashboardTriage handles GET /api/v1/dashboard/triage
@@ -913,6 +1262,8 @@ func rowToProfile(row *store.TriageProfileRow) *triage.Profile {
 		Name:        row.Name,
 		Description: row.Description,
 		Base:        row.Base,
+		ScoreWeight: row.ScoreWeight,
+		ActFloor:    triage.PriorityLevel(row.ActFloor),
 		Weights:     &weights,
 		Thresholds:  &thresholds,
 	}

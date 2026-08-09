@@ -3824,6 +3824,26 @@
         <source>-- Select a base template --</source>
         <target>-- ベーステンプレートを選択 --</target>
       </trans-unit>
+      <trans-unit id="triageProfiles.scoreParams" datatype="html">
+        <source>Score Parameters</source>
+        <target>スコアパラメータ</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.scoreWeightLabel" datatype="html">
+        <source>Score Weight (α)</source>
+        <target>スコアウェイト (α)</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.scoreWeightHint" datatype="html">
+        <source>Blend ratio (0.0 = pure SSVC, 1.0 = pure composite score)</source>
+        <target>ブレンド比率 (0.0 = 純粋なSSVC, 1.0 = 純粋なコンポジットスコア)</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.actFloorLabel" datatype="html">
+        <source>Act Floor</source>
+        <target>Act フロア</target>
+      </trans-unit>
+      <trans-unit id="triageProfiles.actFloorHint" datatype="html">
+        <source>Minimum priority level when SSVC decision is "Act"</source>
+        <target>SSVC決定が「Act」の場合の最低優先度レベル</target>
+      </trans-unit>
       <trans-unit id="triageProfiles.weightsSection" datatype="html">
         <source>Weights</source>
         <target>ウェイト</target>
@@ -3867,6 +3887,118 @@
       <trans-unit id="triageProfiles.createSuccess" datatype="html">
         <source>Profile created successfully.</source>
         <target>プロファイルを作成しました。</target>
+      </trans-unit>
+      <trans-unit id="sbom.detail.triageProfileTitle" datatype="html">
+        <source> Triage Profile Settings </source>
+        <target> トリアージプロファイル設定 </target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.title" datatype="html">
+        <source>Triage Profile Configuration</source>
+        <target>トリアージプロファイル設定</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.defaultProfileLabel" datatype="html">
+        <source>Project Default Profile</source>
+        <target>プロジェクトデフォルトプロファイル</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.noDefault" datatype="html">
+        <source>-- None --</source>
+        <target>-- なし --</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.saveDefault" datatype="html">
+        <source>Save</source>
+        <target>保存</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.clearDefault" datatype="html">
+        <source>Clear</source>
+        <target>クリア</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.bindingsTitle" datatype="html">
+        <source>Environment Bindings</source>
+        <target>環境バインディング</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.addBinding" datatype="html">
+        <source><x id="INTERPOLATION" equiv-text="{{ showForm() ? 'Cancel' : '+ Add' }}"/></source>
+        <target><x id="INTERPOLATION" equiv-text="{{ showForm() ? 'キャンセル' : '+ 追加' }}"/></target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.environmentLabel" datatype="html">
+        <source>Environment</source>
+        <target>環境</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.customEnvTooltip" datatype="html">
+        <source>Use custom environment name</source>
+        <target>カスタム環境名を使用</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.profileLabel" datatype="html">
+        <source>Profile</source>
+        <target>プロファイル</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.descriptionLabel" datatype="html">
+        <source>Description</source>
+        <target>説明</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.descriptionPlaceholder" datatype="html">
+        <source>Optional description</source>
+        <target>説明（任意）</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.saveBinding" datatype="html">
+        <source>Save</source>
+        <target>保存</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.colEnvironment" datatype="html">
+        <source>Environment</source>
+        <target>環境</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.colProfile" datatype="html">
+        <source>Profile</source>
+        <target>プロファイル</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.colDescription" datatype="html">
+        <source>Description</source>
+        <target>説明</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.colActions" datatype="html">
+        <source>Actions</source>
+        <target>操作</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.remove" datatype="html">
+        <source>Remove</source>
+        <target>削除</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.noBindings" datatype="html">
+        <source> No environment bindings configured. Add a binding to assign triage profiles per environment. </source>
+        <target> 環境バインディングが設定されていません。環境ごとにトリアージプロファイルを割り当てるにはバインディングを追加してください。 </target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.defaultSaved" datatype="html">
+        <source>Default profile saved</source>
+        <target>デフォルトプロファイルを保存しました</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.defaultSaveError" datatype="html">
+        <source>Error saving default profile</source>
+        <target>デフォルトプロファイルの保存に失敗しました</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.defaultCleared" datatype="html">
+        <source>Default profile cleared</source>
+        <target>デフォルトプロファイルをクリアしました</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.defaultClearError" datatype="html">
+        <source>Error clearing default profile</source>
+        <target>デフォルトプロファイルのクリアに失敗しました</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.bindingSaved" datatype="html">
+        <source>Binding saved</source>
+        <target>バインディングを保存しました</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.bindingSaveError" datatype="html">
+        <source>Error saving binding</source>
+        <target>バインディングの保存に失敗しました</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.bindingRemoved" datatype="html">
+        <source>Binding removed</source>
+        <target>バインディングを削除しました</target>
+      </trans-unit>
+      <trans-unit id="envProfileBinding.bindingRemoveError" datatype="html">
+        <source>Error removing binding</source>
+        <target>バインディングの削除に失敗しました</target>
       </trans-unit>
     </body>
   </file>

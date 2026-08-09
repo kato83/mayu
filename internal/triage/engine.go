@@ -4,6 +4,8 @@ import (
 	"context"
 	"sort"
 	"time"
+
+	"github.com/kato83/mayu/internal/ssvc"
 )
 
 // Engine is the main triage computation engine.
@@ -32,13 +34,17 @@ func (e *Engine) Triage(ctx context.Context, input *TriageInput) (*TriageResult,
 	// Step 2: Evaluate SSVC
 	ssvcDecision, ssvcMethod := EvaluateSSVC(input)
 
-	// Step 3: Resolve priority (max of score-based and SSVC-based)
-	priorityLevel := ResolvePriority(compositeScore, ssvcDecision, e.profile.Thresholds)
+	// Step 3: Compute final score and priority (v2: weighted average + act floor)
+	ssvcScore := SSVCToScore(ssvcDecision)
+	scoreWeight := e.profile.ScoreWeight
+	if scoreWeight == 0 {
+		scoreWeight = 0.60 // fallback for profiles without score_weight
+	}
+	finalScore := scoreWeight*compositeScore + (1-scoreWeight)*ssvcScore
+	priorityLevel := ResolvePriority(compositeScore, ssvcDecision, e.profile.Thresholds, scoreWeight, e.profile.ActFloor)
 
 	// Determine resolution method
-	scorePriority := PriorityFromScore(compositeScore, e.profile.Thresholds)
-	ssvcPriority := PriorityFromSSVC(ssvcDecision)
-	resolutionMethod := determineResolutionMethod(scorePriority, ssvcPriority, priorityLevel)
+	resolutionMethod := determineResolutionMethodV2(compositeScore, ssvcScore, ssvcDecision, scoreWeight, priorityLevel, e.profile)
 
 	// Step 4: Build rationale
 	rationale := BuildRationale(contributions, string(ssvcDecision), ssvcMethod, priorityLevel, resolutionMethod)
@@ -47,14 +53,17 @@ func (e *Engine) Triage(ctx context.Context, input *TriageInput) (*TriageResult,
 	signalValues := buildSignalValues(input)
 
 	return &TriageResult{
-		VulnerabilityID: input.VulnerabilityID,
-		PriorityLevel:   priorityLevel,
-		CompositeScore:  compositeScore,
-		SSVCDecision:    string(ssvcDecision),
-		Rationale:       rationale,
-		SignalValues:    signalValues,
-		ProfileUsed:     e.profile.Name,
-		ComputedAt:      time.Now(),
+		VulnerabilityID:  input.VulnerabilityID,
+		PriorityLevel:    priorityLevel,
+		CompositeScore:   compositeScore,
+		SSVCScore:        ssvcScore,
+		FinalScore:       finalScore,
+		SSVCDecision:     string(ssvcDecision),
+		ResolutionMethod: resolutionMethod,
+		Rationale:        rationale,
+		SignalValues:     signalValues,
+		ProfileUsed:      e.profile.Name,
+		ComputedAt:       time.Now(),
 	}, nil
 }
 
@@ -89,19 +98,26 @@ func (e *Engine) Profile() *Profile {
 	return e.profile
 }
 
-// determineResolutionMethod determines how the final priority was resolved.
-func determineResolutionMethod(scorePriority, ssvcPriority, finalPriority PriorityLevel) string {
-	scoreRank := PriorityRank(scorePriority)
-	ssvcRank := PriorityRank(ssvcPriority)
-
-	switch {
-	case scoreRank == ssvcRank:
-		return "combined_max"
-	case scoreRank > ssvcRank:
-		return "score_based"
-	default:
-		return "ssvc_override"
+// determineResolutionMethodV2 determines how the final priority was resolved in v2.
+// Values: "score_dominant", "ssvc_dominant", "act_floor"
+func determineResolutionMethodV2(compositeScore, ssvcScore float64, ssvcDecision ssvc.Decision, scoreWeight float64, finalPriority PriorityLevel, profile *Profile) string {
+	// Check if act_floor was applied
+	if ssvcDecision == ssvc.DecisionAct {
+		finalScoreValue := scoreWeight*compositeScore + (1-scoreWeight)*ssvcScore
+		thresholdPriority := PriorityFromScore(finalScoreValue, profile.Thresholds)
+		if PriorityRank(profile.ActFloor) > PriorityRank(thresholdPriority) {
+			return "act_floor"
+		}
 	}
+
+	// Compare weighted contributions
+	scoreContribution := scoreWeight * compositeScore
+	ssvcContribution := (1 - scoreWeight) * ssvcScore
+
+	if scoreContribution >= ssvcContribution {
+		return "score_dominant"
+	}
+	return "ssvc_dominant"
 }
 
 // buildSignalValues constructs a map of signal name to raw value for the result.

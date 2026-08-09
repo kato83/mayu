@@ -13,6 +13,8 @@ type Profile struct {
 	Name        string            `yaml:"name" json:"name"`
 	Description string            `yaml:"description" json:"description"`
 	Base        string            `yaml:"base,omitempty" json:"base,omitempty"`
+	ScoreWeight float64           `yaml:"score_weight" json:"score_weight"` // α (0.0-1.0)
+	ActFloor    PriorityLevel     `yaml:"act_floor" json:"act_floor"`       // minimum priority when SSVC=Act
 	Weights     *ExtendedWeights  `yaml:"weights" json:"weights"`
 	Thresholds  *Thresholds       `yaml:"thresholds" json:"thresholds"`
 	SSVCMapping map[string]string `yaml:"ssvc_mapping,omitempty" json:"ssvc_mapping,omitempty"`
@@ -66,6 +68,8 @@ func DefaultProfile() *Profile {
 	return &Profile{
 		Name:        "default",
 		Description: "General-purpose balanced profile",
+		ScoreWeight: 0.60,
+		ActFloor:    PriorityCritical,
 		Weights:     DefaultExtendedWeights(),
 		Thresholds:  DefaultThresholds(),
 		SSVCMapping: map[string]string{
@@ -107,16 +111,17 @@ func ParseProfile(data []byte) (*Profile, error) {
 
 // findTemplate looks up a built-in template by name.
 func findTemplate(name string) *Profile {
-	for _, t := range BuiltinTemplates() {
-		if t.Name == name {
-			return &t
-		}
-	}
-	return nil
+	return findProfileByName(name)
 }
 
 // mergeProfile fills in missing fields in p from base.
 func mergeProfile(p *Profile, base *Profile) {
+	if p.ScoreWeight == 0 {
+		p.ScoreWeight = base.ScoreWeight
+	}
+	if p.ActFloor == "" {
+		p.ActFloor = base.ActFloor
+	}
 	if p.Weights == nil {
 		p.Weights = base.Weights
 	}
@@ -134,6 +139,8 @@ func BuiltinTemplates() []Profile {
 		{
 			Name:        "default",
 			Description: "General-purpose balanced profile",
+			ScoreWeight: 0.60,
+			ActFloor:    PriorityCritical,
 			Weights:     DefaultExtendedWeights(),
 			Thresholds:  DefaultThresholds(),
 			SSVCMapping: map[string]string{
@@ -143,6 +150,8 @@ func BuiltinTemplates() []Profile {
 		{
 			Name:        "internet-facing",
 			Description: "Internet-facing services: emphasizes EPSS, KEV, and ExploitDB",
+			ScoreWeight: 0.50,
+			ActFloor:    PriorityCritical,
 			Weights: &ExtendedWeights{
 				CVSS: 0.15, EPSS: 0.25, LEV: 0.15, KEV: 0.20,
 				Patch: 0.05, Age: 0.03, ExploitDB: 0.12, Exploitability: 0.05,
@@ -155,6 +164,8 @@ func BuiltinTemplates() []Profile {
 		{
 			Name:        "internal-only",
 			Description: "Internal systems: emphasizes CVSS and patch availability",
+			ScoreWeight: 0.70,
+			ActFloor:    PriorityHigh,
 			Weights: &ExtendedWeights{
 				CVSS: 0.30, EPSS: 0.10, LEV: 0.10, KEV: 0.10,
 				Patch: 0.15, Age: 0.08, ExploitDB: 0.10, Exploitability: 0.07,
@@ -167,6 +178,8 @@ func BuiltinTemplates() []Profile {
 		{
 			Name:        "air-gapped",
 			Description: "Air-gapped environments: de-emphasizes KEV/EPSS, focuses on CVSS and patch",
+			ScoreWeight: 0.80,
+			ActFloor:    PriorityHigh,
 			Weights: &ExtendedWeights{
 				CVSS: 0.35, EPSS: 0.05, LEV: 0.05, KEV: 0.05,
 				Patch: 0.20, Age: 0.10, ExploitDB: 0.10, Exploitability: 0.10,

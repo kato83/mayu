@@ -204,7 +204,7 @@ func TestTriageBatchSBOM(t *testing.T) {
 	})
 }
 
-// TestTriageSBOMWithServerProfile tests `mayu triage --sbom --server` for profile auto-resolution.
+// TestTriageSBOMWithServerProfile tests `mayu triage --sbom --environment` for profile auto-resolution.
 // Validates: Requirements 6.3
 func TestTriageSBOMWithServerProfile(t *testing.T) {
 	sbomData := `{
@@ -219,12 +219,12 @@ func TestTriageSBOMWithServerProfile(t *testing.T) {
 		t.Fatalf("write test SBOM: %v", err)
 	}
 
-	// Test with server label - it should use the "internet-facing" profile
+	// Test with environment name - it should use the "internet-facing" profile
 	old := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	args := []string{"--sbom", sbomPath, "--server", "api-prod", "--profile", "internet-facing", "--format", "json"}
+	args := []string{"--sbom", sbomPath, "--environment", "api-prod", "--profile", "internet-facing", "--format", "json"}
 	err := runTriageExecute(args)
 
 	_ = w.Close()
@@ -321,52 +321,28 @@ func TestTriageFailOn(t *testing.T) {
 // TestTriageOverview tests `mayu triage overview` command.
 // Validates: Requirements 6.6 (overview display)
 func TestTriageOverview(t *testing.T) {
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	err := runTriageOverview([]string{})
-
-	_ = w.Close()
-	os.Stdout = old
-
-	var buf [4096]byte
-	n, _ := r.Read(buf[:])
-	output := string(buf[:n])
-	_ = r.Close()
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	// Without authentication (no MAYU_API_KEY or session), the command
+	// should return an authentication error.
+	err := runTriageOverview([]string{}, nil)
+	if err == nil {
+		t.Fatal("expected authentication error, got nil")
 	}
-
-	if !strings.Contains(output, "Cross-Project Triage Overview") {
-		t.Error("expected output to contain 'Cross-Project Triage Overview'")
+	if !strings.Contains(err.Error(), "authentication required") {
+		t.Errorf("expected 'authentication required' error, got: %v", err)
 	}
 }
 
 // TestTriagePaths tests `mayu triage paths` command (Impact Score sort verification).
 // Validates: Requirements 6.6
 func TestTriagePaths(t *testing.T) {
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	err := runTriagePaths([]string{})
-
-	_ = w.Close()
-	os.Stdout = old
-
-	var buf [4096]byte
-	n, _ := r.Read(buf[:])
-	output := string(buf[:n])
-	_ = r.Close()
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	// Without authentication (no MAYU_API_KEY or session), the command
+	// should return an authentication error.
+	err := runTriagePaths([]string{}, nil)
+	if err == nil {
+		t.Fatal("expected authentication error, got nil")
 	}
-
-	if !strings.Contains(output, "Triage Paths") {
-		t.Error("expected output to contain 'Triage Paths'")
+	if !strings.Contains(err.Error(), "authentication required") {
+		t.Errorf("expected 'authentication required' error, got: %v", err)
 	}
 }
 
@@ -403,7 +379,7 @@ func TestTriageProfileBind(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stdout = w
 
-		args := []string{"--project", "test-project", "--server", "api-prod", "--profile", "internet-facing"}
+		args := []string{"--project", "test-project", "--environment", "api-prod", "--profile", "internet-facing"}
 		err := runTriageProfileBind(args)
 
 		_ = w.Close()
@@ -429,12 +405,12 @@ func TestTriageProfileBind(t *testing.T) {
 		args := []string{"--project", "test-project"}
 		err := runTriageProfileBind(args)
 		if err == nil {
-			t.Error("expected error for missing --server and --profile")
+			t.Error("expected error for missing --environment and --profile")
 		}
 	})
 
 	t.Run("unknown profile", func(t *testing.T) {
-		args := []string{"--project", "test-project", "--server", "web-prod", "--profile", "nonexistent-profile"}
+		args := []string{"--project", "test-project", "--environment", "web-prod", "--profile", "nonexistent-profile"}
 		err := runTriageProfileBind(args)
 		if err == nil {
 			t.Error("expected error for unknown profile")

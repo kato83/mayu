@@ -16,8 +16,8 @@ type TriageOnScanConfig struct {
 	// DefaultProfile is the fallback triage profile when no project/server binding exists.
 	DefaultProfile *triage.Profile
 
-	// BindingStore provides server-level profile bindings for resolution.
-	BindingStore triage.BindingStore
+	// BindingStore provides environment-level profile bindings for resolution.
+	BindingStore triage.EnvironmentBindingStore
 
 	// PathCacheStore stores computed triage paths for fast retrieval.
 	PathCacheStore TriagePathCacheStore
@@ -157,22 +157,22 @@ func RecalculateTriageOnDataIngest(ctx context.Context, cfg *TriageOnScanConfig,
 }
 
 // resolveProfileForScan determines which profile to use for a scan.
-// Priority: server binding > project binding > default profile.
+// Priority: environment binding > project binding > default profile.
 func resolveProfileForScan(cfg *TriageOnScanConfig, projectID int64, serverLabel string) (*triage.Profile, string) {
 	if cfg.BindingStore != nil {
-		// Try server-level binding first
+		// Try environment-level binding first
 		if serverLabel != "" {
-			binding, err := cfg.BindingStore.GetBindingByServer(projectID, serverLabel)
+			binding, err := cfg.BindingStore.GetBindingByEnvironment(projectID, serverLabel)
 			if err == nil && binding != nil {
 				p := findBuiltinProfile(binding.ProfileName)
 				if p != nil {
-					return p, "server_binding"
+					return p, "environment_binding"
 				}
 			}
 		}
 
-		// Try project-level binding (server_label = "" is the project-level convention)
-		binding, err := cfg.BindingStore.GetBindingByServer(projectID, "")
+		// Try project-level binding (environment = "" is the project-level convention)
+		binding, err := cfg.BindingStore.GetBindingByEnvironment(projectID, "")
 		if err == nil && binding != nil {
 			p := findBuiltinProfile(binding.ProfileName)
 			if p != nil {

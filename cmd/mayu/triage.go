@@ -7,12 +7,16 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/kato83/mayu/internal/config"
+	"github.com/kato83/mayu/internal/model"
+	"github.com/kato83/mayu/internal/sbommon"
+	"github.com/kato83/mayu/internal/store"
 	"github.com/kato83/mayu/internal/triage"
 )
 
-func runTriage(args []string, _ *config.Config) error {
+func runTriage(args []string, cfg *config.Config) error {
 	if len(args) == 0 {
 		printTriageUsage()
 		return nil
@@ -22,9 +26,9 @@ func runTriage(args []string, _ *config.Config) error {
 	case "profile":
 		return runTriageProfile(args[1:])
 	case "overview":
-		return runTriageOverview(args[1:])
+		return runTriageOverview(args[1:], cfg)
 	case "paths":
-		return runTriagePaths(args[1:])
+		return runTriagePaths(args[1:], cfg)
 	case "help", "-h", "--help":
 		printTriageUsage()
 		return nil
@@ -45,7 +49,7 @@ func printTriageUsage() {
 	fmt.Println()
 	fmt.Println("Options:")
 	fmt.Println("  --profile <name>     Profile to use (default: default)")
-	fmt.Println("  --server <label>     Server label for profile auto-resolution")
+	fmt.Println("  --environment <name> Environment name for profile auto-resolution")
 	fmt.Println("  --format <fmt>       Output format: table, json, csv (default: table)")
 	fmt.Println("  --fail-on <level>    Exit code 1 if priority >= level (critical, high, medium, low)")
 	fmt.Println("  --top <N>            Show only top N results")
@@ -56,7 +60,7 @@ func runTriageExecute(args []string) error {
 	vulnID := fs.String("id", "", "Vulnerability ID to triage")
 	sbomPath := fs.String("sbom", "", "SBOM file path for batch triage")
 	profileName := fs.String("profile", "default", "Triage profile name or path")
-	serverLabel := fs.String("server", "", "Server label for profile auto-resolution")
+	environment := fs.String("environment", "", "Environment name for profile auto-resolution")
 	format := fs.String("format", "table", "Output format: table, json, csv")
 	failOn := fs.String("fail-on", "", "Exit code 1 if any result >= level")
 	top := fs.Int("top", 0, "Show only top N results")
@@ -70,13 +74,13 @@ func runTriageExecute(args []string) error {
 
 	engine := triage.NewEngine(profile)
 
-	// Handle server-based profile resolution
-	if *serverLabel != "" {
+	// Handle environment-based profile resolution
+	if *environment != "" {
 		opts := &triage.ResolveOpts{
 			ExplicitProfile: *profileName,
-			ServerLabel:     *serverLabel,
+			Environment:     *environment,
 		}
-		resolved, _ := engine.ResolveProfile(opts, nil)
+		resolved, _ := engine.ResolveProfile(opts, nil, nil)
 		engine = triage.NewEngine(resolved)
 	}
 
@@ -97,7 +101,7 @@ func triageSingleVuln(engine *triage.Engine, vulnID string, format string) error
 		VulnerabilityID: vulnID,
 	}
 
-	result, err := engine.Triage(context.TODO(), input)
+	result, err := engine.Triage(context.Background(), input)
 	if err != nil {
 		return fmt.Errorf("triage failed: %w", err)
 	}
@@ -141,7 +145,7 @@ func triageBatchSBOM(engine *triage.Engine, sbomPath string, format string, fail
 		inputs = append(inputs, input)
 	}
 
-	results, err := engine.TriageBatch(context.TODO(), inputs)
+	results, err := engine.TriageBatch(context.Background(), inputs)
 	if err != nil {
 		return fmt.Errorf("batch triage failed: %w", err)
 	}
@@ -270,7 +274,7 @@ func runTriageProfile(args []string) error {
 		fmt.Println("  validate   Validate a triage profile YAML file")
 		fmt.Println("  list       List built-in template profiles")
 		fmt.Println("  show       Show a template profile's contents")
-		fmt.Println("  bind       Bind a profile to a server/asset")
+		fmt.Println("  bind       Bind a profile to an environment")
 		fmt.Println("  unbind     Remove a profile binding")
 		fmt.Println("  bindings   List profile bindings for a project")
 		return nil
@@ -363,15 +367,15 @@ func runTriageProfileShow(args []string) error {
 func runTriageProfileBind(args []string) error {
 	fs := flag.NewFlagSet("triage profile bind", flag.ContinueOnError)
 	project := fs.String("project", "", "Project name/ID")
-	server := fs.String("server", "", "Server label")
+	environment := fs.String("environment", "", "Environment name")
 	profileName := fs.String("profile", "", "Profile name to bind")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	if *project == "" || *server == "" || *profileName == "" {
-		return fmt.Errorf("--project, --server, and --profile are all required")
+	if *project == "" || *environment == "" || *profileName == "" {
+		return fmt.Errorf("--project, --environment, and --profile are all required")
 	}
 
 	// Verify profile exists
@@ -379,7 +383,7 @@ func runTriageProfileBind(args []string) error {
 		return fmt.Errorf("profile %q not found", *profileName)
 	}
 
-	fmt.Printf("✓ Bound profile %q to server %q in project %q\n", *profileName, *server, *project)
+	fmt.Printf("✓ Bound profile %q to environment %q in project %q\n", *profileName, *environment, *project)
 	fmt.Println("  (Note: In production, this is persisted to the database via API)")
 	return nil
 }
@@ -387,17 +391,17 @@ func runTriageProfileBind(args []string) error {
 func runTriageProfileUnbind(args []string) error {
 	fs := flag.NewFlagSet("triage profile unbind", flag.ContinueOnError)
 	project := fs.String("project", "", "Project name/ID")
-	server := fs.String("server", "", "Server label")
+	environment := fs.String("environment", "", "Environment name")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	if *project == "" || *server == "" {
-		return fmt.Errorf("--project and --server are required")
+	if *project == "" || *environment == "" {
+		return fmt.Errorf("--project and --environment are required")
 	}
 
-	fmt.Printf("✓ Unbound profile from server %q in project %q\n", *server, *project)
+	fmt.Printf("✓ Unbound profile from environment %q in project %q\n", *environment, *project)
 	return nil
 }
 
@@ -420,59 +424,559 @@ func runTriageProfileBindings(args []string) error {
 
 // --- Overview Subcommand ---
 
-func runTriageOverview(args []string) error {
+func runTriageOverview(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("triage overview", flag.ContinueOnError)
 	priority := fs.String("priority", "", "Minimum priority level filter")
 	topN := fs.Int("top", 20, "Number of results to show")
 	format := fs.String("format", "table", "Output format: table, json")
 	sortBy := fs.String("sort", "priority", "Sort by: priority, affected_count")
+	project := fs.String("project", "", "Filter by project name")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	// In a full implementation, this would query the database
-	// For now, display a placeholder showing the command works
-	fmt.Println("Cross-Project Triage Overview")
-	fmt.Println(strings.Repeat("─", 70))
-	fmt.Printf("Filter: priority=%s, top=%d, sort=%s, format=%s\n", *priority, *topN, *sortBy, *format)
-	fmt.Println()
-	fmt.Println("  (Connect to database with 'mayu serve' to see live data)")
-	fmt.Println("  Use the API endpoint GET /api/v1/triage/overview for programmatic access.")
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	// Authenticate and get DB connection
+	user, db, err := resolveAuthUser(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = db.Close() }()
+
+	databaseURL := resolveDatabaseURL(cfg)
+	mainStore, err := store.NewPostgresStore(ctx, databaseURL)
+	if err != nil {
+		return fmt.Errorf("connect to store: %w", err)
+	}
+	defer func() { _ = mainStore.Close() }()
+
+	sbomStore := sbommon.NewPostgresSBOMStore(db)
+
+	// Compute cross-project overview
+	summary, crossResults := computeCLIOverview(ctx, user.ID, sbomStore, mainStore, *project)
+
+	// Filter by priority
+	if *priority != "" {
+		var filtered []*triage.CrossProjectTriageResult
+		for _, cr := range crossResults {
+			if strings.EqualFold(string(cr.OrgPriorityLevel), *priority) {
+				filtered = append(filtered, cr)
+			}
+		}
+		crossResults = filtered
+	}
+
+	// Sort
+	if *sortBy == "affected_count" {
+		sortByAffectedCount(crossResults)
+	}
+	// Default sort (by priority) is already done by AggregateCrossProjectBatch
+
+	// Apply --top limit
+	if *topN > 0 && *topN < len(crossResults) {
+		crossResults = crossResults[:*topN]
+	}
+
+	switch *format {
+	case "json":
+		report := map[string]interface{}{
+			"summary": map[string]int{
+				"total":         summary.Total,
+				"critical":      summary.Critical,
+				"high":          summary.High,
+				"medium":        summary.Medium,
+				"low":           summary.Low,
+				"risk_accepted": summary.RiskAccepted,
+			},
+			"vulnerabilities": crossResults,
+			"computed_at":     time.Now().UTC().Format(time.RFC3339),
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(report)
+	default: // table
+		fmt.Println("Triage Overview")
+		fmt.Println("═══════════════════════════════")
+		fmt.Printf("Critical: %d\n", summary.Critical)
+		fmt.Printf("High:     %d\n", summary.High)
+		fmt.Printf("Medium:   %d\n", summary.Medium)
+		fmt.Printf("Low:      %d\n", summary.Low)
+		fmt.Println("───────────────────────────────")
+		fmt.Printf("Total:    %d\n", summary.Total)
+		if summary.RiskAccepted > 0 {
+			fmt.Printf("Risk Accepted: %d\n", summary.RiskAccepted)
+		}
+		fmt.Println()
+
+		if len(crossResults) > 0 {
+			fmt.Printf("Top Vulnerabilities (sorted by %s):\n", *sortBy)
+			fmt.Println(strings.Repeat("─", 90))
+			fmt.Printf("%-20s %-10s %-8s %-10s %-10s\n", "VULNERABILITY", "PRIORITY", "SCORE", "SERVERS", "PROJECTS")
+			fmt.Println(strings.Repeat("─", 90))
+			for _, cr := range crossResults {
+				fmt.Printf("%-20s %-10s %-8.4f %-10d %-10d\n",
+					truncateStr(cr.VulnerabilityID, 20),
+					cr.OrgPriorityLevel,
+					cr.MaxCompositeScore,
+					cr.AffectedServers,
+					cr.AffectedProjects)
+			}
+			fmt.Println(strings.Repeat("─", 90))
+		}
+		return nil
+	}
+}
+
+// computeCLIOverview aggregates triage results across all SBOM projects for the given user.
+func computeCLIOverview(ctx context.Context, userID int64, sbomStore *sbommon.PostgresSBOMStore, mainStore *store.PostgresStore, projectFilter string) (*triage.OverviewSummary, []*triage.CrossProjectTriageResult) {
+	projects, err := sbomStore.ListProjects(ctx, userID)
+	if err != nil || len(projects) == 0 {
+		return &triage.OverviewSummary{}, nil
+	}
+
+	entriesByVuln := make(map[string][]triage.ServerTriageEntry)
+	riskAcceptedVulnIDs := make(map[string]bool)
+
+	for _, proj := range projects {
+		// Apply project filter if specified
+		if projectFilter != "" && !strings.EqualFold(proj.Name, projectFilter) {
+			continue
+		}
+
+		latestVer, err := sbomStore.GetLatestVersion(ctx, proj.ID)
+		if err != nil || latestVer == nil {
+			continue
+		}
+
+		scanResult, err := sbomStore.GetLatestScanResult(ctx, latestVer.ID)
+		if err != nil || scanResult == nil || len(scanResult.Findings) == 0 {
+			continue
+		}
+
+		// Resolve profile for this project/environment
+		profile := resolveProfileForProjectEnv(ctx, mainStore, proj.ID, latestVer.Environment)
+		engine := triage.NewEngine(profile)
+
+		// Exclude suppressed/false_positive/resolved/risk_accepted findings
+		excludedStatuses := make(map[string]bool)
+		riskAcceptedKeys := make(map[string]bool)
+		statuses, _ := sbomStore.ListFindingStatuses(ctx, latestVer.ID, nil)
+		for _, fs := range statuses {
+			if fs.Status == sbommon.FindingStatusFalsePositive ||
+				fs.Status == sbommon.FindingStatusSuppressed ||
+				fs.Status == sbommon.FindingStatusResolved ||
+				fs.Status == sbommon.FindingStatusRiskAccepted {
+				excludedStatuses[fs.VulnID+"|"+fs.Purl] = true
+			}
+			if fs.Status == sbommon.FindingStatusRiskAccepted {
+				riskAcceptedKeys[fs.VulnID+"|"+fs.Purl] = true
+			}
+		}
+
+		// Collect unique vulnerability IDs from active findings
+		vulnIDsSeen := make(map[string]bool)
+		var vulnIDs []string
+		for _, f := range scanResult.Findings {
+			key := f.VulnID + "|" + f.Purl
+			if excludedStatuses[key] {
+				if riskAcceptedKeys[key] {
+					riskAcceptedVulnIDs[f.VulnID] = true
+				}
+				continue
+			}
+			if !vulnIDsSeen[f.VulnID] {
+				vulnIDsSeen[f.VulnID] = true
+				vulnIDs = append(vulnIDs, f.VulnID)
+			}
+		}
+
+		if len(vulnIDs) == 0 {
+			continue
+		}
+
+		// Build triage inputs and run triage
+		var inputs []*triage.TriageInput
+		for _, vulnID := range vulnIDs {
+			inputs = append(inputs, buildCLITriageInput(ctx, mainStore, vulnID))
+		}
+
+		results, err := engine.TriageBatch(ctx, inputs)
+		if err != nil {
+			continue
+		}
+
+		// Map results into ServerTriageEntry per vulnerability
+		for _, result := range results {
+			entry := triage.ServerTriageEntry{
+				ProjectID:    proj.ID,
+				ProjectName:  proj.Name,
+				ServerLabel:  latestVer.Environment,
+				Environment:  latestVer.Environment,
+				ProfileUsed:  profile.Name,
+				TriageResult: result,
+			}
+			if entry.ServerLabel == "" {
+				entry.ServerLabel = "default"
+			}
+			entriesByVuln[result.VulnerabilityID] = append(entriesByVuln[result.VulnerabilityID], entry)
+		}
+	}
+
+	if len(entriesByVuln) == 0 {
+		riskAcceptedCount := 0
+		for vulnID := range riskAcceptedVulnIDs {
+			if _, active := entriesByVuln[vulnID]; !active {
+				riskAcceptedCount++
+			}
+		}
+		return &triage.OverviewSummary{RiskAccepted: riskAcceptedCount}, nil
+	}
+
+	crossResults := triage.AggregateCrossProjectBatch(entriesByVuln)
+	summary := triage.ComputeOverviewSummary(crossResults)
+
+	for vulnID := range riskAcceptedVulnIDs {
+		if _, active := entriesByVuln[vulnID]; !active {
+			summary.RiskAccepted++
+		}
+	}
+
+	return summary, crossResults
+}
+
+// resolveProfileForProjectEnv resolves the triage profile for a given project/environment
+// using priority: environment binding > project default > built-in default.
+func resolveProfileForProjectEnv(ctx context.Context, s *store.PostgresStore, projectID int64, environment string) *triage.Profile {
+	// 1. Try environment binding
+	if environment != "" {
+		binding, err := s.GetEnvironmentBinding(ctx, projectID, environment)
+		if err == nil && binding != nil {
+			if p := resolveProfileByName(ctx, s, binding.ProfileName); p != nil {
+				return p
+			}
+		}
+	}
+
+	// 2. Try project default
+	defaultName, err := s.GetProjectDefaultProfile(ctx, projectID)
+	if err == nil && defaultName != "" {
+		if p := resolveProfileByName(ctx, s, defaultName); p != nil {
+			return p
+		}
+	}
+
+	// 3. Fall back to built-in default
+	return triage.DefaultProfile()
+}
+
+// resolveProfileByName resolves a profile by name from built-in templates or the store.
+func resolveProfileByName(ctx context.Context, s *store.PostgresStore, name string) *triage.Profile {
+	if name == "" {
+		return triage.DefaultProfile()
+	}
+
+	// Check built-in templates first
+	for _, t := range triage.BuiltinTemplates() {
+		if t.Name == name {
+			return &t
+		}
+	}
+
+	// Check custom profiles in DB
+	row, err := s.GetTriageProfile(ctx, name)
+	if err == nil && row != nil {
+		if p := cliRowToProfile(row); p != nil {
+			return p
+		}
+	}
+
+	return triage.DefaultProfile()
+}
+
+// cliRowToProfile converts a TriageProfileRow to a triage.Profile.
+func cliRowToProfile(row *store.TriageProfileRow) *triage.Profile {
+	var weights triage.ExtendedWeights
+	if err := json.Unmarshal(row.Weights, &weights); err != nil {
+		return nil
+	}
+
+	var thresholds triage.Thresholds
+	if err := json.Unmarshal(row.Thresholds, &thresholds); err != nil {
+		return nil
+	}
+
+	p := &triage.Profile{
+		Name:        row.Name,
+		Description: row.Description,
+		Base:        row.Base,
+		ScoreWeight: row.ScoreWeight,
+		ActFloor:    triage.PriorityLevel(row.ActFloor),
+		Weights:     &weights,
+		Thresholds:  &thresholds,
+	}
+
+	if row.SSVCMapping != nil {
+		var ssvc map[string]string
+		if err := json.Unmarshal(*row.SSVCMapping, &ssvc); err == nil {
+			p.SSVCMapping = ssvc
+		}
+	}
+
+	return p
+}
+
+// buildCLITriageInput builds a TriageInput from vulnerability detail in the store.
+func buildCLITriageInput(ctx context.Context, s *store.PostgresStore, vulnID string) *triage.TriageInput {
+	detail, err := s.GetVulnerabilityDetail(ctx, vulnID)
+	if err != nil || detail == nil {
+		return &triage.TriageInput{VulnerabilityID: vulnID}
+	}
+	return buildCLITriageInputFromDetail(detail)
+}
+
+// buildCLITriageInputFromDetail constructs a TriageInput from a VulnerabilityDetail.
+func buildCLITriageInputFromDetail(detail *model.VulnerabilityDetail) *triage.TriageInput {
+	input := &triage.TriageInput{
+		VulnerabilityID: detail.ID,
+	}
+
+	// CVSS: take the highest base score from NVD metrics
+	if detail.NVD != nil && len(detail.NVD.Metrics) > 0 {
+		var maxScore float64
+		var maxVector string
+		for _, m := range detail.NVD.Metrics {
+			if m.BaseScore > maxScore {
+				maxScore = m.BaseScore
+				maxVector = m.VectorString
+			}
+		}
+		if maxScore > 0 {
+			input.CVSSScore = &maxScore
+			input.CVSSVector = maxVector
+		}
+	}
+	// Fallback: try MITRE metrics if NVD has none
+	if input.CVSSScore == nil && detail.MITRE != nil && len(detail.MITRE.Metrics) > 0 {
+		var maxScore float64
+		var maxVector string
+		for _, m := range detail.MITRE.Metrics {
+			if m.BaseScore > maxScore {
+				maxScore = m.BaseScore
+				maxVector = m.VectorString
+			}
+		}
+		if maxScore > 0 {
+			input.CVSSScore = &maxScore
+			input.CVSSVector = maxVector
+		}
+	}
+
+	// EPSS
+	if detail.EPSS != nil {
+		input.EPSSScore = &detail.EPSS.EPSS
+	}
+
+	// LEV
+	if detail.LEV != nil {
+		input.LEVScore = &detail.LEV.LEV
+		input.InKEV = detail.LEV.InKEV
+	}
+
+	// KEV
+	if detail.KEV != nil {
+		input.InKEV = true
+	}
+
+	// Patch availability
+	for _, affected := range detail.Affected {
+		for _, r := range affected.Ranges {
+			for _, evt := range r.Events {
+				if evt.Fixed != "" {
+					input.PatchAvailable = true
+					break
+				}
+			}
+			if input.PatchAvailable {
+				break
+			}
+		}
+		if input.PatchAvailable {
+			break
+		}
+	}
+
+	// Published date
+	if detail.Published != nil {
+		input.PublishedAt = detail.Published
+	}
+
+	// ExploitDB
+	if len(detail.ExploitDB) > 0 {
+		input.HasExploit = true
+	}
+
+	// Exploitability score
+	if detail.NVD != nil && len(detail.NVD.Metrics) > 0 {
+		var bestExploitability *float64
+		var bestBaseScore float64
+		for _, m := range detail.NVD.Metrics {
+			if m.ExploitabilityScore != nil && m.BaseScore >= bestBaseScore {
+				bestBaseScore = m.BaseScore
+				bestExploitability = m.ExploitabilityScore
+			}
+		}
+		if bestExploitability != nil {
+			input.ExploitabilityScore = bestExploitability
+		}
+	}
+
+	// SSVC options
+	input.SSVCOptions = extractCLISSVCOptions(detail)
+
+	return input
+}
+
+// extractCLISSVCOptions extracts SSVC decision points from VulnerabilityDetail.
+func extractCLISSVCOptions(detail *model.VulnerabilityDetail) map[string]string {
+	if detail.NVD != nil && detail.NVD.SSVC != nil && len(detail.NVD.SSVC.Options) > 0 {
+		opts := make(map[string]string)
+		for _, o := range detail.NVD.SSVC.Options {
+			opts[o.Key] = o.Value
+		}
+		return opts
+	}
+	if detail.MITRE != nil && detail.MITRE.SSVC != nil && len(detail.MITRE.SSVC.Options) > 0 {
+		opts := make(map[string]string)
+		for _, o := range detail.MITRE.SSVC.Options {
+			opts[o.Key] = o.Value
+		}
+		return opts
+	}
 	return nil
+}
+
+// sortByAffectedCount sorts cross-project results by affected server count (descending).
+func sortByAffectedCount(results []*triage.CrossProjectTriageResult) {
+	for i := 0; i < len(results); i++ {
+		for j := i + 1; j < len(results); j++ {
+			if results[j].AffectedServers > results[i].AffectedServers {
+				results[i], results[j] = results[j], results[i]
+			}
+		}
+	}
 }
 
 // --- Paths Subcommand ---
 
-func runTriagePaths(args []string) error {
+func runTriagePaths(args []string, cfg *config.Config) error {
 	if len(args) > 0 && args[0] == "show" {
-		return runTriagePathShow(args[1:])
+		return runTriagePathShow(args[1:], cfg)
 	}
 
 	fs := flag.NewFlagSet("triage paths", flag.ContinueOnError)
 	topN := fs.Int("top", 20, "Number of paths to show")
 	priority := fs.String("priority", "", "Minimum priority filter")
 	ecosystem := fs.String("ecosystem", "", "Filter by ecosystem")
-	project := fs.String("project", "", "Filter by project")
+	projectFilter := fs.String("project", "", "Filter by project")
 	format := fs.String("format", "table", "Output format: table, json")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	fmt.Println("Triage Paths (Remediation Grouping)")
-	fmt.Println(strings.Repeat("─", 70))
-	fmt.Printf("Filter: top=%d, priority=%s, ecosystem=%s, project=%s, format=%s\n",
-		*topN, *priority, *ecosystem, *project, *format)
-	fmt.Println()
-	fmt.Println("  (Connect to database with 'mayu serve' to see live data)")
-	fmt.Println("  Use the API endpoint GET /api/v1/triage/paths for programmatic access.")
-	return nil
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	// Authenticate and get DB connection
+	user, db, err := resolveAuthUser(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = db.Close() }()
+
+	databaseURL := resolveDatabaseURL(cfg)
+	mainStore, err := store.NewPostgresStore(ctx, databaseURL)
+	if err != nil {
+		return fmt.Errorf("connect to store: %w", err)
+	}
+	defer func() { _ = mainStore.Close() }()
+
+	sbomStore := sbommon.NewPostgresSBOMStore(db)
+
+	// Compute triage paths
+	paths := computeCLITriagePaths(ctx, user.ID, sbomStore, mainStore, *projectFilter)
+
+	// Filter by priority
+	if *priority != "" {
+		var filtered []*triage.TriagePath
+		for _, p := range paths {
+			if strings.EqualFold(string(p.MaxPriorityLevel), *priority) {
+				filtered = append(filtered, p)
+			}
+		}
+		paths = filtered
+	}
+
+	// Filter by ecosystem
+	if *ecosystem != "" {
+		var filtered []*triage.TriagePath
+		for _, p := range paths {
+			if strings.EqualFold(p.Action.Ecosystem, *ecosystem) {
+				filtered = append(filtered, p)
+			}
+		}
+		paths = filtered
+	}
+
+	// Apply --top limit
+	if *topN > 0 && *topN < len(paths) {
+		paths = paths[:*topN]
+	}
+
+	switch *format {
+	case "json":
+		report := map[string]interface{}{
+			"paths":       paths,
+			"total":       len(paths),
+			"computed_at": time.Now().UTC().Format(time.RFC3339),
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(report)
+	default: // table
+		if len(paths) == 0 {
+			fmt.Println("No triage paths found.")
+			fmt.Println("  (Upload SBOMs with 'mayu sbom upload' and ingest vulnerability data first)")
+			return nil
+		}
+
+		fmt.Printf("Triage Paths (%d total)\n", len(paths))
+		fmt.Println(strings.Repeat("─", 100))
+		fmt.Printf("%-10s %-30s %-22s %-6s %-10s %-7s\n",
+			"ID", "Package", "Current → Target", "Vulns", "Priority", "Impact")
+		fmt.Println(strings.Repeat("─", 100))
+		for _, p := range paths {
+			versionRange := truncateStr(p.Action.CurrentVersion, 9) + " → " + truncateStr(p.Action.TargetVersion, 9)
+			fmt.Printf("%-10s %-30s %-22s %-6d %-10s %-7.2f\n",
+				truncateStr(p.ID, 10),
+				truncateStr(p.Action.Package, 30),
+				truncateStr(versionRange, 22),
+				p.TotalVulnCount,
+				p.MaxPriorityLevel,
+				p.ImpactScore)
+		}
+		fmt.Println(strings.Repeat("─", 100))
+		return nil
+	}
 }
 
-func runTriagePathShow(args []string) error {
+func runTriagePathShow(args []string, cfg *config.Config) error {
 	fs := flag.NewFlagSet("triage paths show", flag.ContinueOnError)
 	id := fs.String("id", "", "Triage path ID")
+	format := fs.String("format", "table", "Output format: table, json")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -482,9 +986,188 @@ func runTriagePathShow(args []string) error {
 		return fmt.Errorf("--id is required")
 	}
 
-	fmt.Printf("Triage Path: %s\n", *id)
-	fmt.Println("  (Connect to database with 'mayu serve' to see live data)")
-	return nil
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	// Authenticate and get DB connection
+	user, db, err := resolveAuthUser(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = db.Close() }()
+
+	databaseURL := resolveDatabaseURL(cfg)
+	mainStore, err := store.NewPostgresStore(ctx, databaseURL)
+	if err != nil {
+		return fmt.Errorf("connect to store: %w", err)
+	}
+	defer func() { _ = mainStore.Close() }()
+
+	sbomStore := sbommon.NewPostgresSBOMStore(db)
+
+	// Compute all paths and find the requested one
+	paths := computeCLITriagePaths(ctx, user.ID, sbomStore, mainStore, "")
+
+	var found *triage.TriagePath
+	for _, p := range paths {
+		if p.ID == *id {
+			found = p
+			break
+		}
+	}
+
+	if found == nil {
+		return fmt.Errorf("triage path %q not found", *id)
+	}
+
+	switch *format {
+	case "json":
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(found)
+	default: // table
+		fmt.Printf("Triage Path: %s\n", found.ID)
+		fmt.Println(strings.Repeat("═", 70))
+		fmt.Printf("Action:      %s %s → %s\n", found.Action.Package, found.Action.CurrentVersion, found.Action.TargetVersion)
+		fmt.Printf("Ecosystem:   %s\n", found.Action.Ecosystem)
+		fmt.Printf("Priority:    %s\n", found.MaxPriorityLevel)
+		fmt.Printf("Impact:      %.4f\n", found.ImpactScore)
+		fmt.Printf("Vulns:       %d\n", found.TotalVulnCount)
+		fmt.Printf("Servers:     %d\n", found.TotalServerCount)
+		fmt.Println()
+
+		if len(found.ResolvedVulnerabilities) > 0 {
+			fmt.Println("Resolved Vulnerabilities:")
+			fmt.Println(strings.Repeat("─", 70))
+			fmt.Printf("%-22s %-10s %-8s %-15s\n", "VULNERABILITY", "PRIORITY", "SCORE", "FIXED IN")
+			fmt.Println(strings.Repeat("─", 70))
+			for _, rv := range found.ResolvedVulnerabilities {
+				fmt.Printf("%-22s %-10s %-8.4f %-15s\n",
+					truncateStr(rv.VulnerabilityID, 22),
+					rv.PriorityLevel,
+					rv.CompositeScore,
+					truncateStr(rv.FixedVersion, 15))
+			}
+			fmt.Println(strings.Repeat("─", 70))
+		}
+
+		if len(found.AffectedServers) > 0 {
+			fmt.Println()
+			fmt.Println("Affected Servers:")
+			for _, srv := range found.AffectedServers {
+				fmt.Printf("  • %s\n", srv)
+			}
+		}
+		return nil
+	}
+}
+
+// computeCLITriagePaths computes remediation paths across all SBOM projects for the given user.
+func computeCLITriagePaths(ctx context.Context, userID int64, sbomStore *sbommon.PostgresSBOMStore, mainStore *store.PostgresStore, projectFilter string) []*triage.TriagePath {
+	projects, err := sbomStore.ListProjects(ctx, userID)
+	if err != nil || len(projects) == 0 {
+		return nil
+	}
+
+	var scanFindings []triage.ScanFinding
+
+	for _, proj := range projects {
+		// Apply project filter if specified
+		if projectFilter != "" && !strings.EqualFold(proj.Name, projectFilter) {
+			continue
+		}
+
+		latestVer, err := sbomStore.GetLatestVersion(ctx, proj.ID)
+		if err != nil || latestVer == nil {
+			continue
+		}
+
+		scanResult, err := sbomStore.GetLatestScanResult(ctx, latestVer.ID)
+		if err != nil || scanResult == nil || len(scanResult.Findings) == 0 {
+			continue
+		}
+
+		// Resolve profile for this project/environment
+		profile := resolveProfileForProjectEnv(ctx, mainStore, proj.ID, latestVer.Environment)
+		engine := triage.NewEngine(profile)
+
+		// Exclude suppressed/false_positive/resolved/risk_accepted findings
+		excludedStatuses := make(map[string]bool)
+		statuses, _ := sbomStore.ListFindingStatuses(ctx, latestVer.ID, nil)
+		for _, fs := range statuses {
+			if fs.Status == sbommon.FindingStatusFalsePositive ||
+				fs.Status == sbommon.FindingStatusSuppressed ||
+				fs.Status == sbommon.FindingStatusResolved ||
+				fs.Status == sbommon.FindingStatusRiskAccepted {
+				excludedStatuses[fs.VulnID+"|"+fs.Purl] = true
+			}
+		}
+
+		// Build triage inputs for scoring
+		vulnScores := make(map[string]*triage.TriageResult)
+		vulnIDsSeen := make(map[string]bool)
+		var vulnIDs []string
+		for _, f := range scanResult.Findings {
+			key := f.VulnID + "|" + f.Purl
+			if excludedStatuses[key] {
+				continue
+			}
+			if !vulnIDsSeen[f.VulnID] {
+				vulnIDsSeen[f.VulnID] = true
+				vulnIDs = append(vulnIDs, f.VulnID)
+			}
+		}
+
+		if len(vulnIDs) == 0 {
+			continue
+		}
+
+		var inputs []*triage.TriageInput
+		for _, vulnID := range vulnIDs {
+			inputs = append(inputs, buildCLITriageInput(ctx, mainStore, vulnID))
+		}
+
+		results, err := engine.TriageBatch(ctx, inputs)
+		if err != nil {
+			continue
+		}
+		for _, r := range results {
+			vulnScores[r.VulnerabilityID] = r
+		}
+
+		// Build ScanFindings for path computation
+		for _, f := range scanResult.Findings {
+			key := f.VulnID + "|" + f.Purl
+			if excludedStatuses[key] {
+				continue
+			}
+			sf := triage.ScanFinding{
+				VulnerabilityID: f.VulnID,
+				PackagePurl:     f.Purl,
+				CurrentVersion:  f.Version,
+				FixedVersion:    f.FixedVersion,
+				Ecosystem:       f.Ecosystem,
+				ServerLabel:     latestVer.Environment,
+				ProjectID:       proj.ID,
+				ProjectName:     proj.Name,
+				Environment:     latestVer.Environment,
+			}
+			if sf.ServerLabel == "" {
+				sf.ServerLabel = "default"
+			}
+			if result, ok := vulnScores[f.VulnID]; ok {
+				sf.CompositeScore = result.CompositeScore
+				sf.PriorityLevel = result.PriorityLevel
+			}
+			scanFindings = append(scanFindings, sf)
+		}
+	}
+
+	if len(scanFindings) == 0 {
+		return nil
+	}
+
+	return triage.ComputeTriagePaths(scanFindings)
 }
 
 // --- Helpers ---

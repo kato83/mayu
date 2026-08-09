@@ -5,7 +5,8 @@ import (
 	"github.com/kato83/mayu/internal/ssvc"
 )
 
-// DefaultSSVCMapping maps SSVC decisions to priority levels.
+// Deprecated: DefaultSSVCMapping is kept for display/reference purposes only.
+// It is no longer used in the priority calculation (v2 uses weighted average + act floor).
 var DefaultSSVCMapping = map[ssvc.Decision]PriorityLevel{
 	ssvc.DecisionAct:       PriorityCritical,
 	ssvc.DecisionAttend:    PriorityHigh,
@@ -13,16 +14,39 @@ var DefaultSSVCMapping = map[ssvc.Decision]PriorityLevel{
 	ssvc.DecisionTrack:     PriorityLow,
 }
 
-// ResolvePriority determines the final priority level by taking the higher
-// of composite-score-based priority and SSVC-based priority.
-func ResolvePriority(compositeScore float64, ssvcDecision ssvc.Decision, thresholds *Thresholds) PriorityLevel {
-	scorePriority := PriorityFromScore(compositeScore, thresholds)
-	ssvcPriority := PriorityFromSSVC(ssvcDecision)
-
-	if PriorityRank(ssvcPriority) > PriorityRank(scorePriority) {
-		return ssvcPriority
+// SSVCToScore converts an SSVC decision to a numeric score [0.0, 1.0].
+func SSVCToScore(decision ssvc.Decision) float64 {
+	switch decision {
+	case ssvc.DecisionAct:
+		return 1.0
+	case ssvc.DecisionAttend:
+		return 0.75
+	case ssvc.DecisionTrackStar:
+		return 0.50
+	case ssvc.DecisionTrack:
+		return 0.25
+	default:
+		return 0.0
 	}
-	return scorePriority
+}
+
+// ResolvePriority determines the final priority using weighted average + Act floor.
+// Final Score = α × compositeScore + (1-α) × SSVCScore
+// Final Priority = max(PriorityFromScore(finalScore), actFloor if SSVC=Act)
+func ResolvePriority(compositeScore float64, ssvcDecision ssvc.Decision, thresholds *Thresholds, scoreWeight float64, actFloor PriorityLevel) PriorityLevel {
+	ssvcScore := SSVCToScore(ssvcDecision)
+	finalScore := scoreWeight*compositeScore + (1-scoreWeight)*ssvcScore
+
+	thresholdPriority := PriorityFromScore(finalScore, thresholds)
+
+	// Apply Act floor
+	if ssvcDecision == ssvc.DecisionAct {
+		if PriorityRank(actFloor) > PriorityRank(thresholdPriority) {
+			return actFloor
+		}
+	}
+
+	return thresholdPriority
 }
 
 // PriorityFromScore determines priority level based on composite score and thresholds.

@@ -14,6 +14,8 @@ type TriageProfileRow struct {
 	Name        string           `json:"name"`
 	Description string           `json:"description"`
 	Base        string           `json:"base,omitempty"`
+	ScoreWeight float64          `json:"score_weight"`
+	ActFloor    string           `json:"act_floor"`
 	Weights     json.RawMessage  `json:"weights"`
 	Thresholds  json.RawMessage  `json:"thresholds"`
 	SSVCMapping *json.RawMessage `json:"ssvc_mapping,omitempty"`
@@ -25,9 +27,9 @@ type TriageProfileRow struct {
 // CreateTriageProfile inserts a new custom triage profile into the database.
 func (s *PostgresStore) CreateTriageProfile(ctx context.Context, row *TriageProfileRow) (*TriageProfileRow, error) {
 	query := `
-		INSERT INTO triage_profiles (name, description, base, weights, thresholds, ssvc_mapping, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, name, description, base, weights, thresholds, ssvc_mapping, created_by, created_at, updated_at`
+		INSERT INTO triage_profiles (name, description, base, score_weight, act_floor, weights, thresholds, ssvc_mapping, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, name, description, base, score_weight, act_floor, weights, thresholds, ssvc_mapping, created_by, created_at, updated_at`
 
 	var result TriageProfileRow
 	var base sql.NullString
@@ -36,11 +38,13 @@ func (s *PostgresStore) CreateTriageProfile(ctx context.Context, row *TriageProf
 
 	err := s.db.QueryRowContext(ctx, query,
 		row.Name, row.Description, nullString(row.Base),
+		row.ScoreWeight, row.ActFloor,
 		row.Weights, row.Thresholds, row.SSVCMapping,
 		nullInt64(row.CreatedBy),
 	).Scan(
 		&result.ID, &result.Name, &result.Description,
-		&base, &result.Weights, &result.Thresholds,
+		&base, &result.ScoreWeight, &result.ActFloor,
+		&result.Weights, &result.Thresholds,
 		&ssvcMapping, &createdBy,
 		&result.CreatedAt, &result.UpdatedAt,
 	)
@@ -61,7 +65,7 @@ func (s *PostgresStore) CreateTriageProfile(ctx context.Context, row *TriageProf
 // GetTriageProfile retrieves a custom triage profile by name.
 func (s *PostgresStore) GetTriageProfile(ctx context.Context, name string) (*TriageProfileRow, error) {
 	query := `
-		SELECT id, name, description, base, weights, thresholds, ssvc_mapping, created_by, created_at, updated_at
+		SELECT id, name, description, base, score_weight, act_floor, weights, thresholds, ssvc_mapping, created_by, created_at, updated_at
 		FROM triage_profiles WHERE name = $1`
 
 	var row TriageProfileRow
@@ -71,7 +75,8 @@ func (s *PostgresStore) GetTriageProfile(ctx context.Context, name string) (*Tri
 
 	err := s.db.QueryRowContext(ctx, query, name).Scan(
 		&row.ID, &row.Name, &row.Description,
-		&base, &row.Weights, &row.Thresholds,
+		&base, &row.ScoreWeight, &row.ActFloor,
+		&row.Weights, &row.Thresholds,
 		&ssvcMapping, &createdBy,
 		&row.CreatedAt, &row.UpdatedAt,
 	)
@@ -95,7 +100,7 @@ func (s *PostgresStore) GetTriageProfile(ctx context.Context, name string) (*Tri
 // ListTriageProfiles returns all custom triage profiles.
 func (s *PostgresStore) ListTriageProfiles(ctx context.Context) ([]*TriageProfileRow, error) {
 	query := `
-		SELECT id, name, description, base, weights, thresholds, ssvc_mapping, created_by, created_at, updated_at
+		SELECT id, name, description, base, score_weight, act_floor, weights, thresholds, ssvc_mapping, created_by, created_at, updated_at
 		FROM triage_profiles ORDER BY name`
 
 	rows, err := s.db.QueryContext(ctx, query)
@@ -113,7 +118,8 @@ func (s *PostgresStore) ListTriageProfiles(ctx context.Context) ([]*TriageProfil
 
 		if err := rows.Scan(
 			&row.ID, &row.Name, &row.Description,
-			&base, &row.Weights, &row.Thresholds,
+			&base, &row.ScoreWeight, &row.ActFloor,
+			&row.Weights, &row.Thresholds,
 			&ssvcMapping, &createdBy,
 			&row.CreatedAt, &row.UpdatedAt,
 		); err != nil {
@@ -136,9 +142,9 @@ func (s *PostgresStore) ListTriageProfiles(ctx context.Context) ([]*TriageProfil
 func (s *PostgresStore) UpdateTriageProfile(ctx context.Context, name string, row *TriageProfileRow) (*TriageProfileRow, error) {
 	query := `
 		UPDATE triage_profiles
-		SET description = $2, base = $3, weights = $4, thresholds = $5, ssvc_mapping = $6, updated_at = NOW()
+		SET description = $2, base = $3, score_weight = $4, act_floor = $5, weights = $6, thresholds = $7, ssvc_mapping = $8, updated_at = NOW()
 		WHERE name = $1
-		RETURNING id, name, description, base, weights, thresholds, ssvc_mapping, created_by, created_at, updated_at`
+		RETURNING id, name, description, base, score_weight, act_floor, weights, thresholds, ssvc_mapping, created_by, created_at, updated_at`
 
 	var result TriageProfileRow
 	var base sql.NullString
@@ -147,10 +153,12 @@ func (s *PostgresStore) UpdateTriageProfile(ctx context.Context, name string, ro
 
 	err := s.db.QueryRowContext(ctx, query,
 		name, row.Description, nullString(row.Base),
+		row.ScoreWeight, row.ActFloor,
 		row.Weights, row.Thresholds, row.SSVCMapping,
 	).Scan(
 		&result.ID, &result.Name, &result.Description,
-		&base, &result.Weights, &result.Thresholds,
+		&base, &result.ScoreWeight, &result.ActFloor,
+		&result.Weights, &result.Thresholds,
 		&ssvcMapping, &createdBy,
 		&result.CreatedAt, &result.UpdatedAt,
 	)
