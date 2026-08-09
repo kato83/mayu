@@ -259,6 +259,8 @@ mayu audit --sbom ./sbom.cdx.json --policy policy.yaml
 mayu audit --sbom ./sbom.cdx.json --license-policy license-policy.yaml
 # CI/CDゲート: すべてのオプションを組み合わせ
 mayu audit --sbom bom.json --fail-on critical,high --ignore .mayu-ignore --format sarif > results.sarif
+# エンリッチドSBOM生成（入力SBOM + 脆弱性検出結果 + EPSS/LEV/KEVデータ）
+mayu audit --sbom ./sbom.cdx.json --output-sbom enriched.cdx.json
 ```
 
 ### サーバーの起動
@@ -345,6 +347,7 @@ SBOMの既知の脆弱性を監査します。
 | `--vex` | `not_affected` の検出結果を抑制するOpenVEXファイルのパス | — |
 | `--policy` | カスタムゲーティング用ポリシーYAMLファイルのパス（block/warn/suppress） | — |
 | `--license-policy` | ライセンスコンプライアンスチェック用ライセンスポリシーYAMLファイルのパス | — |
+| `--output-sbom` | 脆弱性セクション付きエンリッチドSBOMの出力先パス（CycloneDX形式） | — |
 
 **終了コード:**
 

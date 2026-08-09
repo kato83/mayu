@@ -114,6 +114,10 @@ type Store interface {
 	// for the given IDs by querying the vulnerability_summary table.
 	GetSeveritiesByIDs(ctx context.Context, ids []string) (map[string]int, error)
 
+	// GetVulnSummariesByIDs returns pre-computed vulnerability summary data for the given IDs.
+	// Returns a map keyed by vulnerability ID.
+	GetVulnSummariesByIDs(ctx context.Context, ids []string) (map[string]*VulnSummaryRow, error)
+
 	// GetEPSSHistory returns the EPSS score history for a vulnerability.
 	// Results are ordered by date ascending.
 	// If since is non-nil, only entries on or after that date are returned.
@@ -553,4 +557,15 @@ type StatsTrendDataPoint struct {
 	Low      int64  `json:"low"`
 	New      int64  `json:"new,omitempty"`
 	Resolved int64  `json:"resolved,omitempty"`
+}
+
+// VulnSummaryRow represents a row from the vulnerability_summary table.
+type VulnSummaryRow struct {
+	VulnerabilityID string
+	SeverityWorst   int
+	SeverityBest    int
+	EPSSScore       *float64
+	EPSSPercentile  *float64
+	InKEV           bool
+	LEVScore        *float64
 }

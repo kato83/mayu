@@ -259,6 +259,8 @@ mayu audit --sbom ./sbom.cdx.json --policy policy.yaml
 mayu audit --sbom ./sbom.cdx.json --license-policy license-policy.yaml
 # CI/CD gate: combine all options
 mayu audit --sbom bom.json --fail-on critical,high --ignore .mayu-ignore --format sarif > results.sarif
+# Generate enriched SBOM (input SBOM + vulnerability findings + EPSS/LEV/KEV data)
+mayu audit --sbom ./sbom.cdx.json --output-sbom enriched.cdx.json
 ```
 
 ### Start Server
@@ -345,6 +347,7 @@ Audit an SBOM for known vulnerabilities.
 | `--vex` | Path to OpenVEX file to suppress `not_affected` findings | — |
 | `--policy` | Path to policy YAML file for custom gating (block/warn/suppress) | — |
 | `--license-policy` | Path to license policy YAML file for license compliance checking | — |
+| `--output-sbom` | Path to write enriched SBOM with vulnerabilities section (CycloneDX format) | — |
 
 **Exit codes:**
 

@@ -38,6 +38,7 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 	vexPath := fs.String("vex", "", "Path to OpenVEX file to suppress not_affected findings")
 	policyPath := fs.String("policy", "", "Path to policy YAML file for custom gating (block/warn/suppress)")
 	licensePolicyPath := fs.String("license-policy", "", "Path to license policy YAML file for license compliance checking")
+	outputSBOM := fs.String("output-sbom", "", "Path to write enriched SBOM with vulnerabilities section (CycloneDX format)")
 
 	fs.Usage = func() {
 		fmt.Println("Usage: mayu audit [options]")
@@ -292,6 +293,25 @@ func runAudit(args []string, cfg *config.Config) (int, error) {
 		if *format == "table" {
 			fmt.Println("\n✓ No license policy violations found")
 		}
+	}
+
+	// Generate enriched SBOM if --output-sbom is specified
+	if *outputSBOM != "" {
+		enrichedData, err := audit.GenerateEnrichedSBOM(ctx, s, audit.EnrichedSBOMOptions{
+			OriginalData: data,
+			Format:       bom.Format,
+			Components:   bom.Components,
+			Findings:     result.Findings,
+		})
+		if err != nil {
+			return 2, fmt.Errorf("generate enriched SBOM: %w", err)
+		}
+		if err := os.WriteFile(*outputSBOM, enrichedData, 0644); err != nil {
+			return 2, fmt.Errorf("write enriched SBOM: %w", err)
+		}
+		// Count vulnerabilities in output
+		vulnCount := countUniqueVulnIDs(result.Findings)
+		fmt.Fprintf(os.Stderr, "Enriched SBOM written: %s (%d vulnerabilities)\n", *outputSBOM, vulnCount)
 	}
 
 	// Exit code logic
@@ -632,4 +652,13 @@ func outputLicenseViolationsCSV(violations []license.Violation) {
 			csvEscape(v.Reason),
 		)
 	}
+}
+
+// countUniqueVulnIDs returns the number of unique vulnerability IDs in findings.
+func countUniqueVulnIDs(findings []audit.Finding) int {
+	seen := make(map[string]struct{})
+	for _, f := range findings {
+		seen[f.VulnID] = struct{}{}
+	}
+	return len(seen)
 }
