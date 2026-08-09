@@ -22,19 +22,84 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
       } @else if (team()) {
         <!-- Team header -->
         <div class="flex items-center justify-between mb-6">
-          <div>
-            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{{ team()!.name }}</h1>
-            @if (team()!.description) {
-              <p class="mt-1 text-slate-600 dark:text-slate-400">{{ team()!.description }}</p>
+          <div class="flex-1 min-w-0">
+            @if (editing()) {
+              <form (ngSubmit)="onSaveEdit()" class="space-y-3">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" i18n="@@teamDetail.nameLabel">
+                    Team Name
+                  </label>
+                  <input
+                    type="text"
+                    [(ngModel)]="editName"
+                    name="editName"
+                    required
+                    class="w-full max-w-md px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    i18n-placeholder="@@teamDetail.namePlaceholder"
+                    placeholder="Team name"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" i18n="@@teamDetail.descriptionLabel">
+                    Description
+                  </label>
+                  <textarea
+                    [(ngModel)]="editDescription"
+                    name="editDescription"
+                    rows="3"
+                    class="w-full max-w-md px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    i18n-placeholder="@@teamDetail.descriptionPlaceholder"
+                    placeholder="Team description (optional)"
+                  ></textarea>
+                </div>
+                @if (editError()) {
+                  <p class="text-sm text-red-600 dark:text-red-400">{{ editError() }}</p>
+                }
+                <div class="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    [disabled]="!editName().trim() || saving()"
+                    class="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md transition-colors cursor-pointer"
+                    i18n="@@teamDetail.saveButton"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    (click)="onCancelEdit()"
+                    [disabled]="saving()"
+                    class="px-3 py-1.5 text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-md transition-colors cursor-pointer"
+                    i18n="@@teamDetail.cancelEditButton"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            } @else {
+              <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{{ team()!.name }}</h1>
+              @if (team()!.description) {
+                <p class="mt-1 text-slate-600 dark:text-slate-400">{{ team()!.description }}</p>
+              }
             }
           </div>
-          <button
-            (click)="onDeleteTeam()"
-            class="px-3 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors cursor-pointer"
-            i18n="@@teamDetail.deleteButton"
-          >
-            Delete Team
-          </button>
+          <div class="flex items-center gap-2 ml-4">
+            @if (!editing()) {
+              <button
+                (click)="onStartEdit()"
+                class="px-3 py-2 text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-md transition-colors cursor-pointer"
+                i18n="@@teamDetail.editButton"
+              >
+                Edit
+              </button>
+            }
+            <button
+              (click)="onDeleteTeam()"
+              class="px-3 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors cursor-pointer"
+              i18n="@@teamDetail.deleteButton"
+            >
+              Delete Team
+            </button>
+          </div>
         </div>
 
         <!-- Team Dashboard Summary -->
@@ -215,6 +280,13 @@ export class TeamDetailComponent implements OnInit {
   availableUsers = signal<UserInfo[]>([]);
   selectedUserId = signal<number | null>(null);
 
+  // Inline editing state
+  editing = signal(false);
+  editName = signal('');
+  editDescription = signal('');
+  editError = signal('');
+  saving = signal(false);
+
   private teamId = 0;
   private allUsers: UserInfo[] = [];
 
@@ -334,6 +406,42 @@ export class TeamDetailComponent implements OnInit {
       next: () => this.router.navigate(['/teams']),
       error: (err) => {
         this.error.set(err?.error?.error || 'Failed to leave team');
+      },
+    });
+  }
+
+  onStartEdit(): void {
+    const t = this.team();
+    if (!t) return;
+    this.editName.set(t.name);
+    this.editDescription.set(t.description || '');
+    this.editError.set('');
+    this.editing.set(true);
+  }
+
+  onCancelEdit(): void {
+    this.editing.set(false);
+    this.editError.set('');
+  }
+
+  onSaveEdit(): void {
+    const name = this.editName().trim();
+    if (!name) {
+      this.editError.set($localize`:@@teamDetail.nameRequired:Team name is required`);
+      return;
+    }
+    this.saving.set(true);
+    this.editError.set('');
+
+    this.teamService.update(this.teamId, { name, description: this.editDescription().trim() || undefined }).subscribe({
+      next: (updated) => {
+        this.team.set(updated);
+        this.editing.set(false);
+        this.saving.set(false);
+      },
+      error: (err) => {
+        this.editError.set(err?.error?.error || $localize`:@@teamDetail.updateFailed:Failed to update team`);
+        this.saving.set(false);
       },
     });
   }
