@@ -60,38 +60,21 @@ import { TriageService } from '../../services/triage.service';
           <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
               <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1" i18n="@@envProfileBinding.environmentLabel">Environment</label>
-              @if (useCustomEnv()) {
-                <div class="flex gap-1">
-                  <input
-                    type="text"
-                    class="flex-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-2 py-1.5 text-slate-900 dark:text-white"
-                    [ngModel]="formEnvironment()"
-                    (ngModelChange)="formEnvironment.set($event)"
-                    placeholder="custom" />
-                  <button
-                    (click)="useCustomEnv.set(false); formEnvironment.set('production')"
-                    class="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
-                    title="Switch to dropdown">&#x2190;</button>
-                </div>
-              } @else {
-                <div class="flex gap-1">
-                  <select
-                    class="flex-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-2 py-1.5 text-slate-900 dark:text-white"
-                    [ngModel]="formEnvironment()"
-                    (ngModelChange)="formEnvironment.set($event)">
-                    <option value="production">production</option>
-                    <option value="staging">staging</option>
-                    <option value="development">development</option>
-                    <option value="qa">qa</option>
-                    <option value="internal">internal</option>
-                  </select>
-                  <button
-                    (click)="useCustomEnv.set(true); formEnvironment.set('')"
-                    class="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
-                    i18n-title="@@envProfileBinding.customEnvTooltip"
-                    title="Use custom environment name">...</button>
-                </div>
-              }
+              <input
+                type="text"
+                list="env-suggestions"
+                class="w-full rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm px-2 py-1.5 text-slate-900 dark:text-white"
+                [ngModel]="formEnvironment()"
+                (ngModelChange)="formEnvironment.set($event)"
+                i18n-placeholder="@@envProfileBinding.environmentPlaceholder"
+                placeholder="e.g. production" />
+              <datalist id="env-suggestions">
+                <option value="production"></option>
+                <option value="staging"></option>
+                <option value="development"></option>
+                <option value="qa"></option>
+                <option value="internal"></option>
+              </datalist>
             </div>
             <div>
               <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1" i18n="@@envProfileBinding.profileLabel">Profile</label>
@@ -184,10 +167,9 @@ export class EnvironmentProfileBindingComponent implements OnInit {
   readonly savingDefault = signal(false);
 
   // Form fields
-  readonly formEnvironment = signal('production');
+  readonly formEnvironment = signal('');
   readonly formProfile = signal('');
   readonly formDescription = signal('');
-  readonly useCustomEnv = signal(false);
 
   ngOnInit(): void {
     this.loadBindings();
@@ -282,9 +264,8 @@ export class EnvironmentProfileBindingComponent implements OnInit {
       .subscribe({
         next: () => {
           this.showForm.set(false);
-          this.formEnvironment.set('production');
+          this.formEnvironment.set('');
           this.formDescription.set('');
-          this.useCustomEnv.set(false);
           this.showTemporaryMessage('statusMessage', $localize`:@@envProfileBinding.bindingSaved:Binding saved`);
           this.loadBindings();
         },

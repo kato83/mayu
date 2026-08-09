@@ -2506,214 +2506,277 @@
           <context context-type="linenumber">21,23</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="teamDetail.nameLabel" datatype="html">
+        <source> Team Name </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">30,31</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.namePlaceholder" datatype="html">
+        <source>Team name</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">39,41</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.descriptionLabel" datatype="html">
+        <source> Description </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">44,45</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.descriptionPlaceholder" datatype="html">
+        <source>Team description (optional)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">52,54</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.saveButton" datatype="html">
+        <source> Save </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">65,66</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.cancelEditButton" datatype="html">
+        <source> Cancel </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">74,75</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.editButton" datatype="html">
+        <source> Edit </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">92,93</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="teamDetail.deleteButton" datatype="html">
         <source> Delete Team </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">36,38</context>
+          <context context-type="linenumber">100,102</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.projects" datatype="html">
         <source>Projects</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">44,45</context>
+          <context context-type="linenumber">109,110</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.findings" datatype="html">
         <source>Findings</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">48,49</context>
+          <context context-type="linenumber">113,114</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.critical" datatype="html">
         <source>Critical</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">52,53</context>
+          <context context-type="linenumber">117,118</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.high" datatype="html">
         <source>High</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">57</context>
+          <context context-type="linenumber">122</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.membersTitle" datatype="html">
         <source> Members </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">66,68</context>
+          <context context-type="linenumber">131,133</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.addMemberButton" datatype="html">
         <source> Add Member </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">73,75</context>
+          <context context-type="linenumber">138,140</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.userLabel" datatype="html">
         <source> User </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">83,84</context>
+          <context context-type="linenumber">148,149</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.userSearchPlaceholder" datatype="html">
         <source>Search by email or name...</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">93,94</context>
+          <context context-type="linenumber">158,159</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.roleLabel" datatype="html">
         <source> Role </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">104,105</context>
+          <context context-type="linenumber">169,170</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.roleMember" datatype="html">
         <source>Member</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">111,112</context>
+          <context context-type="linenumber">176,177</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.roleOwner" datatype="html">
         <source>Owner</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">112,113</context>
+          <context context-type="linenumber">177,178</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.addButton" datatype="html">
         <source> Add </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">121,122</context>
+          <context context-type="linenumber">186,187</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.cancelButton" datatype="html">
         <source> Cancel </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">129,130</context>
+          <context context-type="linenumber">194,195</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.noMembers" datatype="html">
         <source>No members yet.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">137,139</context>
+          <context context-type="linenumber">202,204</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.colEmail" datatype="html">
         <source>Email</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">143,144</context>
+          <context context-type="linenumber">208,209</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.colName" datatype="html">
         <source>Name</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">144,145</context>
+          <context context-type="linenumber">209,210</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.colRole" datatype="html">
         <source>Role</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">145,146</context>
+          <context context-type="linenumber">210,211</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.colActions" datatype="html">
         <source>Actions</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">146,148</context>
+          <context context-type="linenumber">211,213</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.leaveButton" datatype="html">
         <source> Leave </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">169,170</context>
+          <context context-type="linenumber">234,235</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.removeButton" datatype="html">
         <source> Remove </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">177,178</context>
+          <context context-type="linenumber">242,243</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmRemoveTitle" datatype="html">
         <source>Remove Member</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">306</context>
+          <context context-type="linenumber">378</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmRemove" datatype="html">
         <source>Remove this member from the team?</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">307</context>
+          <context context-type="linenumber">379</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmRemoveAction" datatype="html">
         <source>Remove</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">308</context>
+          <context context-type="linenumber">380</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmLeaveTitle" datatype="html">
         <source>Leave Team</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">323</context>
+          <context context-type="linenumber">395</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmLeave" datatype="html">
         <source>Are you sure you want to leave this team?</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">324</context>
+          <context context-type="linenumber">396</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmLeaveAction" datatype="html">
         <source>Leave</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">325</context>
+          <context context-type="linenumber">397</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.nameRequired" datatype="html">
+        <source>Team name is required</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">430</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="teamDetail.updateFailed" datatype="html">
+        <source>Failed to update team</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
+          <context context-type="linenumber">443</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmDeleteTitle" datatype="html">
         <source>Delete Team</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">343</context>
+          <context context-type="linenumber">451</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmDelete" datatype="html">
         <source>Are you sure you want to delete this team?</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">344</context>
+          <context context-type="linenumber">452</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teamDetail.confirmDeleteAction" datatype="html">
         <source>Delete</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/teams/team-detail.component.ts</context>
-          <context context-type="linenumber">345</context>
+          <context context-type="linenumber">453</context>
         </context-group>
       </trans-unit>
       <trans-unit id="teams.createButton" datatype="html">
@@ -2849,137 +2912,137 @@
           <context context-type="linenumber">62,64</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="envProfileBinding.customEnvTooltip" datatype="html">
-        <source>Use custom environment name</source>
+      <trans-unit id="envProfileBinding.environmentPlaceholder" datatype="html">
+        <source>e.g. production</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">92,94</context>
+          <context context-type="linenumber">70,72</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.profileLabel" datatype="html">
         <source>Profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">97,99</context>
+          <context context-type="linenumber">80,82</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.descriptionLabel" datatype="html">
         <source>Description</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">108,110</context>
+          <context context-type="linenumber">91,93</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.descriptionPlaceholder" datatype="html">
         <source>Optional description</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">115,117</context>
+          <context context-type="linenumber">98,100</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.saveBinding" datatype="html">
         <source>Save</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">122,124</context>
+          <context context-type="linenumber">105,107</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.colEnvironment" datatype="html">
         <source>Environment</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">133,134</context>
+          <context context-type="linenumber">116,117</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.colProfile" datatype="html">
         <source>Profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">134,135</context>
+          <context context-type="linenumber">117,118</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.colDescription" datatype="html">
         <source>Description</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">135,136</context>
+          <context context-type="linenumber">118,119</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.colActions" datatype="html">
         <source>Actions</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">136,139</context>
+          <context context-type="linenumber">119,122</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.remove" datatype="html">
         <source>Remove</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">151,153</context>
+          <context context-type="linenumber">134,136</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.noBindings" datatype="html">
         <source> No environment bindings configured. Add a binding to assign triage profiles per environment. </source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">157,159</context>
+          <context context-type="linenumber">140,142</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.defaultSaved" datatype="html">
         <source>Default profile saved</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">236</context>
+          <context context-type="linenumber">220</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.defaultSaveError" datatype="html">
         <source>Error saving default profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">240</context>
+          <context context-type="linenumber">227</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.defaultCleared" datatype="html">
         <source>Default profile cleared</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">251</context>
+          <context context-type="linenumber">241</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.defaultClearError" datatype="html">
         <source>Error clearing default profile</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">255</context>
+          <context context-type="linenumber">248</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.bindingSaved" datatype="html">
         <source>Binding saved</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">276</context>
+          <context context-type="linenumber">269</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.bindingSaveError" datatype="html">
         <source>Error saving binding</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">280</context>
+          <context context-type="linenumber">275</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.bindingRemoved" datatype="html">
         <source>Binding removed</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">288</context>
+          <context context-type="linenumber">284</context>
         </context-group>
       </trans-unit>
       <trans-unit id="envProfileBinding.bindingRemoveError" datatype="html">
         <source>Error removing binding</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/pages/triage/environment-profile-binding.component.ts</context>
-          <context context-type="linenumber">292</context>
+          <context context-type="linenumber">290</context>
         </context-group>
       </trans-unit>
       <trans-unit id="triage.critical" datatype="html">

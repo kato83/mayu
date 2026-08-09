@@ -3924,9 +3924,9 @@
         <source>Environment</source>
         <target>環境</target>
       </trans-unit>
-      <trans-unit id="envProfileBinding.customEnvTooltip" datatype="html">
-        <source>Use custom environment name</source>
-        <target>カスタム環境名を使用</target>
+      <trans-unit id="envProfileBinding.environmentPlaceholder" datatype="html">
+        <source>e.g. production</source>
+        <target>例: production</target>
       </trans-unit>
       <trans-unit id="envProfileBinding.profileLabel" datatype="html">
         <source>Profile</source>
