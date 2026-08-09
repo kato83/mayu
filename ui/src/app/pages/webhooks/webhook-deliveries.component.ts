@@ -45,12 +45,12 @@ import { type WebhookDeliveryLog, WebhookService } from '../../services/webhook.
             <tbody>
               @for (delivery of deliveries(); track delivery.id) {
                 <tr class="border-b border-slate-200 dark:border-slate-700">
-                  <td class="px-4 py-3 text-slate-900 dark:text-white">
+                  <td class="px-4 py-3 text-slate-900 dark:text-white whitespace-nowrap">
                     <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
                       {{ delivery.event }}
                     </span>
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 whitespace-nowrap">
                     @if (delivery.response_status) {
                       <span
                         class="inline-block px-2 py-0.5 text-xs font-medium rounded-full"
@@ -62,9 +62,9 @@ import { type WebhookDeliveryLog, WebhookService } from '../../services/webhook.
                       <span class="text-slate-400">-</span>
                     }
                   </td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ delivery.attempt }}</td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ delivery.delivered_at | date:'short' }}</td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ delivery.attempt }}</td>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ delivery.delivered_at | date:'short' }}</td>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                     @if (delivery.duration_ms != null) {
                       {{ delivery.duration_ms }}
                     } @else {

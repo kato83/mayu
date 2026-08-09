@@ -214,9 +214,9 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
                 <tbody>
                   @for (member of members(); track member.id) {
                     <tr class="border-b border-slate-200 dark:border-slate-700">
-                      <td class="px-4 py-3 text-slate-900 dark:text-white">{{ member.email }}</td>
-                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ member.name || '-' }}</td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 text-slate-900 dark:text-white whitespace-nowrap">{{ member.email }}</td>
+                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ member.name || '-' }}</td>
+                      <td class="px-4 py-3 whitespace-nowrap">
                         <span
                           class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
                           [class]="member.role === 'owner' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'"
@@ -224,7 +224,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
                           {{ member.role }}
                         </span>
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 whitespace-nowrap">
                         @if (member.user_id === authService.currentUser()?.id) {
                           <button
                             (click)="onLeaveTeam()"

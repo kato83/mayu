@@ -49,11 +49,11 @@ import { IngestService } from '../../services/ingest.service';
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
               @if (loading() && jobs().length === 0) {
                 <tr>
-                  <td colspan="8" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400" i18n="@@ingestJobs.loading">Loading...</td>
+                  <td colspan="8" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap" i18n="@@ingestJobs.loading">Loading...</td>
                 </tr>
               } @else if (jobs().length === 0) {
                 <tr>
-                  <td colspan="8" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400" i18n="@@ingestJobs.noJobs">No ingest jobs found.</td>
+                  <td colspan="8" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap" i18n="@@ingestJobs.noJobs">No ingest jobs found.</td>
                 </tr>
               } @else {
                 @for (job of jobs(); track job.id) {
@@ -64,21 +64,21 @@ import { IngestService } from '../../services/ingest.service';
                     [class.bg-indigo-50]="selectedJob()?.id === job.id"
                     [class.dark:bg-indigo-900/20]="selectedJob()?.id === job.id"
                   >
-                    <td class="px-4 py-3 text-sm font-mono text-slate-900 dark:text-slate-100">{{ job.id }}</td>
-                    <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{{ job.source }}</td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 text-sm font-mono text-slate-900 dark:text-slate-100 whitespace-nowrap">{{ job.id }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">{{ job.source }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">
                       <span [class]="statusBadgeClasses(job.status)">{{ job.status }}</span>
                     </td>
                     <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ job.started_at | date:'short' }}</td>
-                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">{{ formatDuration(job) }}</td>
-                    <td class="px-4 py-3 text-sm text-right text-slate-700 dark:text-slate-300">{{ job.total_count ?? '—' }}</td>
-                    <td class="px-4 py-3 text-sm text-right text-green-700 dark:text-green-400">{{ job.success_count ?? '—' }}</td>
-                    <td class="px-4 py-3 text-sm text-right text-red-700 dark:text-red-400">{{ job.failure_count ?? '—' }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ formatDuration(job) }}</td>
+                    <td class="px-4 py-3 text-sm text-right text-slate-700 dark:text-slate-300 whitespace-nowrap">{{ job.total_count ?? '—' }}</td>
+                    <td class="px-4 py-3 text-sm text-right text-green-700 dark:text-green-400 whitespace-nowrap">{{ job.success_count ?? '—' }}</td>
+                    <td class="px-4 py-3 text-sm text-right text-red-700 dark:text-red-400 whitespace-nowrap">{{ job.failure_count ?? '—' }}</td>
                   </tr>
                   <!-- Inline detail row (expanded below the selected row) -->
                   @if (selectedJob()?.id === job.id) {
                     <tr>
-                      <td colspan="8" class="p-0">
+                      <td colspan="8" class="p-0 whitespace-nowrap">
                         <div class="border-t border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/10 p-4 space-y-4">
                           @if (detailLoading()) {
                             <div class="text-center text-sm text-slate-500 dark:text-slate-400 py-4" i18n="@@ingestJobs.detail.loading">
@@ -135,10 +135,10 @@ import { IngestService } from '../../services/ingest.service';
                                     <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                                       @for (failure of jobDetail()!.failures; track failure.id) {
                                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                                          <td class="px-3 py-2 text-xs font-mono text-slate-900 dark:text-slate-100">{{ failure.vuln_id }}</td>
-                                          <td class="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{{ failure.error_type }}</td>
+                                          <td class="px-3 py-2 text-xs font-mono text-slate-900 dark:text-slate-100 whitespace-nowrap">{{ failure.vuln_id }}</td>
+                                          <td class="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ failure.error_type }}</td>
                                           <td class="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 max-w-xs truncate" [title]="failure.error_message ?? ''">{{ failure.error_message ?? '—' }}</td>
-                                          <td class="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">{{ failure.failed_at | date:'short' }}</td>
+                                          <td class="px-3 py-2 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ failure.failed_at | date:'short' }}</td>
                                         </tr>
                                       }
                                     </tbody>

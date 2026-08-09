@@ -266,24 +266,24 @@ import { WatchlistService } from '../../services/watchlist.service';
             <tbody>
               @for (wl of watchlists(); track wl.id) {
                 <tr class="border-b border-slate-200 dark:border-slate-700">
-                  <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ wl.name }}</td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">
+                  <td class="px-4 py-3 text-slate-900 dark:text-white font-medium whitespace-nowrap">{{ wl.name }}</td>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                     <span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                       {{ wl.match_type }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs">
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs whitespace-nowrap">
                     {{ formatConditions(wl) }}
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 whitespace-nowrap">
                     @if (wl.enabled) {
                       <span class="text-green-600 dark:text-green-400" i18n="@@watchlists.yes">Yes</span>
                     } @else {
                       <span class="text-red-600 dark:text-red-400" i18n="@@watchlists.no">No</span>
                     }
                   </td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ wl.created_at | date:'short' }}</td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ wl.created_at | date:'short' }}</td>
+                  <td class="px-4 py-3 whitespace-nowrap">
                     <div class="flex gap-2">
                       <button
                         (click)="onEdit(wl)"
@@ -349,7 +349,7 @@ import { WatchlistService } from '../../services/watchlist.service';
                 <tbody>
                   @for (match of matches(); track match.id) {
                     <tr class="border-b border-slate-200 dark:border-slate-700">
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 whitespace-nowrap">
                         <a
                           [routerLink]="['/vulnerabilities', match.vulnerability_id]"
                           class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
@@ -357,8 +357,8 @@ import { WatchlistService } from '../../services/watchlist.service';
                           {{ match.vulnerability_id }}
                         </a>
                       </td>
-                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ match.matched_at | date:'short' }}</td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ match.matched_at | date:'short' }}</td>
+                      <td class="px-4 py-3 whitespace-nowrap">
                         @if (match.notified) {
                           <span class="text-green-600 dark:text-green-400" i18n="@@watchlists.yes">Yes</span>
                         } @else {

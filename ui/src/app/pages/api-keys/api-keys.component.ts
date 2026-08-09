@@ -159,17 +159,17 @@ import { type APIKey, ApiKeyService } from '../../services/api-key.service';
             <tbody>
               @for (key of keys(); track key.id) {
                 <tr class="border-b border-slate-200 dark:border-slate-700">
-                  <td class="px-4 py-3 text-slate-900 dark:text-white">{{ key.name || '-' }}</td>
-                  <td class="px-4 py-3 font-mono text-slate-600 dark:text-slate-400">{{ key.key_prefix }}...</td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ key.created_at | date:'short' }}</td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">
+                  <td class="px-4 py-3 text-slate-900 dark:text-white whitespace-nowrap">{{ key.name || '-' }}</td>
+                  <td class="px-4 py-3 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ key.key_prefix }}...</td>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ key.created_at | date:'short' }}</td>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                     @if (key.expires_at) {
                       {{ key.expires_at | date:'short' }}
                     } @else {
                       <span i18n="@@apiKeys.never">Never</span>
                     }
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 whitespace-nowrap">
                     <button
                       (click)="onDelete(key)"
                       class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium cursor-pointer"

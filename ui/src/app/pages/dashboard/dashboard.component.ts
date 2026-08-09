@@ -174,17 +174,17 @@ Chart.register(...registerables);
                 <tbody>
                   @for (entry of trendingEntries(); track entry.vulnerability_id) {
                     <tr class="border-b border-slate-100 dark:border-slate-700/50">
-                      <td class="py-2">
+                      <td class="py-2 whitespace-nowrap">
                         <a [routerLink]="['/vulnerabilities', entry.vulnerability_id]"
                            class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">
                           {{ entry.cve_id || entry.vulnerability_id }}
                         </a>
                       </td>
-                      <td class="py-2 font-mono text-xs text-slate-700 dark:text-slate-200">{{ (entry.current_epss * 100).toFixed(1) }}%</td>
-                      <td class="py-2">
+                      <td class="py-2 font-mono text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap">{{ (entry.current_epss * 100).toFixed(1) }}%</td>
+                      <td class="py-2 whitespace-nowrap">
                         <span class="font-mono text-xs font-semibold text-green-600 dark:text-green-400">+{{ (entry.delta * 100).toFixed(2) }}%</span>
                       </td>
-                      <td class="py-2">
+                      <td class="py-2 whitespace-nowrap">
                         <span [class]="severityBadgeClass(entry.severity)">{{ entry.severity ?? '-' }}</span>
                       </td>
                     </tr>
@@ -215,14 +215,14 @@ Chart.register(...registerables);
               <tbody>
                 @for (entry of topRisks()?.top_epss ?? []; track entry.vulnerability_id) {
                   <tr class="border-b border-slate-100 dark:border-slate-700/50">
-                    <td class="py-2">
+                    <td class="py-2 whitespace-nowrap">
                       <a [routerLink]="['/vulnerabilities', entry.vulnerability_id]"
                          class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">
                         {{ entry.vulnerability_id }}
                       </a>
                     </td>
-                    <td class="py-2 font-mono text-xs text-slate-700 dark:text-slate-200">{{ (entry.score * 100).toFixed(1) }}%</td>
-                    <td class="py-2">
+                    <td class="py-2 font-mono text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap">{{ (entry.score * 100).toFixed(1) }}%</td>
+                    <td class="py-2 whitespace-nowrap">
                       <span [class]="severityBadgeClass(entry.severity)">{{ entry.severity ?? '-' }}</span>
                     </td>
                   </tr>
@@ -247,14 +247,14 @@ Chart.register(...registerables);
               <tbody>
                 @for (entry of topRisks()?.top_lev ?? []; track entry.vulnerability_id) {
                   <tr class="border-b border-slate-100 dark:border-slate-700/50">
-                    <td class="py-2">
+                    <td class="py-2 whitespace-nowrap">
                       <a [routerLink]="['/vulnerabilities', entry.vulnerability_id]"
                          class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">
                         {{ entry.vulnerability_id }}
                       </a>
                     </td>
-                    <td class="py-2 font-mono text-xs text-slate-700 dark:text-slate-200">{{ (entry.score * 100).toFixed(1) }}%</td>
-                    <td class="py-2">
+                    <td class="py-2 font-mono text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap">{{ (entry.score * 100).toFixed(1) }}%</td>
+                    <td class="py-2 whitespace-nowrap">
                       <span [class]="severityBadgeClass(entry.severity)">{{ entry.severity ?? '-' }}</span>
                     </td>
                   </tr>

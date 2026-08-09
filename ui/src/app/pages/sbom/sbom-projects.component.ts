@@ -113,7 +113,7 @@ import { TeamService } from '../../services/team.service';
             <tbody>
               @for (project of projects(); track project.id) {
                 <tr class="border-b border-slate-200 dark:border-slate-700">
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 whitespace-nowrap">
                     <a
                       [routerLink]="['/sbom', project.id]"
                       class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
@@ -121,7 +121,7 @@ import { TeamService } from '../../services/team.service';
                       {{ project.name }}
                     </a>
                   </td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ getTeamName(project.team_id) }}</td>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ getTeamName(project.team_id) }}</td>
                   <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ project.created_at | date:'short' }}</td>
                   <td class="px-4 py-3 whitespace-nowrap">
                     <button

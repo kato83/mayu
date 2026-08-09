@@ -249,9 +249,9 @@ import { type Webhook, WebhookService } from '../../services/webhook.service';
             <tbody>
               @for (webhook of webhooks(); track webhook.id) {
                 <tr class="border-b border-slate-200 dark:border-slate-700">
-                  <td class="px-4 py-3 text-slate-900 dark:text-white">{{ webhook.name }}</td>
+                  <td class="px-4 py-3 text-slate-900 dark:text-white whitespace-nowrap">{{ webhook.name }}</td>
                   <td class="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono text-xs max-w-xs truncate">{{ webhook.url }}</td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 whitespace-nowrap">
                     <div class="flex flex-wrap gap-1">
                       @for (event of webhook.events; track event) {
                         <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
@@ -260,7 +260,7 @@ import { type Webhook, WebhookService } from '../../services/webhook.service';
                       }
                     </div>
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 whitespace-nowrap">
                     @if (webhook.enabled) {
                       <span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200" i18n="@@webhooks.statusEnabled">
                         Enabled

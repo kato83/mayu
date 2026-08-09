@@ -122,12 +122,12 @@ import { TriageService } from '../../services/triage.service';
           <tbody>
             @for (binding of bindings(); track binding.environment) {
               <tr class="border-b border-slate-100 dark:border-slate-700/50">
-                <td class="px-4 py-2">
+                <td class="px-4 py-2 whitespace-nowrap">
                   <span [class]="envBadgeClass(binding.environment)">{{ binding.environment }}</span>
                 </td>
-                <td class="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200">{{ binding.profile_name }}</td>
+                <td class="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 whitespace-nowrap">{{ binding.profile_name }}</td>
                 <td class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">{{ binding.description || '-' }}</td>
-                <td class="px-4 py-2">
+                <td class="px-4 py-2 whitespace-nowrap">
                   <button
                     (click)="deleteBinding(binding.environment)"
                     class="text-xs text-red-600 dark:text-red-400 hover:underline cursor-pointer"
@@ -136,7 +136,7 @@ import { TriageService } from '../../services/triage.service';
               </tr>
             } @empty {
               <tr>
-                <td colspan="4" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400" i18n="@@envProfileBinding.noBindings">
+                <td colspan="4" class="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap" i18n="@@envProfileBinding.noBindings">
                   No environment bindings configured. Add a binding to assign triage profiles per environment.
                 </td>
               </tr>

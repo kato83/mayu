@@ -115,27 +115,27 @@ import { type EpssTrendingEntry, EpssTrendingService } from '../../services/epss
               <tbody>
                 @for (entry of entries(); track entry.vulnerability_id) {
                   <tr class="border-b border-slate-100 dark:border-slate-700/50 whitespace-nowrap hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 whitespace-nowrap">
                       <a [routerLink]="['/vulnerabilities', entry.vulnerability_id]"
                          class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">
                         {{ entry.cve_id || entry.vulnerability_id }}
                       </a>
                     </td>
-                    <td class="px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
+                    <td class="px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap">
                       {{ entry.current_epss * 100 | number:'1.2-2' }}%
                     </td>
-                    <td class="px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
+                    <td class="px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap">
                       {{ entry.previous_epss * 100 | number:'1.2-2' }}%
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 whitespace-nowrap">
                       <span class="font-mono text-xs font-semibold text-green-600 dark:text-green-400">
                         +{{ entry.delta * 100 | number:'1.2-2' }}%
                       </span>
                     </td>
-                    <td class="px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
+                    <td class="px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap">
                       {{ entry.current_percentile * 100 | number:'1.1-1' }}%
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 whitespace-nowrap">
                       <span [class]="severityBadgeClass(entry.severity)">{{ entry.severity || '-' }}</span>
                     </td>
                   </tr>

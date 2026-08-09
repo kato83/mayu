@@ -96,12 +96,12 @@ const ALL_STATUSES = ['open', 'in_triage', 'suppressed', 'false_positive', 'risk
                       <tbody>
                         @for (finding of diff()!.new_findings; track finding.vuln_id + finding.purl) {
                           <tr class="border-b border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10">
-                            <td class="px-4 py-2 text-slate-900 dark:text-white font-medium">{{ finding.name }}</td>
-                            <td class="px-4 py-2 text-slate-600 dark:text-slate-400">{{ finding.version }}</td>
-                            <td class="px-4 py-2">
+                            <td class="px-4 py-2 text-slate-900 dark:text-white font-medium whitespace-nowrap">{{ finding.name }}</td>
+                            <td class="px-4 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ finding.version }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap">
                               <a [routerLink]="['/vulnerabilities', finding.vuln_id]" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline">{{ finding.vuln_id }}</a>
                             </td>
-                            <td class="px-4 py-2">
+                            <td class="px-4 py-2 whitespace-nowrap">
                               <span [class]="severityClass(finding.severity)">{{ finding.severity }}</span>
                             </td>
                             <td class="px-4 py-2 text-slate-600 dark:text-slate-400 max-w-xs truncate">{{ finding.summary }}</td>
@@ -133,12 +133,12 @@ const ALL_STATUSES = ['open', 'in_triage', 'suppressed', 'false_positive', 'risk
                       <tbody>
                         @for (finding of diff()!.resolved_findings; track finding.vuln_id + finding.purl) {
                           <tr class="border-b border-green-100 dark:border-green-900/30 bg-green-50/50 dark:bg-green-900/10">
-                            <td class="px-4 py-2 text-slate-900 dark:text-white font-medium">{{ finding.name }}</td>
-                            <td class="px-4 py-2 text-slate-600 dark:text-slate-400">{{ finding.version }}</td>
-                            <td class="px-4 py-2">
+                            <td class="px-4 py-2 text-slate-900 dark:text-white font-medium whitespace-nowrap">{{ finding.name }}</td>
+                            <td class="px-4 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ finding.version }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap">
                               <a [routerLink]="['/vulnerabilities', finding.vuln_id]" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline">{{ finding.vuln_id }}</a>
                             </td>
-                            <td class="px-4 py-2">
+                            <td class="px-4 py-2 whitespace-nowrap">
                               <span [class]="severityClass(finding.severity)">{{ finding.severity }}</span>
                             </td>
                             <td class="px-4 py-2 text-slate-600 dark:text-slate-400 max-w-xs truncate">{{ finding.summary }}</td>
@@ -194,15 +194,15 @@ const ALL_STATUSES = ['open', 'in_triage', 'suppressed', 'false_positive', 'risk
                 <tbody>
                   @for (finding of filteredFindings(); track finding.vuln_id + finding.purl) {
                     <tr class="border-b border-slate-200 dark:border-slate-700" [class]="findingRowClass(finding)">
-                      <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ finding.name }}</td>
-                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ finding.version }}</td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 text-slate-900 dark:text-white font-medium whitespace-nowrap">{{ finding.name }}</td>
+                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ finding.version }}</td>
+                      <td class="px-4 py-3 whitespace-nowrap">
                         <a [routerLink]="['/vulnerabilities', finding.vuln_id]" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline">{{ finding.vuln_id }}</a>
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 whitespace-nowrap">
                         <span [class]="severityClass(finding.severity)">{{ finding.severity }}</span>
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 whitespace-nowrap">
                         <select
                           [value]="getFindingStatus(finding)"
                           (change)="onStatusChange(finding, $event)"
@@ -216,7 +216,7 @@ const ALL_STATUSES = ['open', 'in_triage', 'suppressed', 'false_positive', 'risk
                           }
                         </select>
                       </td>
-                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-xs">
+                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400 max-w-xs whitespace-nowrap">
                         @if (getFindingJustification(finding)) {
                           <span class="inline-block max-w-[200px] truncate" [title]="getFindingJustification(finding)!">{{ getFindingJustification(finding) }}</span>
                         }

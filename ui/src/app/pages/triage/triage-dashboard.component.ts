@@ -70,19 +70,19 @@ import { TriageService } from '../../services/triage.service';
               <tbody>
                 @for (item of topRisks(); track item.vulnerability_id) {
                   <tr class="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                    <td class="px-4 py-2">
+                    <td class="px-4 py-2 whitespace-nowrap">
                       <a [routerLink]="['/vulnerabilities', item.vulnerability_id]"
                          class="text-indigo-600 dark:text-indigo-400 hover:underline font-mono text-xs">
                         {{ item.vulnerability_id }}
                       </a>
                     </td>
-                    <td class="px-4 py-2">
+                    <td class="px-4 py-2 whitespace-nowrap">
                       <span [class]="priorityBadgeClass(item.org_priority_level)">{{ item.org_priority_level }}</span>
                     </td>
-                    <td class="px-4 py-2 font-mono text-xs text-slate-700 dark:text-slate-200">
+                    <td class="px-4 py-2 font-mono text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap">
                       {{ (item.max_composite_score * 100).toFixed(1) }}%
                     </td>
-                    <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300">
+                    <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">
                       {{ item.affected_projects }}
                     </td>
                   </tr>
@@ -111,9 +111,9 @@ import { TriageService } from '../../services/triage.service';
               <tbody>
                 @for (proj of projects(); track proj.id) {
                   <tr class="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                    <td class="px-4 py-2 text-sm text-slate-700 dark:text-slate-200">{{ proj.name }}</td>
-                    <td class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400">{{ proj.created_at | date }}</td>
-                    <td class="px-4 py-2">
+                    <td class="px-4 py-2 text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">{{ proj.name }}</td>
+                    <td class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ proj.created_at | date }}</td>
+                    <td class="px-4 py-2 whitespace-nowrap">
                       <button
                         class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
                         (click)="runTriageForProject(proj)"
@@ -208,13 +208,13 @@ import { TriageService } from '../../services/triage.service';
                         {{ result.vulnerability_id }}
                       </a>
                     </td>
-                    <td class="px-4 py-2">
+                    <td class="px-4 py-2 whitespace-nowrap">
                       <span [class]="priorityBadgeClass(result.priority_level)">{{ result.priority_level }}</span>
                     </td>
-                    <td class="px-4 py-2 font-mono text-xs text-slate-700 dark:text-slate-200">
+                    <td class="px-4 py-2 font-mono text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap">
                       {{ (result.composite_score * 100).toFixed(1) }}%
                     </td>
-                    <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300">
+                    <td class="px-4 py-2 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">
                       {{ result.ssvc_decision }}
                     </td>
                     <td class="px-4 py-2 text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">

@@ -114,21 +114,21 @@ import { StatusService } from '../../services/status.service';
             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
               @if (loading() && syncStates().length === 0) {
                 <tr>
-                  <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400" i18n="@@status.loading">Loading...</td>
+                  <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap" i18n="@@status.loading">Loading...</td>
                 </tr>
               } @else if (syncStates().length === 0) {
                 <tr>
-                  <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400" i18n="@@status.noData">No sync data found. Run an ingest operation to populate data.</td>
+                  <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap" i18n="@@status.noData">No sync data found. Run an ingest operation to populate data.</td>
                 </tr>
               } @else {
                 @for (state of syncStates(); track state.source) {
                   <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 whitespace-nowrap">
                       <span [class]="sourceTypeBadgeClasses(state.source_type)">{{ state.source_type }}</span>
                     </td>
-                    <td class="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{{ state.source }}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">{{ state.source }}</td>
                     <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ state.last_synced_at | date:'yyyy-MM-dd HH:mm' }}</td>
-                    <td class="px-4 py-3 text-sm text-right text-slate-700 dark:text-slate-300">{{ state.record_count | number }}</td>
+                    <td class="px-4 py-3 text-sm text-right text-slate-700 dark:text-slate-300 whitespace-nowrap">{{ state.record_count | number }}</td>
                   </tr>
                 }
               }

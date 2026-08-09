@@ -170,16 +170,16 @@ Chart.register(...registerables);
             <tbody>
               @for (ver of versions(); track ver.id) {
                 <tr class="border-b border-slate-200 dark:border-slate-700">
-                  <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ ver.version }}</td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">
+                  <td class="px-4 py-3 text-slate-900 dark:text-white font-medium whitespace-nowrap">{{ ver.version }}</td>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                     <span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                       {{ ver.sbom_format || '-' }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ ver.component_count }}</td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ ver.environment || '-' }}</td>
-                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ ver.created_at | date:'short' }}</td>
-                  <td class="px-4 py-3">
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ ver.component_count }}</td>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ ver.environment || '-' }}</td>
+                  <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ ver.created_at | date:'short' }}</td>
+                  <td class="px-4 py-3 whitespace-nowrap">
                     <button
                       (click)="onViewScans(ver)"
                       class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium cursor-pointer"
@@ -256,31 +256,31 @@ Chart.register(...registerables);
                 <tbody>
                   @for (scan of scanResults(); track scan.id) {
                     <tr class="border-b border-slate-200 dark:border-slate-700">
-                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ scan.scanned_at | date:'short' }}</td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ scan.scanned_at | date:'short' }}</td>
+                      <td class="px-4 py-3 whitespace-nowrap">
                         @if (scan.status === 'completed') {
                           <span class="text-green-600 dark:text-green-400">{{ scan.status }}</span>
                         } @else {
                           <span class="text-red-600 dark:text-red-400">{{ scan.status }}</span>
                         }
                       </td>
-                      <td class="px-4 py-3 text-slate-900 dark:text-white font-medium">{{ scan.total_findings }}</td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 text-slate-900 dark:text-white font-medium whitespace-nowrap">{{ scan.total_findings }}</td>
+                      <td class="px-4 py-3 whitespace-nowrap">
                         @if (scan.new_findings > 0) {
                           <span class="text-red-600 dark:text-red-400">+{{ scan.new_findings }}</span>
                         } @else {
                           <span class="text-slate-400">0</span>
                         }
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 whitespace-nowrap">
                         @if (scan.resolved_findings > 0) {
                           <span class="text-green-600 dark:text-green-400">-{{ scan.resolved_findings }}</span>
                         } @else {
                           <span class="text-slate-400">0</span>
                         }
                       </td>
-                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400">{{ scan.trigger }}</td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3 text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ scan.trigger }}</td>
+                      <td class="px-4 py-3 whitespace-nowrap">
                         <a
                           [routerLink]="['/sbom', projectId, 'scans', scan.id]"
                           class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"

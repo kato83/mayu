@@ -45,9 +45,9 @@ export interface ParsedMetric {
           <tbody>
             @for (metric of parsedMetrics(); track metric.key) {
               <tr class="border-b border-slate-100 dark:border-slate-800">
-                <td class="py-1 pr-3 font-mono text-slate-600 dark:text-slate-300">{{ metric.key }}</td>
-                <td class="py-1 pr-3 text-slate-600 dark:text-slate-300">{{ metric.definition?.name ?? metric.key }}</td>
-                <td class="py-1 text-slate-600 dark:text-slate-300">
+                <td class="py-1 pr-3 font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ metric.key }}</td>
+                <td class="py-1 pr-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ metric.definition?.name ?? metric.key }}</td>
+                <td class="py-1 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                   <span class="font-mono">{{ metric.value }}</span>
                   @if (metric.valueLabel) {
                     <span> - {{ metric.valueLabel }}</span>
