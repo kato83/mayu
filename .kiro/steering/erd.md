@@ -32,6 +32,7 @@ erDiagram
         FLOAT8 epss_percentile "latest EPSS percentile"
         BOOLEAN in_kev "in CISA KEV catalog"
         FLOAT8 lev_score "LEV probability"
+        FLOAT8 composite_score "nullable, combined triage score"
         TEXT_ARRAY ecosystem_list "GIN indexed"
         TEXT_ARRAY cwe_list "GIN indexed"
         TIMESTAMPTZ computed_at
@@ -81,6 +82,8 @@ erDiagram
         TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
         TEXT schema_version
         TEXT source_ecosystem "GCS ecosystem folder name (Go, npm, GIT, NVD, Debian...)"
+        TEXT summary "nullable"
+        TEXT details "nullable"
         JSONB raw_json "Original OSV JSON (reversibility)"
         JSONB database_specific
     }
@@ -477,6 +480,8 @@ erDiagram
         SMALLINT severity_min "nullable, 1-5 scale"
         FLOAT8 epss_threshold "nullable, 0.0-1.0"
         BOOLEAN enabled "NOT NULL DEFAULT true"
+        BOOLEAN notify_email "NOT NULL DEFAULT false"
+        TEXT notify_email_to "nullable"
         TIMESTAMPTZ created_at "DEFAULT NOW()"
         TIMESTAMPTZ updated_at "DEFAULT NOW()"
     }
@@ -508,6 +513,7 @@ erDiagram
         BIGINT user_id FK "→ users(id) CASCADE"
         BIGINT team_id FK "→ teams(id) SET NULL, nullable"
         TEXT name "NOT NULL"
+        VARCHAR default_profile "nullable"
         TIMESTAMPTZ created_at "DEFAULT NOW()"
         TIMESTAMPTZ updated_at "DEFAULT NOW()"
     }
@@ -559,6 +565,130 @@ erDiagram
         TIMESTAMPTZ changed_at "DEFAULT NOW()"
     }
 
+    exploitdb_entries {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        INTEGER edb_id UK "NOT NULL"
+        TEXT file_path "nullable"
+        TEXT description "nullable"
+        DATE date_published "nullable"
+        TEXT author "nullable"
+        TEXT exploit_type "nullable"
+        TEXT platform "nullable"
+        INTEGER port "nullable"
+        DATE date_added "nullable"
+        DATE date_updated "nullable"
+        BOOLEAN verified "DEFAULT false"
+        TEXT_ARRAY codes "nullable"
+        TEXT_ARRAY tags "nullable"
+        TEXT_ARRAY aliases "nullable"
+        TEXT source_url "nullable"
+        TEXT vulnerability_id FK "→ vulnerabilities(id) SET NULL, nullable"
+    }
+
+    ghsa_entries {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT ghsa_id UK
+        TEXT vulnerability_id FK "→ vulnerabilities(id) CASCADE"
+        TEXT cve_id
+        TEXT summary
+        TEXT description
+        TEXT severity "critical, high, medium, low"
+        TEXT state "published, withdrawn"
+        TEXT html_url
+        TEXT cvss_v3_vector "nullable"
+        FLOAT8 cvss_v3_score "nullable"
+        TEXT cvss_v4_vector "nullable"
+        FLOAT8 cvss_v4_score "nullable"
+        TIMESTAMPTZ published_at
+        TIMESTAMPTZ updated_at
+        TIMESTAMPTZ withdrawn_at
+        JSONB raw_json "Full GitHub API response (reversibility)"
+    }
+
+    ghsa_vulnerabilities {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT ghsa_entry_id FK "→ ghsa_entries(id) CASCADE"
+        TEXT ecosystem
+        TEXT package_name
+        TEXT vulnerable_version_range
+        TEXT patched_versions
+        TEXT_ARRAY vulnerable_functions
+    }
+
+    ghsa_credits {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT ghsa_entry_id FK "→ ghsa_entries(id) CASCADE"
+        TEXT login
+        TEXT credit_type
+    }
+
+    ghsa_cwes {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT ghsa_entry_id FK "→ ghsa_entries(id) CASCADE"
+        TEXT cwe_id
+        TEXT name
+    }
+
+    ghsa_entries_translation {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT ghsa_entry_id FK "→ ghsa_entries(id) CASCADE"
+        TEXT locale "BCP 47"
+        TEXT summary
+        TEXT description
+        TIMESTAMPTZ translated_at "DEFAULT NOW()"
+    }
+
+    project_environment_profiles {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        BIGINT project_id FK "→ sbom_projects(id) CASCADE, NOT NULL"
+        VARCHAR environment "NOT NULL"
+        VARCHAR profile_name "NOT NULL"
+        TEXT description "nullable"
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+        TIMESTAMPTZ updated_at "DEFAULT NOW()"
+    }
+
+    triage_paths {
+        VARCHAR id PK "max 64 chars"
+        TEXT package_purl "NOT NULL"
+        VARCHAR current_version "NOT NULL"
+        VARCHAR target_version "NOT NULL"
+        VARCHAR ecosystem "NOT NULL"
+        FLOAT8 impact_score "NOT NULL"
+        VARCHAR max_priority_level "NOT NULL"
+        INT total_vuln_count "NOT NULL"
+        INT total_server_count "NOT NULL"
+        JSONB resolved_vulns "NOT NULL"
+        JSONB affected_servers "NOT NULL"
+        TIMESTAMPTZ computed_at "DEFAULT NOW()"
+    }
+
+    triage_profiles {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        VARCHAR name UK "NOT NULL"
+        TEXT description "DEFAULT empty"
+        VARCHAR base "nullable"
+        JSONB weights "NOT NULL"
+        JSONB thresholds "NOT NULL"
+        JSONB ssvc_mapping "nullable"
+        BIGINT created_by FK "→ users(id) SET NULL, nullable"
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+        TIMESTAMPTZ updated_at "DEFAULT NOW()"
+        FLOAT8 score_weight "NOT NULL DEFAULT 0.60"
+        VARCHAR act_floor "NOT NULL DEFAULT Critical"
+    }
+
+    translation_jobs {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT vulnerability_id "NOT NULL"
+        TEXT locale "NOT NULL"
+        TIMESTAMPTZ started_at "NOT NULL"
+        TIMESTAMPTZ finished_at "nullable"
+        TEXT status "NOT NULL DEFAULT running"
+        INTEGER fields_translated "nullable"
+        TEXT error_message "nullable"
+    }
+
     vulnerabilities ||--o{ vulnerability_aliases : "has"
     vulnerabilities ||--|| vulnerability_summary : "has"
     vulnerabilities ||--o{ product_identifiers : "has"
@@ -568,11 +698,17 @@ erDiagram
     vulnerabilities ||--o{ epss_scores : "has"
     vulnerabilities ||--o{ kev_entries : "has"
     vulnerabilities ||--o{ ghsa_entries : "has"
+    vulnerabilities ||--o{ exploitdb_entries : "has"
+    ghsa_entries ||--o{ ghsa_vulnerabilities : "has"
+    ghsa_entries ||--o{ ghsa_credits : "has"
+    ghsa_entries ||--o{ ghsa_cwes : "has"
+    ghsa_entries ||--o{ ghsa_entries_translation : "translated"
     vulnerability_aliases ||--o{ alias_sources : "sourced by"
     osv_entries ||--o{ osv_affected_packages : "has"
     osv_entries ||--o{ osv_severity : "top-level severity"
     osv_entries ||--o{ osv_references : "has"
     osv_entries ||--o{ osv_credits : "has"
+    osv_entries ||--o{ osv_entries_translation : "translated"
     osv_affected_packages ||--o{ osv_affected_ranges : "has"
     osv_affected_packages ||--o{ osv_severity : "per-package severity"
     nvd_entries ||--o{ nvd_descriptions : "has"
@@ -605,6 +741,7 @@ erDiagram
     vulnerabilities ||--o{ watchlist_matches : "has"
     users ||--o{ sbom_projects : "has"
     sbom_projects ||--o{ sbom_versions : "has"
+    sbom_projects ||--o{ project_environment_profiles : "has"
     sbom_versions ||--o{ sbom_scan_results : "has"
     sbom_versions ||--o{ sbom_finding_statuses : "has"
     sbom_finding_statuses ||--o{ sbom_finding_status_log : "has"
@@ -655,6 +792,15 @@ erDiagram
         TIMESTAMPTZ translated_at "DEFAULT NOW()"
     }
 
+    osv_entries_translation {
+        BIGINT id PK "GENERATED ALWAYS AS IDENTITY"
+        TEXT osv_entry_id FK "→ osv_entries(osv_id) CASCADE"
+        TEXT locale "NOT NULL"
+        TEXT summary "nullable"
+        TEXT details "nullable"
+        TIMESTAMPTZ translated_at "DEFAULT NOW()"
+    }
+
     vulnerabilities ||--o{ vulnerabilities_translation : "translated"
     kev_entries ||--o{ kev_entries_translation : "translated"
     nvd_descriptions ||--o{ nvd_descriptions_translation : "translated"
@@ -702,6 +848,7 @@ erDiagram
         FLOAT8 epss_percentile
         BOOLEAN in_kev
         FLOAT8 lev_score
+        FLOAT8 composite_score
         TEXT_ARRAY ecosystem_list
         TEXT_ARRAY cwe_list
         TIMESTAMPTZ computed_at
@@ -769,6 +916,8 @@ erDiagram
         TEXT vulnerability_id FK
         TEXT schema_version
         TEXT source_ecosystem "GCS ecosystem folder name (Go, npm, GIT, NVD, Debian...)"
+        TEXT summary "nullable"
+        TEXT details "nullable"
         JSONB raw_json
         JSONB database_specific
     }
@@ -1082,6 +1231,10 @@ erDiagram
         TEXT severity "critical, high, medium, low"
         TEXT state "published, withdrawn"
         TEXT html_url
+        TEXT cvss_v3_vector "nullable"
+        FLOAT8 cvss_v3_score "nullable"
+        TEXT cvss_v4_vector "nullable"
+        FLOAT8 cvss_v4_score "nullable"
         TIMESTAMPTZ published_at
         TIMESTAMPTZ updated_at
         TIMESTAMPTZ withdrawn_at
@@ -1231,6 +1384,8 @@ erDiagram
         SMALLINT severity_min
         FLOAT8 epss_threshold
         BOOLEAN enabled
+        BOOLEAN notify_email
+        TEXT notify_email_to
     }
 
     watchlist_matches {
@@ -1246,6 +1401,7 @@ erDiagram
         BIGINT user_id FK
         BIGINT team_id FK
         TEXT name
+        VARCHAR default_profile "nullable"
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
@@ -1297,6 +1453,16 @@ erDiagram
         TIMESTAMPTZ changed_at
     }
 
+    project_environment_profiles {
+        BIGINT id PK
+        BIGINT project_id FK
+        VARCHAR environment
+        VARCHAR profile_name
+        TEXT description
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
     users ||--o{ api_keys : "has"
     users ||--o{ sessions : "has"
     users ||--o{ team_members : "belongs to"
@@ -1310,6 +1476,7 @@ erDiagram
     webhooks ||--o{ webhook_delivery_logs : "has"
     watchlists ||--o{ watchlist_matches : "has"
     sbom_projects ||--o{ sbom_versions : "has"
+    sbom_projects ||--o{ project_environment_profiles : "has"
     sbom_versions ||--o{ sbom_scan_results : "has"
     sbom_versions ||--o{ sbom_finding_statuses : "has"
     sbom_finding_statuses ||--o{ sbom_finding_status_log : "has"
@@ -1397,11 +1564,110 @@ erDiagram
         TIMESTAMPTZ translated_at
     }
 
+    osv_entries {
+        TEXT osv_id PK
+        TEXT summary "nullable"
+        TEXT details "nullable"
+    }
+
+    osv_entries_translation {
+        BIGINT id PK
+        TEXT osv_entry_id FK
+        TEXT locale "NOT NULL"
+        TEXT summary "nullable"
+        TEXT details "nullable"
+        TIMESTAMPTZ translated_at
+    }
+
+    translation_jobs {
+        BIGINT id PK
+        TEXT vulnerability_id
+        TEXT locale
+        TIMESTAMPTZ started_at
+        TIMESTAMPTZ finished_at
+        TEXT status "DEFAULT running"
+        INTEGER fields_translated
+        TEXT error_message
+    }
+
     vulnerabilities ||--o{ vulnerabilities_translation : "translated"
     kev_entries ||--o{ kev_entries_translation : "translated"
     nvd_descriptions ||--o{ nvd_descriptions_translation : "translated"
     mitre_problem_types ||--o{ mitre_problem_types_translation : "translated"
     mitre_credits ||--o{ mitre_credits_translation : "translated"
+    osv_entries ||--o{ osv_entries_translation : "translated"
+```
+
+### Exploit-DB Data
+
+```mermaid
+erDiagram
+    vulnerabilities {
+        TEXT id PK
+    }
+
+    exploitdb_entries {
+        BIGINT id PK
+        INTEGER edb_id UK
+        TEXT file_path
+        TEXT description
+        DATE date_published
+        TEXT author
+        TEXT exploit_type
+        TEXT platform
+        INTEGER port
+        DATE date_added
+        DATE date_updated
+        BOOLEAN verified
+        TEXT_ARRAY codes
+        TEXT_ARRAY tags
+        TEXT_ARRAY aliases
+        TEXT source_url
+        TEXT vulnerability_id FK
+    }
+
+    vulnerabilities ||--o{ exploitdb_entries : "has"
+```
+
+### Triage
+
+```mermaid
+erDiagram
+    users {
+        BIGINT id PK
+    }
+
+    triage_paths {
+        VARCHAR id PK "max 64 chars"
+        TEXT package_purl
+        VARCHAR current_version
+        VARCHAR target_version
+        VARCHAR ecosystem
+        FLOAT8 impact_score
+        VARCHAR max_priority_level
+        INT total_vuln_count
+        INT total_server_count
+        JSONB resolved_vulns
+        JSONB affected_servers
+        TIMESTAMPTZ computed_at
+    }
+
+    triage_profiles {
+        BIGINT id PK
+        VARCHAR name UK
+        TEXT description
+        VARCHAR base
+        JSONB weights
+        JSONB thresholds
+        JSONB ssvc_mapping
+        BIGINT created_by FK
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+        FLOAT8 score_weight "NOT NULL DEFAULT 0.60"
+        VARCHAR act_floor "NOT NULL DEFAULT Critical"
+    }
+
+    users ||--o{ triage_profiles : "created"
 ```
 
 ---
@@ -1553,3 +1819,39 @@ Separate tables for mayu-generated translations, following the `{table_name}_tra
 - **UNIQUE constraint**: `(source_id, locale)` ensures one translation per language per source record.
 - **NULL columns**: Partial translations allowed (e.g., `summary` translated but `details` still NULL).
 - **CASCADE DELETE**: Translation rows are automatically deleted when the source record is removed.
+
+### `exploitdb_entries` Table
+Exploit-DB data from the official GitLab CSV repository.
+
+- UNIQUE: `(edb_id)`.
+- `verified`: Indicates whether the exploit has been verified by the Exploit-DB team.
+- `codes`: Array of related identifiers (CVE IDs, OSVDB, etc.) enabling cross-referencing with vulnerability records.
+- `aliases`: Additional aliases for reverse lookup.
+- FK to `vulnerabilities`: SET NULL on delete (exploits exist independently of vulnerability records).
+- Upsert strategy: ON CONFLICT DO UPDATE.
+
+### `triage_profiles` Table
+SSVC-based triage profiles with configurable weights and thresholds for automated vulnerability prioritization.
+
+- UNIQUE: `(name)`.
+- `weights`: JSONB object defining scoring weights for different factors (EPSS, CVSS, KEV, LEV, etc.).
+- `thresholds`: JSONB object defining priority level boundaries.
+- `ssvc_mapping`: Optional JSONB for SSVC decision tree customization.
+- `score_weight`: Overall weight for composite score calculation (0.0–1.0, default 0.60).
+- `act_floor`: Minimum priority level that triggers "Act" decision (Critical, High, Medium, Low).
+- Check constraints ensure `act_floor` is valid and `score_weight` is within range.
+
+### `triage_paths` Table
+Pre-computed upgrade paths for vulnerability remediation triage.
+
+- PK: `id` (VARCHAR 64, deterministic hash of purl + versions).
+- Contains resolved vulnerability counts and affected server information per upgrade path.
+- `computed_at`: Timestamp for cache invalidation.
+
+### `translation_jobs` Table
+Job tracking for asynchronous translation workflows.
+
+- Tracks per-vulnerability, per-locale translation progress.
+- `status`: Lifecycle states (`running`, `success`, `failed`).
+- `fields_translated`: Count of fields successfully translated in this job.
+- No FK to `vulnerabilities` — uses text `vulnerability_id` for loose coupling (translation may be attempted for IDs not yet in DB).
