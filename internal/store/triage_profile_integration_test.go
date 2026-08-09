@@ -21,6 +21,8 @@ func TestTriageProfileCRUD(t *testing.T) {
 			Name:        "test-profile",
 			Description: "A test profile",
 			Base:        "default",
+			ScoreWeight: 0.60,
+			ActFloor:    "Critical",
 			Weights:     weightsJSON,
 			Thresholds:  thresholdsJSON,
 			SSVCMapping: &ssvcJSON,
@@ -43,9 +45,11 @@ func TestTriageProfileCRUD(t *testing.T) {
 
 	t.Run("Create_DuplicateName", func(t *testing.T) {
 		row := &TriageProfileRow{
-			Name:       "test-profile",
-			Weights:    weightsJSON,
-			Thresholds: thresholdsJSON,
+			Name:        "test-profile",
+			ScoreWeight: 0.60,
+			ActFloor:    "Critical",
+			Weights:     weightsJSON,
+			Thresholds:  thresholdsJSON,
 		}
 		_, err := s.CreateTriageProfile(ctx, row)
 		if err == nil {
@@ -99,6 +103,8 @@ func TestTriageProfileCRUD(t *testing.T) {
 	t.Run("Update", func(t *testing.T) {
 		row := &TriageProfileRow{
 			Description: "Updated description",
+			ScoreWeight: 0.70,
+			ActFloor:    "High",
 			Weights:     weightsJSON,
 			Thresholds:  thresholdsJSON,
 		}
