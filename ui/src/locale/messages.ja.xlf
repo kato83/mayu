@@ -2394,6 +2394,34 @@
         <source>Loading...</source>
         <target>読み込み中...</target>
       </trans-unit>
+      <trans-unit id="teamDetail.nameLabel" datatype="html">
+        <source> Team Name </source>
+        <target> チーム名 </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.namePlaceholder" datatype="html">
+        <source>Team name</source>
+        <target>チーム名</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.descriptionLabel" datatype="html">
+        <source> Description </source>
+        <target> 説明 </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.descriptionPlaceholder" datatype="html">
+        <source>Team description (optional)</source>
+        <target>チームの説明（任意）</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.saveButton" datatype="html">
+        <source> Save </source>
+        <target> 保存 </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.cancelEditButton" datatype="html">
+        <source> Cancel </source>
+        <target> キャンセル </target>
+      </trans-unit>
+      <trans-unit id="teamDetail.editButton" datatype="html">
+        <source> Edit </source>
+        <target> 編集 </target>
+      </trans-unit>
       <trans-unit id="teamDetail.deleteButton" datatype="html">
         <source> Delete Team </source>
         <target> チームを削除 </target>
@@ -2517,6 +2545,14 @@
       <trans-unit id="teamDetail.confirmDeleteAction" datatype="html">
         <source>Delete</source>
         <target>削除</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.nameRequired" datatype="html">
+        <source>Team name is required</source>
+        <target>チーム名は必須です</target>
+      </trans-unit>
+      <trans-unit id="teamDetail.updateFailed" datatype="html">
+        <source>Failed to update team</source>
+        <target>チームの更新に失敗しました</target>
       </trans-unit>
       <trans-unit id="teams.title" datatype="html">
         <source> Teams </source>
